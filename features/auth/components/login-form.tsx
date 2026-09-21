@@ -66,7 +66,7 @@ export function LoginForm() {
           <FieldLabel htmlFor="email" className="sr-only">
             Email
           </FieldLabel>
-          <InputGroup className="h-11">
+          <InputGroup className="h-11 rounded-lg">
             <InputGroupAddon>
               <Mail aria-hidden="true" />
             </InputGroupAddon>
@@ -88,7 +88,7 @@ export function LoginForm() {
           <FieldLabel htmlFor="password" className="sr-only">
             Password
           </FieldLabel>
-          <InputGroup className="h-11">
+          <InputGroup className="h-11 rounded-lg">
             <InputGroupAddon>
               <LockKeyhole aria-hidden="true" />
             </InputGroupAddon>
@@ -134,7 +134,7 @@ export function LoginForm() {
       <Button
         type="submit"
         size="lg"
-        className="w-full"
+        className="w-full rounded-lg"
         disabled={loginMutation.isPending}
       >
         {loginMutation.isPending ? "Signing in…" : "Sign In"}
