@@ -6,21 +6,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   Dispatch,
   DispatchPostAction,
+  DispatchReceiveAction,
 } from "@/features/dispatches/types/dispatch.types";
 import { DispatchHistory } from "./dispatch-history";
 import { DispatchItemTable } from "./dispatch-item-table";
 import { DispatchPostControl } from "./dispatch-post-control";
+import { DispatchReceiveControl } from "./dispatch-receive-control";
 
 export function DispatchDetailView({
   dispatch,
   canDispatch,
   postAction,
+  canReceive,
+  receiveAction,
 }: {
   dispatch: Dispatch;
   canDispatch: boolean;
   postAction: DispatchPostAction;
+  canReceive: boolean;
+  receiveAction: DispatchReceiveAction;
 }) {
   const showPostControl = dispatch.status === "DRAFT" && canDispatch;
+  const showReceiveControl =
+    (dispatch.status === "IN_TRANSIT" ||
+      dispatch.status === "PARTIALLY_RECEIVED") &&
+    canReceive;
 
   return (
     <div className="flex flex-col gap-6">
@@ -39,6 +49,9 @@ export function DispatchDetailView({
         </Link>
         {showPostControl && (
           <DispatchPostControl dispatchId={dispatch.id} action={postAction} />
+        )}
+        {showReceiveControl && (
+          <DispatchReceiveControl dispatch={dispatch} action={receiveAction} />
         )}
       </div>
       <Card>

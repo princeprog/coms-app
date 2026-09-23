@@ -3,7 +3,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Dispatch } from "@/features/dispatches/types/dispatch.types";
-import type { DispatchPostAction } from "@/features/dispatches/types/dispatch.types";
+import type {
+  DispatchPostAction,
+  DispatchReceiveAction,
+} from "@/features/dispatches/types/dispatch.types";
 import { DispatchDetailView } from "./dispatch-detail-view";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -120,6 +123,8 @@ describe("dispatch detail view", () => {
         dispatch={dispatch}
         canDispatch={false}
         postAction={vi.fn<DispatchPostAction>()}
+        canReceive={false}
+        receiveAction={vi.fn<DispatchReceiveAction>()}
       />,
     );
 
@@ -160,6 +165,8 @@ describe("dispatch detail view", () => {
         }}
         canDispatch={false}
         postAction={vi.fn<DispatchPostAction>()}
+        canReceive={false}
+        receiveAction={vi.fn<DispatchReceiveAction>()}
       />,
     );
 
@@ -177,9 +184,25 @@ describe("dispatch detail view", () => {
         dispatch={{ ...dispatch, status: "DRAFT" }}
         canDispatch={true}
         postAction={vi.fn<DispatchPostAction>()}
+        canReceive={false}
+        receiveAction={vi.fn<DispatchReceiveAction>()}
       />,
     );
 
     expect(screen.getByRole("button", { name: "Post dispatch" })).toBeTruthy();
+  });
+
+  it("offers partial receiving only for transit quantities and granted access", () => {
+    render(
+      <DispatchDetailView
+        dispatch={dispatch}
+        canDispatch={false}
+        postAction={vi.fn<DispatchPostAction>()}
+        canReceive={true}
+        receiveAction={vi.fn<DispatchReceiveAction>()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Receive stock" })).toBeTruthy();
   });
 });

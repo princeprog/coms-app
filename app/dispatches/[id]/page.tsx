@@ -4,7 +4,10 @@ import { AuthServiceError } from "@/features/auth/components/auth-service-error"
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
-import { postDispatchAction } from "@/features/dispatches/services/dispatch-actions";
+import {
+  postDispatchAction,
+  receiveDispatchAction,
+} from "@/features/dispatches/services/dispatch-actions";
 import { DispatchDetailView } from "@/features/dispatches/components/dispatch-detail-view";
 import { loadDispatchDetailView } from "@/features/dispatches/services/dispatch-page-loader";
 
@@ -38,6 +41,8 @@ export default async function DispatchDetailPage({
         dispatch={view.dispatch}
         canDispatch={view.canDispatch}
         postAction={postDispatchAction}
+        canReceive={view.canReceive}
+        receiveAction={receiveDispatchAction}
       />
     </AppPageShell>
   );
