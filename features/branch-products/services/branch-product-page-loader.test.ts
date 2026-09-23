@@ -195,4 +195,35 @@ describe("branch product page loader", () => {
       href: `/branch-products?branch_id=${branchId}&search=chicken`,
     });
   });
+
+  it("preserves branch filters when the branch or offer list is unavailable", async () => {
+    getBranchProductPageData.mockRejectedValueOnce(
+      new ApiRequestError("missing", 404),
+    );
+    await expect(
+      loadBranchProductsView(user(["branch_products.read"]), {
+        search: "chicken",
+      }),
+    ).resolves.toEqual({
+      status: "branch-unavailable",
+      branchOptions: [
+        { id: branchId, name: "Assigned branch", status: "unknown" },
+      ],
+      filters: { page: 1, search: "chicken" },
+      message: "This branch is no longer available. Choose another branch.",
+    });
+
+    getBranchProductPageData.mockRejectedValueOnce(
+      new ApiRequestError("unavailable", 503),
+    );
+    await expect(
+      loadBranchProductsView(user(["branch_products.read"]), {
+        search: "chicken",
+      }),
+    ).resolves.toMatchObject({
+      status: "branch-products-error",
+      selectedBranch: { id: branchId },
+      filters: { page: 1, search: "chicken" },
+    });
+  });
 });

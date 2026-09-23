@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { navItems } from "@/components/app-sidebar";
 import { authTestSessionUser, authTestUser } from "@/test/auth-fixtures";
 import {
   filterNavigationForUser,
@@ -36,6 +37,24 @@ describe("permission aware navigation", () => {
       ),
     ).toEqual(recipes);
     expect(filterNavigationForUser(authTestUser, recipes)).toEqual([]);
+  });
+
+  it("reveals branch product configuration only with branch_products.read", () => {
+    const branchProducts = navItems.find(
+      (item) => item.url === "/branch-products",
+    );
+    expect(branchProducts).toMatchObject({
+      title: "Branch Products",
+      permission: "branch_products.read",
+    });
+    if (!branchProducts) throw new Error("Branch product nav item is missing");
+    expect(
+      filterNavigationForUser(
+        { ...authTestSessionUser, permissions: ["branch_products.read"] },
+        [branchProducts],
+      ),
+    ).toEqual([branchProducts]);
+    expect(filterNavigationForUser(authTestUser, [branchProducts])).toEqual([]);
   });
 
   it("recognizes only an active protected Super Admin bypass", () => {

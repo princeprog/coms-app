@@ -23,11 +23,17 @@ export type BranchProductsViewResult =
   | { status: "forbidden" }
   | { status: "session-expired" }
   | { status: "branch-options-error" }
-  | { status: "branch-products-error" }
+  | {
+      status: "branch-products-error";
+      branchOptions: BranchProductBranchOption[];
+      selectedBranch: BranchProductBranchOption;
+      filters: ReturnType<typeof parseBranchProductFilters>;
+    }
   | { status: "redirect"; href: string }
   | {
       status: "branch-unavailable";
       branchOptions: BranchProductBranchOption[];
+      filters: ReturnType<typeof parseBranchProductFilters>;
       message: string;
     }
   | {
@@ -101,6 +107,7 @@ export async function loadBranchProductsView(
     return {
       status: "branch-unavailable",
       branchOptions,
+      filters,
       message: isSuperAdmin
         ? "Create a branch before configuring branch products."
         : "Ask an administrator to assign a branch before viewing branch products.",
@@ -130,10 +137,16 @@ export async function loadBranchProductsView(
       return {
         status: "branch-unavailable",
         branchOptions,
+        filters,
         message: "This branch is no longer available. Choose another branch.",
       };
     }
-    return { status: "branch-products-error" };
+    return {
+      status: "branch-products-error",
+      branchOptions,
+      selectedBranch,
+      filters,
+    };
   }
 
   const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));

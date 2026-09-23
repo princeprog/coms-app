@@ -33,7 +33,7 @@ import {
   ChefHatIcon,
 } from "lucide-react";
 
-const navItems = [
+export const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: <LayoutDashboardIcon /> },
   {
     title: "Inventory",
@@ -82,6 +82,12 @@ const navItems = [
     url: "/recipes",
     permission: "recipes.read",
     icon: <ChefHatIcon />,
+  },
+  {
+    title: "Branch Products",
+    url: "/branch-products",
+    permission: "branch_products.read",
+    icon: <StoreIcon />,
   },
   {
     title: "Point of Sale",
