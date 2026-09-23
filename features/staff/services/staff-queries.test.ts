@@ -14,7 +14,10 @@ vi.mock("@/services/server-api-services", () => ({
 }));
 
 import { ApiRequestError } from "@/services/api-services";
-import { getStaffPageData } from "@/features/staff/services/staff-queries";
+import {
+  getStaffBranchOptions,
+  getStaffPageData,
+} from "@/features/staff/services/staff-queries";
 
 const staffPage = {
   items: [
@@ -35,8 +38,74 @@ const staffPage = {
   page_size: 25,
 };
 
+function branchOption(index: number) {
+  return {
+    id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    code: `BR-${index}`,
+    branch_name: `Branch ${index}`,
+    address: null,
+    date_opened: null,
+    has_dine_in: false,
+    status: "active",
+  };
+}
+
 describe("staff queries", () => {
   beforeEach(() => requestComsApiMock.mockReset());
+
+  it("loads every branch option across validated API pages", async () => {
+    requestComsApiMock
+      .mockResolvedValueOnce({
+        items: Array.from({ length: 100 }, (_, index) =>
+          branchOption(index + 1),
+        ),
+        total: 101,
+        page: 1,
+        page_size: 100,
+      })
+      .mockResolvedValueOnce({
+        items: [branchOption(101)],
+        total: 101,
+        page: 2,
+        page_size: 100,
+      });
+
+    const options = await getStaffBranchOptions();
+
+    expect(options).toHaveLength(101);
+    expect(options[0]).toEqual({
+      id: "00000000-0000-4000-8000-000000000001",
+      name: "Branch 1",
+    });
+    expect(options[100]).toEqual({
+      id: "00000000-0000-4000-8000-000000000101",
+      name: "Branch 101",
+    });
+    expect(requestComsApiMock.mock.calls.map(([endpoint]) => endpoint)).toEqual(
+      ["/branches?page=1&page_size=100", "/branches?page=2&page_size=100"],
+    );
+  });
+
+  it("uses the API's returned page size when loading branch options", async () => {
+    requestComsApiMock
+      .mockResolvedValueOnce({
+        items: Array.from({ length: 25 }, (_, index) =>
+          branchOption(index + 1),
+        ),
+        total: 26,
+        page: 1,
+        page_size: 25,
+      })
+      .mockResolvedValueOnce({
+        items: [branchOption(26)],
+        total: 26,
+        page: 2,
+        page_size: 25,
+      });
+
+    await expect(getStaffBranchOptions()).resolves.toHaveLength(26);
+    expect(requestComsApiMock).toHaveBeenCalledTimes(2);
+  });
 
   it("requests and validates one branch-scoped staff page", async () => {
     requestComsApiMock.mockResolvedValue(staffPage);
