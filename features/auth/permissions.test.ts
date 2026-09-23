@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { authTestSessionUser, authTestUser } from "@/test/auth-fixtures";
-import { filterNavigationForUser, hasPermission } from "./permissions";
+import {
+  filterNavigationForUser,
+  hasBranchScope,
+  hasPermission,
+} from "./permissions";
 
 const items = [
   { title: "Dashboard", url: "/dashboard" },
@@ -46,6 +50,43 @@ describe("permission aware navigation", () => {
           role: { ...superAdmin.role, isSystem: false },
         },
         "staff.deactivate",
+      ),
+    ).toBe(false);
+  });
+
+  it("limits branch actions to assigned branches except for active Super Admin", () => {
+    const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+    const assignedUser = {
+      ...authTestSessionUser,
+      branch_ids: [branchId],
+    };
+    expect(hasBranchScope(assignedUser, branchId)).toBe(true);
+    expect(
+      hasBranchScope(assignedUser, "550e8400-e29b-41d4-a716-446655440000"),
+    ).toBe(false);
+    expect(hasBranchScope(authTestUser, branchId)).toBe(false);
+
+    const superAdmin = {
+      ...authTestUser,
+      role: {
+        id: "2",
+        code: "SUPER_ADMIN",
+        name: "Super Admin",
+        isSystem: true,
+        isActive: true,
+      },
+    };
+    expect(hasBranchScope(superAdmin, branchId)).toBe(true);
+    expect(
+      hasBranchScope(
+        { ...superAdmin, role: { ...superAdmin.role, isActive: false } },
+        branchId,
+      ),
+    ).toBe(false);
+    expect(
+      hasBranchScope(
+        { ...superAdmin, role: { ...superAdmin.role, isSystem: false } },
+        branchId,
       ),
     ).toBe(false);
   });
