@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Role } from "@/features/roles/types/role.types";
 import { createStaffAction } from "@/features/staff/services/staff-actions";
 import { StaffBranchAssignments } from "@/features/staff/components/staff-branch-assignments";
-import type { StaffBranchOption } from "@/features/staff/components/staff-card";
 import { StaffCreateFields } from "@/features/staff/components/staff-create-fields";
-import type { StaffMutationResult } from "@/features/staff/types/staff.types";
+import type {
+  StaffBranchOption,
+  StaffMutationResult,
+} from "@/features/staff/types/staff.types";
 
 export function StaffCreateForm({
   roles,

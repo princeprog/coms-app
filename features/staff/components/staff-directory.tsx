@@ -4,13 +4,14 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaffCreateSection } from "@/features/staff/components/staff-create-section";
 import { StaffDirectoryFilters } from "@/features/staff/components/staff-directory-filters";
-import {
-  StaffCard,
-  type StaffBranchOption,
-} from "@/features/staff/components/staff-card";
+import { StaffCard } from "@/features/staff/components/staff-card";
 import { createStaffPageHref } from "@/features/staff/services/staff-page-params";
 import type { Role } from "@/features/roles/types/role.types";
-import type { StaffPage } from "@/features/staff/types/staff.types";
+import type {
+  StaffBranchOption,
+  StaffManagementPermissions,
+  StaffPage,
+} from "@/features/staff/types/staff.types";
 
 export function StaffDirectory({
   staff,
@@ -22,6 +23,15 @@ export function StaffDirectory({
   canReadRoles,
   roleOptions,
   roleOptionsFailed,
+  currentUserId = "",
+  managementPermissions = {
+    canUpdate: false,
+    canAssignRole: false,
+    canAssignBranches: false,
+    canDeactivate: false,
+    canReadRoles: false,
+    canReadBranches: false,
+  },
 }: {
   staff: StaffPage;
   branchOptions: StaffBranchOption[];
@@ -32,6 +42,8 @@ export function StaffDirectory({
   canReadRoles: boolean;
   roleOptions: Role[];
   roleOptionsFailed: boolean;
+  currentUserId?: string;
+  managementPermissions?: StaffManagementPermissions;
 }) {
   const pageCount = Math.max(1, Math.ceil(staff.total / staff.page_size));
 
@@ -78,6 +90,12 @@ export function StaffDirectory({
                 key={member.id}
                 staff={member}
                 branchOptions={branchOptions}
+                roles={roleOptions}
+                rolesFailed={roleOptionsFailed}
+                branchId={selectedBranchId}
+                currentUserId={currentUserId}
+                isSuperAdmin={isSuperAdmin}
+                permissions={managementPermissions}
               />
             ))}
           </div>

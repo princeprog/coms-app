@@ -1,4 +1,4 @@
-import type { StaffBranchOption } from "@/features/staff/components/staff-card";
+import type { StaffBranchOption } from "@/features/staff/types/staff.types";
 
 const MAX_BRANCH_ASSIGNMENTS = 100;
 

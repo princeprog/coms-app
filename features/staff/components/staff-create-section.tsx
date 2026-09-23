@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StaffCreateForm } from "@/features/staff/components/staff-create-form";
-import type { StaffBranchOption } from "@/features/staff/components/staff-card";
 import type { Role } from "@/features/roles/types/role.types";
+import type { StaffBranchOption } from "@/features/staff/types/staff.types";
 
 export function StaffCreateSection({
   roles,

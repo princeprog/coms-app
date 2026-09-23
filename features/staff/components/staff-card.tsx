@@ -1,15 +1,33 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { StaffMember } from "@/features/staff/types/staff.types";
+import { StaffMemberActions } from "@/features/staff/components/staff-member-actions";
+import type { Role } from "@/features/roles/types/role.types";
+import type {
+  StaffBranchOption,
+  StaffManagementPermissions,
+  StaffMember,
+} from "@/features/staff/types/staff.types";
 
-export type StaffBranchOption = { id: string; name: string };
+export type { StaffBranchOption } from "@/features/staff/types/staff.types";
 
 export function StaffCard({
   staff,
   branchOptions,
+  roles,
+  rolesFailed,
+  branchId,
+  currentUserId,
+  isSuperAdmin,
+  permissions,
 }: {
   staff: StaffMember;
   branchOptions: StaffBranchOption[];
+  roles: Role[];
+  rolesFailed: boolean;
+  branchId?: string;
+  currentUserId: string;
+  isSuperAdmin: boolean;
+  permissions: StaffManagementPermissions;
 }) {
   const branchNames = new Map(
     branchOptions.map((branch) => [branch.id, branch.name]),
@@ -43,6 +61,16 @@ export function StaffCard({
                 .join(", ")
             : "None assigned"}
         </div>
+        <StaffMemberActions
+          staff={staff}
+          branches={branchOptions}
+          roles={roles}
+          rolesFailed={rolesFailed}
+          branchId={branchId}
+          currentUserId={currentUserId}
+          isSuperAdmin={isSuperAdmin}
+          permissions={permissions}
+        />
       </CardContent>
     </Card>
   );

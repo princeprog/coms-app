@@ -18,7 +18,10 @@ import {
   parseStaffPageFilters,
   resolveStaffBranchSelection,
 } from "@/features/staff/services/staff-page-params";
-import type { StaffPage } from "@/features/staff/types/staff.types";
+import type {
+  StaffManagementPermissions,
+  StaffPage,
+} from "@/features/staff/types/staff.types";
 import { ApiRequestError } from "@/services/api-services";
 
 function isProtectedSuperAdmin(user: {
@@ -99,6 +102,18 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
           canReadBranches={hasPermission(session.user, "branches.read")}
           canCreateStaff={hasPermission(session.user, "staff.create")}
           canReadRoles={hasPermission(session.user, "roles.read")}
+          currentUserId={session.user.id}
+          managementPermissions={{
+            canUpdate: hasPermission(session.user, "staff.update"),
+            canAssignRole: hasPermission(session.user, "staff.role_assign"),
+            canAssignBranches: hasPermission(
+              session.user,
+              "staff.branch_assign",
+            ),
+            canDeactivate: hasPermission(session.user, "staff.deactivate"),
+            canReadRoles: hasPermission(session.user, "roles.read"),
+            canReadBranches: hasPermission(session.user, "branches.read"),
+          }}
         />
       )}
     </AppPageShell>
@@ -114,6 +129,8 @@ async function StaffDirectoryPageContent({
   canReadBranches,
   canCreateStaff,
   canReadRoles,
+  currentUserId,
+  managementPermissions,
 }: {
   page: number;
   search: string;
@@ -123,6 +140,8 @@ async function StaffDirectoryPageContent({
   canReadBranches: boolean;
   canCreateStaff: boolean;
   canReadRoles: boolean;
+  currentUserId: string;
+  managementPermissions: StaffManagementPermissions;
 }) {
   const branchIdSet = new Set(assignedBranchIds);
   let branchOptions = isSuperAdmin
@@ -166,7 +185,7 @@ async function StaffDirectoryPageContent({
 
   let roleOptions: Role[] = [];
   let roleOptionsFailed = false;
-  if (canCreateStaff && canReadRoles) {
+  if ((canCreateStaff || managementPermissions.canAssignRole) && canReadRoles) {
     try {
       roleOptions = await getStaffRoleOptions();
     } catch (error) {
@@ -187,6 +206,8 @@ async function StaffDirectoryPageContent({
       canReadRoles={canReadRoles}
       roleOptions={roleOptions}
       roleOptionsFailed={roleOptionsFailed}
+      currentUserId={currentUserId}
+      managementPermissions={managementPermissions}
     />
   );
 }
