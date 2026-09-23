@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { requestComsApi } from "./server-api-services";
 
 vi.mock("server-only", () => ({}));
@@ -48,5 +48,28 @@ describe("server COMS API requests", () => {
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect((init.headers as Headers).has("cookie")).toBe(false);
+  });
+
+  it("forwards a feature idempotency header without replacing the gateway header", async () => {
+    const gatewaySecret = randomBytes(32).toString("hex");
+    const idempotencyKey = randomUUID();
+    vi.stubEnv("COMS_API_BASE_URL", "https://api.example.test/");
+    vi.stubEnv("COMS_AUTH_GATEWAY_SECRET", gatewaySecret);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ id: randomUUID() })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await requestComsApi("/supplier-receipts", {
+      cookieHeader: null,
+      method: "POST",
+      body: { supplier_id: randomUUID() },
+      headers: { "Idempotency-Key": idempotencyKey },
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Headers;
+    expect(headers.get("idempotency-key")).toBe(idempotencyKey);
+    expect(headers.get("x-coms-auth-gateway")).toBe(gatewaySecret);
   });
 });

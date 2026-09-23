@@ -6,7 +6,7 @@ import { requestApi, type ApiRequestOptions } from "@/services/api-services";
 
 export type ComsServerRequestOptions = Pick<
   ApiRequestOptions,
-  "method" | "body"
+  "method" | "body" | "headers"
 > & {
   cookieHeader: string | null;
 };
@@ -15,9 +15,14 @@ export function requestComsApi<T>(
   endpoint: string,
   options: ComsServerRequestOptions,
 ): Promise<T> {
+  const headers = new Headers(options.headers);
+  new Headers(getAuthGatewayHeaders()).forEach((value, key) => {
+    headers.set(key, value);
+  });
+
   return requestApi<T>(endpoint, {
     baseUrl: getComsApiBaseUrl(),
-    headers: getAuthGatewayHeaders(),
+    headers,
     cookie: getAccessCookieHeader(options.cookieHeader),
     method: options.method,
     body: options.body,
