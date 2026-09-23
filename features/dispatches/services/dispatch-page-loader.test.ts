@@ -93,6 +93,15 @@ describe("dispatch page loader", () => {
     });
   });
 
+  it("enables the approved-request link only for users who can create dispatches", async () => {
+    await expect(
+      loadDispatchIndexView(user(["dispatches.read", "dispatches.create"]), {}),
+    ).resolves.toMatchObject({ status: "ready", canCreate: true });
+    await expect(
+      loadDispatchIndexView(user(["dispatches.read"]), {}),
+    ).resolves.toMatchObject({ status: "ready", canCreate: false });
+  });
+
   it("shows only workflow actions granted to the assigned branch user", async () => {
     await expect(
       loadDispatchDetailView(

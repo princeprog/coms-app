@@ -24,6 +24,7 @@ export type DispatchIndexViewResult =
       status: "ready";
       page: DispatchPage;
       filters: ReturnType<typeof parseDispatchPageFilters>;
+      canCreate: boolean;
     };
 
 export type DispatchDetailViewResult =
@@ -71,7 +72,12 @@ export async function loadDispatchIndexView(
       href: createDispatchHref({ ...filters, page: pageCount }),
     };
 
-  return { status: "ready", page, filters };
+  return {
+    status: "ready",
+    page,
+    filters,
+    canCreate: hasPermission(user, "dispatches.create"),
+  };
 }
 
 export async function loadDispatchDetailView(

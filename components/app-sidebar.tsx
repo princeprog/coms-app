@@ -21,6 +21,7 @@ import {
   BoxesIcon,
   ClipboardListIcon,
   TruckIcon,
+  SendIcon,
   PackageIcon,
   StoreIcon,
   FileChartColumnIcon,
@@ -56,6 +57,12 @@ const navItems = [
     url: "/receipts",
     permission: "supplier_receipts.read",
     icon: <ClipboardListIcon />,
+  },
+  {
+    title: "Dispatches",
+    url: "/dispatches",
+    permission: "dispatches.read",
+    icon: <SendIcon />,
   },
   {
     title: "Replenishment",
