@@ -46,11 +46,15 @@ async function mutateStaff(
   }
 }
 
-function isValidTarget(id: string, branchId: string): boolean {
-  return UUID_PATTERN.test(id) && UUID_PATTERN.test(branchId);
+function isValidTarget(id: string, branchId: string | undefined): boolean {
+  return (
+    UUID_PATTERN.test(id) &&
+    (branchId === undefined || UUID_PATTERN.test(branchId))
+  );
 }
 
-function scopedEndpoint(path: string, branchId: string): string {
+function scopedEndpoint(path: string, branchId: string | undefined): string {
+  if (branchId === undefined) return path;
   const query = new URLSearchParams({ branch_id: branchId });
   return `${path}?${query}`;
 }
@@ -65,7 +69,7 @@ export async function createStaffAction(
 
 export async function updateStaffAction(
   id: string,
-  branchId: string,
+  branchId: string | undefined,
   input: unknown,
 ): Promise<StaffMutationResult> {
   const parsed = updateStaffSchema.safeParse(input);
@@ -81,7 +85,7 @@ export async function updateStaffAction(
 
 export async function assignStaffRoleAction(
   id: string,
-  branchId: string,
+  branchId: string | undefined,
   input: unknown,
 ): Promise<StaffMutationResult> {
   const parsed = assignStaffRoleSchema.safeParse(input);
@@ -97,7 +101,7 @@ export async function assignStaffRoleAction(
 
 export async function assignStaffBranchesAction(
   id: string,
-  branchId: string,
+  branchId: string | undefined,
   input: unknown,
 ): Promise<StaffMutationResult> {
   const parsed = assignStaffBranchesSchema.safeParse(input);
@@ -113,7 +117,7 @@ export async function assignStaffBranchesAction(
 
 export async function deactivateStaffAction(
   id: string,
-  branchId: string,
+  branchId: string | undefined,
 ): Promise<StaffMutationResult> {
   if (!isValidTarget(id, branchId)) {
     return { ok: false, error: "Check the selected staff account." };

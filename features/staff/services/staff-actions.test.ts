@@ -94,9 +94,34 @@ describe("staff actions", () => {
     );
   });
 
+  it("supports global Super Admin mutations without a selected branch filter", async () => {
+    await updateStaffAction(staffId, undefined, {
+      full_name: "Alex Updated",
+    });
+    await assignStaffRoleAction(staffId, undefined, {
+      role_id: "4",
+    });
+    await assignStaffBranchesAction(staffId, undefined, {
+      branch_ids: [],
+    });
+    await deactivateStaffAction(staffId, undefined);
+
+    expect(requestComsApiMock.mock.calls.map(([endpoint]) => endpoint)).toEqual(
+      [
+        `/staff/${staffId}`,
+        `/staff/${staffId}/role`,
+        `/staff/${staffId}/branches`,
+        `/staff/${staffId}/deactivate`,
+      ],
+    );
+  });
+
   it("rejects invalid IDs locally and maps stale branch access errors", async () => {
     await expect(
       updateStaffAction("not-a-user-id", branchId, { full_name: "Alex" }),
+    ).resolves.toMatchObject({ ok: false });
+    await expect(
+      updateStaffAction(staffId, "", { full_name: "Alex" }),
     ).resolves.toMatchObject({ ok: false });
     expect(requestComsApiMock).not.toHaveBeenCalled();
 
