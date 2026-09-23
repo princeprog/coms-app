@@ -17,6 +17,7 @@ import { ApiRequestError } from "@/services/api-services";
 import {
   getStaffBranchOptions,
   getStaffPageData,
+  getStaffRoleOptions,
 } from "@/features/staff/services/staff-queries";
 
 const staffPage = {
@@ -38,7 +39,7 @@ const staffPage = {
   page_size: 25,
 };
 
-function branchOption(index: number) {
+function branchOption(index: number, status: "active" | "inactive" = "active") {
   return {
     id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
     code: `BR-${index}`,
@@ -46,7 +47,7 @@ function branchOption(index: number) {
     address: null,
     date_opened: null,
     has_dine_in: false,
-    status: "active",
+    status,
   };
 }
 
@@ -105,6 +106,55 @@ describe("staff queries", () => {
 
     await expect(getStaffBranchOptions()).resolves.toHaveLength(26);
     expect(requestComsApiMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("excludes inactive branches from staff assignment options", async () => {
+    requestComsApiMock.mockResolvedValue({
+      items: [branchOption(1), branchOption(2, "inactive")],
+      total: 2,
+      page: 1,
+      page_size: 100,
+    });
+
+    await expect(getStaffBranchOptions()).resolves.toEqual([
+      { id: "00000000-0000-4000-8000-000000000001", name: "Branch 1" },
+    ]);
+  });
+
+  it("offers only active roles that can be assigned to staff", async () => {
+    requestComsApiMock.mockResolvedValue([
+      {
+        id: "4",
+        code: "BRANCH_MANAGER",
+        role_name: "Branch Manager",
+        is_system: false,
+        is_active: true,
+        permission_keys: ["staff.read"],
+      },
+      {
+        id: "2",
+        code: "SUPER_ADMIN",
+        role_name: "Super Admin",
+        is_system: true,
+        is_active: true,
+        permission_keys: [],
+      },
+      {
+        id: "5",
+        code: "OLD_ROLE",
+        role_name: "Old role",
+        is_system: false,
+        is_active: false,
+        permission_keys: [],
+      },
+    ]);
+
+    await expect(getStaffRoleOptions()).resolves.toEqual([
+      expect.objectContaining({ id: "4", code: "BRANCH_MANAGER" }),
+    ]);
+    expect(requestComsApiMock).toHaveBeenCalledWith("/roles", {
+      cookieHeader: "coms_access=test",
+    });
   });
 
   it("requests and validates one branch-scoped staff page", async () => {

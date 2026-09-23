@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { StaffDirectory } from "@/features/staff/components/staff-directory";
+
+vi.mock("@/features/staff/services/staff-actions", () => ({
+  createStaffAction: vi.fn(),
+}));
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const staffPage = {
@@ -38,6 +42,10 @@ function renderDirectory(
       selectedBranchId={branchId}
       search="Alex"
       isSuperAdmin={false}
+      canCreateStaff={false}
+      canReadRoles={false}
+      roleOptions={[]}
+      roleOptionsFailed={false}
       {...overrides}
     />,
   );

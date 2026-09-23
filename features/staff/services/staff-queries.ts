@@ -5,6 +5,7 @@ import { staffEndpoints } from "@/features/staff/constants";
 import { staffPageSchema } from "@/features/staff/schemas/staff.schema";
 import type { StaffPage } from "@/features/staff/types/staff.types";
 import { branchesResponseSchema } from "@/features/branches/schemas/branch.schema";
+import { rolesResponseSchema } from "@/features/roles/schemas/role.schema";
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
 
@@ -61,10 +62,9 @@ export async function getStaffBranchOptions(): Promise<
   const firstPage = await getPage(1);
   const pageCount = Math.ceil(firstPage.total / firstPage.page_size);
   if (pageCount < 2) {
-    return firstPage.items.map((branch) => ({
-      id: branch.id,
-      name: branch.branch_name,
-    }));
+    return firstPage.items
+      .filter((branch) => branch.status === "active")
+      .map((branch) => ({ id: branch.id, name: branch.branch_name }));
   }
 
   const remainingPages = await Promise.all(
@@ -81,9 +81,22 @@ export async function getStaffBranchOptions(): Promise<
   }
 
   return [firstPage, ...remainingPages].flatMap((page) =>
-    page.items.map((branch) => ({
-      id: branch.id,
-      name: branch.branch_name,
-    })),
+    page.items
+      .filter((branch) => branch.status === "active")
+      .map((branch) => ({ id: branch.id, name: branch.branch_name })),
+  );
+}
+
+export async function getStaffRoleOptions() {
+  const payload = await requestComsApi<unknown>("/roles", {
+    cookieHeader: (await cookies()).toString(),
+  });
+  const parsed = rolesResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiRequestError("Invalid staff role options response.", 502);
+  }
+  return parsed.data.filter(
+    (role) =>
+      role.is_active && !(role.is_system && role.code === "SUPER_ADMIN"),
   );
 }

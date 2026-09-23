@@ -6,10 +6,12 @@ import { AuthServiceError } from "@/features/auth/components/auth-service-error"
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { hasPermission } from "@/features/auth/permissions";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
+import type { Role } from "@/features/roles/types/role.types";
 import { StaffDirectory } from "@/features/staff/components/staff-directory";
 import {
   getStaffBranchOptions,
   getStaffPageData,
+  getStaffRoleOptions,
 } from "@/features/staff/services/staff-queries";
 import {
   createStaffPageHref,
@@ -95,6 +97,8 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
           isSuperAdmin={isSuperAdmin}
           assignedBranchIds={session.user.branch_ids ?? []}
           canReadBranches={hasPermission(session.user, "branches.read")}
+          canCreateStaff={hasPermission(session.user, "staff.create")}
+          canReadRoles={hasPermission(session.user, "roles.read")}
         />
       )}
     </AppPageShell>
@@ -108,6 +112,8 @@ async function StaffDirectoryPageContent({
   isSuperAdmin,
   assignedBranchIds,
   canReadBranches,
+  canCreateStaff,
+  canReadRoles,
 }: {
   page: number;
   search: string;
@@ -115,6 +121,8 @@ async function StaffDirectoryPageContent({
   isSuperAdmin: boolean;
   assignedBranchIds: string[];
   canReadBranches: boolean;
+  canCreateStaff: boolean;
+  canReadRoles: boolean;
 }) {
   const branchIdSet = new Set(assignedBranchIds);
   let branchOptions = isSuperAdmin
@@ -156,6 +164,18 @@ async function StaffDirectoryPageContent({
     redirect(createStaffPageHref(lastPage, selectedBranchId, search));
   }
 
+  let roleOptions: Role[] = [];
+  let roleOptionsFailed = false;
+  if (canCreateStaff && canReadRoles) {
+    try {
+      roleOptions = await getStaffRoleOptions();
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401)
+        redirect("/");
+      roleOptionsFailed = true;
+    }
+  }
+
   return (
     <StaffDirectory
       staff={staff}
@@ -163,6 +183,10 @@ async function StaffDirectoryPageContent({
       selectedBranchId={selectedBranchId}
       search={search}
       isSuperAdmin={isSuperAdmin}
+      canCreateStaff={canCreateStaff}
+      canReadRoles={canReadRoles}
+      roleOptions={roleOptions}
+      roleOptionsFailed={roleOptionsFailed}
     />
   );
 }
