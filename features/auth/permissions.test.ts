@@ -25,6 +25,19 @@ describe("permission aware navigation", () => {
     expect(hasPermission(authTestUser, "inventory.read")).toBe(false);
   });
 
+  it("reveals recipe management only when recipes.read is granted", () => {
+    const recipes = [
+      { title: "Recipes", url: "/recipes", permission: "recipes.read" },
+    ];
+    expect(
+      filterNavigationForUser(
+        { ...authTestSessionUser, permissions: ["recipes.read"] },
+        recipes,
+      ),
+    ).toEqual(recipes);
+    expect(filterNavigationForUser(authTestUser, recipes)).toEqual([]);
+  });
+
   it("recognizes only an active protected Super Admin bypass", () => {
     const superAdmin = {
       ...authTestUser,

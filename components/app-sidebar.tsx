@@ -30,6 +30,7 @@ import {
   ShieldCheckIcon,
   FactoryIcon,
   TagsIcon,
+  ChefHatIcon,
 } from "lucide-react";
 
 const navItems = [
@@ -75,6 +76,12 @@ const navItems = [
     url: "/products",
     permission: "products.read",
     icon: <PackageIcon />,
+  },
+  {
+    title: "Recipes",
+    url: "/recipes",
+    permission: "recipes.read",
+    icon: <ChefHatIcon />,
   },
   {
     title: "Point of Sale",
