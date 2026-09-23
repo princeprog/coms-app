@@ -12,28 +12,30 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { receiveDispatchSchema } from "@/features/dispatches/schemas/dispatch.schema";
+import { closeDispatchShortageSchema } from "@/features/dispatches/schemas/dispatch.schema";
 import {
   isDecimalQuantityWithinLimit,
   isPositiveDecimalQuantity,
 } from "@/features/dispatches/services/decimal-quantity";
 import type {
   Dispatch,
-  DispatchReceiveAction,
+  DispatchShortageAction,
 } from "@/features/dispatches/types/dispatch.types";
 import { DispatchQuantityFields } from "./dispatch-quantity-fields";
+import { DispatchShortageReasonField } from "./dispatch-shortage-reason-field";
 
-export function DispatchReceiveControl({
+export function DispatchShortageControl({
   dispatch,
   action,
 }: {
   dispatch: Dispatch;
-  action: DispatchReceiveAction;
+  action: DispatchShortageAction;
 }) {
   const router = useRouter();
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [reason, setReason] = useState("");
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const eligibleItems = dispatch.items.filter((item) =>
@@ -46,33 +48,40 @@ export function DispatchReceiveControl({
     event.preventDefault();
     if (pending) return;
 
+    if (!reason.trim()) {
+      setError("Enter a reason for closing the shortage.");
+      return;
+    }
     const input = {
+      reason,
       items: eligibleItems
         .map((item) => ({
           dispatch_item_id: item.id,
-          quantity_received: (quantities[item.id] ?? "").trim(),
+          quantity_closed: (quantities[item.id] ?? "").trim(),
         }))
-        .filter((item) => item.quantity_received !== ""),
+        .filter((item) => item.quantity_closed !== ""),
     };
     if (input.items.length === 0) {
-      setError("Enter at least one positive quantity.");
+      setError("Enter at least one positive shortage quantity.");
       return;
     }
 
-    const parsed = receiveDispatchSchema.safeParse(input);
+    const parsed = closeDispatchShortageSchema.safeParse(input);
     if (!parsed.success) {
-      setError("Enter a positive decimal quantity for each item.");
+      setError(
+        "Enter a reason of 500 characters or fewer and positive decimals.",
+      );
       return;
     }
 
-    const overLimit = parsed.data.items.find((received) => {
+    const overLimit = parsed.data.items.find((closed) => {
       const item = eligibleItems.find(
-        (candidate) => candidate.id === received.dispatch_item_id,
+        (candidate) => candidate.id === closed.dispatch_item_id,
       );
       return (
         !item ||
         !isDecimalQuantityWithinLimit(
-          received.quantity_received,
+          closed.quantity_closed,
           item.quantity_in_transit,
         )
       );
@@ -82,7 +91,7 @@ export function DispatchReceiveControl({
         (candidate) => candidate.id === overLimit.dispatch_item_id,
       );
       setError(
-        `${item?.stock_item_name ?? "Received quantity"} cannot exceed ${item?.quantity_in_transit ?? "the remaining"} ${item?.unit ?? "quantity"} remaining in transit.`,
+        `${item?.stock_item_name ?? "Shortage quantity"} cannot exceed ${item?.quantity_in_transit ?? "the remaining"} ${item?.unit ?? "quantity"} remaining in transit.`,
       );
       return;
     }
@@ -97,13 +106,13 @@ export function DispatchReceiveControl({
 
     setError("");
     setPending(true);
-    let result: Awaited<ReturnType<DispatchReceiveAction>>;
+    let result: Awaited<ReturnType<DispatchShortageAction>>;
     try {
       result = await action(dispatch.id, parsed.data, retry.current.key);
     } catch {
       result = {
         ok: false,
-        error: "COMS could not record this receipt. Try again.",
+        error: "COMS could not close this shortage. Try again.",
       };
     }
     setPending(false);
@@ -112,6 +121,7 @@ export function DispatchReceiveControl({
       return;
     }
     retry.current = null;
+    setReason("");
     setQuantities({});
     setOpen(false);
     router.refresh();
@@ -129,23 +139,29 @@ export function DispatchReceiveControl({
       <DialogTrigger
         render={
           <Button type="button" variant="outline">
-            Receive stock
+            Close shortage
           </Button>
         }
       />
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Record branch receipt</DialogTitle>
+          <DialogTitle>Close undelivered quantities?</DialogTitle>
           <DialogDescription>
-            Enter what arrived now. You can record another partial receipt for
-            the remaining quantities later.
+            Record what will not arrive and why. Closed quantities stay out of
+            branch inventory and will no longer be in transit.
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={submit}>
+          <DispatchShortageReasonField
+            dispatchId={dispatch.id}
+            reason={reason}
+            disabled={pending}
+            onReasonChange={setReason}
+          />
           <DispatchQuantityFields
             items={eligibleItems}
             quantities={quantities}
-            quantityVerb="received"
+            quantityVerb="shortage closed"
             disabled={pending}
             onQuantityChange={(itemId, value) =>
               setQuantities((current) => ({ ...current, [itemId]: value }))
@@ -165,8 +181,8 @@ export function DispatchReceiveControl({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Recording…" : "Confirm receipt"}
+            <Button type="submit" variant="destructive" disabled={pending}>
+              {pending ? "Closing…" : "Confirm shortage closure"}
             </Button>
           </DialogFooter>
         </form>

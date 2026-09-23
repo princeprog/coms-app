@@ -6,6 +6,7 @@ import type { Dispatch } from "@/features/dispatches/types/dispatch.types";
 import type {
   DispatchPostAction,
   DispatchReceiveAction,
+  DispatchShortageAction,
 } from "@/features/dispatches/types/dispatch.types";
 import { DispatchDetailView } from "./dispatch-detail-view";
 
@@ -125,6 +126,8 @@ describe("dispatch detail view", () => {
         postAction={vi.fn<DispatchPostAction>()}
         canReceive={false}
         receiveAction={vi.fn<DispatchReceiveAction>()}
+        canCloseShortage={false}
+        shortageAction={vi.fn<DispatchShortageAction>()}
       />,
     );
 
@@ -167,6 +170,8 @@ describe("dispatch detail view", () => {
         postAction={vi.fn<DispatchPostAction>()}
         canReceive={false}
         receiveAction={vi.fn<DispatchReceiveAction>()}
+        canCloseShortage={false}
+        shortageAction={vi.fn<DispatchShortageAction>()}
       />,
     );
 
@@ -186,6 +191,8 @@ describe("dispatch detail view", () => {
         postAction={vi.fn<DispatchPostAction>()}
         canReceive={false}
         receiveAction={vi.fn<DispatchReceiveAction>()}
+        canCloseShortage={false}
+        shortageAction={vi.fn<DispatchShortageAction>()}
       />,
     );
 
@@ -200,9 +207,27 @@ describe("dispatch detail view", () => {
         postAction={vi.fn<DispatchPostAction>()}
         canReceive={true}
         receiveAction={vi.fn<DispatchReceiveAction>()}
+        canCloseShortage={false}
+        shortageAction={vi.fn<DispatchShortageAction>()}
       />,
     );
 
     expect(screen.getByRole("button", { name: "Receive stock" })).toBeTruthy();
+  });
+
+  it("offers shortage closure only for transit quantities and granted access", () => {
+    render(
+      <DispatchDetailView
+        dispatch={dispatch}
+        canDispatch={false}
+        postAction={vi.fn<DispatchPostAction>()}
+        canReceive={false}
+        receiveAction={vi.fn<DispatchReceiveAction>()}
+        canCloseShortage={true}
+        shortageAction={vi.fn<DispatchShortageAction>()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Close shortage" })).toBeTruthy();
   });
 });

@@ -7,11 +7,13 @@ import type {
   Dispatch,
   DispatchPostAction,
   DispatchReceiveAction,
+  DispatchShortageAction,
 } from "@/features/dispatches/types/dispatch.types";
 import { DispatchHistory } from "./dispatch-history";
 import { DispatchItemTable } from "./dispatch-item-table";
 import { DispatchPostControl } from "./dispatch-post-control";
 import { DispatchReceiveControl } from "./dispatch-receive-control";
+import { DispatchShortageControl } from "./dispatch-shortage-control";
 
 export function DispatchDetailView({
   dispatch,
@@ -19,18 +21,26 @@ export function DispatchDetailView({
   postAction,
   canReceive,
   receiveAction,
+  canCloseShortage,
+  shortageAction,
 }: {
   dispatch: Dispatch;
   canDispatch: boolean;
   postAction: DispatchPostAction;
   canReceive: boolean;
   receiveAction: DispatchReceiveAction;
+  canCloseShortage: boolean;
+  shortageAction: DispatchShortageAction;
 }) {
   const showPostControl = dispatch.status === "DRAFT" && canDispatch;
   const showReceiveControl =
     (dispatch.status === "IN_TRANSIT" ||
       dispatch.status === "PARTIALLY_RECEIVED") &&
     canReceive;
+  const showShortageControl =
+    (dispatch.status === "IN_TRANSIT" ||
+      dispatch.status === "PARTIALLY_RECEIVED") &&
+    canCloseShortage;
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,6 +62,12 @@ export function DispatchDetailView({
         )}
         {showReceiveControl && (
           <DispatchReceiveControl dispatch={dispatch} action={receiveAction} />
+        )}
+        {showShortageControl && (
+          <DispatchShortageControl
+            dispatch={dispatch}
+            action={shortageAction}
+          />
         )}
       </div>
       <Card>

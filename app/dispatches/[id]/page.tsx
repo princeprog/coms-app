@@ -5,6 +5,7 @@ import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
 import {
+  closeDispatchShortageAction,
   postDispatchAction,
   receiveDispatchAction,
 } from "@/features/dispatches/services/dispatch-actions";
@@ -43,6 +44,8 @@ export default async function DispatchDetailPage({
         postAction={postDispatchAction}
         canReceive={view.canReceive}
         receiveAction={receiveDispatchAction}
+        canCloseShortage={view.canCloseShortage}
+        shortageAction={closeDispatchShortageAction}
       />
     </AppPageShell>
   );
