@@ -2,6 +2,7 @@ import "server-only";
 
 import { hasBranchScope, hasPermission } from "@/features/auth/permissions";
 import type { User } from "@/features/auth/types/auth.types";
+import type { Branch } from "@/features/branches/types/branch.types";
 import { ApiRequestError } from "@/services/api-services";
 import type {
   StockRequest,
@@ -14,6 +15,7 @@ import {
   type StockRequestPageSearchParams,
 } from "./stock-request-page-params";
 import {
+  getStockRequestBranches,
   getStockRequestDetail,
   getStockRequestFormOptions,
   getStockRequestPageData,
@@ -32,6 +34,7 @@ export type StockRequestIndexViewResult =
       canApprove: boolean;
       canReject: boolean;
       canCancel: boolean;
+      branchOptions: Branch[];
       formOptions: StockRequestFormOptions | null;
       formOptionsIssue: "permissions" | "forbidden" | "unavailable" | null;
     };
@@ -99,25 +102,37 @@ export async function loadStockRequestIndexView(
     };
 
   const canCreate = hasPermission(user, "stock_requests.create");
+  const canReadBranches = hasPermission(user, "branches.read");
+  const branchIds = isSuperAdmin(user) ? null : (user.branch_ids ?? []);
+  let branchOptions: Branch[] = [];
+  let branchOptionsLoaded = false;
   let formOptions: StockRequestFormOptions | null = null;
   let formOptionsIssue: "permissions" | "forbidden" | "unavailable" | null =
     null;
   if (canCreate) {
-    if (
-      !hasPermission(user, "branches.read") ||
-      !hasPermission(user, "stock_items.read")
-    ) {
+    if (!canReadBranches || !hasPermission(user, "stock_items.read")) {
       formOptionsIssue = "permissions";
     } else {
-      const branchIds = isSuperAdmin(user) ? null : (user.branch_ids ?? []);
       try {
         formOptions = await getStockRequestFormOptions(branchIds);
+        branchOptions = formOptions.branches;
+        branchOptionsLoaded = true;
       } catch (error) {
         const accessFailure = getAccessFailure(error);
         if (accessFailure?.status === "session-expired") return accessFailure;
         formOptionsIssue =
           accessFailure?.status === "forbidden" ? "forbidden" : "unavailable";
       }
+    }
+  }
+
+  if (canReadBranches && !branchOptionsLoaded) {
+    try {
+      branchOptions = await getStockRequestBranches(branchIds);
+      branchOptionsLoaded = true;
+    } catch (error) {
+      const accessFailure = getAccessFailure(error);
+      if (accessFailure?.status === "session-expired") return accessFailure;
     }
   }
 
@@ -129,6 +144,7 @@ export async function loadStockRequestIndexView(
     canApprove: hasPermission(user, "stock_requests.approve"),
     canReject: hasPermission(user, "stock_requests.reject"),
     canCancel: hasPermission(user, "stock_requests.cancel"),
+    branchOptions,
     formOptions,
     formOptionsIssue,
   };

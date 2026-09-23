@@ -8,10 +8,12 @@ import {
 
 const {
   getStockRequestDetail,
+  getStockRequestBranches,
   getStockRequestFormOptions,
   getStockRequestPageData,
 } = vi.hoisted(() => ({
   getStockRequestDetail: vi.fn(),
+  getStockRequestBranches: vi.fn(),
   getStockRequestFormOptions: vi.fn(),
   getStockRequestPageData: vi.fn(),
 }));
@@ -19,6 +21,7 @@ const {
 vi.mock("server-only", () => ({}));
 vi.mock("./stock-request-queries", () => ({
   getStockRequestDetail,
+  getStockRequestBranches,
   getStockRequestFormOptions,
   getStockRequestPageData,
 }));
@@ -84,6 +87,7 @@ function user(permissions: string[], branchIds: string[] = [id]): User {
 describe("stock request page loader", () => {
   beforeEach(() => {
     getStockRequestDetail.mockReset().mockResolvedValue(detail);
+    getStockRequestBranches.mockReset().mockResolvedValue(options.branches);
     getStockRequestFormOptions.mockReset().mockResolvedValue(options);
     getStockRequestPageData.mockReset().mockResolvedValue(page);
   });
@@ -125,6 +129,21 @@ describe("stock request page loader", () => {
       status: "PENDING",
     });
     expect(getStockRequestFormOptions).toHaveBeenCalledTimes(1);
+  });
+
+  it("loads assigned branches for filters without requiring create access", async () => {
+    await expect(
+      loadStockRequestIndexView(
+        user(["stock_requests.read", "branches.read"]),
+        {},
+      ),
+    ).resolves.toMatchObject({
+      status: "ready",
+      canCreate: false,
+      branchOptions: options.branches,
+    });
+    expect(getStockRequestBranches).toHaveBeenCalledWith([id]);
+    expect(getStockRequestFormOptions).not.toHaveBeenCalled();
   });
 
   it("rejects a selected branch outside the signed-in user's assignments", async () => {

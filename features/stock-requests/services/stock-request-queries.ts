@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { branchesResponseSchema } from "@/features/branches/schemas/branch.schema";
+import type { Branch } from "@/features/branches/types/branch.types";
 import { stockItemPageSchema } from "@/features/stock-items/schemas/stock-item.schema";
 import { stockItemsEndpoint } from "@/features/stock-items/constants";
 import { stockRequestsEndpoint } from "@/features/stock-requests/constants";
@@ -72,6 +73,22 @@ export async function getStockRequestFormOptions(
       (allowedBranchIds === null || allowedBranchIds.includes(branch.id)),
   );
   return { branches, stockItems };
+}
+
+export async function getStockRequestBranches(
+  allowedBranchIds: string[] | null,
+): Promise<Branch[]> {
+  const cookieHeader = (await cookies()).toString();
+  const branches = await getAllPages(
+    "/branches",
+    branchesResponseSchema,
+    cookieHeader,
+  );
+  return branches.filter(
+    (branch) =>
+      branch.status === "active" &&
+      (allowedBranchIds === null || allowedBranchIds.includes(branch.id)),
+  );
 }
 
 type PageData<T> = {
