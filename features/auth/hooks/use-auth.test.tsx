@@ -35,6 +35,7 @@ vi.mock("@/features/auth/services/auth-client", () => ({
 }));
 
 import { authKeys } from "@/features/auth/query-keys";
+import { ApiRequestError } from "@/services/api-services";
 import {
   useCurrentUser,
   useLogin,
@@ -152,5 +153,30 @@ describe("auth mutations", () => {
     expect(
       queryClient.getQueryCache().find({ queryKey: authKeys.me }),
     ).toBeDefined();
+  });
+
+  it("rerenders the login route after rejected recovery even when already home", async () => {
+    refreshMock.mockRejectedValue(new ApiRequestError("Expired", 401));
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(authKeys.me, user);
+    const { result } = renderHook(() => useRefreshSession(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await act(async () => {
+      await expect(result.current.mutateAsync()).rejects.toMatchObject({
+        status: 401,
+      });
+    });
+    expect(routerMock.replace).toHaveBeenCalledWith("/");
+    expect(routerMock.refresh).toHaveBeenCalledTimes(1);
+    expect(queryClient.getQueryData(authKeys.me)).toBeUndefined();
+  });
+  it("refreshes the route after automatic recovery finds no valid session", async () => {
+    getCurrentUserMock.mockResolvedValue(null);
+    const queryClient = new QueryClient();
+    renderHook(() => useCurrentUser(), { wrapper: createWrapper(queryClient) });
+    await waitFor(() => expect(routerMock.refresh).toHaveBeenCalled());
+    expect(routerMock.replace).toHaveBeenCalledWith("/");
+    expect(getCurrentUserMock).toHaveBeenCalledTimes(1);
   });
 });

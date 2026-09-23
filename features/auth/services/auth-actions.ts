@@ -3,7 +3,11 @@
 import { cookies, headers } from "next/headers";
 
 import { authEndpoints } from "@/features/auth/constants";
-import { getComsApiBaseUrl } from "@/lib/server-env";
+import { authResponseSchema } from "@/features/auth/schemas/auth.schema";
+import { getComsApiBaseUrl, getAuthGatewayHeaders } from "@/lib/server-env";
+import { expireAuthCookies } from "./auth-cookie-expiration";
+import { getRetryAfter } from "@/services/api-services";
+import { recordAuthOutage } from "./auth-observability";
 import { ApiRequestError, requestApiRaw } from "@/services/api-services";
 import type {
   AuthResponse,
@@ -21,7 +25,7 @@ const AUTH_COOKIE_NAMES = new Set([
 
 type InternalResult<T> =
   | { ok: true; data: T; response: Response }
-  | { ok: false; status: number; message: string };
+  | { ok: false; status: number; message: string; retryAfterSeconds?: number };
 
 function errorMessage(payload: unknown) {
   if (typeof payload === "object" && payload !== null && "message" in payload) {
@@ -104,13 +108,6 @@ async function relayResponseCookies(response: Response) {
   }
 }
 
-async function clearAuthCookies() {
-  const store = await cookies();
-  for (const name of AUTH_COOKIE_NAMES) {
-    store.delete(name);
-  }
-}
-
 async function callAuthEndpoint<T>(
   endpoint: string,
   options: {
@@ -124,10 +121,11 @@ async function callAuthEndpoint<T>(
     const response = await requestApiRaw(endpoint, {
       baseUrl: getComsApiBaseUrl(),
       method: options.method,
-      headers: origin ? { origin } : undefined,
+      headers: { ...getAuthGatewayHeaders(), ...(origin ? { origin } : {}) },
       body: options.body,
       cookie: options.cookie,
       throwOnError: false,
+      redirect: "error",
     });
 
     let payload: unknown;
@@ -140,15 +138,35 @@ async function callAuthEndpoint<T>(
     }
 
     if (!response.ok) {
+      recordAuthOutage(response.status);
       return {
         ok: false,
         status: response.status,
         message: errorMessage(payload),
+        ...(getRetryAfter(response) !== undefined
+          ? { retryAfterSeconds: getRetryAfter(response) }
+          : {}),
       };
     }
 
-    return { ok: true, data: payload as T, response };
+    const isLogout = endpoint === authEndpoints.logout;
+    const parsed = isLogout ? undefined : authResponseSchema.safeParse(payload);
+    if (
+      response.status !== (isLogout ? 204 : 200) ||
+      (!isLogout && !parsed?.success)
+    ) {
+      throw new ApiRequestError(
+        "Authentication service returned an invalid response.",
+        502,
+      );
+    }
+    return {
+      ok: true,
+      data: (parsed?.success ? parsed.data : undefined) as T,
+      response,
+    };
   } catch (error) {
+    recordAuthOutage(error instanceof ApiRequestError ? error.status : 503);
     if (error instanceof ApiRequestError) {
       return { ok: false, status: error.status, message: error.message };
     }
@@ -166,7 +184,7 @@ async function refreshWithCookies(): Promise<AuthActionResult<AuthResponse>> {
     cookie: await selectedCookieHeader(REFRESH_COOKIE_NAMES),
   });
   if (!result.ok) {
-    if (result.status === 401) await clearAuthCookies();
+    if (result.status === 401) await expireAuthCookies();
     return result;
   }
   await relayResponseCookies(result.response);
@@ -185,25 +203,19 @@ export async function loginAction(
   return { ok: true, data: result.data };
 }
 
-export async function refreshSessionAction(): Promise<
-  AuthActionResult<AuthResponse>
-> {
-  return refreshWithCookies();
-}
-
 export async function logoutAction(): Promise<AuthActionResult<void>> {
   const result = await callAuthEndpoint<void>(authEndpoints.logout, {
     method: "POST",
     cookie: await selectedCookieHeader(AUTH_COOKIE_NAMES),
   });
   if (!result.ok) return result;
-  await clearAuthCookies();
+  await expireAuthCookies();
   return { ok: true, data: undefined };
 }
 
-export async function currentUserAction(): Promise<
-  AuthActionResult<User | null>
-> {
+export async function currentUserAction(
+  allowRefresh = true,
+): Promise<AuthActionResult<User | null>> {
   const current = await callAuthEndpoint<AuthResponse>(authEndpoints.me, {
     method: "GET",
     cookie: await selectedCookieHeader(ACCESS_COOKIE_NAMES),
@@ -213,7 +225,16 @@ export async function currentUserAction(): Promise<
   if (current.status !== 401) return current;
 
   const refreshCookie = await selectedCookieHeader(REFRESH_COOKIE_NAMES);
-  if (!refreshCookie) return { ok: true, data: null };
+  if (!refreshCookie) {
+    await expireAuthCookies();
+    return { ok: true, data: null };
+  }
+  if (!allowRefresh)
+    return {
+      ok: false,
+      status: 428,
+      message: "This browser cannot safely restore the session. Sign in again.",
+    };
 
   const refreshed = await refreshWithCookies();
   if (!refreshed.ok) {
@@ -227,7 +248,7 @@ export async function currentUserAction(): Promise<
   });
   if (retried.ok) return { ok: true, data: retried.data.user };
   if (retried.status === 401) {
-    await clearAuthCookies();
+    await expireAuthCookies();
     return { ok: true, data: null };
   }
   return retried;

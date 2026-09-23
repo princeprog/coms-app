@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { authTestUser } from "@/test/auth-fixtures";
 
 const { cookiesMock } = vi.hoisted(() => ({ cookiesMock: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: cookiesMock }));
@@ -6,7 +7,10 @@ vi.mock("next/headers", () => ({ cookies: cookiesMock }));
 import { getCurrentUserFromServer } from "./auth-server";
 
 describe("getCurrentUserFromServer", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   it("returns the verified user and forwards the request cookie", async () => {
     cookiesMock.mockResolvedValue({
@@ -15,13 +19,18 @@ describe("getCurrentUserFromServer", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(
-        new Response(JSON.stringify({ user: { id: "u1" } }), { status: 200 }),
+        new Response(
+          JSON.stringify({
+            user: { ...authTestUser, hashed_password: "must-not-leak" },
+          }),
+          { status: 200 },
+        ),
       );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getCurrentUserFromServer()).resolves.toEqual({
       status: "authenticated",
-      user: { id: "u1" },
+      user: authTestUser,
     });
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
       cache: "no-store",
@@ -66,6 +75,21 @@ describe("getCurrentUserFromServer", () => {
     );
     await expect(getCurrentUserFromServer()).resolves.toEqual({
       status: "recovering",
+    });
+  });
+
+  it("treats malformed success as an outage instead of rendering protected UI", async () => {
+    cookiesMock.mockResolvedValue({ toString: () => "coms_access=abc" });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ user: {} }), { status: 200 }),
+        ),
+    );
+    await expect(getCurrentUserFromServer()).resolves.toEqual({
+      status: "unavailable",
     });
   });
 });

@@ -11,6 +11,7 @@ export function useLogin() {
   const queryClient = useQueryClient();
   const router = useRouter();
   return useMutation({
+    retry: false,
     mutationFn: (input: LoginInput) => login(input),
     onSuccess: ({ user }) => {
       queryClient.setQueryData(authKeys.me, user);

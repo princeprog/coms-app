@@ -30,15 +30,19 @@ export function LoginForm() {
   >(null);
   const loginMutation = useLogin();
 
-  const serverMessage = loginMutation.error
-    ? loginMutation.error instanceof AuthApiError &&
-      loginMutation.error.status === 401
-      ? authErrorMessages.invalidCredentials
-      : loginMutation.error instanceof AuthApiError &&
-          loginMutation.error.status === 503
-        ? authErrorMessages.serviceUnavailable
-        : authErrorMessages.unexpected
-    : null;
+  const serverMessage =
+    loginMutation.error instanceof AuthApiError &&
+    loginMutation.error.status === 429
+      ? `Too many sign-in attempts. Try again in ${loginMutation.error.retryAfterSeconds ?? 60} seconds.`
+      : loginMutation.error
+        ? loginMutation.error instanceof AuthApiError &&
+          loginMutation.error.status === 401
+          ? authErrorMessages.invalidCredentials
+          : loginMutation.error instanceof AuthApiError &&
+              loginMutation.error.status >= 500
+            ? authErrorMessages.serviceUnavailable
+            : authErrorMessages.unexpected
+        : null;
   const errorMessage = validationMessage ?? serverMessage;
 
   function updateValue(field: keyof LoginFormValues, value: string) {

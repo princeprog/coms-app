@@ -11,18 +11,25 @@ export function LogoutMenuItem() {
   return (
     <DropdownMenuItem
       disabled={logoutMutation.isPending}
-      aria-live="polite"
-      onSelect={(event) => {
-        event.preventDefault();
-        logoutMutation.mutate();
-      }}
+      aria-busy={logoutMutation.isPending}
+      aria-label={
+        logoutMutation.isPending
+          ? "Signing out…"
+          : logoutMutation.error
+            ? "Sign out failed. Try again."
+            : "Log out"
+      }
+      closeOnClick={false}
+      onClick={() => logoutMutation.mutate()}
     >
       <LogOutIcon aria-hidden="true" />
-      {logoutMutation.isPending
-        ? "Signing out…"
-        : logoutMutation.error
-          ? "Sign out failed. Try again."
-          : "Log out"}
+      {logoutMutation.isPending ? (
+        "Signing out…"
+      ) : logoutMutation.error ? (
+        <span role="alert">Sign out failed. Try again.</span>
+      ) : (
+        "Log out"
+      )}
     </DropdownMenuItem>
   );
 }

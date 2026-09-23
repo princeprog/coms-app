@@ -1,2 +1,3 @@
 export type AuthActionResult<T> =
-  { ok: true; data: T } | { ok: false; status: number; message: string };
+  | { ok: true; data: T }
+  | { ok: false; status: number; message: string; retryAfterSeconds?: number };

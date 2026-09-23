@@ -3,6 +3,7 @@ export class ApiRequestError extends Error {
     message: string,
     public readonly status: number,
     public readonly payload?: unknown,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiRequestError";
@@ -56,7 +57,11 @@ export async function requestApiRaw(
           : JSON.stringify(body)
         : undefined,
       cache: "no-store",
+      redirect: init.redirect ?? "error",
       credentials: init.credentials ?? "include",
+      signal: init.signal
+        ? AbortSignal.any([init.signal, AbortSignal.timeout(10_000)])
+        : AbortSignal.timeout(10_000),
     });
   } catch {
     throw new ApiRequestError("API service unavailable.", 503);
@@ -69,10 +74,24 @@ export async function requestApiRaw(
     } catch {
       payload = undefined;
     }
-    throw new ApiRequestError(getMessage(payload), response.status, payload);
+    throw new ApiRequestError(
+      getMessage(payload),
+      response.status,
+      payload,
+      getRetryAfter(response),
+    );
   }
 
   return response;
+}
+
+export function getRetryAfter(response: Response): number | undefined {
+  const value = response.headers.get("retry-after");
+  if (!value) return undefined;
+  const seconds = /^\d+$/.test(value)
+    ? Number(value)
+    : Math.ceil((Date.parse(value) - Date.now()) / 1000);
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined;
 }
 
 export async function requestApi<T>(
@@ -86,9 +105,6 @@ export async function requestApi<T>(
   try {
     return (await response.json()) as T;
   } catch {
-    throw new ApiRequestError(
-      "API returned an invalid response.",
-      response.status,
-    );
+    throw new ApiRequestError("API returned an invalid response.", 502);
   }
 }
