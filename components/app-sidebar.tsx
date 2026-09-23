@@ -28,6 +28,7 @@ import {
   UsersIcon,
   ShieldCheckIcon,
   FactoryIcon,
+  TagsIcon,
 } from "lucide-react";
 
 const navItems = [
@@ -43,6 +44,12 @@ const navItems = [
     url: "/suppliers",
     permission: "suppliers.read",
     icon: <FactoryIcon />,
+  },
+  {
+    title: "Stock Items",
+    url: "/stock-items",
+    permission: "stock_items.read",
+    icon: <TagsIcon />,
   },
   {
     title: "Receiving",
