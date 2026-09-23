@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { ResponseCookies } from "next/dist/compiled/@edge-runtime/cookies";
-import { authTestUser } from "@/test/auth-fixtures";
+import { authTestMeResponse, authTestSessionUser } from "@/test/auth-fixtures";
 const state = vi.hoisted(() => ({
   cookies: new Map<string, string>(),
   set: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock("next/headers", () => ({
 }));
 import { currentUserAction, loginAction, logoutAction } from "./auth-actions";
 
-const user = authTestUser;
+const user = authTestSessionUser;
 const json = (value: unknown, status = 200, headers?: HeadersInit) =>
   new Response(JSON.stringify(value), { status, headers });
 describe("server session recovery", () => {
@@ -31,7 +31,7 @@ describe("server session recovery", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
   it("rechecks me first and avoids a needless rotation", async () => {
-    const fetch = vi.fn().mockResolvedValue(json({ user }));
+    const fetch = vi.fn().mockResolvedValue(json(authTestMeResponse));
     vi.stubGlobal("fetch", fetch);
     expect(await currentUserAction()).toEqual({ ok: true, data: user });
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -54,8 +54,10 @@ describe("server session recovery", () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce(json({}, 401))
-      .mockResolvedValueOnce(json({ user }, 200, headers))
-      .mockResolvedValueOnce(json({ user }));
+      .mockResolvedValueOnce(
+        json({ user: authTestMeResponse.user }, 200, headers),
+      )
+      .mockResolvedValueOnce(json(authTestMeResponse));
     vi.stubGlobal("fetch", fetch);
     expect(await currentUserAction()).toEqual({ ok: true, data: user });
     expect(fetch.mock.calls.map((call) => call[0].split("/").pop())).toEqual([

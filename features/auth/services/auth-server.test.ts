@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { authTestUser } from "@/test/auth-fixtures";
+import { authTestMeResponse, authTestSessionUser } from "@/test/auth-fixtures";
 
 const { cookiesMock } = vi.hoisted(() => ({ cookiesMock: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: cookiesMock }));
@@ -16,21 +16,23 @@ describe("getCurrentUserFromServer", () => {
     cookiesMock.mockResolvedValue({
       toString: () => "coms_access=abc; coms_refresh=def; unrelated=secret",
     });
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            user: { ...authTestUser, hashed_password: "must-not-leak" },
-          }),
-          { status: 200 },
-        ),
-      );
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...authTestMeResponse,
+          user: {
+            ...authTestMeResponse.user,
+            hashed_password: "must-not-leak",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getCurrentUserFromServer()).resolves.toEqual({
       status: "authenticated",
-      user: authTestUser,
+      user: authTestSessionUser,
     });
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
       cache: "no-store",

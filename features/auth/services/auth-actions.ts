@@ -3,7 +3,10 @@
 import { cookies, headers } from "next/headers";
 
 import { authEndpoints } from "@/features/auth/constants";
-import { authResponseSchema } from "@/features/auth/schemas/auth.schema";
+import {
+  authMeResponseSchema,
+  authResponseSchema,
+} from "@/features/auth/schemas/auth.schema";
 import { getComsApiBaseUrl, getAuthGatewayHeaders } from "@/lib/server-env";
 import { expireAuthCookies } from "./auth-cookie-expiration";
 import { getRetryAfter } from "@/services/api-services";
@@ -11,6 +14,7 @@ import { recordAuthOutage } from "./auth-observability";
 import { ApiRequestError, requestApiRaw } from "@/services/api-services";
 import type {
   AuthResponse,
+  AuthMeResponse,
   LoginInput,
   User,
 } from "@/features/auth/types/auth.types";
@@ -150,7 +154,11 @@ async function callAuthEndpoint<T>(
     }
 
     const isLogout = endpoint === authEndpoints.logout;
-    const parsed = isLogout ? undefined : authResponseSchema.safeParse(payload);
+    const parsed = isLogout
+      ? undefined
+      : endpoint === authEndpoints.me
+        ? authMeResponseSchema.safeParse(payload)
+        : authResponseSchema.safeParse(payload);
     if (
       response.status !== (isLogout ? 204 : 200) ||
       (!isLogout && !parsed?.success)
@@ -216,7 +224,7 @@ export async function logoutAction(): Promise<AuthActionResult<void>> {
 export async function currentUserAction(
   allowRefresh = true,
 ): Promise<AuthActionResult<User | null>> {
-  const current = await callAuthEndpoint<AuthResponse>(authEndpoints.me, {
+  const current = await callAuthEndpoint<AuthMeResponse>(authEndpoints.me, {
     method: "GET",
     cookie: await selectedCookieHeader(ACCESS_COOKIE_NAMES),
   });
@@ -242,7 +250,7 @@ export async function currentUserAction(
     return refreshed;
   }
 
-  const retried = await callAuthEndpoint<AuthResponse>(authEndpoints.me, {
+  const retried = await callAuthEndpoint<AuthMeResponse>(authEndpoints.me, {
     method: "GET",
     cookie: await selectedCookieHeader(ACCESS_COOKIE_NAMES),
   });

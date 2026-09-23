@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 
 import { authEndpoints } from "@/features/auth/constants";
-import { authResponseSchema } from "@/features/auth/schemas/auth.schema";
+import { authMeResponseSchema } from "@/features/auth/schemas/auth.schema";
 import { ApiRequestError, requestApi } from "@/services/api-services";
 import { getComsApiBaseUrl, getAuthGatewayHeaders } from "@/lib/server-env";
 import { recordAuthOutage } from "./auth-observability";
@@ -20,7 +20,7 @@ export async function getCurrentUserFromServer(): Promise<CurrentUserResult> {
       cookie: getAccessCookieHeader(cookieHeader),
       redirect: "error",
     });
-    const parsed = authResponseSchema.safeParse(payload);
+    const parsed = authMeResponseSchema.safeParse(payload);
     if (!parsed.success)
       throw new ApiRequestError("Invalid authentication response.", 502);
     return { status: "authenticated", user: parsed.data.user };
