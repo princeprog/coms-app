@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getInventoryPageData } from "./inventory-queries";
+import {
+  getInventoryBranchOptions,
+  getInventoryPageData,
+} from "./inventory-queries";
 
 const { requestComsApi } = vi.hoisted(() => ({ requestComsApi: vi.fn() }));
 
@@ -75,5 +78,28 @@ describe("inventory page queries", () => {
         search: "",
       }),
     ).rejects.toMatchObject({ status: 502 });
+  });
+
+  it("keeps inactive branches available for viewing inventory", async () => {
+    requestComsApi.mockResolvedValue({
+      items: [
+        {
+          id,
+          code: "NORTH",
+          branch_name: "Manila North",
+          address: null,
+          date_opened: null,
+          has_dine_in: false,
+          status: "inactive",
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 100,
+    });
+
+    await expect(getInventoryBranchOptions()).resolves.toEqual([
+      { id, name: "Manila North", status: "inactive" },
+    ]);
   });
 });

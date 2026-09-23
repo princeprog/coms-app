@@ -13,5 +13,11 @@ export type CreateInventoryAdjustment = z.infer<
   typeof createInventoryAdjustmentSchema
 >;
 
+export type InventoryBranchOption = {
+  id: string;
+  name: string;
+  status?: "active" | "inactive";
+};
+
 export type InventoryMutationResult =
   { ok: true } | { ok: false; error: string };

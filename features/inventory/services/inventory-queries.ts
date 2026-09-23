@@ -75,7 +75,7 @@ export async function getInventoryPageData(
 }
 
 export async function getInventoryBranchOptions(): Promise<
-  { id: string; name: string }[]
+  { id: string; name: string; status: "active" | "inactive" }[]
 > {
   const cookieHeader = (await cookies()).toString();
   const pageSize = 100;
@@ -105,8 +105,10 @@ export async function getInventoryBranchOptions(): Promise<
     throw new ApiRequestError("Branch options changed while loading.", 502);
   }
   return [firstPage, ...remainingPages].flatMap((page) =>
-    page.items
-      .filter((branch) => branch.status === "active")
-      .map((branch) => ({ id: branch.id, name: branch.branch_name })),
+    page.items.map((branch) => ({
+      id: branch.id,
+      name: branch.branch_name,
+      status: branch.status,
+    })),
   );
 }
