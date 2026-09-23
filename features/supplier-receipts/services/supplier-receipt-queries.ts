@@ -3,16 +3,17 @@ import "server-only";
 import { cookies } from "next/headers";
 import { stockItemsEndpoint } from "@/features/stock-items/constants";
 import { stockItemPageSchema } from "@/features/stock-items/schemas/stock-item.schema";
-import type { StockItem } from "@/features/stock-items/types/stock-item.types";
 import { suppliersEndpoint } from "@/features/suppliers/constants";
 import { supplierPageSchema } from "@/features/suppliers/schemas/supplier.schema";
-import type { Supplier } from "@/features/suppliers/types/supplier.types";
 import { supplierReceiptsEndpoint } from "@/features/supplier-receipts/constants";
 import {
   supplierReceiptDetailSchema,
   supplierReceiptPageSchema,
 } from "@/features/supplier-receipts/schemas/supplier-receipt.schema";
-import type { SupplierReceiptPage } from "@/features/supplier-receipts/types/supplier-receipt.types";
+import type {
+  SupplierReceiptFormOptions,
+  SupplierReceiptPage,
+} from "@/features/supplier-receipts/types/supplier-receipt.types";
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
 
@@ -31,11 +32,6 @@ type CatalogPageParser<T> = {
   ) =>
     | { success: true; data: CatalogPageData<T> }
     | { success: false; error: unknown };
-};
-
-export type SupplierReceiptFormOptions = {
-  suppliers: Supplier[];
-  stockItems: StockItem[];
 };
 
 export async function getSupplierReceiptPageData({
