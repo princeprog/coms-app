@@ -5,8 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { StockRequest } from "@/features/stock-requests/types/stock-request.types";
 import { StockRequestDetailView } from "./stock-request-detail-view";
 
-const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+const { push, refresh } = vi.hoisted(() => ({
+  push: vi.fn(),
+  refresh: vi.fn(),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: React.ComponentProps<"a">) => (
     <a href={href} {...props}>
@@ -56,6 +59,8 @@ describe("stock request detail view", () => {
         canReject={false}
         canCancel={false}
         transitionAction={vi.fn()}
+        canCreateDispatch={false}
+        createDispatchAction={vi.fn()}
       />,
     );
 
@@ -80,6 +85,8 @@ describe("stock request detail view", () => {
         canReject={false}
         canCancel={true}
         transitionAction={vi.fn()}
+        canCreateDispatch={false}
+        createDispatchAction={vi.fn()}
       />,
     );
 
@@ -88,5 +95,23 @@ describe("stock request detail view", () => {
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Cancel request" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Reject request" })).toBeNull();
+  });
+
+  it("offers dispatch preparation only for an approved request with access", () => {
+    render(
+      <StockRequestDetailView
+        request={{ ...request, status: "APPROVED" }}
+        canApprove={false}
+        canReject={false}
+        canCancel={false}
+        transitionAction={vi.fn()}
+        canCreateDispatch={true}
+        createDispatchAction={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Prepare dispatch" }),
+    ).toBeTruthy();
   });
 });

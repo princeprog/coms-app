@@ -50,6 +50,7 @@ export type StockRequestDetailViewResult =
       canApprove: boolean;
       canReject: boolean;
       canCancel: boolean;
+      canCreateDispatch: boolean;
     };
 
 function isSuperAdmin(user: User) {
@@ -172,6 +173,9 @@ export async function loadStockRequestDetailView(
         pending &&
         stockRequest.requested_by_user_id === user.id &&
         hasPermission(user, "stock_requests.cancel"),
+      canCreateDispatch:
+        stockRequest.status === "APPROVED" &&
+        hasPermission(user, "dispatches.create"),
     };
   } catch (error) {
     const accessFailure = getAccessFailure(error);

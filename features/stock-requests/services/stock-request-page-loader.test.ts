@@ -205,6 +205,19 @@ describe("stock request page loader", () => {
     expect(getStockRequestDetail).toHaveBeenCalledWith(id);
   });
 
+  it("allows dispatch preparation only for an approved request and grant", async () => {
+    getStockRequestDetail.mockResolvedValue({ ...detail, status: "APPROVED" });
+    await expect(
+      loadStockRequestDetailView(
+        user(["stock_requests.read", "dispatches.create"]),
+        id,
+      ),
+    ).resolves.toMatchObject({ status: "ready", canCreateDispatch: true });
+    await expect(
+      loadStockRequestDetailView(user(["stock_requests.read"]), id),
+    ).resolves.toMatchObject({ status: "ready", canCreateDispatch: false });
+  });
+
   it("hides details outside branch scope and classifies missing requests", async () => {
     await expect(
       loadStockRequestDetailView(

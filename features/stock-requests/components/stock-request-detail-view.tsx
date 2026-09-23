@@ -3,6 +3,8 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DispatchCreateControl } from "@/features/dispatches/components/dispatch-create-control";
+import type { DispatchCreateAction } from "@/features/dispatches/types/dispatch.types";
 import {
   Table,
   TableBody,
@@ -23,14 +25,20 @@ export function StockRequestDetailView({
   canReject,
   canCancel,
   transitionAction,
+  canCreateDispatch,
+  createDispatchAction,
 }: {
   request: StockRequest;
   canApprove: boolean;
   canReject: boolean;
   canCancel: boolean;
   transitionAction: StockRequestTransitionAction;
+  canCreateDispatch: boolean;
+  createDispatchAction: DispatchCreateAction;
 }) {
   const pending = request.status === "PENDING";
+  const showDispatchCreation =
+    request.status === "APPROVED" && canCreateDispatch;
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,6 +49,12 @@ export function StockRequestDetailView({
         >
           Back to replenishment
         </Link>
+        {showDispatchCreation && (
+          <DispatchCreateControl
+            stockRequestId={request.id}
+            action={createDispatchAction}
+          />
+        )}
         {pending && (canApprove || canReject || canCancel) && (
           <div className="flex flex-wrap gap-2">
             {canApprove && (

@@ -4,6 +4,7 @@ import { AuthServiceError } from "@/features/auth/components/auth-service-error"
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
+import { createDispatchAction } from "@/features/dispatches/services/dispatch-actions";
 import { StockRequestDetailView } from "@/features/stock-requests/components/stock-request-detail-view";
 import { transitionStockRequestAction } from "@/features/stock-requests/services/stock-request-actions";
 import { loadStockRequestDetailView } from "@/features/stock-requests/services/stock-request-page-loader";
@@ -40,6 +41,8 @@ export default async function ReplenishmentDetailPage({
         canReject={view.canReject}
         canCancel={view.canCancel}
         transitionAction={transitionStockRequestAction}
+        canCreateDispatch={view.canCreateDispatch}
+        createDispatchAction={createDispatchAction}
       />
     </AppPageShell>
   );
