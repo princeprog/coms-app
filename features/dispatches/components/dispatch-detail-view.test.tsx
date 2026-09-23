@@ -3,8 +3,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Dispatch } from "@/features/dispatches/types/dispatch.types";
+import type { DispatchPostAction } from "@/features/dispatches/types/dispatch.types";
 import { DispatchDetailView } from "./dispatch-detail-view";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: React.ComponentProps<"a">) => (
     <a href={href} {...props}>
@@ -113,7 +115,13 @@ const dispatch: Dispatch = {
 
 describe("dispatch detail view", () => {
   it("shows quantities, transit status, receipt history, and shortage audit", () => {
-    render(<DispatchDetailView dispatch={dispatch} />);
+    render(
+      <DispatchDetailView
+        dispatch={dispatch}
+        canDispatch={false}
+        postAction={vi.fn<DispatchPostAction>()}
+      />,
+    );
 
     expect(
       screen.getByRole("link", { name: "Back to dispatches" }),
@@ -150,6 +158,8 @@ describe("dispatch detail view", () => {
             },
           ],
         }}
+        canDispatch={false}
+        postAction={vi.fn<DispatchPostAction>()}
       />,
     );
 
@@ -159,5 +169,17 @@ describe("dispatch detail view", () => {
     expect(
       screen.getByText("No shortage closures have been recorded."),
     ).toBeTruthy();
+  });
+
+  it("offers a confirmed post action only when the user can dispatch a draft", () => {
+    render(
+      <DispatchDetailView
+        dispatch={{ ...dispatch, status: "DRAFT" }}
+        canDispatch={true}
+        postAction={vi.fn<DispatchPostAction>()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Post dispatch" })).toBeTruthy();
   });
 });

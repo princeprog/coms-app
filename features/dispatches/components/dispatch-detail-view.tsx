@@ -3,11 +3,25 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Dispatch } from "@/features/dispatches/types/dispatch.types";
+import type {
+  Dispatch,
+  DispatchPostAction,
+} from "@/features/dispatches/types/dispatch.types";
 import { DispatchHistory } from "./dispatch-history";
 import { DispatchItemTable } from "./dispatch-item-table";
+import { DispatchPostControl } from "./dispatch-post-control";
 
-export function DispatchDetailView({ dispatch }: { dispatch: Dispatch }) {
+export function DispatchDetailView({
+  dispatch,
+  canDispatch,
+  postAction,
+}: {
+  dispatch: Dispatch;
+  canDispatch: boolean;
+  postAction: DispatchPostAction;
+}) {
+  const showPostControl = dispatch.status === "DRAFT" && canDispatch;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -23,6 +37,9 @@ export function DispatchDetailView({ dispatch }: { dispatch: Dispatch }) {
         >
           View stock request
         </Link>
+        {showPostControl && (
+          <DispatchPostControl dispatchId={dispatch.id} action={postAction} />
+        )}
       </div>
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
