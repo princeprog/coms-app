@@ -71,6 +71,40 @@ afterEach(() => {
 });
 
 describe("dispatch receive control", () => {
+  it("uses an operational sheet and confirms discarding a partial receipt draft", async () => {
+    const user = userEvent.setup();
+    render(
+      <DispatchReceiveControl
+        dispatch={dispatch}
+        action={vi.fn<DispatchReceiveAction>().mockResolvedValue({ ok: true })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Receive stock" }));
+    expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
+      "operational",
+    );
+    const quantity = screen.getByLabelText("Flour received (kg)");
+    await user.type(quantity, "1.25");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      screen.getByRole("alertdialog", { name: "Discard receipt draft?" }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(screen.getByLabelText("Flour received (kg)")).toHaveProperty(
+      "value",
+      "1.25",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Discard receipt" }));
+    await user.click(screen.getByRole("button", { name: "Receive stock" }));
+    expect(screen.getByLabelText("Flour received (kg)")).toHaveProperty(
+      "value",
+      "",
+    );
+  });
+
   it("records an exact partial receipt for in-transit lines", async () => {
     vi.stubGlobal("crypto", {
       randomUUID: vi.fn().mockReturnValue(idempotencyKeys[0]),

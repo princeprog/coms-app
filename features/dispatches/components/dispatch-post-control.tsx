@@ -66,7 +66,7 @@ export function DispatchPostControl({
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent data-coms-ui="operational">
         <DialogHeader>
           <DialogTitle>Post this dispatch?</DialogTitle>
           <DialogDescription>

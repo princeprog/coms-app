@@ -2,16 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { receiveDispatchSchema } from "@/features/dispatches/schemas/dispatch.schema";
 import {
   isDecimalQuantityWithinLimit,
@@ -21,7 +11,9 @@ import type {
   Dispatch,
   DispatchReceiveAction,
 } from "@/features/dispatches/types/dispatch.types";
+import { DispatchDraftDiscardConfirmation } from "./dispatch-draft-discard-confirmation";
 import { DispatchQuantityFields } from "./dispatch-quantity-fields";
+import { DispatchTransitionSheet } from "./dispatch-transition-sheet";
 
 export function DispatchReceiveControl({
   dispatch,
@@ -34,6 +26,7 @@ export function DispatchReceiveControl({
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const eligibleItems = dispatch.items.filter((item) =>
@@ -41,6 +34,32 @@ export function DispatchReceiveControl({
   );
 
   if (eligibleItems.length === 0) return null;
+
+  function requestClose() {
+    if (pending) return;
+    if (Object.values(quantities).some((quantity) => quantity.length > 0)) {
+      setConfirmDiscard(true);
+      return;
+    }
+    setOpen(false);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      setOpen(true);
+      setError("");
+      return;
+    }
+    requestClose();
+  }
+
+  function discardDraft() {
+    setQuantities({});
+    setError("");
+    retry.current = null;
+    setConfirmDiscard(false);
+    setOpen(false);
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,6 +130,7 @@ export function DispatchReceiveControl({
       setError(result.error);
       return;
     }
+
     retry.current = null;
     setQuantities({});
     setOpen(false);
@@ -118,59 +138,39 @@ export function DispatchReceiveControl({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (pending) return;
-        setOpen(nextOpen);
-        if (nextOpen) setError("");
-      }}
-    >
-      <DialogTrigger
-        render={
-          <Button type="button" variant="outline">
-            Receive stock
-          </Button>
-        }
+    <>
+      <DispatchTransitionSheet
+        triggerLabel="Receive stock"
+        title="Record branch receipt"
+        description="Enter what arrived now. You can record another partial receipt for the remaining quantities later."
+        formLabel="Record branch receipt"
+        submitLabel="Confirm receipt"
+        pendingLabel="Recording…"
+        open={open}
+        pending={pending}
+        error={error}
+        onOpenChange={handleOpenChange}
+        onCancel={requestClose}
+        onSubmit={submit}
+      >
+        <DispatchQuantityFields
+          items={eligibleItems}
+          quantities={quantities}
+          quantityVerb="received"
+          disabled={pending}
+          onQuantityChange={(itemId, value) =>
+            setQuantities((current) => ({ ...current, [itemId]: value }))
+          }
+        />
+      </DispatchTransitionSheet>
+      <DispatchDraftDiscardConfirmation
+        open={confirmDiscard}
+        title="Discard receipt draft?"
+        description="The quantities entered for this partial receipt will be discarded."
+        discardLabel="Discard receipt"
+        onOpenChange={setConfirmDiscard}
+        onDiscard={discardDraft}
       />
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Record branch receipt</DialogTitle>
-          <DialogDescription>
-            Enter what arrived now. You can record another partial receipt for
-            the remaining quantities later.
-          </DialogDescription>
-        </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={submit}>
-          <DispatchQuantityFields
-            items={eligibleItems}
-            quantities={quantities}
-            quantityVerb="received"
-            disabled={pending}
-            onQuantityChange={(itemId, value) =>
-              setQuantities((current) => ({ ...current, [itemId]: value }))
-            }
-          />
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={pending}
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Recording…" : "Confirm receipt"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </>
   );
 }

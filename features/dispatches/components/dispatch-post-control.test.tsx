@@ -27,6 +27,9 @@ describe("dispatch post control", () => {
 
     await user.click(screen.getByRole("button", { name: "Post dispatch" }));
     expect(action).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
+      "operational",
+    );
     expect(
       screen.getByText(/reduce commissary stock and begin branch transit/i),
     ).toBeTruthy();

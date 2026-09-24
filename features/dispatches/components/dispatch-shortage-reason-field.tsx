@@ -1,4 +1,5 @@
 import { Textarea } from "@/components/ui/textarea";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 
 export function DispatchShortageReasonField({
   dispatchId,
@@ -14,18 +15,19 @@ export function DispatchShortageReasonField({
   const inputId = `shortage-reason-${dispatchId}`;
 
   return (
-    <div className="flex flex-col gap-2">
-      <label className="font-medium" htmlFor={inputId}>
-        Reason for shortage closure
-      </label>
+    <Field>
+      <FieldLabel htmlFor={inputId}>Reason for shortage closure</FieldLabel>
       <Textarea
         id={inputId}
         maxLength={500}
+        aria-describedby={`${inputId}-hint`}
         disabled={disabled}
         value={reason}
         onChange={(event) => onReasonChange(event.target.value)}
       />
-      <p className="text-sm text-muted-foreground">Maximum 500 characters.</p>
-    </div>
+      <FieldDescription id={`${inputId}-hint`}>
+        Maximum 500 characters.
+      </FieldDescription>
+    </Field>
   );
 }

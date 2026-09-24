@@ -10,15 +10,23 @@ import type { Dispatch } from "@/features/dispatches/types/dispatch.types";
 
 export function DispatchItemTable({ dispatch }: { dispatch: Dispatch }) {
   return (
-    <Table aria-label="Dispatch items">
+    <Table
+      aria-label="Dispatch items"
+      containerProps={{
+        role: "region",
+        "aria-label": "Dispatch quantities table",
+        tabIndex: 0,
+        className: "rounded-lg border",
+      }}
+    >
       <TableHeader>
         <TableRow>
           <TableHead>Stock item</TableHead>
-          <TableHead>Requested</TableHead>
-          <TableHead>Dispatched</TableHead>
-          <TableHead>Received</TableHead>
-          <TableHead>Shortage closed</TableHead>
-          <TableHead>In transit</TableHead>
+          <TableHead className="text-right">Requested</TableHead>
+          <TableHead className="text-right">Dispatched</TableHead>
+          <TableHead className="text-right">Received</TableHead>
+          <TableHead className="text-right">Shortage closed</TableHead>
+          <TableHead className="text-right">In transit</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -60,7 +68,7 @@ export function DispatchItemTable({ dispatch }: { dispatch: Dispatch }) {
 
 function QuantityCell({ quantity, unit }: { quantity: string; unit: string }) {
   return (
-    <TableCell className="tabular-nums">
+    <TableCell className="text-right tabular-nums">
       {quantity} {unit}
     </TableCell>
   );

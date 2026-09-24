@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import { DispatchManagement } from "./dispatch-management";
@@ -30,6 +31,9 @@ describe("dispatch management", () => {
       screen.getByText("No dispatches have been created yet."),
     ).toBeTruthy();
     expect(screen.getByLabelText("Dispatch status")).toBeTruthy();
+    const filters = screen.getByRole("form", { name: "Filter dispatches" });
+    expect(filters.getAttribute("action")).toBe("/dispatches");
+    expect(filters.getAttribute("method")).toBeNull();
     expect(
       screen
         .getByRole("link", { name: "Review approved requests" })
@@ -71,10 +75,17 @@ describe("dispatch management", () => {
     expect(screen.getByText("Downtown")).toBeTruthy();
     expect(screen.getAllByText("IN TRANSIT")).toHaveLength(2);
     expect(
+      screen
+        .getByRole("region", { name: "Dispatches table" })
+        .getAttribute("data-slot"),
+    ).toBe("table-container");
+    expect(
       screen.getByRole("link", { name: "View dispatch" }).getAttribute("href"),
     ).toBe(`/dispatches/${id}`);
     expect(
-      screen.getByRole("link", { name: "View request" }).getAttribute("href"),
+      screen
+        .getByRole("link", { name: "View stock request " + id.slice(0, 8) })
+        .getAttribute("href"),
     ).toBe(`/replenishment/${id}`);
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
@@ -90,5 +101,24 @@ describe("dispatch management", () => {
       />,
     );
     expect(screen.getByText("No dispatches match this status.")).toBeTruthy();
+  });
+
+  it("submits an applied status filter through client GET navigation", async () => {
+    const user = userEvent.setup();
+    render(
+      <DispatchManagement
+        page={page}
+        filters={{ page: 3, status: "all" }}
+        canCreate={false}
+      />,
+    );
+
+    const filters = screen.getByRole("form", { name: "Filter dispatches" });
+    await user.click(screen.getByRole("combobox", { name: "Dispatch status" }));
+    await user.click(await screen.findByRole("option", { name: "RECEIVED" }));
+    expect(
+      filters.querySelector('input[name="status"]')?.getAttribute("value"),
+    ).toBe("RECEIVED");
+    expect(filters.querySelector('input[name="page"]')).toBeNull();
   });
 });

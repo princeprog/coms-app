@@ -1,4 +1,10 @@
 import { Input } from "@/components/ui/input";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import type { Dispatch } from "@/features/dispatches/types/dispatch.types";
 
 export function DispatchQuantityFields({
@@ -15,32 +21,34 @@ export function DispatchQuantityFields({
   onQuantityChange: (itemId: string, value: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-4">
+    <FieldGroup className="gap-4">
       {items.map((item) => {
         const inputId = `dispatch-quantity-${quantityVerb.replaceAll(" ", "-")}-${item.id}`;
         const hintId = `${inputId}-hint`;
         return (
-          <div key={item.id} className="flex flex-col gap-2">
-            <label className="font-medium" htmlFor={inputId}>
+          <Field key={item.id} className="rounded-lg border bg-card p-4">
+            <FieldLabel htmlFor={inputId}>
               {item.stock_item_name} {quantityVerb} ({item.unit})
-            </label>
-            <p id={hintId} className="text-sm text-muted-foreground">
+            </FieldLabel>
+            <FieldDescription id={hintId}>
               {item.quantity_in_transit} {item.unit} currently in transit
-            </p>
+            </FieldDescription>
             <Input
               id={inputId}
+              type="text"
               aria-describedby={hintId}
               autoComplete="off"
               inputMode="decimal"
+              maxLength={80}
               disabled={disabled}
               value={quantities[item.id] ?? ""}
               onChange={(event) =>
                 onQuantityChange(item.id, event.target.value)
               }
             />
-          </div>
+          </Field>
         );
       })}
-    </div>
+    </FieldGroup>
   );
 }

@@ -140,12 +140,21 @@ describe("dispatch detail view", () => {
         .getAttribute("href"),
     ).toBe(`/replenishment/${id}`);
     expect(screen.getByRole("table", { name: "Dispatch items" })).toBeTruthy();
+    expect(
+      screen.getByRole("region", { name: "Dispatch quantities table" }),
+    ).toBeTruthy();
     expect(screen.getByText("PARTIALLY RECEIVED")).toBeTruthy();
     expect(screen.getByText("4.5 kg")).toBeTruthy();
     expect(screen.getByText("Branch Manager")).toBeTruthy();
     expect(screen.getByText("One bag was damaged during transit")).toBeTruthy();
     expect(screen.getByText("2.5000 kg")).toBeTruthy();
     expect(screen.getByText("SHORTAGE CLOSED")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Branch receipts" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Shortage closures" }),
+    ).toBeTruthy();
   });
 
   it("explains when a dispatch has no receipt or shortage history", () => {

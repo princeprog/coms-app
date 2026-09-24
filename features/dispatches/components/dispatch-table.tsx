@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -22,14 +22,21 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
         <h2 id="dispatches-heading" className="text-lg font-semibold">
           Dispatches
         </h2>
-        <p className="text-sm text-muted-foreground">{page.total} total</p>
       </div>
-      <Table aria-label="Dispatches">
+      <Table
+        aria-label="Dispatches"
+        containerProps={{
+          role: "region",
+          "aria-label": "Dispatches table",
+          tabIndex: 0,
+          className: "rounded-lg border",
+        }}
+      >
         <TableHeader>
           <TableRow>
             <TableHead>Branch</TableHead>
-            <TableHead>Request</TableHead>
-            <TableHead>Items</TableHead>
+            <TableHead>Stock request</TableHead>
+            <TableHead className="text-right">Items</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Dispatched</TableHead>
@@ -45,16 +52,23 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
               <TableCell>
                 <Link
                   className={buttonVariants({ variant: "link", size: "sm" })}
+                  aria-label={
+                    "View stock request " +
+                    dispatch.stock_request_id.slice(0, 8)
+                  }
                   href={`/replenishment/${dispatch.stock_request_id}`}
+                  title={dispatch.stock_request_id}
                 >
-                  View request
+                  Request {dispatch.stock_request_id.slice(0, 8)}
                 </Link>
               </TableCell>
-              <TableCell>{dispatch.item_count}</TableCell>
+              <TableCell className="text-right tabular-nums">
+                {dispatch.item_count}
+              </TableCell>
               <TableCell>
-                <Badge variant="outline">
+                <OperationalStatusBadge variant="outline">
                   {dispatch.status.replaceAll("_", " ")}
-                </Badge>
+                </OperationalStatusBadge>
               </TableCell>
               <TableCell>
                 {format(parseISO(dispatch.created_at), "PPp")}

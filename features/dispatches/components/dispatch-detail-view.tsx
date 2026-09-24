@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   Dispatch,
   DispatchPostAction,
@@ -43,16 +42,16 @@ export function DispatchDetailView({
     canCloseShortage;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-coms-ui="operational" className="flex flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
-          className={buttonVariants({ variant: "outline" })}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
           href="/dispatches"
         >
           Back to dispatches
         </Link>
         <Link
-          className={buttonVariants({ variant: "outline" })}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
           href={`/replenishment/${dispatch.stock_request_id}`}
         >
           View stock request
@@ -70,19 +69,24 @@ export function DispatchDetailView({
           />
         )}
       </div>
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+      <section
+        aria-labelledby="dispatch-summary-heading"
+        className="rounded-lg border bg-card"
+      >
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b p-4 md:p-5">
           <div className="flex flex-col gap-1">
-            <CardTitle>Dispatch to {dispatch.branch_name}</CardTitle>
+            <h2 id="dispatch-summary-heading" className="text-lg font-semibold">
+              Dispatch to {dispatch.branch_name}
+            </h2>
             <p className="text-sm text-muted-foreground">
               Stock request status: {dispatch.stock_request_status}
             </p>
           </div>
-          <Badge variant="outline">
+          <OperationalStatusBadge variant="outline">
             {dispatch.status.replaceAll("_", " ")}
-          </Badge>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          </OperationalStatusBadge>
+        </header>
+        <dl className="grid gap-x-6 gap-y-4 p-4 sm:grid-cols-2 lg:grid-cols-4 md:p-5">
           <DetailField label="Created by" value={dispatch.created_by_name} />
           <DetailField
             label="Created"
@@ -100,16 +104,26 @@ export function DispatchDetailView({
                 : "Not dispatched"
             }
           />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Dispatch quantities</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DispatchItemTable dispatch={dispatch} />
-        </CardContent>
-      </Card>
+        </dl>
+      </section>
+      <section
+        aria-labelledby="dispatch-quantities-heading"
+        className="flex flex-col gap-3"
+      >
+        <div>
+          <h2
+            id="dispatch-quantities-heading"
+            className="text-lg font-semibold"
+          >
+            Dispatch quantities
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            In-transit quantity is the dispatched amount less receipts and
+            explicitly closed shortages.
+          </p>
+        </div>
+        <DispatchItemTable dispatch={dispatch} />
+      </section>
       <DispatchHistory dispatch={dispatch} />
     </div>
   );
@@ -118,8 +132,8 @@ export function DispatchDetailView({
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-medium tabular-nums">{value}</p>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="font-medium tabular-nums">{value}</dd>
     </div>
   );
 }

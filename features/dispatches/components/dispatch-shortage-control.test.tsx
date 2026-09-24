@@ -71,6 +71,43 @@ afterEach(() => {
 });
 
 describe("dispatch shortage control", () => {
+  it("uses an operational sheet and discards a shortage draft only after confirmation", async () => {
+    const user = userEvent.setup();
+    render(
+      <DispatchShortageControl
+        dispatch={dispatch}
+        action={vi.fn<DispatchShortageAction>().mockResolvedValue({ ok: true })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Close shortage" }));
+    expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
+      "operational",
+    );
+    await user.type(
+      screen.getByLabelText("Reason for shortage closure"),
+      "Missing from delivery",
+    );
+    await user.type(
+      screen.getByLabelText("Flour shortage closed (kg)"),
+      "1.25",
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      screen.getByRole("alertdialog", { name: "Discard shortage closure?" }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Discard closure" }));
+    await user.click(screen.getByRole("button", { name: "Close shortage" }));
+    expect(screen.getByLabelText("Reason for shortage closure")).toHaveProperty(
+      "value",
+      "",
+    );
+    expect(screen.getByLabelText("Flour shortage closed (kg)")).toHaveProperty(
+      "value",
+      "",
+    );
+  });
+
   it("requires a reason and records only quantities still in transit", async () => {
     vi.stubGlobal("crypto", {
       randomUUID: vi.fn().mockReturnValue(idempotencyKeys[0]),

@@ -2,16 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { closeDispatchShortageSchema } from "@/features/dispatches/schemas/dispatch.schema";
 import {
   isDecimalQuantityWithinLimit,
@@ -21,8 +11,10 @@ import type {
   Dispatch,
   DispatchShortageAction,
 } from "@/features/dispatches/types/dispatch.types";
+import { DispatchDraftDiscardConfirmation } from "./dispatch-draft-discard-confirmation";
 import { DispatchQuantityFields } from "./dispatch-quantity-fields";
 import { DispatchShortageReasonField } from "./dispatch-shortage-reason-field";
+import { DispatchTransitionSheet } from "./dispatch-transition-sheet";
 
 export function DispatchShortageControl({
   dispatch,
@@ -35,6 +27,7 @@ export function DispatchShortageControl({
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [reason, setReason] = useState("");
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
@@ -43,6 +36,36 @@ export function DispatchShortageControl({
   );
 
   if (eligibleItems.length === 0) return null;
+
+  function requestClose() {
+    if (pending) return;
+    const hasQuantity = Object.values(quantities).some(
+      (quantity) => quantity.length > 0,
+    );
+    if (reason.length > 0 || hasQuantity) {
+      setConfirmDiscard(true);
+      return;
+    }
+    setOpen(false);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      setOpen(true);
+      setError("");
+      return;
+    }
+    requestClose();
+  }
+
+  function discardDraft() {
+    setReason("");
+    setQuantities({});
+    setError("");
+    retry.current = null;
+    setConfirmDiscard(false);
+    setOpen(false);
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -120,6 +143,7 @@ export function DispatchShortageControl({
       setError(result.error);
       return;
     }
+
     retry.current = null;
     setReason("");
     setQuantities({});
@@ -128,65 +152,46 @@ export function DispatchShortageControl({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (pending) return;
-        setOpen(nextOpen);
-        if (nextOpen) setError("");
-      }}
-    >
-      <DialogTrigger
-        render={
-          <Button type="button" variant="outline">
-            Close shortage
-          </Button>
-        }
+    <>
+      <DispatchTransitionSheet
+        triggerLabel="Close shortage"
+        title="Close undelivered quantities?"
+        description="Record what will not arrive and why. Closed quantities stay out of branch inventory and will no longer be in transit."
+        formLabel="Close dispatch shortage"
+        submitLabel="Confirm shortage closure"
+        pendingLabel="Closing…"
+        destructive
+        open={open}
+        pending={pending}
+        error={error}
+        onOpenChange={handleOpenChange}
+        onCancel={requestClose}
+        onSubmit={submit}
+      >
+        <DispatchShortageReasonField
+          dispatchId={dispatch.id}
+          reason={reason}
+          disabled={pending}
+          onReasonChange={setReason}
+        />
+        <DispatchQuantityFields
+          items={eligibleItems}
+          quantities={quantities}
+          quantityVerb="shortage closed"
+          disabled={pending}
+          onQuantityChange={(itemId, value) =>
+            setQuantities((current) => ({ ...current, [itemId]: value }))
+          }
+        />
+      </DispatchTransitionSheet>
+      <DispatchDraftDiscardConfirmation
+        open={confirmDiscard}
+        title="Discard shortage closure?"
+        description="The shortage reason and quantities entered here will be discarded."
+        discardLabel="Discard closure"
+        onOpenChange={setConfirmDiscard}
+        onDiscard={discardDraft}
       />
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Close undelivered quantities?</DialogTitle>
-          <DialogDescription>
-            Record what will not arrive and why. Closed quantities stay out of
-            branch inventory and will no longer be in transit.
-          </DialogDescription>
-        </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={submit}>
-          <DispatchShortageReasonField
-            dispatchId={dispatch.id}
-            reason={reason}
-            disabled={pending}
-            onReasonChange={setReason}
-          />
-          <DispatchQuantityFields
-            items={eligibleItems}
-            quantities={quantities}
-            quantityVerb="shortage closed"
-            disabled={pending}
-            onQuantityChange={(itemId, value) =>
-              setQuantities((current) => ({ ...current, [itemId]: value }))
-            }
-          />
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={pending}
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" variant="destructive" disabled={pending}>
-              {pending ? "Closing…" : "Confirm shortage closure"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </>
   );
 }
