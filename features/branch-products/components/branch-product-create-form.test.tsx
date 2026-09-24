@@ -111,7 +111,11 @@ describe("branch product create form", () => {
       screen.getByRole("combobox", { name: "Product *" }).textContent,
     ).toContain("Chicken sandwich");
 
-    await user.click(screen.getByRole("button", { name: "Create offering" }));
+    const retryButton = await screen.findByRole("button", {
+      name: "Create offering",
+    });
+    await waitFor(() => expect(retryButton).toHaveProperty("disabled", false));
+    await user.click(retryButton);
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
     expect(action).toHaveBeenLastCalledWith(branchId, {
       product_id: productId,

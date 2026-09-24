@@ -208,6 +208,50 @@ function createState() {
       updated_at: "2026-01-01T00:00:00.000Z",
     };
   });
+  const products = Array.from({ length: 31 }, (_, index) => {
+    const sequence = String(index + 1).padStart(12, "0");
+    return {
+      id: "35000000-0000-4000-8000-" + sequence,
+      product_name:
+        index === 0
+          ? "Chicken sandwich"
+          : index === 1
+            ? "Fixture product with a deliberately long name for responsive table truncation across every viewport"
+            : "Fixture Product " + String(index + 1).padStart(2, "0"),
+      description: index === 0 ? "Grilled chicken on sourdough" : null,
+      is_active: index !== 2,
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-01-01T00:00:00.000Z",
+    };
+  });
+  products[30].product_name = "Fixture Product 31";
+  const branchProducts = products.slice(0, 26).map((product, index) => ({
+    branch_id: primaryBranchId,
+    branch_name: branches[0].branch_name,
+    product_id: product.id,
+    product_name: product.product_name,
+    description: product.description,
+    product_is_active: product.is_active,
+    price: String(100 + index) + ".0000",
+    is_available: index % 2 === 0,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+  }));
+  const recipes = [
+    {
+      product_id: products[0].id,
+      items: [
+        {
+          stock_item_id: stockItems[0].id,
+          quantity_required: "0.0250",
+        },
+        {
+          stock_item_id: stockItems[2].id,
+          quantity_required: "0.500",
+        },
+      ],
+    },
+  ];
   const receipts = Array.from({ length: 26 }, (_, index) => {
     const sequence = String(index + 1).padStart(12, "0");
     const status = index % 4 === 0 ? "DRAFT" : "POSTED";
@@ -329,11 +373,99 @@ function createState() {
     staff,
     suppliers,
     stockItems,
+    products,
+    branchProducts,
+    recipes,
     receipts,
     stockRequests,
     dispatches: createDispatchSeed(stockRequests, seed),
     dispatchActionKeys: [],
     failNext: null,
+  };
+}
+
+function pageItems(items, url) {
+  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+  const pageSize = Math.min(
+    100,
+    Math.max(1, Number(url.searchParams.get("page_size")) || 25),
+  );
+  const start = (page - 1) * pageSize;
+  return {
+    items: items.slice(start, start + pageSize),
+    total: items.length,
+    page,
+    page_size: pageSize,
+  };
+}
+
+function isNonnegativeDecimal(value) {
+  return (
+    typeof value === "string" &&
+    value.length <= 80 &&
+    /^\d+(?:\.\d+)?$/.test(value)
+  );
+}
+
+function recipeDetails(state, product) {
+  const savedRecipe = state.recipes.find(
+    (recipe) => recipe.product_id === product.id,
+  );
+  const timestamp = "2026-09-25T03:00:00.000Z";
+  return {
+    product: {
+      id: product.id,
+      product_name: product.product_name,
+      description: product.description,
+      is_active: product.is_active,
+    },
+    items: (savedRecipe?.items ?? []).map((item) => {
+      const stockItem = state.stockItems.find(
+        (candidate) => candidate.id === item.stock_item_id,
+      );
+      return {
+        product_id: product.id,
+        stock_item_id: item.stock_item_id,
+        stock_item_name: stockItem.stock_item_name,
+        unit: stockItem.unit,
+        stock_item_is_active: stockItem.is_active,
+        quantity_required: item.quantity_required,
+        created_at: item.created_at ?? timestamp,
+        updated_at: item.updated_at ?? timestamp,
+      };
+    }),
+  };
+}
+
+function branchProductRecord(branch, product, price, isAvailable, timestamp) {
+  return {
+    branch_id: branch.id,
+    branch_name: branch.branch_name,
+    product_id: product.id,
+    product_name: product.product_name,
+    description: product.description,
+    product_is_active: product.is_active,
+    price,
+    is_available: isAvailable,
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
+}
+
+function branchProductView(state, offer) {
+  const branch = state.branches.find((item) => item.id === offer.branch_id);
+  const product = state.products.find((item) => item.id === offer.product_id);
+  return {
+    branch_id: offer.branch_id,
+    branch_name: branch.branch_name,
+    product_id: offer.product_id,
+    product_name: product.product_name,
+    description: product.description,
+    product_is_active: product.is_active,
+    price: offer.price,
+    is_available: offer.is_available,
+    created_at: offer.created_at,
+    updated_at: offer.updated_at,
   };
 }
 
@@ -379,6 +511,9 @@ function createOperationalApiFixture({ gatewaySecret }) {
           staff: state.staff,
           suppliers: state.suppliers,
           stockItems: state.stockItems,
+          products: state.products,
+          branchProducts: state.branchProducts,
+          recipes: state.recipes,
           receipts: state.receipts,
           stockRequests: state.stockRequests,
           dispatches: state.dispatches.map(dispatchListItem),
@@ -474,6 +609,288 @@ function createOperationalApiFixture({ gatewaySecret }) {
         seed,
       });
       if (dispatchResponse !== false) return dispatchResponse;
+
+      if (url.pathname === "/products" && request.method === "GET") {
+        const search = (url.searchParams.get("search") ?? "")
+          .trim()
+          .toLowerCase();
+        const activeFilter = url.searchParams.get("is_active");
+        const matches = state.products.filter((product) => {
+          if (activeFilter === "true" && !product.is_active) return false;
+          if (activeFilter === "false" && product.is_active) return false;
+          return !search || product.product_name.toLowerCase().includes(search);
+        });
+        matches.sort(
+          (left, right) =>
+            left.product_name.localeCompare(right.product_name) ||
+            left.id.localeCompare(right.id),
+        );
+        return send(response, 200, pageItems(matches, url));
+      }
+      if (url.pathname === "/products" && request.method === "POST") {
+        if (
+          typeof body?.product_name !== "string" ||
+          body.product_name.trim().length < 2 ||
+          body.product_name.length > 160 ||
+          (body.description !== undefined &&
+            body.description !== null &&
+            (typeof body.description !== "string" ||
+              body.description.length > 1000))
+        ) {
+          return send(response, 400, { message: "Invalid fixture product." });
+        }
+        const sequence = String(state.products.length + 1).padStart(12, "0");
+        const now = "2026-09-25T03:00:00.000Z";
+        const product = {
+          id: "35000000-0000-4000-8000-" + sequence,
+          product_name: body.product_name.trim(),
+          description: body.description?.trim() || null,
+          is_active: true,
+          created_at: now,
+          updated_at: now,
+        };
+        state.products.push(product);
+        return send(response, 201, product);
+      }
+
+      const recipeRoute = url.pathname.match(
+        /^\/products\/([0-9a-f-]{36})\/recipe$/i,
+      );
+      if (recipeRoute) {
+        const product = state.products.find(
+          (item) => item.id === recipeRoute[1],
+        );
+        if (!product)
+          return send(response, 404, { message: "Product not found." });
+        if (request.method === "GET") {
+          return send(response, 200, recipeDetails(state, product));
+        }
+        if (request.method === "POST" || request.method === "PUT") {
+          if (!product.is_active) {
+            return send(response, 409, {
+              message: "Inactive products cannot have recipes.",
+            });
+          }
+          if (
+            !Array.isArray(body?.items) ||
+            body.items.length < 1 ||
+            body.items.length > 100
+          ) {
+            return send(response, 400, { message: "Invalid fixture recipe." });
+          }
+          const ids = new Set();
+          const items = [];
+          for (const item of body.items) {
+            if (
+              !item ||
+              typeof item.stock_item_id !== "string" ||
+              normalizePositiveDecimal(item.quantity_required) === null ||
+              ids.has(item.stock_item_id)
+            ) {
+              return send(response, 400, {
+                message: "Invalid or duplicate recipe ingredient.",
+              });
+            }
+            ids.add(item.stock_item_id);
+            const stockItem = state.stockItems.find(
+              (candidate) => candidate.id === item.stock_item_id,
+            );
+            if (!stockItem || !stockItem.is_active) {
+              return send(response, 404, {
+                message: "Active stock item not found.",
+              });
+            }
+            items.push({
+              stock_item_id: item.stock_item_id,
+              quantity_required: item.quantity_required,
+              created_at: "2026-09-25T03:00:00.000Z",
+              updated_at: "2026-09-25T03:00:00.000Z",
+            });
+          }
+          const recipeIndex = state.recipes.findIndex(
+            (recipe) => recipe.product_id === product.id,
+          );
+          if (request.method === "POST" && recipeIndex >= 0) {
+            return send(response, 409, {
+              message: "A recipe already exists for this product.",
+            });
+          }
+          if (request.method === "PUT" && recipeIndex < 0) {
+            return send(response, 409, {
+              message: "A recipe must exist before it can be updated.",
+            });
+          }
+          const recipe = { product_id: product.id, items };
+          if (recipeIndex >= 0) state.recipes[recipeIndex] = recipe;
+          else state.recipes.push(recipe);
+          return send(
+            response,
+            request.method === "POST" ? 201 : 200,
+            recipeDetails(state, product),
+          );
+        }
+      }
+
+      const productRoute = url.pathname.match(
+        /^\/products\/([0-9a-f-]{36})(?:\/(deactivate))?$/i,
+      );
+      if (productRoute) {
+        const product = state.products.find(
+          (item) => item.id === productRoute[1],
+        );
+        if (!product)
+          return send(response, 404, { message: "Product not found." });
+        if (request.method === "PATCH" && !productRoute[2]) {
+          if (
+            body?.product_name !== undefined &&
+            (typeof body.product_name !== "string" ||
+              body.product_name.trim().length < 2 ||
+              body.product_name.length > 160)
+          ) {
+            return send(response, 400, { message: "Invalid product name." });
+          }
+          if (
+            body?.description !== undefined &&
+            body.description !== null &&
+            (typeof body.description !== "string" ||
+              body.description.length > 1000)
+          ) {
+            return send(response, 400, { message: "Invalid description." });
+          }
+          if (body.product_name !== undefined)
+            product.product_name = body.product_name.trim();
+          if (Object.hasOwn(body, "description"))
+            product.description = body.description?.trim() || null;
+          product.updated_at = "2026-09-25T03:00:00.000Z";
+          return send(response, 200, product);
+        }
+        if (request.method === "POST" && productRoute[2] === "deactivate") {
+          product.is_active = false;
+          product.updated_at = "2026-09-25T03:00:00.000Z";
+          return send(response, 200, product);
+        }
+      }
+
+      const branchProductsRoute = url.pathname.match(
+        /^\/branches\/([0-9a-f-]{36})\/products(?:\/([0-9a-f-]{36})(?:\/(availability))?)?$/i,
+      );
+      if (branchProductsRoute) {
+        const branch = state.branches.find(
+          (item) => item.id === branchProductsRoute[1],
+        );
+        if (!branch)
+          return send(response, 404, { message: "Branch not found." });
+        if (!branchProductsRoute[2] && request.method === "GET") {
+          const search = (url.searchParams.get("search") ?? "")
+            .trim()
+            .toLowerCase();
+          const availability = url.searchParams.get("is_available");
+          const matches = state.branchProducts
+            .filter((offer) => offer.branch_id === branch.id)
+            .map((offer) => ({
+              offer,
+              product: state.products.find(
+                (item) => item.id === offer.product_id,
+              ),
+            }))
+            .filter(({ offer, product }) => {
+              if (!product) return false;
+              if (availability === "true" && !offer.is_available) return false;
+              if (availability === "false" && offer.is_available) return false;
+              return (
+                !search || product.product_name.toLowerCase().includes(search)
+              );
+            })
+            .map(({ offer }) => branchProductView(state, offer));
+          matches.sort(
+            (left, right) =>
+              left.product_name.localeCompare(right.product_name) ||
+              left.product_id.localeCompare(right.product_id),
+          );
+          return send(response, 200, pageItems(matches, url));
+        }
+        if (branch.status !== "active") {
+          return send(response, 404, {
+            message: "Active branch not found.",
+          });
+        }
+        if (!branchProductsRoute[2] && request.method === "POST") {
+          if (
+            typeof body?.product_id !== "string" ||
+            !isNonnegativeDecimal(body.price)
+          ) {
+            return send(response, 400, { message: "Invalid branch offer." });
+          }
+          const product = state.products.find(
+            (item) => item.id === body.product_id,
+          );
+          if (!product || !product.is_active) {
+            return send(response, 404, {
+              message: "Active product not found.",
+            });
+          }
+          if (
+            state.branchProducts.some(
+              (offer) =>
+                offer.branch_id === branch.id &&
+                offer.product_id === product.id,
+            )
+          ) {
+            return send(response, 409, {
+              message: "Product is already offered at this branch.",
+            });
+          }
+          const now = "2026-09-25T03:00:00.000Z";
+          const offer = branchProductRecord(
+            branch,
+            product,
+            body.price,
+            true,
+            now,
+          );
+          state.branchProducts.push(offer);
+          return send(response, 201, offer);
+        }
+        if (branchProductsRoute[2]) {
+          const offer = state.branchProducts.find(
+            (item) =>
+              item.branch_id === branch.id &&
+              item.product_id === branchProductsRoute[2],
+          );
+          if (!offer)
+            return send(response, 404, { message: "Offer not found." });
+          const product = state.products.find(
+            (item) => item.id === offer.product_id,
+          );
+          if (
+            !product?.is_active &&
+            !(request.method === "POST" && body?.is_available === false)
+          ) {
+            return send(response, 409, {
+              message: "Inactive products cannot be changed.",
+            });
+          }
+          if (
+            request.method === "PATCH" &&
+            !branchProductsRoute[3] &&
+            isNonnegativeDecimal(body?.price)
+          ) {
+            offer.price = body.price;
+            offer.updated_at = "2026-09-25T03:00:00.000Z";
+            return send(response, 200, branchProductView(state, offer));
+          }
+          if (
+            request.method === "POST" &&
+            branchProductsRoute[3] === "availability" &&
+            typeof body?.is_available === "boolean"
+          ) {
+            offer.is_available = body.is_available;
+            offer.updated_at = "2026-09-25T03:00:00.000Z";
+            return send(response, 200, branchProductView(state, offer));
+          }
+          return send(response, 400, { message: "Invalid offer update." });
+        }
+      }
 
       if (
         (url.pathname === "/suppliers" || url.pathname === "/stock-items") &&

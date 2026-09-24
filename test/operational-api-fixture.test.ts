@@ -22,6 +22,15 @@ import {
   permissionsResponseSchema,
   rolesResponseSchema,
 } from "@/features/roles/schemas/role.schema";
+import {
+  productPageSchema,
+  productSchema,
+} from "@/features/products/schemas/product.schema";
+import { recipeResponseSchema } from "@/features/recipes/schemas/recipe.schema";
+import {
+  branchProductPageSchema,
+  branchProductSchema,
+} from "@/features/branch-products/schemas/branch-product.schema";
 
 const require = createRequire(import.meta.url);
 const { createOperationalApiFixture } =
@@ -35,6 +44,26 @@ const { createOperationalApiFixture } =
   };
 
 const gatewaySecret = "a".repeat(64);
+
+async function getAuthenticatedHeaders(baseUrl: string) {
+  const login = await fetch(baseUrl + "/auth/login", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-coms-auth-gateway": gatewaySecret,
+    },
+    body: JSON.stringify(seed.login),
+  });
+  const cookie = login.headers
+    .getSetCookie()
+    .map((value) => value.split(";")[0])
+    .join("; ");
+  return { cookie, "x-coms-auth-gateway": gatewaySecret };
+}
+
+function fixtureProductId(index: number) {
+  return `35000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+}
 
 describe("operational API fixture", () => {
   it("keeps its seeded auth, roles, and permission catalog within app schemas", () => {
@@ -958,6 +987,361 @@ describe("operational API fixture", () => {
         quantity_shortage_closed: "1",
         quantity_in_transit: "7.5",
       });
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("serves schema-valid products, recipes, and branch-offer workflows", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = await getAuthenticatedHeaders(fixture.baseUrl);
+      const productsResponse = await fetch(
+        fixture.baseUrl + "/products?page=1&page_size=25",
+        { headers },
+      );
+      expect(productsResponse.status).toBe(200);
+      const products = productPageSchema.parse(await productsResponse.json());
+      expect(products).toMatchObject({ total: 31, page: 1, page_size: 25 });
+      expect(products.items).toHaveLength(25);
+
+      const nextProducts = productPageSchema.parse(
+        await (
+          await fetch(fixture.baseUrl + "/products?page=2&page_size=25", {
+            headers,
+          })
+        ).json(),
+      );
+      expect(nextProducts.items).toHaveLength(6);
+      expect(
+        [...products.items, ...nextProducts.items].some(
+          (product) => product.product_name.length > 60,
+        ),
+      ).toBe(true);
+
+      const filteredProducts = productPageSchema.parse(
+        await (
+          await fetch(
+            fixture.baseUrl + "/products?search=Product+31&is_active=true",
+            { headers },
+          )
+        ).json(),
+      );
+      expect(filteredProducts).toMatchObject({ total: 1, page: 1 });
+      expect(filteredProducts.items[0].product_name).toBe("Fixture Product 31");
+
+      const stockItems = stockItemPageSchema.parse(
+        await (
+          await fetch(
+            fixture.baseUrl +
+              "/stock-items?page=1&page_size=100&is_active=true",
+            { headers },
+          )
+        ).json(),
+      );
+      expect(stockItems.items).toHaveLength(25);
+      const flour = stockItems.items[0];
+      const oil = stockItems.items[1];
+      const allStockItems = stockItemPageSchema.parse(
+        await (
+          await fetch(fixture.baseUrl + "/stock-items?page=1&page_size=100", {
+            headers,
+          })
+        ).json(),
+      );
+
+      const existingRecipe = recipeResponseSchema.parse(
+        await (
+          await fetch(
+            fixture.baseUrl + "/products/" + fixtureProductId(0) + "/recipe",
+            { headers },
+          )
+        ).json(),
+      );
+      expect(existingRecipe.items[0]).toMatchObject({
+        stock_item_id: flour.id,
+        quantity_required: "0.0250",
+        stock_item_is_active: true,
+      });
+      expect(existingRecipe.items[1]).toMatchObject({
+        stock_item_id: allStockItems.items[2].id,
+        stock_item_is_active: false,
+        quantity_required: "0.500",
+      });
+
+      const emptyRecipeResponse = await fetch(
+        fixture.baseUrl + "/products/" + fixtureProductId(1) + "/recipe",
+        { headers },
+      );
+      expect(
+        recipeResponseSchema.parse(await emptyRecipeResponse.json()).items,
+      ).toEqual([]);
+
+      const recipeCreateBody = {
+        items: [{ stock_item_id: flour.id, quantity_required: "0.00750" }],
+      };
+      const recipeCreateResponse = await fetch(
+        fixture.baseUrl + "/products/" + fixtureProductId(1) + "/recipe",
+        {
+          method: "POST",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify(recipeCreateBody),
+        },
+      );
+      expect(recipeCreateResponse.status).toBe(201);
+      expect(
+        recipeResponseSchema.parse(await recipeCreateResponse.json()).items[0],
+      ).toMatchObject({
+        stock_item_id: flour.id,
+        quantity_required: "0.00750",
+        stock_item_is_active: true,
+      });
+      const duplicateRecipe = await fetch(
+        fixture.baseUrl + "/products/" + fixtureProductId(1) + "/recipe",
+        {
+          method: "POST",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify(recipeCreateBody),
+        },
+      );
+      expect(duplicateRecipe.status).toBe(409);
+
+      const recipeUpdateResponse = await fetch(
+        fixture.baseUrl + "/products/" + fixtureProductId(0) + "/recipe",
+        {
+          method: "PUT",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({
+            items: [{ stock_item_id: oil.id, quantity_required: "1.2000" }],
+          }),
+        },
+      );
+      expect(
+        recipeResponseSchema.parse(await recipeUpdateResponse.json()).items,
+      ).toMatchObject([{ stock_item_id: oil.id, quantity_required: "1.2000" }]);
+
+      const branchId = "10000000-0000-4000-8000-000000000001";
+      const branchProductsResponse = await fetch(
+        fixture.baseUrl + `/branches/${branchId}/products?page=1&page_size=25`,
+        { headers },
+      );
+      const branchProducts = branchProductPageSchema.parse(
+        await branchProductsResponse.json(),
+      );
+      expect(branchProducts).toMatchObject({ total: 26, page: 1 });
+      expect(branchProducts.items).toHaveLength(25);
+
+      const nextOffers = branchProductPageSchema.parse(
+        await (
+          await fetch(
+            fixture.baseUrl +
+              `/branches/${branchId}/products?page=2&page_size=25`,
+            { headers },
+          )
+        ).json(),
+      );
+      expect(nextOffers.items).toHaveLength(1);
+      expect(
+        [...branchProducts.items, ...nextOffers.items].some(
+          (offer) => offer.product_name.length > 60,
+        ),
+      ).toBe(true);
+
+      const availableOffers = branchProductPageSchema.parse(
+        await (
+          await fetch(
+            fixture.baseUrl +
+              `/branches/${branchId}/products?is_available=true`,
+            { headers },
+          )
+        ).json(),
+      );
+      expect(availableOffers.total).toBe(13);
+      expect(availableOffers.items.every((offer) => offer.is_available)).toBe(
+        true,
+      );
+      const searchedOffers = branchProductPageSchema.parse(
+        await (
+          await fetch(
+            fixture.baseUrl + `/branches/${branchId}/products?search=Chicken`,
+            { headers },
+          )
+        ).json(),
+      );
+      expect(searchedOffers).toMatchObject({ total: 1, page: 1 });
+
+      const offeringId = fixtureProductId(30);
+      const offerBody = { product_id: offeringId, price: "25.4000" };
+      await fetch(fixture.baseUrl + "/__fixture/fail-next", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          method: "POST",
+          path: `/branches/${branchId}/products`,
+          status: 503,
+          message: "Fixture branch product service unavailable.",
+        }),
+      });
+      const failedOffer = await fetch(
+        fixture.baseUrl + `/branches/${branchId}/products`,
+        {
+          method: "POST",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify(offerBody),
+        },
+      );
+      expect(failedOffer.status).toBe(503);
+
+      const createOfferResponse = await fetch(
+        fixture.baseUrl + `/branches/${branchId}/products`,
+        {
+          method: "POST",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify(offerBody),
+        },
+      );
+      expect(createOfferResponse.status).toBe(201);
+      expect(
+        branchProductSchema.parse(await createOfferResponse.json()),
+      ).toMatchObject({
+        branch_id: branchId,
+        product_id: offeringId,
+        price: "25.4000",
+        is_available: true,
+      });
+
+      const duplicateOffer = await fetch(
+        fixture.baseUrl + `/branches/${branchId}/products`,
+        {
+          method: "POST",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify(offerBody),
+        },
+      );
+      expect(duplicateOffer.status).toBe(409);
+
+      const priceResponse = await fetch(
+        fixture.baseUrl + `/branches/${branchId}/products/${offeringId}`,
+        {
+          method: "PATCH",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({ price: "26.1234" }),
+        },
+      );
+      expect(branchProductSchema.parse(await priceResponse.json()).price).toBe(
+        "26.1234",
+      );
+
+      const availabilityResponse = await fetch(
+        fixture.baseUrl +
+          `/branches/${branchId}/products/${offeringId}/availability`,
+        {
+          method: "POST",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({ is_available: false }),
+        },
+      );
+      expect(
+        branchProductSchema.parse(await availabilityResponse.json())
+          .is_available,
+      ).toBe(false);
+
+      const inactivePrice = await fetch(
+        fixture.baseUrl +
+          `/branches/${branchId}/products/${fixtureProductId(2)}`,
+        {
+          method: "PATCH",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({ price: "5.00" }),
+        },
+      );
+      expect(inactivePrice.status).toBe(409);
+
+      const productRenameResponse = await fetch(
+        fixture.baseUrl + `/products/${fixtureProductId(0)}`,
+        {
+          method: "PATCH",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({
+            product_name: "Updated chicken sandwich",
+            description: "Fixture product details after an edit.",
+          }),
+        },
+      );
+      expect(
+        productSchema.parse(await productRenameResponse.json()).product_name,
+      ).toBe("Updated chicken sandwich");
+      const renamedOfferResponse = await fetch(
+        fixture.baseUrl +
+          `/branches/${branchId}/products?search=Updated+chicken`,
+        { headers },
+      );
+      const renamedOffers = branchProductPageSchema.parse(
+        await renamedOfferResponse.json(),
+      );
+      expect(renamedOffers).toMatchObject({ total: 1 });
+      expect(renamedOffers.items[0]).toMatchObject({
+        product_id: fixtureProductId(0),
+        product_name: "Updated chicken sandwich",
+        description: "Fixture product details after an edit.",
+      });
+
+      await fetch(fixture.baseUrl + "/__fixture/fail-next", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          method: "POST",
+          path: "/products",
+          status: 503,
+          message: "Fixture product service unavailable.",
+        }),
+      });
+      const failedProduct = await fetch(fixture.baseUrl + "/products", {
+        method: "POST",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify({
+          product_name: "Fixture added product",
+          description: "Created through the operational fixture.",
+        }),
+      });
+      expect(failedProduct.status).toBe(503);
+      const createdProductResponse = await fetch(
+        fixture.baseUrl + "/products",
+        {
+          method: "POST",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({
+            product_name: "Fixture added product",
+            description: "Created through the operational fixture.",
+          }),
+        },
+      );
+      const createdProduct = productSchema.parse(
+        await createdProductResponse.json(),
+      );
+      expect(createdProduct).toMatchObject({
+        product_name: "Fixture added product",
+        is_active: true,
+      });
+
+      const updateProductResponse = await fetch(
+        fixture.baseUrl + `/products/${createdProduct.id}`,
+        {
+          method: "PATCH",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({ product_name: "Fixture product updated" }),
+        },
+      );
+      expect(
+        productSchema.parse(await updateProductResponse.json()).product_name,
+      ).toBe("Fixture product updated");
+      const deactivateProductResponse = await fetch(
+        fixture.baseUrl + `/products/${createdProduct.id}/deactivate`,
+        { method: "POST", headers },
+      );
+      expect(
+        productSchema.parse(await deactivateProductResponse.json()).is_active,
+      ).toBe(false);
     } finally {
       await fixture.close();
     }
