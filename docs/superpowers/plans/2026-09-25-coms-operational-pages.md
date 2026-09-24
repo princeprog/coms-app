@@ -44,8 +44,9 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 - [x] `/receipts`: compact table for supplier/date/item count/total cost/status/detail. New receipt uses a scrollable Sheet with supplier/date and repeatable stock lines. Preserve draft creation and retry keys.
   - Tests cover client GET status/search, filter-preserving pagination, exact decimal payloads, idempotent retries, dirty-draft confirmation, validation, posting confirmation, and labeled table scroll regions. Fixture contracts cover active supplier/stock-item options, paginated draft/posted receipts, long values, create retry, posting, and detail.
 - [x] `/receipts/[id]`: back link, supplier/date/status/count/total metadata, received-items table, exact totals and posting data. The current receipt API schema has no reference/photo fields; none were invented. Post confirmation remains authorized; posted content is read-only.
-- [ ] `/replenishment`: table for branch/requester/item count/status/submitted/detail; request creation Sheet with branch and existing item/quantity lines.
-- [ ] `/replenishment/[id]`: metadata, item table, event history and only currently valid approve/reject/cancel/create-dispatch actions. Keep rejection reason-free.
+- [x] `/replenishment`: compact table for branch/requester/item count/status/submitted/detail; client GET status/branch filters; multi-item request Sheet with branch and existing item/quantity fields, dirty-draft confirmation, retained errors, and unchanged idempotency behavior.
+- [x] `/replenishment/[id]`: metadata, requested-item table, event history, and only currently valid approve/reject/cancel/create-dispatch actions. Rejection remains reason-free; dispatch creation remains an approved-request action.
+  - Feature and fixture coverage passes 38 tests across 10 files, including filter state/page reset, unavailable branch choices, sheet validation and dirty dismissal, exact decimal payloads, idempotent retry, conflict handling, request event history, and approve/reject/cancel transitions. Lint, typecheck, and targeted Prettier checks pass. Browser screenshots and viewport checks remain in the final acceptance pass.
 - [ ] `/dispatches`: table with branch/request/items/status/created/dispatched/detail. Draft creation stays connected to approved request; no free-form dispatch.
 - [ ] `/dispatches/[id]`: quantities requested/dispatched/received/shortage-closed/in-transit plus separate history. Post, partial receive and reasoned shortage close remain confirmed/authorized and idempotent; receive/shortage use Sheets.
 - [ ] Keep received amounts as existing decimal strings without a currency symbol; currency is not established.
@@ -90,6 +91,9 @@ Split a boundary where its smaller coherent pieces can be reviewed/tested indepe
 - `27a5b8e` — Inventory scope/filter toolbar, responsive balances and movements, exact-decimal adjustment dialog, dirty-draft confirmation, and a focusable labeled table scroll container with no default UI style changes.
 - `08ea59a` — Receiving list/detail tables, Next.js search/status navigation, multi-line receipt Sheet with dirty-draft confirmation, and confirmed posting control.
 - `b1bb7d4` — schema-checked receipt list/detail/options, exact-decimal in-memory fixture create/retry/post responses, and fixture tests.
+- `5277fa3` — Receiving plan checklist and milestone documentation.
+- `038c327` — Replenishment list/detail tables, client GET branch/status filters, multi-item request Sheet, guarded transitions, request history, and focused component tests.
+- `fe67c50` — Paginated stock-request fixture responses, schema validation, normalized decimal/idempotency behavior, and create/retry/transition tests.
 
 ## Baseline and acceptance
 
