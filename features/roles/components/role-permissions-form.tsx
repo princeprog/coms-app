@@ -15,21 +15,29 @@ export function RolePermissionsForm({
   permissions,
   initialPermissions,
   onComplete,
+  onDirtyChange,
+  onPendingChange,
 }: {
   roleId: string;
   roleName: string;
   permissions: Permission[];
   initialPermissions: string[];
   onComplete: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+  onPendingChange: (pending: boolean) => void;
 }) {
   const [selected, setSelected] = useState(initialPermissions);
+  const [savedPermissions, setSavedPermissions] = useState(initialPermissions);
   const [error, setError] = useState("");
+  const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setStatus("");
     setPending(true);
+    onPendingChange(true);
     let result: RoleMutationResult;
     try {
       result = await replaceRolePermissionsAction(roleId, {
@@ -37,14 +45,19 @@ export function RolePermissionsForm({
       });
     } catch {
       setPending(false);
+      onPendingChange(false);
       setError("COMS could not complete this change. Try again.");
       return;
     }
     setPending(false);
+    onPendingChange(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
+    setSavedPermissions(selected);
+    onDirtyChange(false);
+    setStatus("Permissions updated.");
     onComplete();
   }
 
@@ -54,11 +67,24 @@ export function RolePermissionsForm({
         permissions={permissions}
         selected={selected}
         labelPrefix={roleName}
-        onChange={setSelected}
+        disabled={pending}
+        onChange={(nextSelected) => {
+          setSelected(nextSelected);
+          setStatus("");
+          onDirtyChange(
+            nextSelected.length !== savedPermissions.length ||
+              nextSelected.some((key) => !savedPermissions.includes(key)),
+          );
+        }}
       />
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
+        </p>
+      )}
+      {status && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {status}
         </p>
       )}
       <div>

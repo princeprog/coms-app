@@ -150,7 +150,11 @@
   [data-coms-ui="operational"] [data-slot="dialog-content"],
   [data-coms-ui="operational"][data-slot="dialog-content"],
   [data-coms-ui="operational"] [data-slot="sheet-content"],
-  [data-coms-ui="operational"][data-slot="sheet-content"] {
+  [data-coms-ui="operational"][data-slot="sheet-content"],
+  [data-coms-ui="operational"] [data-slot="alert-dialog-content"],
+  [data-coms-ui="operational"][data-slot="alert-dialog-content"],
+  [data-coms-ui="operational"] [data-slot="dropdown-menu-content"],
+  [data-coms-ui="operational"][data-slot="dropdown-menu-content"] {
     @apply rounded-lg;
   }
 }

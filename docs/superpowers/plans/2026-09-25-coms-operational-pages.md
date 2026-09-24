@@ -20,7 +20,8 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 
 ### Administration
 
-- [ ] `/roles`: compact table for name/code, system/custom, grant summary, status, row actions. Create in a Sheet. Edit custom role name and permissions in independently submitted sections. Group permissions by module, show selected counts, allow local permission search, and preserve checked state while filtering/collapsing. System roles remain read-only. Render `SUPER_ADMIN` as global access and `NO_ACCESS` as no grants. Preserve deactivation rules/confirmation.
+- [x] `/roles`: compact table for name/code, system/custom, grant summary, status, row actions. Create in a Sheet. Edit custom role name and permissions in independently submitted sections. Group permissions by module, show selected counts, allow local permission search, and preserve checked state while filtering/collapsing. System roles remain read-only. Render `SUPER_ADMIN` as global access and `NO_ACCESS` as no grants. Preserve deactivation rules/confirmation.
+  - Component verification is complete for protected states, filtered grants, independent saves, pending state, dirty-form confirmation, and focus return. Responsive production-browser evidence remains in the final fixture pass.
 - [ ] `/staff`: table for name/email, role, branches, contact and status. Add/manage in Sheets; profile, role and branch assignments remain separate operations. Retain branch/search URL scope, action-specific permissions, self-change protection and unavailable option-list states.
 - [ ] `/branches`: table for name/code, address, opening date, dine-in and status. Create/edit in Dialogs; code immutable on edit. Preserve pagination, branch assignment rules and confirmed deactivation. Add no unsupported search/summary.
 

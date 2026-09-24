@@ -2,8 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SheetFooter } from "@/components/ui/sheet";
 import { PermissionPicker } from "@/features/roles/components/permission-picker";
 import { createRoleAction } from "@/features/roles/services/role-actions";
 import type {
@@ -13,23 +19,28 @@ import type {
 
 export function RoleCreateForm({
   permissions,
+  onCancel,
   onComplete,
+  onDirtyChange,
+  onPendingChange,
 }: {
   permissions: Permission[];
+  onCancel: () => void;
   onComplete: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+  onPendingChange: (pending: boolean) => void;
 }) {
   const [code, setCode] = useState("");
   const [roleName, setRoleName] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setStatus("");
     setPending(true);
+    onPendingChange(true);
     let result: RoleMutationResult;
     try {
       result = await createRoleAction({
@@ -39,91 +50,95 @@ export function RoleCreateForm({
       });
     } catch {
       setPending(false);
+      onPendingChange(false);
       setError("COMS could not complete this change. Try again.");
       return;
     }
     setPending(false);
+    onPendingChange(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    setCode("");
-    setRoleName("");
-    setSelectedPermissions([]);
-    setStatus("Role created.");
+    onDirtyChange(false);
     onComplete();
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create a role</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Create a custom role and grant only the actions staff need.
-        </p>
-      </CardHeader>
-      <CardContent>
-        <form className="flex flex-col gap-5" onSubmit={submit}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="role-code" className="text-sm font-medium">
-                Role code
-              </label>
-              <Input
-                id="role-code"
-                required
-                minLength={2}
-                maxLength={50}
-                pattern="[A-Z0-9][A-Z0-9_-]{1,49}"
-                autoCapitalize="characters"
-                value={code}
-                onChange={(event) =>
-                  setCode(event.currentTarget.value.toUpperCase())
-                }
-                placeholder="STOCK_MANAGER"
-              />
-              <p className="text-xs text-muted-foreground">
-                Use uppercase letters, numbers, underscores, or hyphens.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="role-name" className="text-sm font-medium">
-                Role name
-              </label>
-              <Input
-                id="role-name"
-                required
-                minLength={2}
-                maxLength={160}
-                value={roleName}
-                onChange={(event) => setRoleName(event.currentTarget.value)}
-                placeholder="Stock manager"
-              />
-            </div>
-          </div>
-          <PermissionPicker
-            permissions={permissions}
-            selected={selectedPermissions}
-            labelPrefix="New role"
-            onChange={setSelectedPermissions}
+    <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit}>
+      <FieldGroup className="flex-1 gap-5 overflow-y-auto p-6">
+        <Field>
+          <FieldLabel htmlFor="role-code">Role code</FieldLabel>
+          <Input
+            id="role-code"
+            required
+            minLength={2}
+            maxLength={50}
+            pattern="[A-Z0-9][A-Z0-9_-]{1,49}"
+            autoCapitalize="characters"
+            value={code}
+            disabled={pending}
+            onChange={(event) => {
+              const nextCode = event.currentTarget.value.toUpperCase();
+              setCode(nextCode);
+              onDirtyChange(
+                Boolean(nextCode || roleName || selectedPermissions.length),
+              );
+            }}
+            placeholder="STOCK_MANAGER"
           />
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          {status && (
-            <p role="status" className="text-sm text-muted-foreground">
-              {status}
-            </p>
-          )}
-          <div>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Creating role…" : "Create role"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          <FieldDescription>
+            Use uppercase letters, numbers, underscores, or hyphens.
+          </FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="role-name">Role name</FieldLabel>
+          <Input
+            id="role-name"
+            required
+            minLength={2}
+            maxLength={160}
+            value={roleName}
+            disabled={pending}
+            onChange={(event) => {
+              const nextName = event.currentTarget.value;
+              setRoleName(nextName);
+              onDirtyChange(
+                Boolean(code || nextName || selectedPermissions.length),
+              );
+            }}
+            placeholder="Stock manager"
+          />
+        </Field>
+        <PermissionPicker
+          permissions={permissions}
+          selected={selectedPermissions}
+          labelPrefix="New role"
+          disabled={pending}
+          onChange={(nextPermissions) => {
+            setSelectedPermissions(nextPermissions);
+            onDirtyChange(Boolean(code || roleName || nextPermissions.length));
+          }}
+        />
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+      </FieldGroup>
+      <SheetFooter className="sticky bottom-0 mt-0 border-t bg-popover">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Creating role…" : "Create role"}
+        </Button>
+      </SheetFooter>
+    </form>
   );
 }
