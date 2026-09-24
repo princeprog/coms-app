@@ -31,7 +31,7 @@ export function DailyReportCountTable({
   ) => void;
 }) {
   return (
-    <div className="hidden lg:block">
+    <div className="hidden min-w-0 max-w-full overflow-hidden lg:block">
       <Table
         className="min-w-[76rem]"
         containerProps={{
@@ -39,7 +39,7 @@ export function DailyReportCountTable({
           "aria-label": "Stock count table",
           tabIndex: 0,
           className:
-            "rounded-lg border bg-card focus-within:ring-2 focus-within:ring-ring",
+            "min-w-0 max-w-full rounded-lg border bg-card focus-within:ring-2 focus-within:ring-ring",
         }}
       >
         <TableHeader className="bg-muted/50">
