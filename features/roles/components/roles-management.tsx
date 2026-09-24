@@ -95,7 +95,7 @@ export function RolesManagement({
                 setCreateOpen(true);
               }}
             >
-              Add role
+              Create role
             </Button>
           ) : undefined
         }

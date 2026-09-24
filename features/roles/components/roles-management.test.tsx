@@ -112,7 +112,7 @@ describe("roles management", () => {
     vi.mocked(createRoleAction).mockResolvedValue({ ok: true });
     renderRoles();
 
-    await user.click(screen.getByRole("button", { name: "Add role" }));
+    await user.click(screen.getByRole("button", { name: "Create role" }));
     await user.type(screen.getByLabelText("Role code"), "RECEIVING_CLERK");
     await user.type(screen.getByLabelText("Role name"), "Receiving Clerk");
     await user.click(screen.getByText("read", { selector: "label" }));
@@ -138,7 +138,7 @@ describe("roles management", () => {
     });
     renderRoles();
 
-    await user.click(screen.getByRole("button", { name: "Add role" }));
+    await user.click(screen.getByRole("button", { name: "Create role" }));
     await user.type(screen.getByLabelText("Role code"), "RECEIVING_CLERK");
     await user.type(screen.getByLabelText("Role name"), "Receiving Clerk");
     await user.click(screen.getByRole("button", { name: "Create role" }));
@@ -210,7 +210,7 @@ describe("roles management", () => {
     const user = userEvent.setup();
     renderRoles();
 
-    const trigger = screen.getByRole("button", { name: "Add role" });
+    const trigger = screen.getByRole("button", { name: "Create role" });
     await user.click(trigger);
     await user.type(screen.getByLabelText("Role code"), "RECEIVING_CLERK");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -239,7 +239,7 @@ describe("roles management", () => {
       canDeactivateRole: false,
     });
 
-    expect(screen.queryByRole("button", { name: "Add role" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Create role" })).toBeNull();
     expect(screen.queryByRole("button", { name: /deactivate/i })).toBeNull();
     expect(
       screen.getByRole("button", { name: "View Stock Manager" }),
