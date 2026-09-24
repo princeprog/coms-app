@@ -55,7 +55,7 @@ describe("AuthenticatedAppShell", () => {
     sidebarRenders.count = 0;
   });
 
-  it("keeps the sidebar mounted and updates the header and page on navigation", () => {
+  it("keeps the sidebar mounted across navigation and an in-place page refresh", () => {
     const view = render(
       <AuthenticatedAppShell user={authTestSessionUser}>
         <p>Dashboard content</p>
@@ -76,5 +76,17 @@ describe("AuthenticatedAppShell", () => {
     expect(screen.getByRole("heading", { name: "Receiving" })).toBeTruthy();
     expect(screen.getByText("Receipt content")).toBeTruthy();
     expect(screen.queryByText("Dashboard content")).toBeNull();
+
+    const rendersBeforeRefresh = sidebarRenders.count;
+    view.rerender(
+      <AuthenticatedAppShell user={authTestSessionUser}>
+        <p>Updated receipt data</p>
+      </AuthenticatedAppShell>,
+    );
+
+    expect(screen.getByTestId("sidebar")).toBe(sidebarBeforeNavigation);
+    expect(sidebarRenders.count).toBe(rendersBeforeRefresh);
+    expect(screen.getByText("Updated receipt data")).toBeTruthy();
+    expect(screen.queryByText("Receipt content")).toBeNull();
   });
 });
