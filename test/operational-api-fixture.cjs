@@ -77,7 +77,43 @@ function createState() {
       status: index === 2 ? "inactive" : "active",
     };
   });
-  return { roles: clone(seed.roles), branches, failNext: null };
+  const primaryBranchId = branches[0].id;
+  const secondaryBranchId = branches[1].id;
+  const staff = [
+    {
+      id: seed.user.id,
+      email: seed.user.email,
+      full_name: seed.user.full_name,
+      contact_number: seed.user.contact_number,
+      is_active: true,
+      role_id: "2",
+      role_code: "SUPER_ADMIN",
+      role_name: "Super Admin",
+      branch_ids: [primaryBranchId],
+    },
+    ...Array.from({ length: 25 }, (_, index) => {
+      const sequence = String(index + 1).padStart(12, "0");
+      const role = index % 2 === 0 ? seed.roles[2] : seed.roles[0];
+      return {
+        id: `20000000-0000-4000-8000-${sequence}`,
+        email: `staff.${String(index + 1).padStart(2, "0")}@example.test`,
+        full_name:
+          index === 0
+            ? "Alexandra With An Extremely Long Fixture Name for Responsive Table Truncation Across Small and Wide Screens"
+            : `Fixture Staff ${String(index + 1).padStart(2, "0")}`,
+        contact_number: `0900000${String(index + 1).padStart(4, "0")}`,
+        is_active: index !== 2,
+        role_id: role.id,
+        role_code: role.code,
+        role_name: role.role_name,
+        branch_ids:
+          index % 2 === 0
+            ? [primaryBranchId, secondaryBranchId]
+            : [primaryBranchId],
+      };
+    }),
+  ];
+  return { roles: clone(seed.roles), branches, staff, failNext: null };
 }
 
 function createOperationalApiFixture({ gatewaySecret }) {
@@ -117,7 +153,10 @@ function createOperationalApiFixture({ gatewaySecret }) {
         return send(response, 204);
       }
       if (url.pathname === "/__fixture/state" && request.method === "GET") {
-        return send(response, 200, { roles: state.roles });
+        return send(response, 200, {
+          roles: state.roles,
+          staff: state.staff,
+        });
       }
 
       if (request.headers["x-coms-auth-gateway"] !== gatewaySecret) {
@@ -238,6 +277,111 @@ function createOperationalApiFixture({ gatewaySecret }) {
           status: "active",
         });
         return send(response, 201, { id });
+      }
+
+      if (url.pathname === "/staff" && request.method === "GET") {
+        const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+        const pageSize = Math.min(
+          100,
+          Math.max(1, Number(url.searchParams.get("page_size")) || 25),
+        );
+        const branchId = url.searchParams.get("branch_id");
+        const search = (url.searchParams.get("search") ?? "")
+          .trim()
+          .toLowerCase();
+        const matches = state.staff.filter((member) => {
+          if (branchId && !member.branch_ids.includes(branchId)) return false;
+          if (!search) return true;
+          return [member.full_name, member.email, member.contact_number].some(
+            (value) => value.toLowerCase().includes(search),
+          );
+        });
+        const start = (page - 1) * pageSize;
+        return send(response, 200, {
+          items: matches.slice(start, start + pageSize),
+          total: matches.length,
+          page,
+          page_size: pageSize,
+        });
+      }
+      if (url.pathname === "/staff" && request.method === "POST") {
+        if (
+          state.staff.some(
+            (member) =>
+              member.email.toLowerCase() === body?.email?.toLowerCase(),
+          )
+        ) {
+          return send(response, 409, {
+            message: "A staff account with that email already exists.",
+          });
+        }
+        const role = state.roles.find(
+          (item) => item.id === String(body?.role_id),
+        );
+        if (!role || role.code === "SUPER_ADMIN") {
+          return send(response, 400, { message: "Invalid staff role." });
+        }
+        const sequence = String(state.staff.length + 1).padStart(12, "0");
+        const id = `20000000-0000-4000-8000-${sequence}`;
+        state.staff.push({
+          id,
+          email: body.email,
+          full_name: body.full_name,
+          contact_number: body.contact_number,
+          is_active: true,
+          role_id: role.id,
+          role_code: role.code,
+          role_name: role.role_name,
+          branch_ids: body.branch_ids,
+        });
+        return send(response, 201, { id });
+      }
+      const staffRoute = url.pathname.match(
+        /^\/staff\/([0-9a-f-]{36})(?:\/(role|branches|deactivate))?$/i,
+      );
+      if (staffRoute) {
+        const member = state.staff.find((item) => item.id === staffRoute[1]);
+        if (!member)
+          return send(response, 404, { message: "Staff not found." });
+        const branchId = url.searchParams.get("branch_id");
+        if (branchId && !member.branch_ids.includes(branchId)) {
+          return send(response, 404, {
+            message: "Staff not found in this branch.",
+          });
+        }
+        if (request.method === "PATCH" && !staffRoute[2]) {
+          if (body.email !== undefined) member.email = body.email;
+          if (body.full_name !== undefined) member.full_name = body.full_name;
+          if (body.contact_number !== undefined) {
+            member.contact_number = body.contact_number;
+          }
+          return send(response, 204);
+        }
+        if (request.method === "PUT" && staffRoute[2] === "role") {
+          const role = state.roles.find(
+            (item) => item.id === String(body?.role_id),
+          );
+          if (!role || role.code === "SUPER_ADMIN") {
+            return send(response, 400, { message: "Invalid staff role." });
+          }
+          member.role_id = role.id;
+          member.role_code = role.code;
+          member.role_name = role.role_name;
+          return send(response, 204);
+        }
+        if (request.method === "PUT" && staffRoute[2] === "branches") {
+          member.branch_ids = body.branch_ids;
+          return send(response, 204);
+        }
+        if (request.method === "POST" && staffRoute[2] === "deactivate") {
+          if (member.role_code === "SUPER_ADMIN") {
+            return send(response, 403, {
+              message: "Protected staff account.",
+            });
+          }
+          member.is_active = false;
+          return send(response, 204);
+        }
       }
       const branchRoute = url.pathname.match(
         /^\/branches\/([0-9a-f-]{36})(?:\/(deactivate))?$/i,
