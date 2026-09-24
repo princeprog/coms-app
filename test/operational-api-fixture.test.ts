@@ -31,6 +31,10 @@ import {
   branchProductPageSchema,
   branchProductSchema,
 } from "@/features/branch-products/schemas/branch-product.schema";
+import {
+  saleDetailSchema,
+  salePageSchema,
+} from "@/features/sales/schemas/sale.schema";
 
 const require = createRequire(import.meta.url);
 const { createOperationalApiFixture } =
@@ -1342,6 +1346,214 @@ describe("operational API fixture", () => {
       expect(
         productSchema.parse(await deactivateProductResponse.json()).is_active,
       ).toBe(false);
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("serves paginated branch sales and schema-valid sale detail snapshots", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = await getAuthenticatedHeaders(fixture.baseUrl);
+      const branchId = "10000000-0000-4000-8000-000000000001";
+      const firstId = "65000000-0000-4000-8000-000000000001";
+      const firstResponse = await fetch(
+        fixture.baseUrl + `/branches/${branchId}/sales?page=1&page_size=25`,
+        { headers },
+      );
+      expect(firstResponse.status).toBe(200);
+      const firstPage = salePageSchema.parse(await firstResponse.json());
+      expect(firstPage).toMatchObject({ total: 26, page: 1, page_size: 25 });
+      expect(firstPage.items).toHaveLength(25);
+      expect(firstPage.items[0].id).toBe(firstId);
+      expect(firstPage.items[0].cashier_name.length).toBeGreaterThan(20);
+
+      const secondResponse = await fetch(
+        fixture.baseUrl + `/branches/${branchId}/sales?page=2&page_size=25`,
+        { headers },
+      );
+      expect(
+        salePageSchema.parse(await secondResponse.json()).items,
+      ).toHaveLength(1);
+
+      const detailResponse = await fetch(
+        fixture.baseUrl + `/branches/${branchId}/sales/${firstId}`,
+        { headers },
+      );
+      const detail = saleDetailSchema.parse(await detailResponse.json());
+      expect(detail).toMatchObject({
+        id: firstId,
+        branch_id: branchId,
+        status: "COMPLETED",
+        tender_method: "cash",
+      });
+      expect(detail.items[0].product_name_snapshot.length).toBeGreaterThan(20);
+      expect(detail.events[0].event_type).toBe("COMPLETED");
+
+      const wrongBranchDetail = await fetch(
+        fixture.baseUrl +
+          "/branches/10000000-0000-4000-8000-000000000002/sales/" +
+          firstId,
+        { headers },
+      );
+      expect(wrongBranchDetail.status).toBe(404);
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("creates sales with exact decimals, rejects key conflicts, and supports safe retries", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = await getAuthenticatedHeaders(fixture.baseUrl);
+      const branchId = "10000000-0000-4000-8000-000000000001";
+      const productId = fixtureProductId(0);
+      const idempotencyKey = "76000000-0000-4000-8000-000000000001";
+      const path = `/branches/${branchId}/sales`;
+      const body = {
+        tender_method: "cash",
+        items: [{ product_id: productId, quantity: "0.1250" }],
+      };
+      await fetch(fixture.baseUrl + "/__fixture/fail-next", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          method: "POST",
+          path,
+          status: 503,
+          message: "Fixture sale service unavailable.",
+        }),
+      });
+
+      const failedAttempt = await fetch(fixture.baseUrl + path, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify(body),
+      });
+      expect(failedAttempt.status).toBe(503);
+
+      const create = () =>
+        fetch(fixture.baseUrl + path, {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify(body),
+        });
+      const firstResponse = await create();
+      expect(firstResponse.status).toBe(201);
+      const firstSale = saleDetailSchema.parse(await firstResponse.json());
+      expect(firstSale).toMatchObject({
+        branch_id: branchId,
+        tender_method: "cash",
+        total_amount: "12.5",
+        status: "COMPLETED",
+      });
+      expect(firstSale.items[0]).toMatchObject({
+        quantity: "0.125",
+        unit_price: "100.0000",
+        line_total: "12.5",
+      });
+
+      const retryResponse = await create();
+      expect(saleDetailSchema.parse(await retryResponse.json()).id).toBe(
+        firstSale.id,
+      );
+      const conflictResponse = await fetch(fixture.baseUrl + path, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify({
+          ...body,
+          items: [{ product_id: productId, quantity: "0.25" }],
+        }),
+      });
+      expect(conflictResponse.status).toBe(409);
+      const invalidQuantity = await fetch(fixture.baseUrl + path, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": "76000000-0000-4000-8000-000000000005",
+        },
+        body: JSON.stringify({
+          ...body,
+          items: [{ product_id: productId, quantity: "01.0" }],
+        }),
+      });
+      expect(invalidQuantity.status).toBe(400);
+      const fixtureState = (await (
+        await fetch(fixture.baseUrl + "/__fixture/state")
+      ).json()) as { sales: unknown[] };
+      expect(fixtureState.sales).toHaveLength(27);
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("records a reasoned void reversal and makes void retries idempotent", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = await getAuthenticatedHeaders(fixture.baseUrl);
+      const branchId = "10000000-0000-4000-8000-000000000001";
+      const salePath = `/branches/${branchId}/sales`;
+      const createdResponse = await fetch(fixture.baseUrl + salePath, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": "76000000-0000-4000-8000-000000000002",
+        },
+        body: JSON.stringify({
+          tender_method: "card",
+          items: [{ product_id: fixtureProductId(0), quantity: "1" }],
+        }),
+      });
+      const created = saleDetailSchema.parse(await createdResponse.json());
+      const path = salePath + `/${created.id}/void`;
+      const idempotencyKey = "76000000-0000-4000-8000-000000000003";
+      const sendVoid = () =>
+        fetch(fixture.baseUrl + path, {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify({ reason: "Cashier selected the wrong item." }),
+        });
+
+      const firstVoid = await sendVoid();
+      expect(firstVoid.status).toBe(200);
+      const voidedSale = saleDetailSchema.parse(await firstVoid.json());
+      expect(voidedSale.status).toBe("VOIDED");
+      expect(voidedSale.events.at(-1)).toMatchObject({
+        event_type: "VOIDED",
+        reason: "Cashier selected the wrong item.",
+      });
+      const retryVoid = saleDetailSchema.parse(await (await sendVoid()).json());
+      expect(retryVoid.events).toHaveLength(voidedSale.events.length);
+      expect(retryVoid.status).toBe("VOIDED");
+
+      const duplicateVoid = await fetch(fixture.baseUrl + path, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": "76000000-0000-4000-8000-000000000004",
+        },
+        body: JSON.stringify({ reason: "Duplicate attempt." }),
+      });
+      expect(duplicateVoid.status).toBe(409);
     } finally {
       await fixture.close();
     }

@@ -6,6 +6,11 @@ const {
   dispatchListItem,
   handleDispatchRequest,
 } = require("./fixtures/dispatch-fixture.cjs");
+const {
+  createSalesSeed,
+  handleSalesRequest,
+  listItem: saleListItem,
+} = require("./fixtures/sales-fixture.cjs");
 
 const seed = JSON.parse(
   fs.readFileSync(
@@ -252,6 +257,7 @@ function createState() {
       ],
     },
   ];
+  const sales = createSalesSeed({ branches, products, branchProducts, seed });
   const receipts = Array.from({ length: 26 }, (_, index) => {
     const sequence = String(index + 1).padStart(12, "0");
     const status = index % 4 === 0 ? "DRAFT" : "POSTED";
@@ -380,6 +386,8 @@ function createState() {
     stockRequests,
     dispatches: createDispatchSeed(stockRequests, seed),
     dispatchActionKeys: [],
+    sales,
+    saleActionKeys: [],
     failNext: null,
   };
 }
@@ -517,6 +525,7 @@ function createOperationalApiFixture({ gatewaySecret }) {
           receipts: state.receipts,
           stockRequests: state.stockRequests,
           dispatches: state.dispatches.map(dispatchListItem),
+          sales: state.sales.map(saleListItem),
         });
       }
 
@@ -599,6 +608,16 @@ function createOperationalApiFixture({ gatewaySecret }) {
       if (!isAuthenticated) {
         return send(response, 401, { message: "Unauthorized." });
       }
+
+      const salesResponse = handleSalesRequest({
+        request,
+        response,
+        url,
+        body,
+        state,
+        seed,
+      });
+      if (salesResponse !== false) return salesResponse;
 
       const dispatchResponse = handleDispatchRequest({
         request,
