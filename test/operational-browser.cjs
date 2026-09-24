@@ -71,7 +71,7 @@ async function navigate(pathname) {
   );
 }
 
-async function assertPageStructure(pathname, width) {
+async function assertPageStructure(pathname, width, expectedDeviceScale = 1) {
   const structure = await page.evaluate(() => {
     const uncontainedOverflowers = [...document.querySelectorAll("body *")]
       .map((element) => {
@@ -102,6 +102,8 @@ async function assertPageStructure(pathname, width) {
     return {
       mainCount: document.querySelectorAll("main").length,
       h1Count: document.querySelectorAll("h1").length,
+      viewportWidth: window.innerWidth,
+      deviceScale: window.devicePixelRatio,
       documentWidth: document.documentElement.scrollWidth,
       uncontainedOverflowers,
     };
@@ -112,6 +114,16 @@ async function assertPageStructure(pathname, width) {
     `${pathname} should expose one main landmark`,
   );
   assert.equal(structure.h1Count, 1, `${pathname} should expose one page h1`);
+  assert.equal(
+    structure.viewportWidth,
+    width,
+    `${pathname} should use a ${width}px CSS viewport`,
+  );
+  assert.equal(
+    structure.deviceScale,
+    expectedDeviceScale,
+    `${pathname} should use ${expectedDeviceScale}x device scale`,
+  );
   assert(
     structure.documentWidth <= width,
     `${pathname} overflows at ${width}px (${structure.documentWidth}px document): ${JSON.stringify(structure.uncontainedOverflowers)}`,
@@ -146,11 +158,12 @@ async function rememberShellIdentity() {
   });
 }
 
-async function saveScreenshot(name) {
+async function saveScreenshot(name, scale = "css") {
   await page.screenshot({
     path: path.join(outputDirectory, name),
     fullPage: true,
     animations: "disabled",
+    scale,
   });
 }
 
@@ -310,6 +323,25 @@ let baseUrl;
   await page.waitForFunction(() =>
     document.documentElement.classList.contains("light"),
   );
+
+  const zoomEmulation = await context.newCDPSession(page);
+  await zoomEmulation.send("Emulation.setDeviceMetricsOverride", {
+    width: 195,
+    height: 422,
+    deviceScaleFactor: 2,
+    mobile: false,
+  });
+  for (const route of routes) {
+    await navigate(route);
+    await assertPageStructure(`${route} at 2x scale`, 195, 2);
+    if (route === "/roles")
+      await saveScreenshot("roles-2x-scale-mobile.png", "device");
+  }
+  console.log(
+    `PASS ${routes.length} operational route states at 2x scale and 195 CSS pixels`,
+  );
+  await zoomEmulation.send("Emulation.clearDeviceMetricsOverride");
+  await zoomEmulation.detach();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await navigate("/roles");
