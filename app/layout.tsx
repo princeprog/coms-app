@@ -9,6 +9,7 @@ const fontSans = Inter({ subsets: ["latin"], variable: "--font-sans" });
 export const metadata: Metadata = {
   title: "Emma's Chicken House | Staff Login",
   description: "Staff login for Emma's Chicken House.",
+  icons: { icon: "/icon.svg" },
 };
 
 export default function RootLayout({
