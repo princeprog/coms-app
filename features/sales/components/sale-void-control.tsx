@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import type { SaleVoidAction } from "@/features/sales/types/sale.types";
 
 export function SaleVoidControl({
@@ -89,7 +90,7 @@ export function SaleVoidControl({
       >
         Void sale
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent data-coms-ui="operational">
         <AlertDialogHeader>
           <AlertDialogTitle>Void this sale?</AlertDialogTitle>
           <AlertDialogDescription>
@@ -104,9 +105,9 @@ export function SaleVoidControl({
           >
             Void reason
           </label>
-          <textarea
+          <Textarea
+            data-coms-ui="operational"
             id={`void-reason-${saleId}`}
-            className="min-h-24 w-full rounded-3xl border bg-input/50 px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
             maxLength={500}
             required
             value={reason}

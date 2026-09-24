@@ -66,6 +66,25 @@ describe("POS checkout", () => {
     expect(screen.getByLabelText("Estimated total").textContent).toBe("0");
   });
 
+  it("offers a direct cart anchor after adding the first item", () => {
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        menuPage={menuPage}
+        action={createAction}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+
+    expect(
+      screen.getByRole("link", { name: "View cart (1 item)" }).getAttribute("href"),
+    ).toBe("#pos-cart-panel");
+  });
+
   it("prompts staff to check order details when the cart input is invalid", () => {
     render(
       <PosCheckout

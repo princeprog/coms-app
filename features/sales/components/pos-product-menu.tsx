@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SalesMenuPage } from "@/features/sales/types/sale.types";
 
@@ -43,14 +44,11 @@ export function PosProductMenu({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => {
-            const disabled =
-              !branchActive ||
-              !product.product_is_active ||
-              !product.is_available ||
-              cartIsFull ||
-              pending;
+            const available =
+              branchActive && product.product_is_active && product.is_available;
+            const disabled = !available || cartIsFull || pending;
             return (
-              <Card key={product.product_id}>
+              <Card key={product.product_id} className="h-full justify-between">
                 <CardHeader className="gap-2">
                   <CardTitle className="text-base">
                     {product.product_name}
@@ -58,6 +56,12 @@ export function PosProductMenu({
                   <p className="text-sm text-muted-foreground">
                     {product.description || "No description"}
                   </p>
+                  <Badge
+                    variant={available ? "outline" : "secondary"}
+                    className="w-fit"
+                  >
+                    {available ? "Available" : "Not available"}
+                  </Badge>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-3">
                   <p className="font-medium tabular-nums">

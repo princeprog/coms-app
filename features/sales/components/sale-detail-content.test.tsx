@@ -1,13 +1,12 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { SaleDetailCard } from "./sale-detail-card";
+import { SaleDetailContent } from "./sale-detail-content";
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const saleId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
 const productId = "3fa85f64-5717-4562-b3fc-2c963f66afa8";
 const timestamp = "2026-09-24T01:30:00.000Z";
-const filters = { branchId, page: 1, historyPage: 1, search: "" };
 const action = vi.fn();
 
 const sale = {
@@ -48,18 +47,17 @@ const sale = {
   ],
 };
 
-describe("sale detail card", () => {
+describe("sale detail content", () => {
   it("shows sale snapshots and the reason from void history", () => {
     render(
-      <SaleDetailCard
+      <SaleDetailContent
         sale={sale}
         branchId={branchId}
-        filters={filters}
         canVoid
         voidAction={action}
       />,
     );
-    expect(screen.getByRole("heading", { name: "Sale details" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Sale items" })).toBeTruthy();
     expect(screen.getByText("Chicken sandwich")).toBeTruthy();
     expect(
       screen.getByText(/Reason: Cashier selected the wrong product/),

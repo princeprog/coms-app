@@ -2,6 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "cn";
 import { createSaleSchema } from "@/features/sales/schemas/sale.schema";
 import {
   addSaleDecimals,
@@ -132,32 +135,45 @@ export function PosCheckout({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.8fr)]">
-      <PosProductMenu
-        products={menuPage.items}
-        total={menuPage.total}
-        branchActive={branchActive}
-        pending={pending}
-        cartIsFull={cart.length >= 40}
-        onAdd={addProduct}
-      />
-      <PosCartPanel
-        cart={cart}
-        tenderMethod={tenderMethod}
-        branchActive={branchActive}
-        pending={pending}
-        error={error}
-        lastSale={lastSale}
-        estimatedTotal={estimatedTotal}
-        onTenderMethodChange={(value) => {
-          setTenderMethod(value);
-          setError("");
-          setLastSale(null);
-        }}
-        onQuantityChange={updateQuantity}
-        onRemove={removeProduct}
-        onSubmit={recordSale}
-      />
+    <div className="flex flex-col gap-4">
+      {cart.length > 0 && (
+        <Link
+          href="#pos-cart-panel"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "w-fit rounded-md lg:hidden",
+          )}
+        >
+          View cart ({cart.length} {cart.length === 1 ? "item" : "items"})
+        </Link>
+      )}
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(20rem,0.8fr)]">
+        <PosProductMenu
+          products={menuPage.items}
+          total={menuPage.total}
+          branchActive={branchActive}
+          pending={pending}
+          cartIsFull={cart.length >= 40}
+          onAdd={addProduct}
+        />
+        <PosCartPanel
+          cart={cart}
+          tenderMethod={tenderMethod}
+          branchActive={branchActive}
+          pending={pending}
+          error={error}
+          lastSale={lastSale}
+          estimatedTotal={estimatedTotal}
+          onTenderMethodChange={(value) => {
+            setTenderMethod(value);
+            setError("");
+            setLastSale(null);
+          }}
+          onQuantityChange={updateQuantity}
+          onRemove={removeProduct}
+          onSubmit={recordSale}
+        />
+      </div>
     </div>
   );
 }

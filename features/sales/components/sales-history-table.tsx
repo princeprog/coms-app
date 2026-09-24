@@ -37,7 +37,7 @@ export function SalesHistoryTable({
         <p className="text-sm text-muted-foreground">{page.total} total</p>
       </div>
       {page.items.length === 0 ? (
-        <div className="rounded-4xl border bg-card p-6 text-center">
+        <div className="rounded-lg border bg-card p-6 text-center">
           <p className="font-medium">
             No sales have been recorded for this branch.
           </p>
@@ -46,7 +46,12 @@ export function SalesHistoryTable({
           </p>
         </div>
       ) : (
-        <div className="w-full overflow-x-auto rounded-4xl border bg-card">
+        <div
+          role="region"
+          aria-label="Sales history results"
+          tabIndex={0}
+          className="w-full overflow-x-auto rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <Table aria-label="Sales history">
             <TableHeader>
               <TableRow>

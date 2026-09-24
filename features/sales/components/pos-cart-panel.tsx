@@ -38,8 +38,8 @@ export function PosCartPanel({
   onSubmit: FormEventHandler<HTMLFormElement>;
 }) {
   return (
-    <Card className="h-fit">
-      <CardHeader>
+    <Card id="pos-cart-panel" className="h-fit scroll-mt-4 lg:sticky lg:top-4">
+      <CardHeader className="border-b">
         <CardTitle>
           <h2>Current order</h2>
         </CardTitle>
@@ -67,7 +67,7 @@ export function PosCartPanel({
             />
           </div>
           {cart.length === 0 ? (
-            <p className="rounded-3xl border border-dashed p-4 text-sm text-muted-foreground">
+            <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
               Add products to begin a sale.
             </p>
           ) : (
@@ -77,7 +77,7 @@ export function PosCartPanel({
                 return (
                   <li
                     key={product.product_id}
-                    className="grid gap-2 rounded-3xl border p-3 sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:items-end"
+                    className="grid gap-2 rounded-md border p-3 sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:items-end"
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium">
