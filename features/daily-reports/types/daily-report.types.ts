@@ -14,6 +14,14 @@ export type DailyReportItem = DailyReport["items"][number];
 export type CreateDailyReport = z.infer<typeof createDailyReportSchema>;
 export type UpdateDailyReport = z.infer<typeof updateDailyReportSchema>;
 export type ReturnDailyReport = z.infer<typeof returnDailyReportSchema>;
+export type DailyReportDraftItem = {
+  stock_item_id: string;
+  physical_closing_quantity: string;
+  waste_quantity: string;
+  waste_reason: string;
+  adjustment_quantity: string;
+  adjustment_reason: string;
+};
 
 export type DailyReportMutationResult =
   { ok: true; report: DailyReport } | { ok: false; error: string };
