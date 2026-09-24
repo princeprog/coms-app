@@ -64,13 +64,11 @@ vi.mock("@/components/ui/sidebar", async () => {
     SidebarMenuItem: wrapper("li"),
     SidebarMenuButton: ({
       render,
-      isActive,
       children,
     }: {
       render: ReactElement;
-      isActive?: boolean;
       children: ReactNode;
-    }) => React.cloneElement(render, { "data-active": isActive }, children),
+    }) => React.cloneElement(render, {}, children),
     useSidebar: () => ({
       isMobile: navigationState.isMobile,
       setOpenMobile: navigationState.setOpenMobile,

@@ -53,6 +53,14 @@ async function historyCount() {
 }
 
 (async () => {
+  const roleResult = await db.query(
+    `UPDATE auth.users
+     SET role_id = (SELECT id FROM auth.roles WHERE code = 'SUPER_ADMIN')
+     WHERE email = $1
+     RETURNING id`,
+    [fixture.email],
+  );
+  assert.equal(roleResult.rowCount, 1);
   await db.query("DELETE FROM auth.refresh_tokens");
   await db.query("DELETE FROM auth.token_families");
   await db.query("DELETE FROM auth.rate_limit_buckets");
@@ -108,6 +116,171 @@ async function historyCount() {
         false,
       );
       await first.reload();
+      await first.getByRole("button", { name: /Browser Test/ }).waitFor();
+    },
+  );
+  await check(
+    "client navigation preserves the document and collapsed sidebar through back and forward",
+    async () => {
+      const documentIdentity = await first.evaluate(() => {
+        const sidebar = document.querySelector('[data-slot="sidebar"]');
+        if (!sidebar) return null;
+        const id = crypto.randomUUID();
+        Object.defineProperty(window, "__comsDocumentIdentity", {
+          value: { id, sidebar },
+          configurable: true,
+        });
+        return id;
+      });
+      assert(documentIdentity);
+
+      const assertShellIdentity = async (sidebarState, scrollTop) => {
+        const identity = await first.evaluate(
+          ({ expectedId }) => {
+            const identity = window.__comsDocumentIdentity;
+            return {
+              sameDocument: identity?.id === expectedId,
+              sameSidebar:
+                identity?.sidebar ===
+                document.querySelector('[data-slot="sidebar"]'),
+              sidebarState: document
+                .querySelector('[data-slot="sidebar"]')
+                ?.getAttribute("data-state"),
+              scrollTop: document
+                .querySelector('[data-slot="sidebar-content"]')
+                ?.scrollTop,
+            };
+          },
+          { expectedId: documentIdentity },
+        );
+        assert.equal(identity.sameDocument, true);
+        assert.equal(identity.sameSidebar, true);
+        assert.equal(identity.sidebarState, sidebarState);
+        if (scrollTop !== undefined) assert.equal(identity.scrollTop, scrollTop);
+      };
+
+      await first.getByRole("link", { name: "Receiving" }).click();
+      await first.waitForURL("**/receipts");
+      await first.getByRole("heading", { name: "Receiving", exact: true }).waitFor();
+
+      let releaseSuppliersResponse;
+      let markSuppliersResponseStarted;
+      const suppliersResponseGate = new Promise((resolve) => {
+        releaseSuppliersResponse = resolve;
+      });
+      const suppliersResponseStarted = new Promise((resolve) => {
+        markSuppliersResponseStarted = resolve;
+      });
+      await first.route("**/suppliers**", async (route) => {
+        if (route.request().headers().rsc === "1") {
+          markSuppliersResponseStarted();
+          await suppliersResponseGate;
+        }
+        await route.continue();
+      });
+      const suppliersNavigation = first
+        .getByRole("link", { name: "Suppliers" })
+        .click();
+      const suppliersRequestStarted = await Promise.race([
+        suppliersResponseStarted.then(() => true),
+        new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
+      ]);
+      assert.equal(suppliersRequestStarted, true, "expected an RSC navigation request");
+      await assertShellIdentity("expanded");
+      assert(await first.getByRole("link", { name: "Receiving" }).isVisible());
+      releaseSuppliersResponse();
+      await suppliersNavigation;
+      await first.unroute("**/suppliers**");
+      await first.waitForURL("**/suppliers");
+      await first.getByRole("heading", { name: "Suppliers", exact: true }).waitFor();
+      await assertShellIdentity("expanded");
+      await first
+        .getByRole("main")
+        .getByRole("alert")
+        .filter({ hasText: /COMS could not load suppliers/i })
+        .waitFor();
+
+      await first.setViewportSize({ width: 1440, height: 560 });
+      const maxSidebarScroll = await first.evaluate(() => {
+        const content = document.querySelector('[data-slot="sidebar-content"]');
+        if (!content) return -1;
+        const maxScroll = content.scrollHeight - content.clientHeight;
+        content.scrollTop = maxScroll;
+        return maxScroll;
+      });
+      assert(maxSidebarScroll > 0, "short viewport should make sidebar scrollable");
+      await assertShellIdentity("expanded", maxSidebarScroll);
+
+      let releaseRolesResponse;
+      let markRolesResponseStarted;
+      const rolesResponseGate = new Promise((resolve) => {
+        releaseRolesResponse = resolve;
+      });
+      const rolesResponseStarted = new Promise((resolve) => {
+        markRolesResponseStarted = resolve;
+      });
+      await first.route("**/roles**", async (route) => {
+        if (route.request().headers().rsc === "1") {
+          markRolesResponseStarted();
+          await rolesResponseGate;
+        }
+        await route.continue();
+      });
+      const rolesNavigation = first
+        .getByRole("link", { name: "Roles", exact: true })
+        .click();
+      const rolesRequestStarted = await Promise.race([
+        rolesResponseStarted.then(() => true),
+        new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
+      ]);
+      assert.equal(rolesRequestStarted, true, "expected an RSC navigation request");
+      await assertShellIdentity("expanded", maxSidebarScroll);
+      assert(await first.getByRole("link", { name: "Suppliers" }).isVisible());
+      releaseRolesResponse();
+      await rolesNavigation;
+      await first.unroute("**/roles**");
+      await first.waitForURL("**/roles");
+      await first.getByRole("heading", { name: "Roles and permissions" }).waitFor();
+      await assertShellIdentity("expanded", maxSidebarScroll);
+
+      await first.getByRole("button", { name: "Toggle Sidebar" }).click();
+      await first.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-slot="sidebar"]')
+            ?.getAttribute("data-state") === "collapsed",
+      );
+
+      await first.goBack();
+      await first.waitForURL("**/suppliers");
+      await first.getByRole("heading", { name: "Suppliers", exact: true }).waitFor();
+      await assertShellIdentity("collapsed", maxSidebarScroll);
+      await first.goForward();
+      await first.waitForURL("**/roles");
+      await first.getByRole("heading", { name: "Roles and permissions" }).waitFor();
+      await assertShellIdentity("collapsed", maxSidebarScroll);
+
+      await first.setViewportSize({ width: 390, height: 844 });
+      assert(
+        await first.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      );
+      await first.getByRole("button", { name: "Toggle Sidebar" }).click();
+      const mobileReceivingLink = first.locator('a[href="/receipts"]').last();
+      await mobileReceivingLink.waitFor({ state: "visible" });
+      await mobileReceivingLink.focus();
+      await first.keyboard.press("Enter");
+      await first.waitForURL("**/receipts");
+      await first.getByRole("heading", { name: "Receiving", exact: true }).waitFor();
+      await mobileReceivingLink.waitFor({ state: "hidden" });
+      assert(
+        await first.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      );
+      await first.setViewportSize({ width: 1440, height: 900 });
+      await first.getByRole("button", { name: "Toggle Sidebar" }).click();
       await first.getByRole("button", { name: /Browser Test/ }).waitFor();
     },
   );
