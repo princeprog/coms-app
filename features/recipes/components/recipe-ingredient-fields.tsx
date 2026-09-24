@@ -1,16 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type {
   RecipeIngredient,
   RecipeStockItem,
 } from "@/features/recipes/types/recipe.types";
 
 export type RecipeDraftIngredient = {
+  draftId: string;
   stock_item_id: string;
   quantity_required: string;
 };
@@ -56,61 +67,76 @@ export function RecipeIngredientFields({
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <FieldGroup className="gap-3">
       {ingredients.map((ingredient, index) => {
         const selectedOption = options.find(
           (option) => option.id === ingredient.stock_item_id,
         );
+        const stockItemId = `recipe-stock-item-${ingredient.draftId}`;
+        const quantityId = `recipe-quantity-${ingredient.draftId}`;
+        const inactiveNoteId = `${stockItemId}-note`;
+        const quantityHelpId = `${quantityId}-unit`;
+
         return (
-          <fieldset
-            key={index}
-            className="grid gap-3 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,0.65fr)_auto] sm:items-end"
+          <FieldSet
+            key={ingredient.draftId}
+            className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,0.65fr)_auto] sm:items-end"
           >
-            <legend className="px-1 text-sm font-medium">
+            <FieldLegend variant="label" className="px-1">
               Ingredient {index + 1}
-            </legend>
-            <div className="grid gap-2">
-              <Label htmlFor={`recipe-stock-item-${index}`}>
-                Ingredient {index + 1} stock item
-              </Label>
-              <NativeSelect
-                id={`recipe-stock-item-${index}`}
+            </FieldLegend>
+            <Field>
+              <FieldLabel htmlFor={stockItemId}>
+                Ingredient {index + 1} stock item{" "}
+                <span className="text-destructive">*</span>
+              </FieldLabel>
+              <Select
+                items={options.map((option) => ({
+                  value: option.id,
+                  label: `${option.stock_item_name} (${option.unit})${option.is_active ? "" : " — inactive"}`,
+                }))}
                 value={ingredient.stock_item_id}
                 disabled={disabled}
-                onChange={(event) =>
-                  onChange(index, { stock_item_id: event.target.value })
-                }
-                aria-describedby={
-                  selectedOption && !selectedOption.is_active
-                    ? `recipe-stock-item-${index}-note`
-                    : undefined
+                onValueChange={(value) =>
+                  onChange(index, { stock_item_id: value ?? "" })
                 }
               >
-                <NativeSelectOption value="">
-                  Choose a stock item
-                </NativeSelectOption>
-                {options.map((option) => (
-                  <NativeSelectOption key={option.id} value={option.id}>
-                    {option.stock_item_name} ({option.unit})
-                    {!option.is_active ? " — inactive" : ""}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                <SelectTrigger
+                  id={stockItemId}
+                  className="w-full"
+                  aria-describedby={
+                    selectedOption && !selectedOption.is_active
+                      ? inactiveNoteId
+                      : undefined
+                  }
+                >
+                  <SelectValue placeholder="Choose a stock item" />
+                </SelectTrigger>
+                <SelectContent data-coms-ui="operational">
+                  {options.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.stock_item_name} ({option.unit})
+                      {!option.is_active ? " — inactive" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {selectedOption && !selectedOption.is_active && (
-                <span
-                  id={`recipe-stock-item-${index}-note`}
-                  className="text-xs text-destructive"
+                <FieldDescription
+                  id={inactiveNoteId}
+                  className="text-destructive"
                 >
                   Replace or remove this inactive item before saving.
-                </span>
+                </FieldDescription>
               )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor={`recipe-quantity-${index}`}>
-                Ingredient {index + 1} quantity required
-              </Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor={quantityId}>
+                Ingredient {index + 1} quantity required{" "}
+                <span className="text-destructive">*</span>
+              </FieldLabel>
               <Input
-                id={`recipe-quantity-${index}`}
+                id={quantityId}
                 inputMode="decimal"
                 autoComplete="off"
                 maxLength={80}
@@ -120,8 +146,14 @@ export function RecipeIngredientFields({
                   onChange(index, { quantity_required: event.target.value })
                 }
                 placeholder="For example, 0.025"
+                aria-describedby={quantityHelpId}
               />
-            </div>
+              <FieldDescription id={quantityHelpId}>
+                {selectedOption
+                  ? `Quantity in ${selectedOption.unit}`
+                  : "Choose a stock item to see the unit."}
+              </FieldDescription>
+            </Field>
             <Button
               type="button"
               variant="outline"
@@ -132,9 +164,9 @@ export function RecipeIngredientFields({
             >
               Remove
             </Button>
-          </fieldset>
+          </FieldSet>
         );
       })}
-    </div>
+    </FieldGroup>
   );
 }

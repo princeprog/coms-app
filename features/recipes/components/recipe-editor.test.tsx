@@ -51,6 +51,15 @@ const stockItems: RecipeStockItem[] = [
 
 afterEach(() => refresh.mockReset());
 
+async function chooseStockItem(
+  user: ReturnType<typeof userEvent.setup>,
+  fieldName: string,
+  itemName: string,
+) {
+  await user.click(screen.getByRole("combobox", { name: fieldName }));
+  await user.click(await screen.findByRole("option", { name: itemName }));
+}
+
 describe("recipe editor", () => {
   it("creates a recipe with exact decimal quantities and refreshes on success", async () => {
     const user = userEvent.setup();
@@ -67,12 +76,9 @@ describe("recipe editor", () => {
       />,
     );
 
-    await user.selectOptions(
-      screen.getByLabelText("Ingredient 1 stock item"),
-      flourId,
-    );
+    await chooseStockItem(user, "Ingredient 1 stock item *", "Flour (kg)");
     await user.type(
-      screen.getByLabelText("Ingredient 1 quantity required"),
+      screen.getByLabelText("Ingredient 1 quantity required *"),
       "0.0250",
     );
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
@@ -105,21 +111,15 @@ describe("recipe editor", () => {
       /add at least one ingredient/i,
     );
 
-    await user.selectOptions(
-      screen.getByLabelText("Ingredient 1 stock item"),
-      flourId,
-    );
+    await chooseStockItem(user, "Ingredient 1 stock item *", "Flour (kg)");
     await user.type(
-      screen.getByLabelText("Ingredient 1 quantity required"),
+      screen.getByLabelText("Ingredient 1 quantity required *"),
       "1",
     );
     await user.click(screen.getByRole("button", { name: "Add ingredient" }));
-    await user.selectOptions(
-      screen.getByLabelText("Ingredient 2 stock item"),
-      flourId,
-    );
+    await chooseStockItem(user, "Ingredient 2 stock item *", "Flour (kg)");
     await user.type(
-      screen.getByLabelText("Ingredient 2 quantity required"),
+      screen.getByLabelText("Ingredient 2 quantity required *"),
       "2",
     );
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
@@ -127,6 +127,49 @@ describe("recipe editor", () => {
       /choose each stock item only once/i,
     );
     expect(action).not.toHaveBeenCalled();
+  });
+
+  it("retains ingredient values after a server error and permits retry", async () => {
+    const user = userEvent.setup();
+    const action = vi
+      .fn<RecipeSaveAction>()
+      .mockResolvedValueOnce({ ok: false, error: "Recipe could not be saved." })
+      .mockResolvedValue({ ok: true });
+    render(
+      <RecipeEditor
+        recipe={emptyRecipe}
+        stockItems={stockItems}
+        canReadStockItems
+        stockItemsLoaded
+        canCreate
+        canUpdate={false}
+        action={action}
+      />,
+    );
+
+    await chooseStockItem(user, "Ingredient 1 stock item *", "Flour (kg)");
+    await user.type(
+      screen.getByLabelText("Ingredient 1 quantity required *"),
+      "0.0250",
+    );
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Recipe could not be saved.",
+    );
+    expect(
+      screen.getByLabelText("Ingredient 1 quantity required *"),
+    ).toHaveProperty("value", "0.0250");
+    expect(
+      screen.getByRole("combobox", { name: "Ingredient 1 stock item *" })
+        .textContent,
+    ).toContain("Flour (kg)");
+
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    expect(action).toHaveBeenLastCalledWith(productId, "create", {
+      items: [{ stock_item_id: flourId, quantity_required: "0.0250" }],
+    });
   });
 
   it("replaces recipes and requires inactive ingredients to be removed or replaced", async () => {
@@ -163,10 +206,7 @@ describe("recipe editor", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(
       /replace or remove inactive stock items/i,
     );
-    await user.selectOptions(
-      screen.getByLabelText("Ingredient 1 stock item"),
-      oilId,
-    );
+    await chooseStockItem(user, "Ingredient 1 stock item *", "Oil (L)");
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
 
     await waitFor(() =>

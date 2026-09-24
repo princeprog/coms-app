@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ProductPage } from "@/features/products/types/product.types";
 import { RecipeProductList } from "./recipe-product-list";
+
+vi.mock("next/form", () => ({
+  default: ({ children, ...props }: React.ComponentProps<"form">) => (
+    <form {...props}>{children}</form>
+  ),
+}));
 
 const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 
@@ -35,7 +41,10 @@ describe("recipe product list", () => {
       />,
     );
 
-    expect(screen.getByRole("search")).toBeTruthy();
+    const searchForm = screen.getByRole("search");
+    expect(searchForm.getAttribute("action")).toBe("/recipes");
+    expect(searchForm.hasAttribute("method")).toBe(false);
+    expect(document.querySelector('[data-coms-ui="operational"]')).toBeTruthy();
     expect(screen.getByLabelText("Search products")).toHaveProperty(
       "value",
       "sandwich",
@@ -46,6 +55,23 @@ describe("recipe product list", () => {
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
     ).toBe("/recipes?search=sandwich&page=2");
+    expect(
+      screen.getByRole("region", { name: "Recipe product table" }),
+    ).toBeTruthy();
+  });
+
+  it("distinguishes an empty catalog from a search with no matches", () => {
+    render(
+      <RecipeProductList
+        page={productPage({ items: [], total: 0 })}
+        search="missing"
+      />,
+    );
+    expect(screen.getByText("No products match this search.")).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Clear search" }).getAttribute("href"),
+    ).toBe("/recipes");
+    expect(screen.queryByRole("link", { name: "Open products" })).toBeNull();
   });
 
   it("offers a path to products when there are no active products", () => {

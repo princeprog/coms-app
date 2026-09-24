@@ -1,5 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppPageShell } from "@/components/layout/app-page-shell";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
@@ -45,16 +44,22 @@ export default async function RecipesPage({
   if (!hasPermission(session.user, "products.read")) {
     return (
       <AppPageShell user={session.user}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Product list unavailable</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p role="status" className="text-sm text-muted-foreground">
+        <div data-coms-ui="operational" className="p-4 sm:p-6">
+          <section
+            aria-labelledby="recipe-products-unavailable"
+            className="rounded-lg border bg-card p-5"
+          >
+            <h2
+              id="recipe-products-unavailable"
+              className="text-base font-semibold"
+            >
+              Product list unavailable
+            </h2>
+            <p role="status" className="mt-2 text-sm text-muted-foreground">
               Product read access is required to choose a product recipe.
             </p>
-          </CardContent>
-        </Card>
+          </section>
+        </div>
       </AppPageShell>
     );
   }
@@ -76,7 +81,9 @@ export default async function RecipesPage({
   if (!productPage) {
     return (
       <AppPageShell user={session.user}>
-        <CatalogLoadError title="active products" />
+        <div data-coms-ui="operational" className="p-4 sm:p-6">
+          <CatalogLoadError title="active products" />
+        </div>
       </AppPageShell>
     );
   }

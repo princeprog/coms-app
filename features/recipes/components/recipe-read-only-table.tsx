@@ -6,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
 import type { RecipeIngredient } from "@/features/recipes/types/recipe.types";
 
 export function RecipeReadOnlyTable({ items }: { items: RecipeIngredient[] }) {
@@ -30,7 +31,11 @@ export function RecipeReadOnlyTable({ items }: { items: RecipeIngredient[] }) {
             </TableCell>
             <TableCell>{item.unit}</TableCell>
             <TableCell>
-              {item.stock_item_is_active ? "Active" : "Inactive"}
+              <OperationalStatusBadge
+                variant={item.stock_item_is_active ? "secondary" : "outline"}
+              >
+                {item.stock_item_is_active ? "Active" : "Inactive"}
+              </OperationalStatusBadge>
             </TableCell>
           </TableRow>
         ))}

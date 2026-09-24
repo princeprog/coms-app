@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OperationalLoadError } from "@/components/shared/operational-load-error";
+import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
 import { AppPageShell } from "@/components/layout/app-page-shell";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
@@ -43,17 +44,12 @@ export default async function RecipeDetailPage({
       notFound();
     return (
       <AppPageShell user={session.user}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recipe unavailable</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p role="alert" className="text-sm text-muted-foreground">
-              COMS could not load this product recipe. Refresh the page to try
-              again.
-            </p>
-          </CardContent>
-        </Card>
+        <div data-coms-ui="operational" className="p-4 sm:p-6">
+          <OperationalLoadError
+            title="product recipe"
+            description="COMS could not load this product recipe. Refresh the page to try again."
+          />
+        </div>
       </AppPageShell>
     );
   }
@@ -75,31 +71,42 @@ export default async function RecipeDetailPage({
 
   return (
     <AppPageShell user={session.user}>
-      <div className="flex flex-col gap-6">
+      <div
+        data-coms-ui="operational"
+        className="flex flex-col gap-6 p-4 sm:p-6"
+      >
         <Link
-          className={buttonVariants({ variant: "outline" })}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
           href={recipesRoute}
         >
           Back to recipes
         </Link>
-        <Card>
-          <CardHeader>
-            <CardTitle>{recipe.product.product_name}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {recipe.product.description || "No product description"}
-              {!recipe.product.is_active ? " · Inactive product" : ""}
+        <section
+          aria-label="Product details"
+          className="flex flex-wrap items-start justify-between gap-4 rounded-lg border bg-card px-4 py-4 sm:px-6"
+        >
+          <div className="min-w-0">
+            <p className="text-base font-semibold">
+              {recipe.product.product_name}
             </p>
-          </CardHeader>
-        </Card>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {recipe.product.description || "No product description"}
+            </p>
+          </div>
+          <OperationalStatusBadge
+            variant={recipe.product.is_active ? "secondary" : "outline"}
+          >
+            {recipe.product.is_active ? "Active product" : "Inactive product"}
+          </OperationalStatusBadge>
+        </section>
         {stockOptionsUnavailable && (
-          <Card>
-            <CardContent className="py-4">
-              <p role="alert" className="text-sm text-muted-foreground">
-                Active stock items could not be loaded. Recipe edits are
-                unavailable until the catalog can be refreshed.
-              </p>
-            </CardContent>
-          </Card>
+          <p
+            role="alert"
+            className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm"
+          >
+            Active stock items could not be loaded. Recipe edits are unavailable
+            until the catalog can be refreshed.
+          </p>
         )}
         <RecipeEditor
           recipe={recipe}

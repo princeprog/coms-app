@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { recipeInputSchema } from "@/features/recipes/schemas/recipe.schema";
 import type {
   RecipeResponse,
@@ -35,13 +34,15 @@ export function RecipeEditor({
   action: RecipeSaveAction;
 }) {
   const router = useRouter();
+  const nextDraftId = useRef(Math.max(recipe.items.length, 1));
   const [ingredients, setIngredients] = useState<RecipeDraftIngredient[]>(
     recipe.items.length
       ? recipe.items.map((item) => ({
+          draftId: `saved-${item.stock_item_id}`,
           stock_item_id: item.stock_item_id,
           quantity_required: item.quantity_required,
         }))
-      : [{ stock_item_id: "", quantity_required: "" }],
+      : [{ draftId: "draft-0", stock_item_id: "", quantity_required: "" }],
   );
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -86,7 +87,12 @@ export function RecipeEditor({
       return;
     }
 
-    const parsed = recipeInputSchema.safeParse({ items: ingredients });
+    const parsed = recipeInputSchema.safeParse({
+      items: ingredients.map(({ stock_item_id, quantity_required }) => ({
+        stock_item_id,
+        quantity_required,
+      })),
+    });
     if (!parsed.success) {
       const duplicate =
         new Set(ingredients.map((item) => item.stock_item_id)).size !==
@@ -129,15 +135,20 @@ export function RecipeEditor({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recipe ingredients</CardTitle>
-        <p className="text-sm text-muted-foreground">
+    <section
+      aria-labelledby="recipe-ingredients-heading"
+      className="rounded-lg border bg-card"
+    >
+      <header className="border-b bg-muted/30 px-4 py-4 sm:px-6">
+        <h2 id="recipe-ingredients-heading" className="text-lg font-semibold">
+          Recipe ingredients
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
           Quantities use the stock item&apos;s unit and keep their exact decimal
           precision.
         </p>
-      </CardHeader>
-      <CardContent>
+      </header>
+      <div className="p-4 sm:p-6">
         {canEdit && ingredients.length > 0 ? (
           <form onSubmit={submit} className="flex flex-col gap-4">
             <RecipeIngredientFields
@@ -165,7 +176,11 @@ export function RecipeEditor({
               onAddIngredient={() =>
                 setIngredients((current) => [
                   ...current,
-                  { stock_item_id: "", quantity_required: "" },
+                  {
+                    draftId: `draft-${nextDraftId.current++}`,
+                    stock_item_id: "",
+                    quantity_required: "",
+                  },
                 ])
               }
             />
@@ -188,7 +203,7 @@ export function RecipeEditor({
             canUpdate={canUpdate}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
