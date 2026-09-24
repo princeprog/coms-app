@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 
 import { authEndpoints } from "@/features/auth/constants";
@@ -11,26 +12,28 @@ import {
   hasRefreshCookie,
 } from "@/features/auth/services/session-cookie";
 
-export async function getCurrentUserFromServer(): Promise<CurrentUserResult> {
-  const cookieHeader = (await cookies()).toString();
-  try {
-    const payload = await requestApi<unknown>(authEndpoints.me, {
-      baseUrl: getComsApiBaseUrl(),
-      headers: getAuthGatewayHeaders(),
-      cookie: getAccessCookieHeader(cookieHeader),
-      redirect: "error",
-    });
-    const parsed = authMeResponseSchema.safeParse(payload);
-    if (!parsed.success)
-      throw new ApiRequestError("Invalid authentication response.", 502);
-    return { status: "authenticated", user: parsed.data.user };
-  } catch (error) {
-    if (error instanceof ApiRequestError && error.status === 401) {
-      return hasRefreshCookie(cookieHeader)
-        ? { status: "recovering" }
-        : { status: "unauthenticated" };
+export const getCurrentUserFromServer = cache(
+  async function getCurrentUserFromServer(): Promise<CurrentUserResult> {
+    const cookieHeader = (await cookies()).toString();
+    try {
+      const payload = await requestApi<unknown>(authEndpoints.me, {
+        baseUrl: getComsApiBaseUrl(),
+        headers: getAuthGatewayHeaders(),
+        cookie: getAccessCookieHeader(cookieHeader),
+        redirect: "error",
+      });
+      const parsed = authMeResponseSchema.safeParse(payload);
+      if (!parsed.success)
+        throw new ApiRequestError("Invalid authentication response.", 502);
+      return { status: "authenticated", user: parsed.data.user };
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401) {
+        return hasRefreshCookie(cookieHeader)
+          ? { status: "recovering" }
+          : { status: "unauthenticated" };
+      }
+      recordAuthOutage(error instanceof ApiRequestError ? error.status : 503);
+      return { status: "unavailable" };
     }
-    recordAuthOutage(error instanceof ApiRequestError ? error.status : 503);
-    return { status: "unavailable" };
-  }
-}
+  },
+);

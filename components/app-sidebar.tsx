@@ -3,11 +3,13 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import type { User } from "@/features/auth/types/auth.types";
 import { filterNavigationForUser } from "@/features/auth/permissions";
+import { authKeys } from "@/features/auth/query-keys";
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +18,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboardIcon,
@@ -121,43 +124,67 @@ export const navItems = [
     icon: <ShieldCheckIcon />,
   },
 ];
-export function AppSidebar({
+
+function SidebarBrand() {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarHeader>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            className="h-auto data-[slot=sidebar-menu-button]:p-1.5!"
+            render={
+              <Link
+                href="/dashboard"
+                aria-label="Go to dashboard"
+                onNavigate={() => {
+                  if (isMobile) setOpenMobile(false);
+                }}
+              />
+            }
+          >
+            <Image
+              src="/images/emmas%20chicken%20house%20logo.png"
+              alt="Emma's Chicken House"
+              width={150}
+              height={50}
+              priority
+              className="h-auto w-full max-w-none object-contain"
+            />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarHeader>
+  );
+}
+
+export const AppSidebar = React.memo(function AppSidebar({
   user,
   ...props
 }: React.ComponentProps<typeof Sidebar> & { user: User }) {
+  const { data: currentUser = user } = useQuery({
+    queryKey: authKeys.me,
+    queryFn: async () => user,
+    initialData: user,
+    enabled: false,
+  });
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              className="h-auto data-[slot=sidebar-menu-button]:p-1.5!"
-              render={<Link href="/dashboard" aria-label="Go to dashboard" />}
-            >
-              <Image
-                src="/images/emmas%20chicken%20house%20logo.png"
-                alt="Emma's Chicken House"
-                width={150}
-                height={50}
-                priority
-                className="h-auto w-full max-w-none object-contain"
-              />
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+      <SidebarBrand />
       <SidebarContent>
-        <NavMain items={filterNavigationForUser(user, navItems)} />
+        <NavMain items={filterNavigationForUser(currentUser, navItems)} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser
           user={{
-            name: user.full_name,
-            email: user.email,
+            name: currentUser.full_name,
+            email: currentUser.email,
             avatar: "",
           }}
         />
       </SidebarFooter>
     </Sidebar>
   );
-}
+});
