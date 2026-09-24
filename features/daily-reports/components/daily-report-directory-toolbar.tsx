@@ -1,3 +1,5 @@
+"use client";
+
 import Form from "next/form";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,6 +17,15 @@ import {
 import type { BranchProductBranchOption } from "@/features/branch-products/types/branch-product.types";
 import type { DailyReportPageFilters } from "@/features/daily-reports/services/daily-report-page-params";
 
+function statusLabel(status: string) {
+  if (status === "all") return "All statuses";
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function DailyReportDirectoryToolbar({
   branches,
   filters,
@@ -28,11 +39,16 @@ export function DailyReportDirectoryToolbar({
       aria-label="Filter daily reports"
       className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4"
     >
-      <div className="grid min-w-48 gap-2">
+      <div className="grid min-w-0 gap-2 sm:min-w-48">
         <Label htmlFor="daily-report-branch">Branch</Label>
         <Select name="branch_id" defaultValue={filters.branchId}>
-          <SelectTrigger id="daily-report-branch" className="w-full">
-            <SelectValue />
+          <SelectTrigger id="daily-report-branch" className="w-full min-w-0">
+            <SelectValue>
+              {(value: unknown) =>
+                branches.find((branch) => branch.id === value)?.name ??
+                "Select a branch"
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent data-coms-ui="operational">
             {branches.map((branch) => (
@@ -44,11 +60,13 @@ export function DailyReportDirectoryToolbar({
           </SelectContent>
         </Select>
       </div>
-      <div className="grid min-w-40 gap-2">
+      <div className="grid min-w-0 gap-2 sm:min-w-40">
         <Label htmlFor="daily-report-status">Status</Label>
         <Select name="status" defaultValue={filters.status}>
-          <SelectTrigger id="daily-report-status" className="w-full">
-            <SelectValue />
+          <SelectTrigger id="daily-report-status" className="w-full min-w-0">
+            <SelectValue>
+              {(value: unknown) => statusLabel(String(value))}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent data-coms-ui="operational">
             <SelectItem value="all">All statuses</SelectItem>

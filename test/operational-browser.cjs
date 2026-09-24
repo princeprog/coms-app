@@ -16,7 +16,8 @@ const seed = JSON.parse(
 );
 const outputDirectory = path.join(root, "test-results", "operational-ui");
 const gatewaySecret = crypto.randomBytes(32).toString("hex");
-const viewportWidths = [390, 768, 1440, 1920];
+// 195 CSS pixels approximates the reflow width available at 200% zoom from 390px.
+const viewportWidths = [195, 390, 768, 1440, 1920];
 const browserErrors = [];
 const failedResponses = [];
 let fixture;
@@ -71,12 +72,40 @@ async function navigate(pathname) {
 }
 
 async function assertPageStructure(pathname, width) {
-  const structure = await page.evaluate(() => ({
-    mainCount: document.querySelectorAll("main").length,
-    h1Count: document.querySelectorAll("h1").length,
-    viewportWidth: window.innerWidth,
-    documentWidth: document.documentElement.scrollWidth,
-  }));
+  const structure = await page.evaluate(() => {
+    const uncontainedOverflowers = [...document.querySelectorAll("body *")]
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        let ancestor = element.parentElement;
+        let contained = false;
+        while (ancestor && ancestor !== document.body) {
+          if (getComputedStyle(ancestor).overflowX !== "visible") {
+            contained = true;
+            break;
+          }
+          ancestor = ancestor.parentElement;
+        }
+        return {
+          tag: element.tagName.toLowerCase(),
+          slot: element.getAttribute("data-slot"),
+          right: Math.round(rect.right),
+          text: element.textContent?.trim().slice(0, 40),
+          contained,
+        };
+      })
+      .filter(
+        (element) =>
+          !element.contained && element.right > window.innerWidth + 1,
+      )
+      .slice(0, 5);
+
+    return {
+      mainCount: document.querySelectorAll("main").length,
+      h1Count: document.querySelectorAll("h1").length,
+      documentWidth: document.documentElement.scrollWidth,
+      uncontainedOverflowers,
+    };
+  });
   assert.equal(
     structure.mainCount,
     1,
@@ -85,7 +114,7 @@ async function assertPageStructure(pathname, width) {
   assert.equal(structure.h1Count, 1, `${pathname} should expose one page h1`);
   assert(
     structure.documentWidth <= width,
-    `${pathname} overflows at ${width}px (${structure.documentWidth}px document)`,
+    `${pathname} overflows at ${width}px (${structure.documentWidth}px document): ${JSON.stringify(structure.uncontainedOverflowers)}`,
   );
 }
 
@@ -223,6 +252,10 @@ let baseUrl;
   await page.waitForURL("**/dashboard");
   await page.getByRole("button", { name: /Test Operations Admin/ }).waitFor();
   await assertPageStructure("/dashboard", 1440);
+  await saveScreenshot("dashboard-desktop.png");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await saveScreenshot("dashboard-mobile.png");
+  await page.setViewportSize({ width: 1440, height: 960 });
   await rememberShellIdentity();
   for (const [label, href] of [
     ["Receiving", "/receipts"],
@@ -261,6 +294,22 @@ let baseUrl;
     }
     console.log(`PASS ${routes.length} route states at ${width}px`);
   }
+
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.waitForFunction(() =>
+    document.documentElement.classList.contains("dark"),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of routes) {
+    await navigate(route);
+    await assertPageStructure(`${route} dark`, 390);
+    if (route === "/roles") await saveScreenshot("roles-dark-mobile.png");
+  }
+  console.log(`PASS ${routes.length} operational route states in dark mode`);
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.waitForFunction(() =>
+    document.documentElement.classList.contains("light"),
+  );
 
   await page.setViewportSize({ width: 390, height: 844 });
   await navigate("/roles");

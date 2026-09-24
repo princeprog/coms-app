@@ -33,8 +33,9 @@ export function DispatchManagement({
             <Link
               className={buttonVariants({ variant: "default", size: "sm" })}
               href="/replenishment?status=APPROVED"
+              aria-label="Review approved requests"
             >
-              Review approved requests
+              Review requests
             </Link>
           )
         }

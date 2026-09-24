@@ -33,7 +33,7 @@ export function CatalogPagination({
   return (
     <nav
       aria-label={`${title} pages`}
-      className="flex items-center justify-between gap-3"
+      className="flex flex-wrap items-center justify-between gap-3"
     >
       {page > 1 ? (
         <Link

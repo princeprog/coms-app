@@ -46,9 +46,10 @@ export function InventoryScopeFilter({
             page: 1,
             search,
           })}
+          aria-label="Commissary inventory"
           aria-current={scope === "COMMISSARY" ? "page" : undefined}
         >
-          Commissary inventory
+          Commissary
         </Link>
         <Link
           className={buttonVariants({
@@ -61,9 +62,10 @@ export function InventoryScopeFilter({
             page: 1,
             search,
           })}
+          aria-label="Branch inventory"
           aria-current={scope === "BRANCH" ? "page" : undefined}
         >
-          Branch inventory
+          Branch
         </Link>
       </nav>
 

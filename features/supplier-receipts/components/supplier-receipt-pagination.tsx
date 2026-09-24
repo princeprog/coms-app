@@ -16,7 +16,7 @@ export function SupplierReceiptPagination({
   return (
     <nav
       aria-label="Supplier receipt pages"
-      className="flex items-center justify-between gap-4"
+      className="flex flex-wrap items-center justify-between gap-3"
     >
       {page > 1 ? (
         <Link

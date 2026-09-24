@@ -28,6 +28,12 @@ describe("daily report directory toolbar", () => {
     expect(form.querySelector('input[name="page"]')).toBeNull();
     expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Status" })).toBeTruthy();
+    expect(
+      screen.getByRole("combobox", { name: "Branch" }).textContent,
+    ).toContain("Manila North");
+    expect(
+      screen.getByRole("combobox", { name: "Status" }).textContent,
+    ).toContain("Returned");
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeTruthy();
     await userEvent
       .setup()

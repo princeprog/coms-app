@@ -80,7 +80,7 @@ export function RecipeIngredientFields({
         return (
           <FieldSet
             key={ingredient.draftId}
-            className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,0.65fr)_auto] sm:items-end"
+            className="grid grid-cols-1 gap-3 rounded-lg border p-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,0.65fr)_auto] sm:items-end"
           >
             <FieldLegend variant="label" className="px-1">
               Ingredient {index + 1}

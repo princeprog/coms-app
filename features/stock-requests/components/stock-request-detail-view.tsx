@@ -45,8 +45,9 @@ export function StockRequestDetailView({
         <Link
           className={buttonVariants({ variant: "outline", size: "sm" })}
           href="/replenishment"
+          aria-label="Back to replenishment"
         >
-          Back to replenishment
+          Back to requests
         </Link>
         {showDispatchCreation && (
           <DispatchCreateControl
