@@ -12,7 +12,10 @@ export function AppPageShell({
   return (
     <>
       <AuthQuerySeed user={user} />
-      <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6">
+      <div
+        data-coms-ui="operational"
+        className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6"
+      >
         {children}
       </div>
     </>

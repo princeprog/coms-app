@@ -124,3 +124,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  [data-coms-ui="operational"] [data-slot="card"],
+  [data-coms-ui="operational"][data-slot="card"] {
+    @apply rounded-lg border border-border bg-card shadow-none ring-0;
+  }
+
+  [data-coms-ui="operational"] [data-slot="button"],
+  [data-coms-ui="operational"][data-slot="button"] {
+    @apply rounded-md;
+  }
+
+  [data-coms-ui="operational"] [data-slot="input"],
+  [data-coms-ui="operational"][data-slot="input"],
+  [data-coms-ui="operational"] [data-slot="textarea"],
+  [data-coms-ui="operational"][data-slot="textarea"],
+  [data-coms-ui="operational"] [data-slot="select-trigger"],
+  [data-coms-ui="operational"][data-slot="select-trigger"],
+  [data-coms-ui="operational"] [data-slot="combobox-trigger"],
+  [data-coms-ui="operational"][data-slot="combobox-trigger"] {
+    @apply rounded-md border border-input bg-background;
+  }
+
+  [data-coms-ui="operational"] [data-slot="dialog-content"],
+  [data-coms-ui="operational"][data-slot="dialog-content"],
+  [data-coms-ui="operational"] [data-slot="sheet-content"],
+  [data-coms-ui="operational"][data-slot="sheet-content"] {
+    @apply rounded-lg;
+  }
+}
