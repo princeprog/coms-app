@@ -7,6 +7,8 @@ export function DailyReportDecimalField({
   value,
   disabled,
   signed = false,
+  labelClassName,
+  className,
   onChange,
 }: {
   id: string;
@@ -14,11 +16,13 @@ export function DailyReportDecimalField({
   value: string;
   disabled: boolean;
   signed?: boolean;
+  labelClassName?: string;
+  className?: string;
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-medium">
+    <div className={className ?? "flex flex-col gap-2"}>
+      <label htmlFor={id} className={labelClassName ?? "text-sm font-medium"}>
         {label}
       </label>
       <Input

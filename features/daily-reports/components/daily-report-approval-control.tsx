@@ -13,17 +13,21 @@ import { Button } from "@/components/ui/button";
 
 export function DailyReportApprovalControl({
   pending,
+  disabled,
   onConfirm,
 }: {
   pending: boolean;
+  disabled: boolean;
   onConfirm: () => void;
 }) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger render={<Button type="button" disabled={pending} />}>
+      <AlertDialogTrigger
+        render={<Button type="button" disabled={pending || disabled} />}
+      >
         Approve report
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent data-coms-ui="operational">
         <AlertDialogHeader>
           <AlertDialogTitle>Approve this daily report?</AlertDialogTitle>
           <AlertDialogDescription>
@@ -35,7 +39,7 @@ export function DailyReportApprovalControl({
           <AlertDialogCancel disabled={pending}>Review later</AlertDialogCancel>
           <AlertDialogAction
             type="button"
-            disabled={pending}
+            disabled={pending || disabled}
             onClick={onConfirm}
           >
             {pending ? "Approving…" : "Approve and reconcile"}

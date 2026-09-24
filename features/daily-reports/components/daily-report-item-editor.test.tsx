@@ -87,27 +87,35 @@ describe("daily report item editor", () => {
     );
 
     await user.type(
-      screen.getByLabelText("Physical closing for Bread flour (kg)"),
+      screen.getAllByLabelText("Physical closing for Bread flour (kg)")[0]!,
       "10.5",
     );
-    await user.clear(screen.getByLabelText("Waste for Bread flour (kg)"));
-    await user.type(screen.getByLabelText("Waste for Bread flour (kg)"), "0.5");
+    await user.clear(
+      screen.getAllByLabelText("Waste for Bread flour (kg)")[0]!,
+    );
     await user.type(
-      screen.getByLabelText("Reason for waste for Bread flour"),
+      screen.getAllByLabelText("Waste for Bread flour (kg)")[0]!,
+      "0.5",
+    );
+    await user.click(
+      screen.getAllByText(/Ledger details and reasons for Bread flour/i)[0]!,
+    );
+    await user.type(
+      screen.getAllByLabelText("Reason for waste for Bread flour")[0]!,
       "Damaged during prep",
     );
     await user.clear(
-      screen.getByLabelText("Justified adjustment for Bread flour (kg)"),
+      screen.getAllByLabelText("Justified adjustment for Bread flour (kg)")[0]!,
     );
     await user.type(
-      screen.getByLabelText("Justified adjustment for Bread flour (kg)"),
+      screen.getAllByLabelText("Justified adjustment for Bread flour (kg)")[0]!,
       "-0.25",
     );
     await user.type(
-      screen.getByLabelText("Reason for adjustment for Bread flour"),
+      screen.getAllByLabelText("Reason for adjustment for Bread flour")[0]!,
       "Count correction",
     );
-    await user.click(screen.getByRole("button", { name: "Save report" }));
+    await user.click(screen.getByRole("button", { name: "Save counts" }));
 
     await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
     expect(action).toHaveBeenCalledWith(branchId, reportId, {
@@ -142,12 +150,17 @@ describe("daily report item editor", () => {
     );
 
     await user.type(
-      screen.getByLabelText("Physical closing for Bread flour (kg)"),
+      screen.getAllByLabelText("Physical closing for Bread flour (kg)")[0]!,
       "11",
     );
-    await user.clear(screen.getByLabelText("Waste for Bread flour (kg)"));
-    await user.type(screen.getByLabelText("Waste for Bread flour (kg)"), "1");
-    await user.click(screen.getByRole("button", { name: "Save report" }));
+    await user.clear(
+      screen.getAllByLabelText("Waste for Bread flour (kg)")[0]!,
+    );
+    await user.type(
+      screen.getAllByLabelText("Waste for Bread flour (kg)")[0]!,
+      "1",
+    );
+    await user.click(screen.getByRole("button", { name: "Save counts" }));
 
     expect((await screen.findByRole("alert")).textContent).toMatch(/reason/i);
     expect(action).not.toHaveBeenCalled();
@@ -168,18 +181,58 @@ describe("daily report item editor", () => {
       />,
     );
 
-    expect(screen.getByText("Opening").nextSibling?.textContent).toBe(
-      "10.000 kg",
+    expect(
+      screen.getAllByText("Opening stock")[0]?.nextSibling?.textContent,
+    ).toBe("10.000 kg");
+    expect(screen.getAllByText("Receipts")[0]?.nextSibling?.textContent).toBe(
+      "2 kg",
     );
     expect(
-      screen.getByText("Receipt quantities").nextSibling?.textContent,
-    ).toBe("2 kg");
-    expect(screen.getByText("Sale consumption").nextSibling?.textContent).toBe(
-      "1.5 kg",
+      screen.getAllByText("Sale consumption")[0]?.nextSibling?.textContent,
+    ).toBe("1.5 kg");
+    expect(screen.getAllByText("Not counted").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/expected closing and variance are calculated by coms/i),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save counts" })).toBeNull();
+  });
+
+  it("shares one draft across responsive editors and exposes ledger details", async () => {
+    const editorModule = await getItemEditor();
+    expect(editorModule).not.toBeNull();
+    if (!editorModule) return;
+    const onDirtyChange = vi.fn();
+    const user = userEvent.setup();
+    const { container } = render(
+      <editorModule.DailyReportItemEditor
+        branchId={branchId}
+        reportId={reportId}
+        items={report.items}
+        action={vi.fn()}
+        onSaved={vi.fn()}
+        onDirtyChange={onDirtyChange}
+      />,
     );
-    expect(screen.getByText("Variance").nextSibling?.textContent).toBe(
-      "Not counted",
+
+    const physicalFields = screen.getAllByLabelText(
+      "Physical closing for Bread flour (kg)",
     );
-    expect(screen.queryByRole("button", { name: "Save report" })).toBeNull();
+    expect(physicalFields).toHaveLength(2);
+    expect(physicalFields[0]?.id).not.toBe(physicalFields[1]?.id);
+    await user.type(physicalFields[0]!, "12");
+    expect((physicalFields[1] as HTMLInputElement).value).toBe("12");
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+
+    const ledgerSections = container.querySelectorAll("details");
+    expect(ledgerSections.length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sale void reversals").length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByRole("button", { name: "Save counts" })).toBeTruthy();
+    await user.click(
+      screen.getByRole("button", { name: "Discard unsaved counts" }),
+    );
+    expect((physicalFields[0] as HTMLInputElement).value).toBe("");
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
 });

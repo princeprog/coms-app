@@ -14,6 +14,7 @@ import type {
 export function DailyReportReviewControls({
   branchId,
   report,
+  hasUnsavedChanges,
   canSubmit,
   canReturn,
   canApprove,
@@ -24,6 +25,7 @@ export function DailyReportReviewControls({
 }: {
   branchId: string;
   report: DailyReport;
+  hasUnsavedChanges: boolean;
   canSubmit: boolean;
   canReturn: boolean;
   canApprove: boolean;
@@ -98,13 +100,13 @@ export function DailyReportReviewControls({
   return (
     <section
       aria-label="Report actions"
-      className="flex flex-col gap-3 rounded-4xl border bg-card p-4"
+      className="flex flex-col gap-3 rounded-lg border bg-card p-4"
     >
       <div className="flex flex-wrap gap-2">
         {submitAvailable && (
           <Button
             type="button"
-            disabled={pending}
+            disabled={pending || hasUnsavedChanges}
             onClick={() => void submit()}
           >
             {pending ? "Submitting…" : "Submit for review"}
@@ -114,7 +116,7 @@ export function DailyReportReviewControls({
           <Button
             type="button"
             variant="outline"
-            disabled={pending}
+            disabled={pending || hasUnsavedChanges}
             onClick={() => {
               setShowReturnForm(true);
               setError("");
@@ -126,10 +128,16 @@ export function DailyReportReviewControls({
         {approveAvailable && (
           <DailyReportApprovalControl
             pending={pending}
+            disabled={hasUnsavedChanges}
             onConfirm={() => void approve()}
           />
         )}
       </div>
+      {hasUnsavedChanges && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Save or discard unsaved counts before changing report status.
+        </p>
+      )}
       {showReturnForm && returnAvailable && (
         <DailyReportReturnForm
           reportId={report.id}

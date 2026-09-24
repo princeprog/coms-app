@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  OperationalEmptyState,
+  OperationalStatusBadge,
+} from "@/components/shared/operational-page-ui";
 import type {
   DailyReport,
   DailyReportReturnAction,
@@ -22,6 +24,7 @@ const manilaTime = new Intl.DateTimeFormat("en-PH", {
 
 export function DailyReportDetail({
   branchId,
+  branchName,
   report: initialReport,
   canUpdate,
   canSubmit,
@@ -33,6 +36,7 @@ export function DailyReportDetail({
   approveAction,
 }: {
   branchId: string;
+  branchName: string;
   report: DailyReport;
   canUpdate: boolean;
   canSubmit: boolean;
@@ -45,62 +49,70 @@ export function DailyReportDetail({
 }) {
   const router = useRouter();
   const [report, setReport] = useState(initialReport);
-
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const handleDirtyChange = useCallback(
+    (dirty: boolean) => setHasUnsavedChanges(dirty),
+    [],
+  );
   const isEditable = report.status === "DRAFT" || report.status === "RETURNED";
+
   function handleSaved(updatedReport: DailyReport) {
     setReport(updatedReport);
+    setHasUnsavedChanges(false);
     router.refresh();
   }
 
   return (
-    <section aria-labelledby="daily-report-detail-title" className="grid gap-4">
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle id="daily-report-detail-title">
-              Daily report · {report.business_date}
-            </CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Created {manilaTime.format(new Date(report.created_at))}{" "}
-              (Asia/Manila)
-            </p>
-          </div>
-          <Badge variant={statusVariant(report.status)}>
-            {report.status.replaceAll("_", " ")}
-          </Badge>
-        </CardHeader>
-        <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-          <p>
-            Last updated {manilaTime.format(new Date(report.updated_at))}{" "}
+    <section aria-labelledby="daily-report-detail-title" className="grid gap-6">
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
+        <div>
+          <h2 id="daily-report-detail-title" className="text-lg font-semibold">
+            Daily report · {report.business_date}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">{branchName}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Created {manilaTime.format(new Date(report.created_at))}{" "}
             (Asia/Manila)
           </p>
-          {report.submitted_at && (
-            <p>
-              Submitted {manilaTime.format(new Date(report.submitted_at))}{" "}
-              (Asia/Manila)
-            </p>
-          )}
-          {report.reviewed_at && (
-            <p>
-              Reviewed {manilaTime.format(new Date(report.reviewed_at))}{" "}
-              (Asia/Manila)
-            </p>
-          )}
-          {report.return_reason && (
-            <p role="status" className="rounded-3xl border p-3 sm:col-span-2">
-              <span className="font-medium">Returned for correction:</span>{" "}
-              {report.return_reason}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        <OperationalStatusBadge variant={statusVariant(report.status)}>
+          {report.status.replaceAll("_", " ")}
+        </OperationalStatusBadge>
+      </header>
+
+      <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        <Metadata
+          label="Last updated"
+          value={`${manilaTime.format(new Date(report.updated_at))} (Asia/Manila)`}
+        />
+        {report.submitted_at && (
+          <Metadata
+            label="Submitted"
+            value={`${manilaTime.format(new Date(report.submitted_at))} (Asia/Manila)`}
+          />
+        )}
+        {report.reviewed_at && (
+          <Metadata
+            label="Reviewed"
+            value={`${manilaTime.format(new Date(report.reviewed_at))} (Asia/Manila)`}
+          />
+        )}
+      </dl>
+      {report.return_reason && (
+        <p
+          role="status"
+          className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm"
+        >
+          <span className="font-medium">Returned for correction:</span>{" "}
+          {report.return_reason}
+        </p>
+      )}
 
       {report.items.length === 0 ? (
-        <Card>
-          <CardContent className="py-6 text-sm text-muted-foreground">
-            This report has no stock items to count.
-          </CardContent>
-        </Card>
+        <OperationalEmptyState
+          title="No stock items to count"
+          description="This report has no stock items in its saved snapshot."
+        />
       ) : (
         <DailyReportItemEditor
           branchId={branchId}
@@ -109,6 +121,7 @@ export function DailyReportDetail({
           canEdit={canUpdate && isEditable}
           action={updateAction}
           onSaved={handleSaved}
+          onDirtyChange={handleDirtyChange}
         />
       )}
 
@@ -118,6 +131,7 @@ export function DailyReportDetail({
         canSubmit={canSubmit}
         canApprove={canApprove}
         canReturn={canReturn}
+        hasUnsavedChanges={hasUnsavedChanges}
         submitAction={submitAction}
         returnAction={returnAction}
         approveAction={approveAction}
@@ -125,6 +139,15 @@ export function DailyReportDetail({
       />
       <DailyReportHistory report={report} />
     </section>
+  );
+}
+
+function Metadata({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-1 font-medium tabular-nums">{value}</dd>
+    </div>
   );
 }
 

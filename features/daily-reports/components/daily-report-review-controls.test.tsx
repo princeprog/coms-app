@@ -34,6 +34,46 @@ const report = {
 };
 
 describe("daily report review controls", () => {
+  it("blocks status changes while count edits are unsaved", async () => {
+    const controlsModule = await getReviewControls();
+    expect(controlsModule).not.toBeNull();
+    if (!controlsModule) return;
+    const DailyReportReviewControls = controlsModule.DailyReportReviewControls;
+    const action = vi.fn().mockResolvedValue({
+      ok: true,
+      report: { ...report, status: "SUBMITTED" },
+    });
+    function Harness() {
+      return (
+        <DailyReportReviewControls
+          branchId={branchId}
+          report={{ ...report, status: "DRAFT" }}
+          canSubmit
+          canReturn={false}
+          canApprove={false}
+          hasUnsavedChanges
+          submitAction={action}
+          returnAction={vi.fn()}
+          approveAction={vi.fn()}
+          onReportChange={vi.fn()}
+        />
+      );
+    }
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    expect(screen.getByText(/save or discard unsaved counts/i)).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Submit for review" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+    expect(action).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Submit for review" }));
+    expect(action).not.toHaveBeenCalled();
+  });
+
   it("updates the report from the API response after submission", async () => {
     const controlsModule = await getReviewControls();
     expect(controlsModule).not.toBeNull();
@@ -49,6 +89,7 @@ describe("daily report review controls", () => {
         canSubmit
         canReturn={false}
         canApprove={false}
+        hasUnsavedChanges={false}
         submitAction={action}
         returnAction={vi.fn()}
         approveAction={vi.fn()}
@@ -84,6 +125,7 @@ describe("daily report review controls", () => {
         canSubmit={false}
         canReturn
         canApprove={false}
+        hasUnsavedChanges={false}
         submitAction={vi.fn()}
         returnAction={returnAction}
         approveAction={vi.fn()}
@@ -128,6 +170,7 @@ describe("daily report review controls", () => {
         canSubmit={false}
         canReturn={false}
         canApprove
+        hasUnsavedChanges={false}
         submitAction={vi.fn()}
         returnAction={vi.fn()}
         approveAction={approveAction}

@@ -59,6 +59,7 @@ describe("daily report create form", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: "Create report" }));
     fireEvent.change(screen.getByLabelText("Business date"), {
       target: { value: "2026-09-25" },
     });
@@ -88,6 +89,10 @@ describe("daily report create form", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: "Create report" }));
+    expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
+      "operational",
+    );
     await user.click(screen.getByRole("button", { name: "Create draft" }));
     expect((await screen.findByRole("alert")).textContent).toBe("Try again.");
     await user.click(screen.getByRole("button", { name: "Create draft" }));
@@ -133,6 +138,7 @@ describe("daily report create form", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: "Create report" }));
     await user.click(screen.getByRole("button", { name: "Create draft" }));
     await user.clear(screen.getByLabelText("Business date"));
     await user.type(screen.getByLabelText("Business date"), "2026-09-23");
@@ -141,5 +147,33 @@ describe("daily report create form", () => {
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
     expect(action.mock.calls[0]?.[2]).toBe(firstKey);
     expect(action.mock.calls[1]?.[2]).toBe(secondKey);
+  });
+
+  it("asks before discarding a changed business date and retains it when kept open", async () => {
+    const createFormModule = await getCreateForm();
+    expect(createFormModule).not.toBeNull();
+    if (!createFormModule) return;
+    const user = userEvent.setup();
+    render(
+      <createFormModule.DailyReportCreateForm
+        branchId={branchId}
+        todayManila="2026-09-24"
+        action={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Create report" }));
+    fireEvent.change(screen.getByLabelText("Business date"), {
+      target: { value: "2026-09-23" },
+    });
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(await screen.findByText("Discard this report draft?")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(
+      (screen.getByLabelText("Business date") as HTMLInputElement).value,
+    ).toBe("2026-09-23");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Discard changes" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

@@ -19,7 +19,7 @@ export function DailyReportHistory({ report }: { report: DailyReport }) {
   return (
     <section
       aria-labelledby="daily-report-history-title"
-      className="rounded-4xl border bg-card p-4"
+      className="rounded-lg border bg-card p-4"
     >
       <h3 id="daily-report-history-title" className="font-medium">
         Review history

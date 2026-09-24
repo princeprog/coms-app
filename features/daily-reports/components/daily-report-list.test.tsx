@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { DailyReportPage } from "@/features/daily-reports/types/daily-report.types";
 import { DailyReportList } from "./daily-report-list";
@@ -31,7 +31,7 @@ const page: DailyReportPage = {
 };
 
 describe("daily report list", () => {
-  it("links to selected reports and retains branch and status while paginating", () => {
+  it("renders a compact table and preserves branch and status in client links", () => {
     render(
       <DailyReportList
         page={page}
@@ -39,9 +39,10 @@ describe("daily report list", () => {
       />,
     );
 
+    const reportRow = screen.getByRole("row", { name: /2026-09-23/i });
     expect(
-      screen
-        .getByRole("link", { name: /2026-09-23.*open report/i })
+      within(reportRow)
+        .getByRole("link", { name: /open report/i })
         .getAttribute("href"),
     ).toBe(
       `/reports?branch_id=${branchId}&status=SUBMITTED&report_id=${reportId}`,
@@ -49,7 +50,25 @@ describe("daily report list", () => {
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
     ).toBe(`/reports?branch_id=${branchId}&status=SUBMITTED&page=2`);
-    expect(screen.getByLabelText("Status")).toBeTruthy();
+    expect(
+      screen.getByRole("region", { name: /daily report results/i }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("columnheader", { name: "Business date" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Updated" })).toBeTruthy();
+  });
+
+  it("shows the visible result range and disables unavailable pagination", () => {
+    render(
+      <DailyReportList
+        page={{ ...page, total: 1, page_size: 25 }}
+        filters={{ branchId, status: "all", page: 1 }}
+      />,
+    );
+
+    expect(screen.getByText("Showing 1–1 of 1 reports")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Previous page" })).toBeNull();
   });
 
   it("explains when the branch has no reports for the selected status", () => {
@@ -60,7 +79,7 @@ describe("daily report list", () => {
       />,
     );
 
-    expect(screen.getByText("No returned reports.")).toBeTruthy();
+    expect(screen.getByText("No returned reports")).toBeTruthy();
     expect(screen.getByText(/choose another status/i)).toBeTruthy();
   });
 });

@@ -16,16 +16,18 @@ function ReportsPageMessage({
   message: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p role="alert" className="text-sm text-muted-foreground">
-          {message}
-        </p>
-      </CardContent>
-    </Card>
+    <div data-coms-ui="operational">
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p role="alert" className="text-sm text-muted-foreground">
+            {message}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

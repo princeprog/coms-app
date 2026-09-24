@@ -1,14 +1,23 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  dailyReportRoute,
-  dailyReportStatuses,
-} from "@/features/daily-reports/constants";
-import { createDailyReportHref } from "@/features/daily-reports/services/daily-report-page-params";
+  OperationalEmptyState,
+  OperationalPagination,
+  OperationalStatusBadge,
+} from "@/components/shared/operational-page-ui";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { dailyReportStatuses } from "@/features/daily-reports/constants";
+import {
+  createDailyReportHref,
+  type DailyReportPageFilters,
+} from "@/features/daily-reports/services/daily-report-page-params";
 import type { DailyReportPage } from "@/features/daily-reports/types/daily-report.types";
-import type { DailyReportPageFilters } from "@/features/daily-reports/services/daily-report-page-params";
 
 export function DailyReportList({
   page,
@@ -18,76 +27,75 @@ export function DailyReportList({
   filters: DailyReportPageFilters;
 }) {
   const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));
+  const start = page.total === 0 ? 0 : (page.page - 1) * page.page_size + 1;
+  const end = Math.min(page.total, start + page.items.length - 1);
+
   return (
     <section aria-labelledby="daily-report-list-title" className="grid gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2
-            id="daily-report-list-title"
-            className="font-heading text-lg font-medium"
-          >
-            Reports
+          <h2 id="daily-report-list-title" className="text-lg font-semibold">
+            Daily reports
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {page.total} {page.total === 1 ? "report" : "reports"} for this
-            branch
+          <p aria-live="polite" className="text-sm text-muted-foreground">
+            {page.total === 0
+              ? "No reports"
+              : `Showing ${start}–${end} of ${page.total} reports`}
           </p>
         </div>
-        <form
-          action={dailyReportRoute}
-          method="get"
-          aria-label="Filter daily reports"
-          className="flex flex-wrap items-end gap-2"
-        >
-          <input type="hidden" name="branch_id" value={filters.branchId} />
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="daily-report-status"
-              className="text-sm font-medium"
-            >
-              Status
-            </label>
-            <select
-              id="daily-report-status"
-              name="status"
-              defaultValue={filters.status}
-              className="h-9 rounded-3xl border border-transparent bg-input/50 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
-            >
-              <option value="all">All statuses</option>
-              {dailyReportStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {status.replaceAll("_", " ")}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Button type="submit" variant="outline">
-            Apply filter
-          </Button>
-        </form>
       </div>
 
       {page.items.length === 0 ? (
-        <Card>
-          <CardContent className="py-6 text-center">
-            <p className="font-medium">
-              {filters.status === "all"
-                ? "No daily reports yet."
-                : `No ${filters.status.toLowerCase()} reports.`}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {filters.status === "all"
-                ? "Create a draft to record this branch’s physical counts."
-                : "Choose another status to find a different report."}
-            </p>
-          </CardContent>
-        </Card>
+        <OperationalEmptyState
+          title={
+            filters.status === "all"
+              ? "No daily reports yet"
+              : `No ${filters.status.toLowerCase()} reports`
+          }
+          description={
+            filters.status === "all"
+              ? "Create a report to record this branch’s physical counts."
+              : "Choose another status to find a different report."
+          }
+        />
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <ul className="divide-y">
-              {page.items.map((report) => (
-                <li key={report.id}>
+        <Table
+          className="min-w-[42rem]"
+          containerProps={{
+            role: "region",
+            "aria-label": "Daily report results",
+            tabIndex: 0,
+            className:
+              "rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          }}
+        >
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              <TableHead scope="col">Business date</TableHead>
+              <TableHead scope="col">Status</TableHead>
+              <TableHead scope="col">Updated</TableHead>
+              <TableHead scope="col" className="text-right">
+                Action
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {page.items.map((report) => (
+              <TableRow key={report.id}>
+                <TableCell className="font-medium tabular-nums">
+                  {report.business_date}
+                </TableCell>
+                <TableCell>
+                  <OperationalStatusBadge
+                    variant={statusVariant(report.status)}
+                  >
+                    {report.status.replaceAll("_", " ")}
+                  </OperationalStatusBadge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatManilaDate(report.updated_at)}
+                </TableCell>
+                <TableCell className="text-right">
                   <Link
                     href={createDailyReportHref({
                       ...filters,
@@ -96,67 +104,37 @@ export function DailyReportList({
                     aria-current={
                       filters.reportId === report.id ? "page" : undefined
                     }
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-3xl px-4 py-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+                    className="rounded-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <span>
-                      <span className="block font-medium">
-                        {report.business_date}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Updated {formatManilaDate(report.updated_at)}{" "}
-                        (Asia/Manila)
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-3">
-                      <Badge variant={statusVariant(report.status)}>
-                        {report.status.replaceAll("_", " ")}
-                      </Badge>
-                      <span className="text-sm text-primary">Open report</span>
-                    </span>
+                    Open report
                   </Link>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
-      {pageCount > 1 && (
-        <nav
-          aria-label="Daily report pages"
-          className="flex items-center justify-between gap-3"
-        >
-          {filters.page > 1 ? (
-            <Link
-              className={buttonVariants({ variant: "outline" })}
-              href={createDailyReportHref({
-                ...filters,
-                page: filters.page - 1,
-              })}
-            >
-              Previous page
-            </Link>
-          ) : (
-            <span />
-          )}
-          <span className="text-sm text-muted-foreground">
-            Page {filters.page} of {pageCount}
-          </span>
-          {filters.page < pageCount ? (
-            <Link
-              className={buttonVariants({ variant: "outline" })}
-              href={createDailyReportHref({
-                ...filters,
-                page: filters.page + 1,
-              })}
-            >
-              Next page
-            </Link>
-          ) : (
-            <span />
-          )}
-        </nav>
-      )}
+      <OperationalPagination
+        ariaLabel="Daily report pages"
+        page={filters.page}
+        pageCount={pageCount}
+        previousHref={
+          filters.page > 1
+            ? createDailyReportHref({ ...filters, page: filters.page - 1 })
+            : undefined
+        }
+        nextHref={
+          filters.page < pageCount
+            ? createDailyReportHref({ ...filters, page: filters.page + 1 })
+            : undefined
+        }
+        resultSummary={
+          page.total === 0
+            ? "No reports"
+            : `Showing ${start}–${end} of ${page.total} reports`
+        }
+      />
     </section>
   );
 }
