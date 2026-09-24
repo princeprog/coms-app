@@ -223,7 +223,7 @@ async function postReportTransition(
       );
     revalidatePath(dailyReportRoute);
     if (action === "approve") revalidatePath("/inventory");
-    return { ok: true };
+    return { ok: true, report };
   } catch (error) {
     return { ok: false, error: getActionError(error) };
   }

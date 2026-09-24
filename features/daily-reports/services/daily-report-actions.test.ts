@@ -177,7 +177,7 @@ describe("daily report server actions", () => {
 
     await expect(
       actions.approveDailyReportAction(branchId, reportId),
-    ).resolves.toEqual({ ok: true });
+    ).resolves.toEqual({ ok: true, report: { ...report, status: "APPROVED" } });
     expect(requestComsApi).toHaveBeenCalledWith(
       `/branches/${branchId}/daily-reports/${reportId}/approve`,
       { cookieHeader: "coms_access=access-token", method: "POST" },
@@ -197,7 +197,7 @@ describe("daily report server actions", () => {
 
     await expect(
       actions.submitDailyReportAction(branchId, reportId),
-    ).resolves.toEqual({ ok: true });
+    ).resolves.toEqual({ ok: true, report: { ...report, status: "APPROVED" } });
   });
 
   it("requires a nonempty reason before returning a submitted report", async () => {

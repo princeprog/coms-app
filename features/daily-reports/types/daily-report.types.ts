@@ -18,7 +18,7 @@ export type ReturnDailyReport = z.infer<typeof returnDailyReportSchema>;
 export type DailyReportMutationResult =
   { ok: true; report: DailyReport } | { ok: false; error: string };
 export type DailyReportActionResult =
-  { ok: true } | { ok: false; error: string };
+  { ok: true; report: DailyReport } | { ok: false; error: string };
 
 export type DailyReportCreateAction = (
   branchId: string,
