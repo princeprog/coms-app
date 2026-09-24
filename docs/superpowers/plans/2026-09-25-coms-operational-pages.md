@@ -56,7 +56,8 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 
 ### POS and reporting
 
-- [ ] `/pos`: branch/search toolbar, product cards and bounded cart beside menu on desktop, stacked mobile with visible cart anchor. Keep quantity/remove/tender/estimate/pending/retry/last-sale behavior. History remains below as table. Open sale details in a Sheet keyed to existing `sale_id`; closing preserves other query parameters and the cart. Branch change retains existing cart clearing. No payment processing/refunds/discounts/printing/images.
+- [x] `/pos`: branch/search toolbar, product cards and bounded cart beside menu on desktop, stacked mobile with visible cart anchor. Keep quantity/remove/tender/estimate/pending/retry/last-sale behavior. History remains below as table. Open sale details in a Sheet keyed to existing `sale_id`; closing preserves other query parameters and the cart. Branch change retains existing cart clearing. No payment processing/refunds/discounts/printing/images.
+  - UI and fixture contract tests pass for branch GET navigation, mobile cart anchor, branch reset, same-branch cart retention through sale detail, query-preserving sheet close, exact decimal creation/retry, and reasoned void. Production-browser viewports and shell identity remain in the final acceptance pass; fixture transactions are simulated and do not exercise the real inventory ledger.
 - [ ] `/reports` directory: branch/status toolbar, existing date dialog, table for date/status/updated/open, current Asia/Manila date and pagination.
 - [ ] `/reports?report_id=…`: replace directory with report workspace and filter-preserving back link. Keep status, returned reason, counts, review controls, history. Desktop count table with expected/physical/waste/justified-adjustment/variance; expandable ledger breakdown/reasons. Mobile stacked item editor shares the same state and has unique IDs; inactive duplicate fields are not focusable/submitted. Server-calculated values remain identified as such. Save all items as existing action; Save/Submit/Return/Approve stay distinct; transitions cannot lose unsaved edits. Preserve every required reason, permission and immutable approved rule.
 
@@ -102,6 +103,8 @@ Split a boundary where its smaller coherent pieces can be reviewed/tested indepe
 - `d941b18` — Recipes product table and recipe workspace with shadcn fields/select, stable repeatable rows, operational styling isolation, and focused validation/retry tests.
 - `a33831e` — Branch Products table, URL-backed filters, and distinct create, price, and availability dialogs with inactive-record protections.
 - `4f39a14` — Product/recipe/branch-offer fixture contracts, catalog mutation responses, schema validation, exact-decimal workflow checks, and retry-test pending-state synchronization.
+- `24b62d0` — POS branch selector and client GET search, responsive product menu/cart, mobile cart anchor, compact sales history, and query-controlled sale detail Sheet. Focused UI tests cover 15 POS cases, including cart reset/preservation and filter-preserving close.
+- `f9206f7` — POS API fixture with 26 paginated seeded sales, long labels, detail snapshots, exact-decimal creation, idempotency retry/conflict, branch isolation, and reasoned void history. `pnpm test:operational-fixture` passes 13/13; these are simulated schema-checked responses, not real ledger transactions.
 
 ## Baseline and acceptance
 
