@@ -36,7 +36,8 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 - [x] `/recipes`: compact product list and existing paging; no inferred completeness metrics. Search uses Next.js client GET navigation without pinning the old page; empty search results offer a clear-search action.
 - [x] `/recipes/[productId]`: back link, product/status, notices, ingredient table/editor. Keep positive decimal quantities, units, inactive-item history, duplicate validation and read-only access. Repeatable accessible fields and one existing save action.
   - Component coverage verifies exact decimal create/update payloads, duplicate and inactive-item validation, read-only history, shadcn Select interaction, stable row IDs, and value retention/retry after server rejection. Production-browser screenshots and fixture-backed route verification remain in the final pass.
-- [ ] `/branch-products`: branch + existing filters and a table for product/price/availability/status. Add offering, change price, and change availability use distinct dialogs/actions/permissions. Inactive branch/product behavior remains.
+- [x] `/branch-products`: branch + existing filters and a table for product/price/availability/status. Add offering, change price, and change availability use distinct dialogs/actions/permissions. Inactive branch/product behavior remains.
+  - Tests cover branch/search/availability preservation and page reset, pagination, separate dialogs/actions, exact price strings, inactive record protections, dirty-draft confirmation, and retry value retention. The schema-checked fixture provides 31 products, 26 paginated branch offers, saved/empty recipes, and product/recipe/offer mutations. Production-browser screenshots and viewport evidence remain in the final pass.
 
 ### Inventory and stock movement
 
@@ -99,6 +100,8 @@ Split a boundary where its smaller coherent pieces can be reviewed/tested indepe
 - `bd21f50` — Dispatch directory/detail tables, responsive transition Sheets, dirty-draft confirmation, and focused interaction tests.
 - `3905274` — Schema-checked dispatch fixture with 26 paginated records, all five workflow statuses, request-linked creation, posting, partial receipts, shortage history, and retry behavior.
 - `d941b18` — Recipes product table and recipe workspace with shadcn fields/select, stable repeatable rows, operational styling isolation, and focused validation/retry tests.
+- `a33831e` — Branch Products table, URL-backed filters, and distinct create, price, and availability dialogs with inactive-record protections.
+- `4f39a14` — Product/recipe/branch-offer fixture contracts, catalog mutation responses, schema validation, exact-decimal workflow checks, and retry-test pending-state synchronization.
 
 ## Baseline and acceptance
 
