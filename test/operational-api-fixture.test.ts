@@ -7,6 +7,10 @@ import { staffPageSchema } from "@/features/staff/schemas/staff.schema";
 import { stockItemPageSchema } from "@/features/stock-items/schemas/stock-item.schema";
 import { supplierPageSchema } from "@/features/suppliers/schemas/supplier.schema";
 import {
+  stockRequestDetailSchema,
+  stockRequestPageSchema,
+} from "@/features/stock-requests/schemas/stock-request.schema";
+import {
   supplierReceiptDetailSchema,
   supplierReceiptPageSchema,
 } from "@/features/supplier-receipts/schemas/supplier-receipt.schema";
@@ -516,6 +520,176 @@ describe("operational API fixture", () => {
         receipts: Array<{ id: string }>;
       };
       expect(state.receipts).toHaveLength(27);
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("serves paginated stock requests and supports submission retry and transitions", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const login = await fetch(fixture.baseUrl + "/auth/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-coms-auth-gateway": gatewaySecret,
+        },
+        body: JSON.stringify(seed.login),
+      });
+      const cookie = login.headers
+        .getSetCookie()
+        .map((value) => value.split(";")[0])
+        .join("; ");
+      const headers = { cookie, "x-coms-auth-gateway": gatewaySecret };
+
+      const firstResponse = await fetch(
+        fixture.baseUrl + "/stock-requests?page=1&page_size=25",
+        { headers },
+      );
+      const first = stockRequestPageSchema.parse(await firstResponse.json());
+      expect(first.items).toHaveLength(25);
+      expect(first.total).toBe(26);
+      expect(first.items.some((item) => item.status === "PENDING")).toBe(true);
+      expect(first.items.some((item) => item.branch_name.length > 60)).toBe(
+        true,
+      );
+      const secondResponse = await fetch(
+        fixture.baseUrl + "/stock-requests?page=2&page_size=25",
+        { headers },
+      );
+      expect(
+        stockRequestPageSchema.parse(await secondResponse.json()).items,
+      ).toHaveLength(1);
+
+      const branchId = "10000000-0000-4000-8000-000000000002";
+      const filteredResponse = await fetch(
+        fixture.baseUrl +
+          "/stock-requests?branch_id=" +
+          branchId +
+          "&status=APPROVED",
+        { headers },
+      );
+      const filtered = stockRequestPageSchema.parse(
+        await filteredResponse.json(),
+      );
+      expect(filtered.total).toBe(1);
+      expect(filtered.items[0]).toMatchObject({
+        branch_id: branchId,
+        status: "APPROVED",
+      });
+
+      const stockItems = await fetch(
+        fixture.baseUrl + "/stock-items?page=1&page_size=100&is_active=true",
+        { headers },
+      );
+      const stockItemPage = stockItemPageSchema.parse(await stockItems.json());
+      const idempotencyKey = "70000000-0000-4000-8000-000000000001";
+      const createBody = {
+        branch_id: "10000000-0000-4000-8000-000000000001",
+        items: [
+          {
+            stock_item_id: stockItemPage.items[0].id,
+            quantity_requested: "2.5000",
+          },
+        ],
+      };
+      await fetch(fixture.baseUrl + "/__fixture/fail-next", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          method: "POST",
+          path: "/stock-requests",
+          status: 503,
+          message: "Fixture request service unavailable.",
+        }),
+      });
+      const failed = await fetch(fixture.baseUrl + "/stock-requests", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify(createBody),
+      });
+      expect(failed.status).toBe(503);
+
+      const createdResponse = await fetch(fixture.baseUrl + "/stock-requests", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify(createBody),
+      });
+      expect(createdResponse.status).toBe(201);
+      const created = stockRequestDetailSchema.parse(
+        await createdResponse.json(),
+      );
+      expect(created).toMatchObject({
+        status: "PENDING",
+        items: [{ quantity_requested: "2.5" }],
+        events: [{ event_type: "SUBMITTED" }],
+      });
+
+      const retryResponse = await fetch(fixture.baseUrl + "/stock-requests", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify({
+          ...createBody,
+          items: [{ ...createBody.items[0], quantity_requested: "2.50" }],
+        }),
+      });
+      expect(
+        stockRequestDetailSchema.parse(await retryResponse.json()).id,
+      ).toBe(created.id);
+
+      const conflictingRetry = await fetch(
+        fixture.baseUrl + "/stock-requests",
+        {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify({
+            ...createBody,
+            items: [{ ...createBody.items[0], quantity_requested: "5" }],
+          }),
+        },
+      );
+      expect(conflictingRetry.status).toBe(409);
+
+      const approvedResponse = await fetch(
+        fixture.baseUrl + "/stock-requests/" + created.id + "/approve",
+        { method: "POST", headers },
+      );
+      expect(
+        stockRequestDetailSchema.parse(await approvedResponse.json()),
+      ).toMatchObject({ id: created.id, status: "APPROVED" });
+
+      const rejectedResponse = await fetch(
+        fixture.baseUrl +
+          "/stock-requests/33000000-0000-4000-8000-000000000001/reject",
+        { method: "POST", headers },
+      );
+      expect(
+        stockRequestDetailSchema.parse(await rejectedResponse.json()).status,
+      ).toBe("REJECTED");
+      const cancelledResponse = await fetch(
+        fixture.baseUrl +
+          "/stock-requests/33000000-0000-4000-8000-000000000005/cancel",
+        { method: "POST", headers },
+      );
+      expect(
+        stockRequestDetailSchema.parse(await cancelledResponse.json()).status,
+      ).toBe("CANCELLED");
     } finally {
       await fixture.close();
     }

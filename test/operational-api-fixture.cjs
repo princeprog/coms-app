@@ -79,6 +79,28 @@ function decimalSum(values) {
   return decimalText(total, scale);
 }
 
+function normalizePositiveDecimal(value) {
+  if (
+    typeof value !== "string" ||
+    value.length > 80 ||
+    !/^\d+(?:\.\d+)?$/.test(value)
+  ) {
+    return null;
+  }
+  const [wholePart, fractionPart = ""] = value.split(".");
+  const whole = wholePart.replace(/^0+(?=\d)/, "");
+  const fraction = fractionPart.replace(/0+$/, "");
+  if (whole === "0" && fraction.length === 0) return null;
+  return whole + (fraction ? "." + fraction : "");
+}
+
+function stockRequestFingerprint(items) {
+  return items
+    .map((item) => item.stock_item_id + ":" + item.quantity_requested)
+    .sort()
+    .join("|");
+}
+
 function send(response, status, payload, headers = {}) {
   response.writeHead(status, {
     "cache-control": "no-store",
@@ -224,6 +246,70 @@ function createState() {
       items: lines,
     };
   });
+  const stockRequests = Array.from({ length: 26 }, (_, index) => {
+    const sequence = String(index + 1).padStart(12, "0");
+    const branch = branches[index % branches.length];
+    const status = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"][index % 4];
+    const items = [
+      {
+        id:
+          "52000000-0000-4000-8000-" + String(index * 2 + 1).padStart(12, "0"),
+        stock_item_id: stockItems[0].id,
+        stock_item_name: stockItems[0].stock_item_name,
+        unit: stockItems[0].unit,
+        quantity_requested: "12.5000",
+        created_at: "2026-09-25T01:00:00.000Z",
+      },
+      {
+        id:
+          "52000000-0000-4000-8000-" + String(index * 2 + 2).padStart(12, "0"),
+        stock_item_id: stockItems[1].id,
+        stock_item_name: stockItems[1].stock_item_name,
+        unit: stockItems[1].unit,
+        quantity_requested: "2.75",
+        created_at: "2026-09-25T01:00:00.000Z",
+      },
+    ];
+    const events = [
+      {
+        id:
+          "53000000-0000-4000-8000-" + String(index * 2 + 1).padStart(12, "0"),
+        event_type: "SUBMITTED",
+        actor_user_id: seed.user.id,
+        actor_name: index === 0 ? "Branch Manager" : "Fixture Requester",
+        created_at: "2026-09-25T01:00:00.000Z",
+      },
+    ];
+    if (status !== "PENDING") {
+      events.push({
+        id:
+          "53000000-0000-4000-8000-" + String(index * 2 + 2).padStart(12, "0"),
+        event_type: status,
+        actor_user_id: seed.user.id,
+        actor_name: "Fixture Operations Lead",
+        created_at: "2026-09-25T02:00:00.000Z",
+      });
+    }
+    return {
+      id: "33000000-0000-4000-8000-" + sequence,
+      branch_id: branch.id,
+      branch_name: branch.branch_name,
+      requested_by_user_id: seed.user.id,
+      requester_name:
+        index === 0
+          ? "Branch Manager"
+          : "Fixture Requester " + sequence.slice(-2),
+      status,
+      created_at: "2026-09-25T01:00:00.000Z",
+      updated_at:
+        status === "PENDING"
+          ? "2026-09-25T01:00:00.000Z"
+          : "2026-09-25T02:00:00.000Z",
+      item_count: items.length,
+      items,
+      events,
+    };
+  });
   return {
     roles: clone(seed.roles),
     branches,
@@ -231,6 +317,7 @@ function createState() {
     suppliers,
     stockItems,
     receipts,
+    stockRequests,
     failNext: null,
   };
 }
@@ -278,6 +365,7 @@ function createOperationalApiFixture({ gatewaySecret }) {
           suppliers: state.suppliers,
           stockItems: state.stockItems,
           receipts: state.receipts,
+          stockRequests: state.stockRequests,
         });
       }
 
@@ -518,6 +606,203 @@ function createOperationalApiFixture({ gatewaySecret }) {
           receipt.updated_at = receipt.posted_at;
         }
         return send(response, 200, receipt);
+      }
+
+      if (url.pathname === "/stock-requests" && request.method === "GET") {
+        const status = url.searchParams.get("status");
+        const branchId = url.searchParams.get("branch_id");
+        const matches = state.stockRequests.filter((stockRequest) => {
+          if (status && stockRequest.status !== status) return false;
+          return !branchId || stockRequest.branch_id === branchId;
+        });
+        const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+        const pageSize = Math.min(
+          100,
+          Math.max(1, Number(url.searchParams.get("page_size")) || 25),
+        );
+        const start = (page - 1) * pageSize;
+        return send(response, 200, {
+          items: matches.slice(start, start + pageSize).map((stockRequest) => {
+            const listItem = { ...stockRequest };
+            delete listItem.items;
+            delete listItem.events;
+            return listItem;
+          }),
+          total: matches.length,
+          page,
+          page_size: pageSize,
+        });
+      }
+      if (url.pathname === "/stock-requests" && request.method === "POST") {
+        if (
+          !body ||
+          typeof body.branch_id !== "string" ||
+          !Array.isArray(body.items) ||
+          body.items.length === 0 ||
+          body.items.length > 100
+        ) {
+          return send(response, 400, { message: "Invalid fixture request." });
+        }
+        const idempotencyKey = request.headers["idempotency-key"];
+        if (
+          typeof idempotencyKey !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            idempotencyKey,
+          )
+        ) {
+          return send(response, 400, { message: "Missing idempotency key." });
+        }
+        const seenStockItems = new Set();
+        const normalizedItems = [];
+        for (const line of body.items) {
+          const quantity = normalizePositiveDecimal(line?.quantity_requested);
+          if (
+            typeof line?.stock_item_id !== "string" ||
+            quantity === null ||
+            seenStockItems.has(line.stock_item_id)
+          ) {
+            return send(response, 400, {
+              message: "Choose unique stock items and positive quantities.",
+            });
+          }
+          seenStockItems.add(line.stock_item_id);
+          normalizedItems.push({
+            stock_item_id: line.stock_item_id,
+            quantity_requested: quantity,
+          });
+        }
+        const retry = state.stockRequests.find(
+          (stockRequest) => stockRequest.idempotency_key === idempotencyKey,
+        );
+        if (retry) {
+          const sameRequest =
+            retry.branch_id === body.branch_id &&
+            retry.requested_by_user_id === seed.user.id &&
+            stockRequestFingerprint(retry.items) ===
+              stockRequestFingerprint(normalizedItems);
+          if (!sameRequest) {
+            return send(response, 409, {
+              message: "Idempotency key was already used for another request.",
+            });
+          }
+          return send(response, 201, retry);
+        }
+        const branch = state.branches.find(
+          (item) => item.id === body.branch_id && item.status === "active",
+        );
+        if (!branch) {
+          return send(response, 404, { message: "Branch not found." });
+        }
+        const items = normalizedItems.map((line, index) => {
+          const stockItem = state.stockItems.find(
+            (item) => item.id === line.stock_item_id && item.is_active,
+          );
+          if (!stockItem) return null;
+          return {
+            id:
+              "54000000-0000-4000-8000-" +
+              String(state.stockRequests.length * 100 + index + 1).padStart(
+                12,
+                "0",
+              ),
+            stock_item_id: stockItem.id,
+            stock_item_name: stockItem.stock_item_name,
+            unit: stockItem.unit,
+            quantity_requested: line.quantity_requested,
+            created_at: "2026-09-25T03:00:00.000Z",
+          };
+        });
+        if (items.some((item) => item === null)) {
+          return send(response, 400, {
+            message: "Choose unique active stock items.",
+          });
+        }
+        const sequence = String(state.stockRequests.length + 1).padStart(
+          12,
+          "0",
+        );
+        const submittedAt = "2026-09-25T03:00:00.000Z";
+        const stockRequest = {
+          id: "33000000-0000-4000-8000-" + sequence,
+          branch_id: branch.id,
+          branch_name: branch.branch_name,
+          requested_by_user_id: seed.user.id,
+          requester_name: "Fixture Branch Manager",
+          status: "PENDING",
+          created_at: submittedAt,
+          updated_at: submittedAt,
+          item_count: items.length,
+          items,
+          events: [
+            {
+              id:
+                "55000000-0000-4000-8000-" +
+                String(state.stockRequests.length + 1).padStart(12, "0"),
+              event_type: "SUBMITTED",
+              actor_user_id: seed.user.id,
+              actor_name: "Fixture Branch Manager",
+              created_at: submittedAt,
+            },
+          ],
+          idempotency_key: idempotencyKey,
+        };
+        state.stockRequests.push(stockRequest);
+        return send(response, 201, stockRequest);
+      }
+      const stockRequestRoute = url.pathname.match(
+        /^\/stock-requests\/([0-9a-f-]{36})(?:\/(approve|reject|cancel))?$/i,
+      );
+      if (
+        stockRequestRoute &&
+        request.method === "GET" &&
+        !stockRequestRoute[2]
+      ) {
+        const stockRequest = state.stockRequests.find(
+          (item) => item.id === stockRequestRoute[1],
+        );
+        if (!stockRequest) {
+          return send(response, 404, { message: "Stock request not found." });
+        }
+        return send(response, 200, stockRequest);
+      }
+      if (
+        stockRequestRoute &&
+        request.method === "POST" &&
+        stockRequestRoute[2]
+      ) {
+        const stockRequest = state.stockRequests.find(
+          (item) => item.id === stockRequestRoute[1],
+        );
+        if (!stockRequest) {
+          return send(response, 404, { message: "Stock request not found." });
+        }
+        if (stockRequest.status !== "PENDING") {
+          return send(response, 409, {
+            message: "Request is no longer pending.",
+          });
+        }
+        const statusByAction = {
+          approve: "APPROVED",
+          reject: "REJECTED",
+          cancel: "CANCELLED",
+        };
+        const nextStatus = statusByAction[stockRequestRoute[2]];
+        const updatedAt = "2026-09-25T04:00:00.000Z";
+        stockRequest.status = nextStatus;
+        stockRequest.updated_at = updatedAt;
+        const requestSequence = Number(stockRequest.id.slice(-12));
+        stockRequest.events.push({
+          id:
+            "55000000-0000-4000-8000-" +
+            String(
+              requestSequence * 100 + stockRequest.events.length + 1,
+            ).padStart(12, "0"),
+          event_type: nextStatus,
+          actor_user_id: seed.user.id,
+          actor_name: "Fixture Operations Lead",
+          created_at: updatedAt,
+        });
+        return send(response, 200, stockRequest);
       }
 
       if (url.pathname === "/roles" && request.method === "GET") {
