@@ -53,6 +53,40 @@ describe("POS checkout", () => {
     refresh.mockReset();
   });
 
+  it("shows a zero estimate when the cart is empty", () => {
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        menuPage={menuPage}
+        action={createAction}
+      />,
+    );
+
+    expect(screen.getByLabelText("Estimated total").textContent).toBe("0");
+  });
+
+  it("prompts staff to check order details when the cart input is invalid", () => {
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        menuPage={menuPage}
+        action={createAction}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    fireEvent.change(screen.getByLabelText("Quantity for Chicken sandwich"), {
+      target: { value: "0" },
+    });
+
+    expect(screen.getByLabelText("Estimated total").textContent).toBe(
+      "Check the order details",
+    );
+  });
+
   it("builds a cart and estimates totals with exact decimal arithmetic", () => {
     render(
       <PosCheckout

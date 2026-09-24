@@ -132,7 +132,7 @@ export function PosCartPanel({
               aria-label="Estimated total"
               className="font-semibold tabular-nums"
             >
-              {estimatedTotal ?? "Check quantities"}
+              {estimatedTotal ?? "Check the order details"}
             </output>
           </div>
           <p className="text-xs text-muted-foreground">

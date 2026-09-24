@@ -77,14 +77,17 @@ export function PosCheckout({
       quantity,
     })),
   });
-  const estimatedTotal = payload.success
-    ? calculateSaleTotal(
-        cart.map(({ product, quantity }) => ({
-          quantity,
-          unitPrice: product.price,
-        })),
-      )
-    : null;
+  const estimatedTotal =
+    cart.length === 0
+      ? "0"
+      : payload.success
+        ? calculateSaleTotal(
+            cart.map(({ product, quantity }) => ({
+              quantity,
+              unitPrice: product.price,
+            })),
+          )
+        : null;
 
   async function recordSale(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
