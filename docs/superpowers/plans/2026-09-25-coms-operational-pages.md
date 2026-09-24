@@ -39,7 +39,8 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 
 ### Inventory and stock movement
 
-- [ ] `/inventory`: scope/branch/search toolbar; separate balance and movement sections; adjustment stays tied to balance with required reason. Preserve scope, branch, inactive branch, exact decimal and paging behavior.
+- [x] `/inventory`: scope/branch/search toolbar; separate balance and movement sections; adjustment stays tied to balance with required reason. Preserve scope, branch, inactive branch, exact decimal and paging behavior.
+  - Tests cover client GET filters, branch selection, scope/search preservation, labeled keyboard-focusable table scroll regions, empty/error states, inactive restrictions, exact decimal adjustment payloads, retry behavior, and dirty adjustment confirmation.
 - [ ] `/receipts`: table for supplier/date/item count/total cost/status/detail. New receipt in a Sheet with existing supplier/date and repeatable stock lines. Preserve draft creation and retry keys.
 - [ ] `/receipts/[id]`: back link, metadata, received items, exact totals and posting data. Preserve supplied reference/photo information; post confirmation remains authorized; posted content is read-only.
 - [ ] `/replenishment`: table for branch/requester/item count/status/submitted/detail; request creation Sheet with branch and existing item/quantity lines.
@@ -85,6 +86,7 @@ Split a boundary where its smaller coherent pieces can be reviewed/tested indepe
 - `8c30d33` — branch table, create/edit dialogs, confirmed deactivation, shared in-content retry state, and deterministic paginated branch API fixture records.
 - `bdbbd08` — Staff directory table, add/manage sheets, read-only account details, separate profile/role/branch actions, branch-aware GET filters, dirty-draft confirmation, and focused component coverage.
 - `cb9f05a` — Staff fixture responses and mutations, including deterministic 26-record pagination, long/inactive examples, branch filtering, schema validation, and retry/error behavior.
+- `27a5b8e` — Inventory scope/filter toolbar, responsive balances and movements, exact-decimal adjustment dialog, dirty-draft confirmation, and a focusable labeled table scroll container with no default UI style changes.
 
 ## Baseline and acceptance
 
