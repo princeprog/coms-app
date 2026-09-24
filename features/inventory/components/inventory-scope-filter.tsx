@@ -1,6 +1,18 @@
+"use client";
+
+import { useState } from "react";
+import Form from "next/form";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createInventoryHref } from "@/features/inventory/services/inventory-page-params";
 import type { InventoryBranchOption } from "@/features/inventory/types/inventory.types";
 
@@ -15,16 +27,19 @@ export function InventoryScopeFilter({
   selectedBranchId?: string;
   search: string;
 }) {
-  const firstBranchId = selectedBranchId ?? branchOptions[0]?.id;
+  const firstBranchId = selectedBranchId ?? branchOptions[0]?.id ?? "";
+  const [branchChoice, setBranchChoice] = useState(firstBranchId);
+
   return (
     <section
       aria-label="Inventory scope and filters"
-      className="flex flex-col gap-4 rounded-4xl border bg-card p-4"
+      className="flex flex-col gap-4 rounded-lg border bg-card p-4"
     >
       <nav aria-label="Inventory scope" className="flex flex-wrap gap-2">
         <Link
           className={buttonVariants({
             variant: scope === "COMMISSARY" ? "default" : "outline",
+            className: "rounded-md",
           })}
           href={createInventoryHref({
             scope: "COMMISSARY",
@@ -38,10 +53,11 @@ export function InventoryScopeFilter({
         <Link
           className={buttonVariants({
             variant: scope === "BRANCH" ? "default" : "outline",
+            className: "rounded-md",
           })}
           href={createInventoryHref({
             scope: "BRANCH",
-            branchId: firstBranchId,
+            branchId: firstBranchId || undefined,
             page: 1,
             search,
           })}
@@ -51,17 +67,18 @@ export function InventoryScopeFilter({
         </Link>
       </nav>
 
-      <form
+      <Form
         action="/inventory"
-        method="get"
-        className="grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_auto] sm:items-end"
+        className={
+          scope === "BRANCH"
+            ? "grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_auto] sm:items-end"
+            : "grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_auto] sm:items-end"
+        }
         aria-label="Filter inventory"
       >
         <input type="hidden" name="scope" value={scope} />
-        <div className="flex flex-col gap-2">
-          <label htmlFor="inventory-search" className="text-sm font-medium">
-            Search stock items
-          </label>
+        <Field className="min-w-0">
+          <FieldLabel htmlFor="inventory-search">Search stock items</FieldLabel>
           <Input
             key={`${scope}-${search}`}
             id="inventory-search"
@@ -69,40 +86,54 @@ export function InventoryScopeFilter({
             type="search"
             maxLength={120}
             defaultValue={search}
+            placeholder="Item name or category"
           />
-        </div>
+        </Field>
         {scope === "BRANCH" && (
-          <div className="flex flex-col gap-2">
-            <label htmlFor="inventory-branch" className="text-sm font-medium">
-              Branch
-            </label>
+          <Field className="min-w-0">
+            <FieldLabel htmlFor="inventory-branch">Branch</FieldLabel>
             {branchOptions.length > 0 ? (
-              <select
-                key={selectedBranchId ?? branchOptions[0].id}
-                id="inventory-branch"
-                name="branch_id"
-                defaultValue={selectedBranchId ?? branchOptions[0].id}
-                className="h-9 w-full rounded-3xl border border-transparent bg-input/50 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
-              >
-                {branchOptions.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.status === "inactive"
-                      ? `${branch.name} (inactive)`
-                      : branch.name}
-                  </option>
-                ))}
-              </select>
+              <>
+                <Select
+                  value={branchChoice}
+                  onValueChange={(value) => setBranchChoice(value ?? "")}
+                >
+                  <SelectTrigger id="inventory-branch" className="w-full">
+                    <SelectValue>
+                      {(value: unknown) => {
+                        const branch = branchOptions.find(
+                          (option) => option.id === value,
+                        );
+                        if (!branch) return "Select a branch";
+                        return branch.status === "inactive"
+                          ? branch.name + " (inactive)"
+                          : branch.name;
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent data-coms-ui="operational">
+                    {branchOptions.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id}>
+                        {branch.status === "inactive"
+                          ? `${branch.name} (inactive)`
+                          : branch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="branch_id" value={branchChoice} />
+              </>
             ) : (
               <p className="flex h-9 items-center text-sm text-muted-foreground">
                 No branch is available to this account.
               </p>
             )}
-          </div>
+          </Field>
         )}
-        <Button type="submit" variant="outline">
+        <Button type="submit" variant="outline" className="w-fit">
           Apply filters
         </Button>
-      </form>
+      </Form>
     </section>
   );
 }

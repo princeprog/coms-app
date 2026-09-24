@@ -7,12 +7,11 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { InventoryAdjustmentForm } from "@/features/inventory/components/inventory-adjustment-form";
+import { InventoryDiscardConfirmation } from "@/features/inventory/components/inventory-discard-confirmation";
 import { createInventoryAdjustmentSchema } from "@/features/inventory/schemas/inventory.schema";
 import type {
   InventoryItem,
@@ -40,11 +39,31 @@ export function InventoryAdjustmentDialog({
   onComplete: (message: string) => void;
 }) {
   const router = useRouter();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const keyForRetry = useRef<{ fingerprint: string; key: string } | null>(null);
-  const fieldPrefix = `inventory-adjustment-${item.id}`;
+
+  function closeAfterDiscard() {
+    setDiscardOpen(false);
+    setDirty(false);
+    setError("");
+    setOpen(false);
+    window.requestAnimationFrame(() => triggerRef.current?.focus());
+  }
+
+  function requestClose() {
+    if (pending) return;
+    if (dirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    setError("");
+    setOpen(false);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,6 +109,7 @@ export function InventoryAdjustmentDialog({
     }
 
     keyForRetry.current = null;
+    setDirty(false);
     setOpen(false);
     onComplete("Inventory adjustment recorded.");
     router.refresh();
@@ -97,18 +117,22 @@ export function InventoryAdjustmentDialog({
 
   return (
     <>
-      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+      <Button
+        ref={triggerRef}
+        type="button"
+        variant="outline"
+        onClick={() => setOpen(true)}
+      >
         Adjust {item.stock_item_name}
       </Button>
       <Dialog
         open={open}
         onOpenChange={(nextOpen) => {
-          if (pending) return;
-          setError("");
-          setOpen(nextOpen);
+          if (nextOpen) setOpen(true);
+          else requestClose();
         }}
       >
-        <DialogContent>
+        <DialogContent data-coms-ui="operational" className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Adjust {item.stock_item_name}</DialogTitle>
             <DialogDescription>
@@ -116,68 +140,21 @@ export function InventoryAdjustmentDialog({
               add stock; negative quantities remove stock.
             </DialogDescription>
           </DialogHeader>
-          <form className="flex flex-col gap-4" onSubmit={submit}>
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor={`${fieldPrefix}-quantity`}
-                className="text-sm font-medium"
-              >
-                Quantity change ({item.unit})
-              </label>
-              <Input
-                id={`${fieldPrefix}-quantity`}
-                name="quantity_delta"
-                type="text"
-                inputMode="decimal"
-                maxLength={80}
-                required
-                disabled={pending}
-                aria-describedby={`${fieldPrefix}-quantity-help`}
-              />
-              <p
-                id={`${fieldPrefix}-quantity-help`}
-                className="text-sm text-muted-foreground"
-              >
-                Use a positive amount to add stock or a negative amount to
-                remove stock.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor={`${fieldPrefix}-reason`}
-                className="text-sm font-medium"
-              >
-                Reason for adjustment
-              </label>
-              <Textarea
-                id={`${fieldPrefix}-reason`}
-                name="reason"
-                maxLength={500}
-                required
-                disabled={pending}
-              />
-            </div>
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={pending}
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={pending}>
-                {pending ? "Saving…" : "Save adjustment"}
-              </Button>
-            </DialogFooter>
-          </form>
+          <InventoryAdjustmentForm
+            item={item}
+            pending={pending}
+            error={error}
+            onSubmit={submit}
+            onChange={() => setDirty(true)}
+            onCancel={requestClose}
+          />
         </DialogContent>
       </Dialog>
+      <InventoryDiscardConfirmation
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
+        onDiscard={closeAfterDiscard}
+      />
     </>
   );
 }

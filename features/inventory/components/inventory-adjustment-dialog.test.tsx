@@ -35,6 +35,9 @@ describe("inventory adjustment dialog", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Adjust Flour" }));
+    expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
+      "operational",
+    );
     await user.type(screen.getByLabelText("Quantity change (kg)"), "-0.25");
     await user.type(
       screen.getByLabelText("Reason for adjustment"),
@@ -83,5 +86,35 @@ describe("inventory adjustment dialog", () => {
       { scope: "BRANCH", branch_id: item.id },
       expect.stringMatching(/^[0-9a-f-]{36}$/i),
     );
+  });
+
+  it("confirms before discarding a dirty adjustment and keeps editing on cancel", async () => {
+    const user = userEvent.setup();
+    render(
+      <InventoryAdjustmentDialog
+        item={item}
+        target={{ scope: "COMMISSARY" }}
+        action={vi.fn()}
+        onComplete={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Adjust Flour" }));
+    const quantity = screen.getByLabelText("Quantity change (kg)");
+    await user.type(quantity, "1.25");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(
+      screen.getByRole("alertdialog", { name: "Discard adjustment?" }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(screen.getByLabelText("Quantity change (kg)")).toHaveProperty(
+      "value",
+      "1.25",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Discard changes" }));
+    expect(screen.queryByLabelText("Quantity change (kg)")).toBeNull();
   });
 });

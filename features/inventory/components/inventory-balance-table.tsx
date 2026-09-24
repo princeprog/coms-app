@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
 import {
   Table,
   TableBody,
@@ -29,26 +29,6 @@ export function InventoryBalanceTable({
   adjustAction: InventoryAdjustmentAction;
   onComplete: (message: string) => void;
 }) {
-  if (items.length === 0) {
-    const hasSearch = Boolean(search.trim());
-    return (
-      <Card>
-        <CardContent className="py-8 text-center">
-          <p className="font-medium">
-            {hasSearch
-              ? "No stock items match this search."
-              : "No stock items have been set up yet."}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {hasSearch
-              ? "Change the search term or clear it to see all stock balances."
-              : "A catalog manager can add stock items before inventory is tracked."}
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const target =
     scope === "COMMISSARY"
       ? { scope: "COMMISSARY" as const }
@@ -70,52 +50,73 @@ export function InventoryBalanceTable({
         </div>
         <p className="text-sm text-muted-foreground">{items.length} shown</p>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Stock item</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>On hand</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell className="font-medium">
-                {item.stock_item_name}
-              </TableCell>
-              <TableCell>{item.category}</TableCell>
-              <TableCell>
-                <span className="tabular-nums">
-                  {item.quantity_on_hand} {item.unit}
-                </span>
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline">
-                  {item.is_active ? "Active" : "Inactive"}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                {canAdjust && item.is_active && (
-                  <InventoryAdjustmentDialog
-                    item={item}
-                    target={target}
-                    action={adjustAction}
-                    onComplete={onComplete}
-                  />
-                )}
-                {!item.is_active && (
-                  <span className="text-sm text-muted-foreground">
-                    Inactive items cannot be adjusted
-                  </span>
-                )}
-              </TableCell>
+
+      {items.length === 0 ? (
+        <OperationalEmptyState
+          title={
+            search.trim()
+              ? "No stock items match this search."
+              : "No stock items have been set up yet."
+          }
+          description={
+            search.trim()
+              ? "Change or clear the search term to see other stock balances."
+              : "A catalog manager can add stock items before inventory is tracked."
+          }
+        />
+      ) : (
+        <Table
+          containerProps={{
+            role: "region",
+            "aria-label": "Stock balances table",
+            tabIndex: 0,
+            className:
+              "rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          }}
+        >
+          <TableHeader>
+            <TableRow>
+              <TableHead>Stock item</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead className="text-right">On hand</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-medium">
+                  {item.stock_item_name}
+                </TableCell>
+                <TableCell>{item.category}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {item.quantity_on_hand} {item.unit}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={item.is_active ? "secondary" : "outline"}>
+                    {item.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  {canAdjust && item.is_active ? (
+                    <InventoryAdjustmentDialog
+                      item={item}
+                      target={target}
+                      action={adjustAction}
+                      onComplete={onComplete}
+                    />
+                  ) : !item.is_active ? (
+                    <span className="text-sm text-muted-foreground">
+                      Inactive items cannot be adjusted
+                    </span>
+                  ) : null}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </section>
   );
 }

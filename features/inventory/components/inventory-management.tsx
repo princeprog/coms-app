@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { OperationalLoadError } from "@/components/shared/operational-load-error";
+import {
+  OperationalEmptyState,
+  OperationalPageIntro,
+  OperationalPagination,
+} from "@/components/shared/operational-page-ui";
 import { InventoryBalanceTable } from "@/features/inventory/components/inventory-balance-table";
 import { InventoryMovementsTable } from "@/features/inventory/components/inventory-movements-table";
 import { InventoryScopeFilter } from "@/features/inventory/components/inventory-scope-filter";
@@ -50,26 +53,30 @@ export function InventoryManagement({
   const selectedBranch = branchOptions.find(
     (branch) => branch.id === selectedBranchId,
   );
+  const rangeStart =
+    inventory && inventory.total > 0
+      ? (currentPage - 1) * inventory.page_size + 1
+      : 0;
+  const rangeEnd = inventory
+    ? Math.min(currentPage * inventory.page_size, inventory.total)
+    : 0;
 
   return (
-    <div className="flex flex-col gap-6">
-      <section
-        className="flex flex-wrap items-center justify-between gap-4"
-        aria-label="Inventory summary"
-      >
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Review current stock and the ledger of receipts, transfers, sales, and
-          adjustments.
-        </p>
-        {inventory && (
-          <Badge variant="outline">
-            {inventory.total}{" "}
-            {inventory.total === 1 ? "stock item" : "stock items"}
-          </Badge>
-        )}
-      </section>
+    <div data-coms-ui="operational" className="flex flex-col gap-6">
+      <OperationalPageIntro
+        description="Review stock balances and the ledger of receipts, transfers, sales, and adjustments."
+        count={
+          inventory ? (
+            <Badge variant="outline">
+              {inventory.total}{" "}
+              {inventory.total === 1 ? "stock item" : "stock items"}
+            </Badge>
+          ) : undefined
+        }
+      />
 
       <InventoryScopeFilter
+        key={scope + ":" + (branchId ?? "none") + ":" + search}
         scope={scope}
         branchOptions={branchOptions}
         selectedBranchId={branchId}
@@ -77,23 +84,24 @@ export function InventoryManagement({
       />
 
       {scope === "BRANCH" && branchUnavailable ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="font-medium">Branch inventory is unavailable.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {branchUnavailableMessage}
-            </p>
-          </CardContent>
-        </Card>
+        <OperationalEmptyState
+          title="Branch inventory is unavailable"
+          description={branchUnavailableMessage}
+        />
       ) : inventory && movements ? (
         <>
           {scope === "BRANCH" && selectedBranchId && (
-            <p className="text-sm text-muted-foreground">
-              Branch: {selectedBranch?.name ?? "Assigned branch"}
-              {selectedBranch?.status === "inactive" &&
-                " (inactive; adjustments are disabled)"}
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Branch</span>
+              <span className="font-medium">
+                {selectedBranch?.name ?? "Assigned branch"}
+              </span>
+              {selectedBranch?.status === "inactive" && (
+                <Badge variant="outline">Inactive · adjustments disabled</Badge>
+              )}
+            </div>
           )}
+
           <InventoryBalanceTable
             items={inventory.items}
             scope={scope}
@@ -106,61 +114,46 @@ export function InventoryManagement({
             adjustAction={adjustAction}
             onComplete={setStatus}
           />
-          {pageCount > 1 && (
-            <nav
-              aria-label="Inventory pages"
-              className="flex items-center justify-between gap-4"
-            >
-              {currentPage > 1 ? (
-                <Link
-                  className={buttonVariants({ variant: "outline" })}
-                  href={createInventoryHref({
+          <OperationalPagination
+            ariaLabel="Inventory pages"
+            page={currentPage}
+            pageCount={pageCount}
+            previousHref={
+              currentPage > 1
+                ? createInventoryHref({
                     scope,
                     branchId,
                     page: currentPage - 1,
                     search,
-                  })}
-                >
-                  Previous page
-                </Link>
-              ) : (
-                <Button type="button" variant="outline" disabled>
-                  Previous page
-                </Button>
-              )}
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {pageCount}
-              </span>
-              {currentPage < pageCount ? (
-                <Link
-                  className={buttonVariants({ variant: "outline" })}
-                  href={createInventoryHref({
+                  })
+                : undefined
+            }
+            nextHref={
+              currentPage < pageCount
+                ? createInventoryHref({
                     scope,
                     branchId,
                     page: currentPage + 1,
                     search,
-                  })}
-                >
-                  Next page
-                </Link>
-              ) : (
-                <Button type="button" variant="outline" disabled>
-                  Next page
-                </Button>
-              )}
-            </nav>
-          )}
+                  })
+                : undefined
+            }
+            resultSummary={
+              "Showing " +
+              rangeStart +
+              "–" +
+              rangeEnd +
+              " of " +
+              inventory.total
+            }
+          />
           <InventoryMovementsTable movements={movements} />
         </>
       ) : (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="font-medium">Inventory data could not be loaded.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Refresh the page to try again.
-            </p>
-          </CardContent>
-        </Card>
+        <OperationalLoadError
+          title="inventory"
+          description="COMS could not load inventory data. Try again in a moment."
+        />
       )}
 
       {status && (

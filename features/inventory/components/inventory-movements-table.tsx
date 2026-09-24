@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
 import {
   Table,
   TableBody,
@@ -44,52 +44,58 @@ export function InventoryMovementsTable({
         </p>
       </div>
       {movements.items.length > 0 ? (
-        <Table>
+        <Table
+          containerProps={{
+            role: "region",
+            "aria-label": "Recent inventory movements table",
+            tabIndex: 0,
+            className:
+              "rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          }}
+        >
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Stock item</TableHead>
               <TableHead>Movement</TableHead>
-              <TableHead>Change</TableHead>
+              <TableHead className="text-right">Change</TableHead>
               <TableHead>Reason</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {movements.items.map((movement) => (
-              <TableRow key={movement.id}>
-                <TableCell>
-                  <time dateTime={movement.created_at}>
-                    {displayTimestamp(movement.created_at)}
-                  </time>
-                </TableCell>
-                <TableCell className="font-medium">
-                  {movement.stock_item_name}
-                </TableCell>
-                <TableCell>
-                  {displayMovementType(movement.movement_type)}
-                </TableCell>
-                <TableCell className="tabular-nums">
-                  {movement.quantity_delta.startsWith("-")
-                    ? movement.quantity_delta
-                    : `+${movement.quantity_delta}`}{" "}
-                  {movement.unit}
-                </TableCell>
-                <TableCell className="max-w-64 whitespace-normal">
-                  {movement.reason ?? "—"}
-                </TableCell>
-              </TableRow>
-            ))}
+            {movements.items.map((movement) => {
+              const quantity = movement.quantity_delta.startsWith("-")
+                ? movement.quantity_delta
+                : "+" + movement.quantity_delta;
+              return (
+                <TableRow key={movement.id}>
+                  <TableCell>
+                    <time dateTime={movement.created_at}>
+                      {displayTimestamp(movement.created_at)}
+                    </time>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {movement.stock_item_name}
+                  </TableCell>
+                  <TableCell>
+                    {displayMovementType(movement.movement_type)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {quantity} {movement.unit}
+                  </TableCell>
+                  <TableCell className="max-w-64 whitespace-normal">
+                    {movement.reason ?? "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       ) : (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="font-medium">No movement history yet.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Receipts, transfers, sales, and adjustments will appear here.
-            </p>
-          </CardContent>
-        </Card>
+        <OperationalEmptyState
+          title="No movement history yet"
+          description="Receipts, transfers, sales, and adjustments will appear here."
+        />
       )}
     </section>
   );

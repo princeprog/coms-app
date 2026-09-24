@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { InventoryManagement } from "./inventory-management";
@@ -93,6 +94,24 @@ describe("inventory management", () => {
     ).toBe("page");
   });
 
+  it("keeps stock balances and movements in labeled scroll regions", () => {
+    const { container } = renderInventory();
+
+    expect(
+      container.querySelector('[data-coms-ui="operational"]'),
+    ).not.toBeNull();
+    const balanceRegion = screen.getByRole("region", {
+      name: "Stock balances table",
+    });
+    const movementRegion = screen.getByRole("region", {
+      name: "Recent inventory movements table",
+    });
+    expect(balanceRegion.getAttribute("data-slot")).toBe("table-container");
+    expect(balanceRegion.getAttribute("tabindex")).toBe("0");
+    expect(movementRegion.getAttribute("data-slot")).toBe("table-container");
+    expect(movementRegion.getAttribute("tabindex")).toBe("0");
+  });
+
   it("hides adjustment actions when not granted and for inactive stock", () => {
     renderInventory({ canAdjust: false });
 
@@ -110,11 +129,8 @@ describe("inventory management", () => {
       ],
     });
 
-    expect(
-      screen.getByText(
-        "Branch: Manila North (inactive; adjustments are disabled)",
-      ),
-    ).toBeTruthy();
+    expect(screen.getByText("Manila North")).toBeTruthy();
+    expect(screen.getByText("Inactive · adjustments disabled")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Adjust Flour" })).toBeNull();
     expect(screen.getByText("2.500 kg")).toBeTruthy();
   });
@@ -151,8 +167,9 @@ describe("inventory management", () => {
       branchOptions,
       selectedBranchId: branchId,
     });
-    const branchSelect = screen.getByLabelText("Branch") as HTMLSelectElement;
-    expect(branchSelect.value).toBe(branchId);
+    expect(
+      screen.getByRole("combobox", { name: "Branch" }).textContent,
+    ).toContain("Manila North");
 
     rerender(
       <InventoryManagement
@@ -167,10 +184,45 @@ describe("inventory management", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Branch")).toHaveProperty(
-      "value",
-      secondBranchId,
+    expect(
+      screen.getByRole("combobox", { name: "Branch" }).textContent,
+    ).toContain("Manila South");
+  });
+
+  it("uses a client GET form and applies the selected branch with the existing search", async () => {
+    const user = userEvent.setup();
+    renderInventory({
+      branchOptions: [
+        { id: branchId, name: "Manila North" },
+        { id: secondBranchId, name: "Manila South" },
+      ],
+      selectedBranchId: branchId,
+      search: "Flour",
+    });
+
+    const form = screen.getByRole("form", { name: "Filter inventory" });
+    expect(form.getAttribute("action")).toBe("/inventory");
+    expect(form.getAttribute("method")).toBeNull();
+    expect(
+      screen
+        .getByRole("combobox", { name: "Branch" })
+        .getAttribute("data-slot"),
+    ).toBe("select-trigger");
+
+    await user.click(screen.getByRole("combobox", { name: "Branch" }));
+    await user.click(
+      await screen.findByRole("option", { name: "Manila South" }),
     );
+
+    expect(
+      form.querySelector('input[name="scope"]')?.getAttribute("value"),
+    ).toBe("BRANCH");
+    expect(
+      form.querySelector('input[name="branch_id"]')?.getAttribute("value"),
+    ).toBe(secondBranchId);
+    expect(
+      (screen.getByLabelText("Search stock items") as HTMLInputElement).value,
+    ).toBe("Flour");
   });
 
   it("explains when there is no assigned branch", () => {
@@ -212,5 +264,6 @@ describe("inventory management", () => {
     expect(
       screen.getByText("No stock items have been set up yet."),
     ).toBeTruthy();
+    expect(screen.getByText("No movement history yet")).toBeTruthy();
   });
 });
