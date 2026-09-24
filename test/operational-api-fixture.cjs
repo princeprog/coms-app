@@ -47,6 +47,38 @@ function readJson(request) {
   });
 }
 
+function decimalParts(value) {
+  const [whole, fraction = ""] = String(value).split(".");
+  return { digits: BigInt(whole + fraction), scale: fraction.length };
+}
+
+function decimalText(digits, scale) {
+  const negative = digits < 0n;
+  let value = String(negative ? -digits : digits).padStart(scale + 1, "0");
+  if (scale > 0) {
+    const split = value.length - scale;
+    value = value.slice(0, split) + "." + value.slice(split);
+    value = value.replace(/0+$/, "").replace(/\.$/, "");
+  }
+  return (negative ? "-" : "") + value;
+}
+
+function decimalMultiply(left, right) {
+  const a = decimalParts(left);
+  const b = decimalParts(right);
+  return decimalText(a.digits * b.digits, a.scale + b.scale);
+}
+
+function decimalSum(values) {
+  const parts = values.map(decimalParts);
+  const scale = Math.max(0, ...parts.map((part) => part.scale));
+  const total = parts.reduce(
+    (sum, part) => sum + part.digits * 10n ** BigInt(scale - part.scale),
+    0n,
+  );
+  return decimalText(total, scale);
+}
+
 function send(response, status, payload, headers = {}) {
   response.writeHead(status, {
     "cache-control": "no-store",
@@ -113,7 +145,94 @@ function createState() {
       };
     }),
   ];
-  return { roles: clone(seed.roles), branches, staff, failNext: null };
+  const suppliers = Array.from({ length: 26 }, (_, index) => {
+    const sequence = String(index + 1).padStart(12, "0");
+    return {
+      id: "30000000-0000-4000-8000-" + sequence,
+      supplier_name:
+        index === 0
+          ? "North Farm Supply"
+          : index === 1
+            ? "Fixture supplier with a deliberately long name for responsive table truncation"
+            : "Fixture Supplier " + String(index + 1).padStart(2, "0"),
+      contact_person: index === 0 ? "Morgan Lee" : null,
+      contact_number: index === 0 ? "09170000001" : null,
+      email: index === 0 ? "north-farm@example.test" : null,
+      address: index === 0 ? "North Avenue, Quezon City" : null,
+      is_active: index !== 2,
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-01-01T00:00:00.000Z",
+    };
+  });
+  const stockItems = Array.from({ length: 26 }, (_, index) => {
+    const sequence = String(index + 1).padStart(12, "0");
+    return {
+      id: "31000000-0000-4000-8000-" + sequence,
+      stock_item_name:
+        index === 0
+          ? "Flour"
+          : index === 1
+            ? "Fixture stock item with a deliberately long name for responsive selection"
+            : "Fixture Stock Item " + String(index + 1).padStart(2, "0"),
+      category: index % 2 === 0 ? "Dry goods" : "Produce",
+      unit: index % 2 === 0 ? "kg" : "piece",
+      is_active: index !== 2,
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-01-01T00:00:00.000Z",
+    };
+  });
+  const receipts = Array.from({ length: 26 }, (_, index) => {
+    const sequence = String(index + 1).padStart(12, "0");
+    const status = index % 4 === 0 ? "DRAFT" : "POSTED";
+    const supplier = suppliers[index % suppliers.length];
+    const lines = [
+      {
+        id:
+          "50000000-0000-4000-8000-" + String(index * 2 + 1).padStart(12, "0"),
+        stock_item_id: stockItems[0].id,
+        stock_item_name: stockItems[0].stock_item_name,
+        unit: stockItems[0].unit,
+        quantity_received: "12.5",
+        unit_cost: "2.50",
+        line_total: "31.25",
+      },
+      {
+        id:
+          "50000000-0000-4000-8000-" + String(index * 2 + 2).padStart(12, "0"),
+        stock_item_id: stockItems[1].id,
+        stock_item_name: stockItems[1].stock_item_name,
+        unit: stockItems[1].unit,
+        quantity_received: "20",
+        unit_cost: "4.86",
+        line_total: "97.20",
+      },
+    ];
+    return {
+      id: "32000000-0000-4000-8000-" + sequence,
+      supplier_id: supplier.id,
+      supplier_name: supplier.supplier_name,
+      received_at: "2026-09-" + String((index % 26) + 1).padStart(2, "0"),
+      status,
+      idempotency_key: "40000000-0000-4000-8000-" + sequence,
+      created_by_user_id: seed.user.id,
+      posted_by_user_id: status === "POSTED" ? seed.user.id : null,
+      posted_at: status === "POSTED" ? "2026-09-25T01:30:00.000Z" : null,
+      created_at: "2026-09-25T01:00:00.000Z",
+      updated_at: "2026-09-25T01:30:00.000Z",
+      total_cost: "128.45",
+      item_count: lines.length,
+      items: lines,
+    };
+  });
+  return {
+    roles: clone(seed.roles),
+    branches,
+    staff,
+    suppliers,
+    stockItems,
+    receipts,
+    failNext: null,
+  };
 }
 
 function createOperationalApiFixture({ gatewaySecret }) {
@@ -156,6 +275,9 @@ function createOperationalApiFixture({ gatewaySecret }) {
         return send(response, 200, {
           roles: state.roles,
           staff: state.staff,
+          suppliers: state.suppliers,
+          stockItems: state.stockItems,
+          receipts: state.receipts,
         });
       }
 
@@ -237,6 +359,165 @@ function createOperationalApiFixture({ gatewaySecret }) {
 
       if (!isAuthenticated) {
         return send(response, 401, { message: "Unauthorized." });
+      }
+
+      if (
+        (url.pathname === "/suppliers" || url.pathname === "/stock-items") &&
+        request.method === "GET"
+      ) {
+        const collection =
+          url.pathname === "/suppliers" ? state.suppliers : state.stockItems;
+        const nameKey =
+          url.pathname === "/suppliers" ? "supplier_name" : "stock_item_name";
+        const search = (url.searchParams.get("search") ?? "")
+          .trim()
+          .toLowerCase();
+        const activeFilter = url.searchParams.get("is_active");
+        const matches = collection.filter((item) => {
+          if (activeFilter === "true" && !item.is_active) return false;
+          if (activeFilter === "false" && item.is_active) return false;
+          return !search || item[nameKey].toLowerCase().includes(search);
+        });
+        const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+        const pageSize = Math.min(
+          100,
+          Math.max(1, Number(url.searchParams.get("page_size")) || 25),
+        );
+        const start = (page - 1) * pageSize;
+        return send(response, 200, {
+          items: matches.slice(start, start + pageSize),
+          total: matches.length,
+          page,
+          page_size: pageSize,
+        });
+      }
+
+      if (url.pathname === "/supplier-receipts" && request.method === "GET") {
+        const search = (url.searchParams.get("search") ?? "")
+          .trim()
+          .toLowerCase();
+        const status = url.searchParams.get("status");
+        const matches = state.receipts.filter((receipt) => {
+          if (status && receipt.status !== status) return false;
+          return (
+            !search || receipt.supplier_name.toLowerCase().includes(search)
+          );
+        });
+        const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+        const pageSize = Math.min(
+          100,
+          Math.max(1, Number(url.searchParams.get("page_size")) || 25),
+        );
+        const start = (page - 1) * pageSize;
+        return send(response, 200, {
+          items: matches.slice(start, start + pageSize).map((receipt) => {
+            const listItem = { ...receipt };
+            delete listItem.items;
+            return listItem;
+          }),
+          total: matches.length,
+          page,
+          page_size: pageSize,
+        });
+      }
+      if (url.pathname === "/supplier-receipts" && request.method === "POST") {
+        if (
+          !body ||
+          typeof body.supplier_id !== "string" ||
+          !Array.isArray(body.items) ||
+          body.items.length === 0
+        ) {
+          return send(response, 400, { message: "Invalid fixture receipt." });
+        }
+        const idempotencyKey = request.headers["idempotency-key"];
+        if (typeof idempotencyKey !== "string") {
+          return send(response, 400, { message: "Missing idempotency key." });
+        }
+        const retry = state.receipts.find(
+          (receipt) => receipt.idempotency_key === idempotencyKey,
+        );
+        if (retry) return send(response, 201, retry);
+        const supplier = state.suppliers.find(
+          (item) => item.id === body.supplier_id,
+        );
+        if (!supplier || !supplier.is_active) {
+          return send(response, 404, { message: "Supplier not found." });
+        }
+        const items = body.items.map((line, index) => {
+          const stockItem = state.stockItems.find(
+            (item) => item.id === line.stock_item_id,
+          );
+          if (!stockItem || !stockItem.is_active) return null;
+          return {
+            id:
+              "51000000-0000-4000-8000-" +
+              String(state.receipts.length * 100 + index + 1).padStart(12, "0"),
+            stock_item_id: stockItem.id,
+            stock_item_name: stockItem.stock_item_name,
+            unit: stockItem.unit,
+            quantity_received: String(line.quantity_received),
+            unit_cost: String(line.unit_cost),
+            line_total: decimalMultiply(line.quantity_received, line.unit_cost),
+          };
+        });
+        if (items.some((item) => item === null)) {
+          return send(response, 404, { message: "Stock item not found." });
+        }
+        const sequence = String(state.receipts.length + 1).padStart(12, "0");
+        const now = "2026-09-25T02:00:00.000Z";
+        const receipt = {
+          id: "32000000-0000-4000-8000-" + sequence,
+          supplier_id: supplier.id,
+          supplier_name: supplier.supplier_name,
+          received_at: body.received_at,
+          status: "DRAFT",
+          idempotency_key: idempotencyKey,
+          created_by_user_id: seed.user.id,
+          posted_by_user_id: null,
+          posted_at: null,
+          created_at: now,
+          updated_at: now,
+          total_cost: decimalSum(items.map((item) => item.line_total)),
+          item_count: items.length,
+          items,
+        };
+        state.receipts.push(receipt);
+        return send(response, 201, receipt);
+      }
+      const receiptRoute = url.pathname.match(
+        /^\/supplier-receipts\/([0-9a-f-]{36})(?:\/(post))?$/i,
+      );
+      if (receiptRoute && request.method === "GET" && !receiptRoute[2]) {
+        const receipt = state.receipts.find(
+          (item) => item.id === receiptRoute[1],
+        );
+        if (!receipt) {
+          return send(response, 404, {
+            message: "Supplier receipt not found.",
+          });
+        }
+        return send(response, 200, receipt);
+      }
+      if (
+        receiptRoute &&
+        request.method === "POST" &&
+        receiptRoute[2] === "post"
+      ) {
+        const receipt = state.receipts.find(
+          (item) => item.id === receiptRoute[1],
+        );
+        if (!receipt) {
+          return send(response, 404, {
+            message: "Supplier receipt not found.",
+          });
+        }
+        if (receipt.status !== "POSTED") {
+          receipt.status = "POSTED";
+          receipt.posted_by_user_id = seed.user.id;
+          receipt.posted_at = "2026-09-25T02:30:00.000Z";
+          receipt.updated_at = receipt.posted_at;
+        }
+        return send(response, 200, receipt);
       }
 
       if (url.pathname === "/roles" && request.method === "GET") {

@@ -4,6 +4,12 @@ import seed from "./fixtures/operational-api.json";
 import { authMeResponseSchema } from "@/features/auth/schemas/auth.schema";
 import { branchesResponseSchema } from "@/features/branches/schemas/branch.schema";
 import { staffPageSchema } from "@/features/staff/schemas/staff.schema";
+import { stockItemPageSchema } from "@/features/stock-items/schemas/stock-item.schema";
+import { supplierPageSchema } from "@/features/suppliers/schemas/supplier.schema";
+import {
+  supplierReceiptDetailSchema,
+  supplierReceiptPageSchema,
+} from "@/features/supplier-receipts/schemas/supplier-receipt.schema";
 import {
   permissionsResponseSchema,
   rolesResponseSchema,
@@ -346,6 +352,170 @@ describe("operational API fixture", () => {
         branch_ids: [branchId, "10000000-0000-4000-8000-000000000002"],
         is_active: false,
       });
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("serves receipt catalogs and supports retried creation, posting, and detail reads", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const login = await fetch(fixture.baseUrl + "/auth/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-coms-auth-gateway": gatewaySecret,
+        },
+        body: JSON.stringify(seed.login),
+      });
+      const cookie = login.headers
+        .getSetCookie()
+        .map((value) => value.split(";")[0])
+        .join("; ");
+      const headers = { cookie, "x-coms-auth-gateway": gatewaySecret };
+
+      const suppliers = await fetch(
+        fixture.baseUrl + "/suppliers?page=1&page_size=100&is_active=true",
+        { headers },
+      );
+      const supplierPage = supplierPageSchema.parse(await suppliers.json());
+      expect(supplierPage.items).toHaveLength(25);
+      expect(
+        supplierPage.items.some((item) => item.supplier_name.length > 60),
+      ).toBe(true);
+
+      const stockItems = await fetch(
+        fixture.baseUrl + "/stock-items?page=1&page_size=100&is_active=true",
+        { headers },
+      );
+      const stockItemPage = stockItemPageSchema.parse(await stockItems.json());
+      expect(stockItemPage.items).toHaveLength(25);
+
+      const firstResponse = await fetch(
+        fixture.baseUrl + "/supplier-receipts?page=1&page_size=25",
+        { headers },
+      );
+      const first = supplierReceiptPageSchema.parse(await firstResponse.json());
+      expect(first.items).toHaveLength(25);
+      expect(first.total).toBe(26);
+      expect(first.items.some((item) => item.status === "DRAFT")).toBe(true);
+      expect(first.items.some((item) => item.supplier_name.length > 60)).toBe(
+        true,
+      );
+
+      const secondResponse = await fetch(
+        fixture.baseUrl + "/supplier-receipts?page=2&page_size=25",
+        { headers },
+      );
+      expect(
+        supplierReceiptPageSchema.parse(await secondResponse.json()).items,
+      ).toHaveLength(1);
+
+      const filteredResponse = await fetch(
+        fixture.baseUrl + "/supplier-receipts?search=North+Farm&status=DRAFT",
+        { headers },
+      );
+      const filtered = supplierReceiptPageSchema.parse(
+        await filteredResponse.json(),
+      );
+      expect(filtered.items).toHaveLength(1);
+      expect(filtered.items[0].supplier_name).toBe("North Farm Supply");
+
+      const supplier = supplierPage.items[0];
+      const stockItem = stockItemPage.items[0];
+      const idempotencyKey = "60000000-0000-4000-8000-000000000001";
+      const createBody = {
+        supplier_id: supplier.id,
+        received_at: "2026-09-25",
+        items: [
+          {
+            stock_item_id: stockItem.id,
+            quantity_received: "1.25",
+            unit_cost: "2.50",
+          },
+        ],
+      };
+      await fetch(fixture.baseUrl + "/__fixture/fail-next", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          method: "POST",
+          path: "/supplier-receipts",
+          status: 503,
+          message: "Fixture receipt service unavailable.",
+        }),
+      });
+      const failed = await fetch(fixture.baseUrl + "/supplier-receipts", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify(createBody),
+      });
+      expect(failed.status).toBe(503);
+
+      const createdResponse = await fetch(
+        fixture.baseUrl + "/supplier-receipts",
+        {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify(createBody),
+        },
+      );
+      expect(createdResponse.status).toBe(201);
+      const created = supplierReceiptDetailSchema.parse(
+        await createdResponse.json(),
+      );
+      expect(created).toMatchObject({
+        status: "DRAFT",
+        total_cost: "3.125",
+        items: [{ quantity_received: "1.25", unit_cost: "2.50" }],
+      });
+
+      const retryResponse = await fetch(
+        fixture.baseUrl + "/supplier-receipts",
+        {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify(createBody),
+        },
+      );
+      expect(
+        supplierReceiptDetailSchema.parse(await retryResponse.json()).id,
+      ).toBe(created.id);
+
+      const postResponse = await fetch(
+        fixture.baseUrl + "/supplier-receipts/" + created.id + "/post",
+        { method: "POST", headers },
+      );
+      expect(postResponse.status).toBe(200);
+      expect(
+        supplierReceiptDetailSchema.parse(await postResponse.json()).status,
+      ).toBe("POSTED");
+
+      const detailResponse = await fetch(
+        fixture.baseUrl + "/supplier-receipts/" + created.id,
+        { headers },
+      );
+      expect(
+        supplierReceiptDetailSchema.parse(await detailResponse.json()),
+      ).toMatchObject({ id: created.id, status: "POSTED" });
+
+      const stateResponse = await fetch(fixture.baseUrl + "/__fixture/state");
+      const state = (await stateResponse.json()) as {
+        receipts: Array<{ id: string }>;
+      };
+      expect(state.receipts).toHaveLength(27);
     } finally {
       await fixture.close();
     }
