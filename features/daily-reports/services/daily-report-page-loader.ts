@@ -165,6 +165,10 @@ export async function loadDailyReportsView(
     selectedReport !== null &&
     (selectedReport.status === "DRAFT" ||
       selectedReport.status === "RETURNED") &&
+    selectedReport.items.length > 0 &&
+    selectedReport.items.every(
+      (item) => item.physical_closing_quantity !== null,
+    ) &&
     selectedReport.business_date < getTodayManilaDate() &&
     selectedBranch.status !== "inactive" &&
     hasPermission(user, "daily_reports.submit");

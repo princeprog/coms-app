@@ -136,6 +136,35 @@ describe("daily report page loader", () => {
     expect(getDailyReportDetail).toHaveBeenCalledWith(branchId, reportId);
   });
 
+  it("only enables submission for an ended Manila day with a saved count for every item", async () => {
+    const loader = await getLoader();
+    expect(loader).not.toBeNull();
+    if (!loader) return;
+    getDailyReportDetail.mockResolvedValue({
+      ...report,
+      status: "DRAFT",
+      business_date: "2000-01-01",
+      items: [{ stock_item_id: reportId, physical_closing_quantity: null }],
+    });
+    const permissions = ["daily_reports.read", "daily_reports.submit"];
+
+    const incomplete = await loader.loadDailyReportsView(user(permissions), {
+      report_id: reportId,
+    });
+    expect(incomplete).toMatchObject({ status: "ready", canSubmit: false });
+
+    getDailyReportDetail.mockResolvedValueOnce({
+      ...report,
+      status: "DRAFT",
+      business_date: "2000-01-01",
+      items: [{ stock_item_id: reportId, physical_closing_quantity: "3.25" }],
+    });
+    const complete = await loader.loadDailyReportsView(user(permissions), {
+      report_id: reportId,
+    });
+    expect(complete).toMatchObject({ status: "ready", canSubmit: true });
+  });
+
   it("converts expired sessions from protected report requests into a session state", async () => {
     const loader = await getLoader();
     expect(loader).not.toBeNull();
