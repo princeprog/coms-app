@@ -1,0 +1,467 @@
+{
+  "login": {
+    "email": "ops-admin@example.test",
+    "password": "fixture-only-password"
+  },
+  "user": {
+    "id": "00000000-0000-4000-8000-0000000000aa",
+    "email": "ops-admin@example.test",
+    "full_name": "Test Operations Admin",
+    "contact_number": "fixture-only",
+    "role": {
+      "id": "2",
+      "code": "SUPER_ADMIN",
+      "name": "Super Admin",
+      "isSystem": true,
+      "isActive": true
+    },
+    "permissions": [
+      "roles.read",
+      "roles.create",
+      "roles.update",
+      "roles.deactivate",
+      "roles.permissions_update",
+      "staff.read",
+      "staff.create",
+      "staff.update",
+      "staff.deactivate",
+      "staff.role_assign",
+      "staff.branch_assign",
+      "branches.read",
+      "branches.create",
+      "branches.update",
+      "branches.deactivate",
+      "suppliers.read",
+      "suppliers.create",
+      "suppliers.update",
+      "suppliers.deactivate",
+      "stock_items.read",
+      "stock_items.create",
+      "stock_items.update",
+      "stock_items.deactivate",
+      "inventory.read",
+      "inventory.adjust",
+      "supplier_receipts.read",
+      "supplier_receipts.create",
+      "supplier_receipts.post",
+      "stock_requests.read",
+      "stock_requests.create",
+      "stock_requests.approve",
+      "stock_requests.reject",
+      "stock_requests.cancel",
+      "dispatches.read",
+      "dispatches.create",
+      "dispatches.dispatch",
+      "dispatches.receive",
+      "dispatches.shortage_close",
+      "products.read",
+      "products.create",
+      "products.update",
+      "products.deactivate",
+      "recipes.read",
+      "recipes.create",
+      "recipes.update",
+      "recipes.deactivate",
+      "branch_products.read",
+      "branch_products.create",
+      "branch_products.update",
+      "branch_products.availability_update",
+      "sales.read",
+      "sales.create",
+      "sales.void",
+      "daily_reports.read",
+      "daily_reports.create",
+      "daily_reports.update",
+      "daily_reports.submit",
+      "daily_reports.return",
+      "daily_reports.approve"
+    ],
+    "branch_ids": [
+      "00000000-0000-4000-8000-000000000001"
+    ]
+  },
+  "roles": [
+    {
+      "id": "1",
+      "code": "NO_ACCESS",
+      "role_name": "No Access",
+      "is_system": true,
+      "is_active": true,
+      "permission_keys": []
+    },
+    {
+      "id": "2",
+      "code": "SUPER_ADMIN",
+      "role_name": "Super Admin",
+      "is_system": true,
+      "is_active": true,
+      "permission_keys": []
+    },
+    {
+      "id": "3",
+      "code": "STOCK_MANAGER",
+      "role_name": "Stock Manager",
+      "is_system": false,
+      "is_active": true,
+      "permission_keys": [
+        "inventory.read"
+      ]
+    }
+  ],
+  "permissions": [
+    {
+      "key": "roles.read",
+      "module_key": "roles",
+      "action_key": "read",
+      "description": "View roles and permissions"
+    },
+    {
+      "key": "roles.create",
+      "module_key": "roles",
+      "action_key": "create",
+      "description": "Create roles"
+    },
+    {
+      "key": "roles.update",
+      "module_key": "roles",
+      "action_key": "update",
+      "description": "Update roles"
+    },
+    {
+      "key": "roles.deactivate",
+      "module_key": "roles",
+      "action_key": "deactivate",
+      "description": "Deactivate roles"
+    },
+    {
+      "key": "roles.permissions_update",
+      "module_key": "roles",
+      "action_key": "permissions_update",
+      "description": "Change role permission grants"
+    },
+    {
+      "key": "staff.read",
+      "module_key": "staff",
+      "action_key": "read",
+      "description": "View staff accounts"
+    },
+    {
+      "key": "staff.create",
+      "module_key": "staff",
+      "action_key": "create",
+      "description": "Create staff accounts"
+    },
+    {
+      "key": "staff.update",
+      "module_key": "staff",
+      "action_key": "update",
+      "description": "Update staff accounts"
+    },
+    {
+      "key": "staff.deactivate",
+      "module_key": "staff",
+      "action_key": "deactivate",
+      "description": "Deactivate staff accounts"
+    },
+    {
+      "key": "staff.role_assign",
+      "module_key": "staff",
+      "action_key": "role_assign",
+      "description": "Assign roles to staff"
+    },
+    {
+      "key": "staff.branch_assign",
+      "module_key": "staff",
+      "action_key": "branch_assign",
+      "description": "Assign staff to branches"
+    },
+    {
+      "key": "branches.read",
+      "module_key": "branches",
+      "action_key": "read",
+      "description": "View branches"
+    },
+    {
+      "key": "branches.create",
+      "module_key": "branches",
+      "action_key": "create",
+      "description": "Create branches"
+    },
+    {
+      "key": "branches.update",
+      "module_key": "branches",
+      "action_key": "update",
+      "description": "Update branches"
+    },
+    {
+      "key": "branches.deactivate",
+      "module_key": "branches",
+      "action_key": "deactivate",
+      "description": "Deactivate branches"
+    },
+    {
+      "key": "suppliers.read",
+      "module_key": "suppliers",
+      "action_key": "read",
+      "description": "View suppliers"
+    },
+    {
+      "key": "suppliers.create",
+      "module_key": "suppliers",
+      "action_key": "create",
+      "description": "Create suppliers"
+    },
+    {
+      "key": "suppliers.update",
+      "module_key": "suppliers",
+      "action_key": "update",
+      "description": "Update suppliers"
+    },
+    {
+      "key": "suppliers.deactivate",
+      "module_key": "suppliers",
+      "action_key": "deactivate",
+      "description": "Deactivate suppliers"
+    },
+    {
+      "key": "stock_items.read",
+      "module_key": "stock_items",
+      "action_key": "read",
+      "description": "View stock items"
+    },
+    {
+      "key": "stock_items.create",
+      "module_key": "stock_items",
+      "action_key": "create",
+      "description": "Create stock items"
+    },
+    {
+      "key": "stock_items.update",
+      "module_key": "stock_items",
+      "action_key": "update",
+      "description": "Update stock items"
+    },
+    {
+      "key": "stock_items.deactivate",
+      "module_key": "stock_items",
+      "action_key": "deactivate",
+      "description": "Deactivate stock items"
+    },
+    {
+      "key": "inventory.read",
+      "module_key": "inventory",
+      "action_key": "read",
+      "description": "View inventory"
+    },
+    {
+      "key": "inventory.adjust",
+      "module_key": "inventory",
+      "action_key": "adjust",
+      "description": "Adjust inventory with a reason"
+    },
+    {
+      "key": "supplier_receipts.read",
+      "module_key": "supplier_receipts",
+      "action_key": "read",
+      "description": "View supplier receipts"
+    },
+    {
+      "key": "supplier_receipts.create",
+      "module_key": "supplier_receipts",
+      "action_key": "create",
+      "description": "Record supplier receipts"
+    },
+    {
+      "key": "supplier_receipts.post",
+      "module_key": "supplier_receipts",
+      "action_key": "post",
+      "description": "Post supplier receipts to inventory"
+    },
+    {
+      "key": "stock_requests.read",
+      "module_key": "stock_requests",
+      "action_key": "read",
+      "description": "View stock requests"
+    },
+    {
+      "key": "stock_requests.create",
+      "module_key": "stock_requests",
+      "action_key": "create",
+      "description": "Create branch stock requests"
+    },
+    {
+      "key": "stock_requests.approve",
+      "module_key": "stock_requests",
+      "action_key": "approve",
+      "description": "Approve stock requests"
+    },
+    {
+      "key": "stock_requests.reject",
+      "module_key": "stock_requests",
+      "action_key": "reject",
+      "description": "Reject stock requests"
+    },
+    {
+      "key": "stock_requests.cancel",
+      "module_key": "stock_requests",
+      "action_key": "cancel",
+      "description": "Cancel own stock requests"
+    },
+    {
+      "key": "dispatches.read",
+      "module_key": "dispatches",
+      "action_key": "read",
+      "description": "View dispatches"
+    },
+    {
+      "key": "dispatches.create",
+      "module_key": "dispatches",
+      "action_key": "create",
+      "description": "Prepare dispatches"
+    },
+    {
+      "key": "dispatches.dispatch",
+      "module_key": "dispatches",
+      "action_key": "dispatch",
+      "description": "Dispatch stock to a branch"
+    },
+    {
+      "key": "dispatches.receive",
+      "module_key": "dispatches",
+      "action_key": "receive",
+      "description": "Record branch dispatch receipts"
+    },
+    {
+      "key": "dispatches.shortage_close",
+      "module_key": "dispatches",
+      "action_key": "shortage_close",
+      "description": "Close an in-transit shortage with a reason"
+    },
+    {
+      "key": "products.read",
+      "module_key": "products",
+      "action_key": "read",
+      "description": "View products"
+    },
+    {
+      "key": "products.create",
+      "module_key": "products",
+      "action_key": "create",
+      "description": "Create products"
+    },
+    {
+      "key": "products.update",
+      "module_key": "products",
+      "action_key": "update",
+      "description": "Update products"
+    },
+    {
+      "key": "products.deactivate",
+      "module_key": "products",
+      "action_key": "deactivate",
+      "description": "Deactivate products"
+    },
+    {
+      "key": "recipes.read",
+      "module_key": "recipes",
+      "action_key": "read",
+      "description": "View product recipes"
+    },
+    {
+      "key": "recipes.create",
+      "module_key": "recipes",
+      "action_key": "create",
+      "description": "Create product recipes"
+    },
+    {
+      "key": "recipes.update",
+      "module_key": "recipes",
+      "action_key": "update",
+      "description": "Update product recipes"
+    },
+    {
+      "key": "recipes.deactivate",
+      "module_key": "recipes",
+      "action_key": "deactivate",
+      "description": "Deactivate product recipes"
+    },
+    {
+      "key": "branch_products.read",
+      "module_key": "branch_products",
+      "action_key": "read",
+      "description": "View branch offerings"
+    },
+    {
+      "key": "branch_products.create",
+      "module_key": "branch_products",
+      "action_key": "create",
+      "description": "Create branch offerings"
+    },
+    {
+      "key": "branch_products.update",
+      "module_key": "branch_products",
+      "action_key": "update",
+      "description": "Update branch prices and offerings"
+    },
+    {
+      "key": "branch_products.availability_update",
+      "module_key": "branch_products",
+      "action_key": "availability_update",
+      "description": "Change branch product availability"
+    },
+    {
+      "key": "sales.read",
+      "module_key": "sales",
+      "action_key": "read",
+      "description": "View sales"
+    },
+    {
+      "key": "sales.create",
+      "module_key": "sales",
+      "action_key": "create",
+      "description": "Record point-of-sale transactions"
+    },
+    {
+      "key": "sales.void",
+      "module_key": "sales",
+      "action_key": "void",
+      "description": "Void sales with a reason"
+    },
+    {
+      "key": "daily_reports.read",
+      "module_key": "daily_reports",
+      "action_key": "read",
+      "description": "View daily reports"
+    },
+    {
+      "key": "daily_reports.create",
+      "module_key": "daily_reports",
+      "action_key": "create",
+      "description": "Create daily reports"
+    },
+    {
+      "key": "daily_reports.update",
+      "module_key": "daily_reports",
+      "action_key": "update",
+      "description": "Update draft daily reports"
+    },
+    {
+      "key": "daily_reports.submit",
+      "module_key": "daily_reports",
+      "action_key": "submit",
+      "description": "Submit daily reports for review"
+    },
+    {
+      "key": "daily_reports.return",
+      "module_key": "daily_reports",
+      "action_key": "return",
+      "description": "Return daily reports for correction"
+    },
+    {
+      "key": "daily_reports.approve",
+      "module_key": "daily_reports",
+      "action_key": "approve",
+      "description": "Approve daily reports"
+    }
+  ]
+}

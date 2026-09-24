@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:auth-browser": "node test/auth-browser.cjs",
+    "test:operational-fixture": "vitest run test/operational-api-fixture.test.ts",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
