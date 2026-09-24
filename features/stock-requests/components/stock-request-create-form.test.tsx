@@ -55,6 +55,8 @@ describe("stock request create form", () => {
         selectedBranchId={branchId}
         action={action}
         onPendingChange={vi.fn()}
+        onDirtyChange={vi.fn()}
+        onCancel={vi.fn()}
         onCreated={onCreated}
       />,
     );
@@ -86,6 +88,8 @@ describe("stock request create form", () => {
         selectedBranchId={branchId}
         action={action}
         onPendingChange={vi.fn()}
+        onDirtyChange={vi.fn()}
+        onCancel={vi.fn()}
         onCreated={vi.fn()}
       />,
     );
@@ -112,6 +116,8 @@ describe("stock request create form", () => {
         selectedBranchId={branchId}
         action={action}
         onPendingChange={vi.fn()}
+        onDirtyChange={vi.fn()}
+        onCancel={vi.fn()}
         onCreated={vi.fn()}
       />,
     );

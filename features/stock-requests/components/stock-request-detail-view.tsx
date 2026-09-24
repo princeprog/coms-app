@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DispatchCreateControl } from "@/features/dispatches/components/dispatch-create-control";
 import type { DispatchCreateAction } from "@/features/dispatches/types/dispatch.types";
+import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -41,10 +40,10 @@ export function StockRequestDetailView({
     request.status === "APPROVED" && canCreateDispatch;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-coms-ui="operational" className="flex flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
-          className={buttonVariants({ variant: "outline" })}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
           href="/replenishment"
         >
           Back to replenishment
@@ -81,17 +80,24 @@ export function StockRequestDetailView({
           </div>
         )}
       </div>
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+      <section
+        aria-labelledby="request-summary-heading"
+        className="rounded-lg border bg-card"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b p-4 md:p-5">
           <div className="flex flex-col gap-1">
-            <CardTitle>Stock request</CardTitle>
+            <h2 id="request-summary-heading" className="text-lg font-semibold">
+              Stock request
+            </h2>
             <p className="text-sm text-muted-foreground">
               {request.branch_name} · requested by {request.requester_name}
             </p>
           </div>
-          <Badge variant="outline">{request.status}</Badge>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
+          <OperationalStatusBadge variant="outline">
+            {request.status}
+          </OperationalStatusBadge>
+        </div>
+        <dl className="grid gap-x-6 gap-y-4 p-4 sm:grid-cols-2 lg:grid-cols-3 md:p-5">
           <DetailField
             label="Submitted"
             value={format(parseISO(request.created_at), "PPp")}
@@ -104,67 +110,90 @@ export function StockRequestDetailView({
             label="Last updated"
             value={format(parseISO(request.updated_at), "PPp")}
           />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Requested items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table aria-label="Requested stock items">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Stock item</TableHead>
-                <TableHead>Quantity requested</TableHead>
-                <TableHead>Unit</TableHead>
+        </dl>
+      </section>
+      <section
+        aria-labelledby="requested-items-heading"
+        className="flex flex-col gap-3"
+      >
+        <div>
+          <h2 id="requested-items-heading" className="text-lg font-semibold">
+            Requested items
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Requested quantities do not change inventory until dispatch.
+          </p>
+        </div>
+        <Table
+          aria-label="Requested stock items"
+          containerProps={{
+            role: "region",
+            "aria-label": "Requested stock items table",
+            tabIndex: 0,
+            className: "rounded-lg border",
+          }}
+        >
+          <TableHeader>
+            <TableRow>
+              <TableHead>Stock item</TableHead>
+              <TableHead className="text-right">Quantity requested</TableHead>
+              <TableHead>Unit</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {request.items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-medium">
+                  {item.stock_item_name}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {item.quantity_requested}
+                </TableCell>
+                <TableCell>{item.unit}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {request.items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">
-                    {item.stock_item_name}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {item.quantity_requested}
-                  </TableCell>
-                  <TableCell>{item.unit}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Request history</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol className="flex flex-col gap-4">
-            {request.events.map((event) => (
-              <li
-                key={event.id}
-                className="flex flex-col gap-1 border-l-2 pl-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-medium">
-                    {event.event_type.replaceAll("_", " ")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {event.actor_name}
-                  </p>
-                </div>
-                <time
-                  className="text-sm text-muted-foreground"
-                  dateTime={event.created_at}
-                >
-                  {format(parseISO(event.created_at), "PPp")}
-                </time>
-              </li>
             ))}
-          </ol>
-        </CardContent>
-      </Card>
+          </TableBody>
+        </Table>
+      </section>
+      <section
+        aria-labelledby="request-history-heading"
+        className="flex flex-col gap-3"
+      >
+        <div>
+          <h2 id="request-history-heading" className="text-lg font-semibold">
+            Request history
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Recorded request submissions and workflow transitions.
+          </p>
+        </div>
+        <ol
+          aria-label="Stock request history"
+          className="divide-y rounded-lg border bg-card"
+        >
+          {request.events.map((event) => (
+            <li
+              key={event.id}
+              className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="font-medium">
+                  {event.event_type.replaceAll("_", " ")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {event.actor_name}
+                </p>
+              </div>
+              <time
+                className="text-sm text-muted-foreground"
+                dateTime={event.created_at}
+              >
+                {format(parseISO(event.created_at), "PPp")}
+              </time>
+            </li>
+          ))}
+        </ol>
+      </section>
     </div>
   );
 }
@@ -172,8 +201,8 @@ export function StockRequestDetailView({
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-medium tabular-nums">{value}</p>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="font-medium tabular-nums">{value}</dd>
     </div>
   );
 }

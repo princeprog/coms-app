@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -24,12 +24,20 @@ export function StockRequestTable({ page }: { page: StockRequestPage }) {
         </h2>
         <p className="text-sm text-muted-foreground">{page.total} total</p>
       </div>
-      <Table aria-label="Stock requests">
+      <Table
+        aria-label="Stock requests"
+        containerProps={{
+          role: "region",
+          "aria-label": "Stock requests table",
+          tabIndex: 0,
+          className: "rounded-lg border",
+        }}
+      >
         <TableHeader>
           <TableRow>
             <TableHead>Branch</TableHead>
             <TableHead>Requested by</TableHead>
-            <TableHead>Items</TableHead>
+            <TableHead className="text-right">Items</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Submitted</TableHead>
             <TableHead className="text-right">Details</TableHead>
@@ -42,9 +50,13 @@ export function StockRequestTable({ page }: { page: StockRequestPage }) {
                 {request.branch_name}
               </TableCell>
               <TableCell>{request.requester_name}</TableCell>
-              <TableCell>{request.item_count}</TableCell>
+              <TableCell className="text-right tabular-nums">
+                {request.item_count}
+              </TableCell>
               <TableCell>
-                <Badge variant="outline">{request.status}</Badge>
+                <OperationalStatusBadge variant="outline">
+                  {request.status}
+                </OperationalStatusBadge>
               </TableCell>
               <TableCell>
                 {format(parseISO(request.created_at), "PPp")}

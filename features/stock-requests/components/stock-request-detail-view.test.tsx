@@ -69,6 +69,14 @@ describe("stock request detail view", () => {
     expect(screen.getByText("Branch Manager")).toBeTruthy();
     expect(
       screen
+        .getByRole("region", { name: "Requested stock items table" })
+        .getAttribute("data-slot"),
+    ).toBe("table-container");
+    expect(
+      screen.getByRole("heading", { name: "Request history" }),
+    ).toBeTruthy();
+    expect(
+      screen
         .getByRole("link", { name: "Back to replenishment" })
         .getAttribute("href"),
     ).toBe("/replenishment");

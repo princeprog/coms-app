@@ -3,17 +3,15 @@
 import { useRef, useState, type FormEvent } from "react";
 import type { Branch } from "@/features/branches/types/branch.types";
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
+import { SheetFooter } from "@/components/ui/sheet";
 import type { StockItem } from "@/features/stock-items/types/stock-item.types";
 import { createStockRequestSchema } from "@/features/stock-requests/schemas/stock-request.schema";
 import type {
   StockRequestCreateAction,
   StockRequestMutationResult,
 } from "@/features/stock-requests/types/stock-request.types";
-import {
-  StockRequestLineFields,
-  type StockRequestLineValue,
-} from "./stock-request-line-fields";
+import { StockRequestCreateFields } from "./stock-request-create-fields";
+import type { StockRequestLineValue } from "./stock-request-line-fields";
 
 export function StockRequestCreateForm({
   branches,
@@ -21,6 +19,8 @@ export function StockRequestCreateForm({
   selectedBranchId,
   action,
   onPendingChange,
+  onDirtyChange,
+  onCancel,
   onCreated,
 }: {
   branches: Branch[];
@@ -28,6 +28,8 @@ export function StockRequestCreateForm({
   selectedBranchId?: string;
   action: StockRequestCreateAction;
   onPendingChange: (pending: boolean) => void;
+  onDirtyChange: (dirty: boolean) => void;
+  onCancel: () => void;
   onCreated: (id: string) => void;
 }) {
   const [pending, setPending] = useState(false);
@@ -57,6 +59,21 @@ export function StockRequestCreateForm({
         line.key === key ? { ...line, [field]: value } : line,
       ),
     );
+    onDirtyChange(true);
+  }
+
+  function addLine() {
+    const usedIds = new Set(lines.map((line) => line.stock_item_id));
+    const nextItem = stockItems.find((item) => !usedIds.has(item.id));
+    setLines((current) => [
+      ...current,
+      {
+        key: nextLineKey.current++,
+        stock_item_id: nextItem?.id ?? "",
+        quantity_requested: "",
+      },
+    ]);
+    onDirtyChange(true);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -112,71 +129,45 @@ export function StockRequestCreateForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <label htmlFor="request-branch" className="text-sm font-medium">
-          Branch
-        </label>
-        <select
-          id="request-branch"
-          value={branchId}
-          disabled={pending || branches.length === 1}
-          onChange={(event) => setBranchId(event.target.value)}
-          className="h-9 w-full rounded-3xl border border-transparent bg-input/50 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
-          required
-        >
-          {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.branch_name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <StockRequestLineFields
-        lines={lines}
+    <form
+      onSubmit={submit}
+      className="flex min-h-0 flex-1 flex-col"
+      aria-label="Create stock request"
+    >
+      <StockRequestCreateFields
+        branches={branches}
         stockItems={stockItems}
-        disabled={pending}
-        onChange={updateLine}
-        onRemove={(key) =>
-          setLines((current) => current.filter((line) => line.key !== key))
-        }
+        branchId={branchId}
+        lines={lines}
+        pending={pending}
+        error={error}
+        onBranchChange={(value) => {
+          setBranchId(value);
+          onDirtyChange(true);
+        }}
+        onLineChange={updateLine}
+        onLineRemove={(key) => {
+          setLines((current) => current.filter((line) => line.key !== key));
+          onDirtyChange(true);
+        }}
+        onAddLine={addLine}
       />
-      <div>
+      <SheetFooter className="flex-row justify-end border-t bg-background p-4 sm:p-6">
         <Button
           type="button"
           variant="outline"
-          disabled={
-            pending || lines.length >= 100 || stockItems.length <= lines.length
-          }
-          onClick={() => {
-            const usedIds = new Set(lines.map((line) => line.stock_item_id));
-            const nextItem = stockItems.find((item) => !usedIds.has(item.id));
-            setLines((current) => [
-              ...current,
-              {
-                key: nextLineKey.current++,
-                stock_item_id: nextItem?.id ?? "",
-                quantity_requested: "",
-              },
-            ]);
-          }}
+          disabled={pending}
+          onClick={onCancel}
         >
-          Add stock item
+          Cancel
         </Button>
-      </div>
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-      <DialogFooter>
         <Button
           type="submit"
           disabled={pending || !branches.length || !stockItems.length}
         >
           {pending ? "Submitting…" : "Submit request"}
         </Button>
-      </DialogFooter>
+      </SheetFooter>
     </form>
   );
 }

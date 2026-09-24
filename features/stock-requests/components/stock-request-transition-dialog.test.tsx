@@ -28,6 +28,9 @@ describe("stock request transition dialog", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Reject request" }));
+    expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
+      "operational",
+    );
     expect(
       screen.getByRole("heading", { name: "Reject stock request?" }),
     ).toBeTruthy();

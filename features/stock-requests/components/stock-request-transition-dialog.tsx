@@ -100,7 +100,7 @@ export function StockRequestTransitionDialog({
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent data-coms-ui="operational">
         <DialogHeader>
           <DialogTitle>{copy.heading}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
