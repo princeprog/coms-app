@@ -110,9 +110,8 @@ describe("branch product create form", () => {
     expect((await screen.findByRole("alert")).textContent).toBe(
       "This product is already offered at the branch.",
     );
-    expect(
-      (screen.getByLabelText("Offer price") as HTMLInputElement).disabled,
-    ).toBe(false);
+    const priceInput = screen.getByLabelText("Offer price") as HTMLInputElement;
+    await waitFor(() => expect(priceInput.disabled).toBe(false));
     expect(refresh).not.toHaveBeenCalled();
   });
 });
