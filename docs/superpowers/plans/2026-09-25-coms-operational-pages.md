@@ -22,7 +22,8 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 
 - [x] `/roles`: compact table for name/code, system/custom, grant summary, status, row actions. Create in a Sheet. Edit custom role name and permissions in independently submitted sections. Group permissions by module, show selected counts, allow local permission search, and preserve checked state while filtering/collapsing. System roles remain read-only. Render `SUPER_ADMIN` as global access and `NO_ACCESS` as no grants. Preserve deactivation rules/confirmation.
   - Component verification is complete for protected states, filtered grants, independent saves, pending state, dirty-form confirmation, and focus return. Responsive production-browser evidence remains in the final fixture pass.
-- [ ] `/staff`: table for name/email, role, branches, contact and status. Add/manage in Sheets; profile, role and branch assignments remain separate operations. Retain branch/search URL scope, action-specific permissions, self-change protection and unavailable option-list states.
+- [x] `/staff`: table for name/email, role, branches, contact and status. Add/manage in Sheets; profile, role and branch assignments remain separate operations. Retain branch/search URL scope, action-specific permissions, self-change protection and unavailable option-list states.
+  - Component coverage verifies populated table rows, detail-only access, add/manage sheets, dirty-draft confirmation, protected branch selection, filter-preserving pagination, create failure retention, and separate profile/role/branch actions. Full fixture viewport checks remain in the final browser pass.
 - [x] `/branches`: table for name/code, address, opening date, dine-in and status. Create/edit in Dialogs; code immutable on edit. Preserve pagination, branch assignment rules and confirmed deactivation. Add no unsupported search/summary.
   - Tests cover scoped action visibility, code immutability, create/update/deactivate payloads, dirty creation dismissal, validation failure retention, empty state, pagination, and keyboard confirmation. Fixture data includes multiple pages, inactive records, and long names; fixture mutation retry and response schemas are checked.
 
@@ -79,9 +80,11 @@ Split a boundary where its smaller coherent pieces can be reviewed/tested indepe
 - `b8e0083` — execution specification, route checklist, and baseline evidence.
 - `3203931` — opt-in operational styling and shared presentation helpers.
 - `9de6e2f` — Roles table and permission sheets.
-- `76045d9` — local HTTP fixture foundation with fake auth, role mutations, and schema-checked permission catalog. The fixture currently covers the Roles pilot; endpoint records and mutation responses will be added alongside the pages they verify. This fixture does not replace the real isolated-auth browser harness.
+- `76045d9` — local HTTP fixture foundation with fake auth, role mutations, and schema-checked permission catalog. Extended by `8c30d33` with deterministic branch records, pagination, status/long-name states, create/update/deactivate mutations, and one-shot failure responses. This fixture does not replace the real isolated-auth browser harness.
 - `f89b644` — explicit per-catalog column configuration, shadcn tables, server GET filters, full read-only record details and guarded create/edit dialogs across Suppliers, Stock Items, and Products.
-- Pending branch commit — branch table, create/edit dialogs, confirmed deactivation, and deterministic paginated branch API fixture records.
+- `8c30d33` — branch table, create/edit dialogs, confirmed deactivation, shared in-content retry state, and deterministic paginated branch API fixture records.
+- `bdbbd08` — Staff directory table, add/manage sheets, read-only account details, separate profile/role/branch actions, branch-aware GET filters, dirty-draft confirmation, and focused component coverage.
+- `cb9f05a` — Staff fixture responses and mutations, including deterministic 26-record pagination, long/inactive examples, branch filtering, schema validation, and retry/error behavior.
 
 ## Baseline and acceptance
 
