@@ -165,6 +165,15 @@ describe("recipe editor", () => {
         .textContent,
     ).toContain("Flour (kg)");
 
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole("button", {
+            name: "Save recipe",
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false),
+    );
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
     expect(action).toHaveBeenLastCalledWith(productId, "create", {
