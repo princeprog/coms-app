@@ -23,7 +23,8 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 - [x] `/roles`: compact table for name/code, system/custom, grant summary, status, row actions. Create in a Sheet. Edit custom role name and permissions in independently submitted sections. Group permissions by module, show selected counts, allow local permission search, and preserve checked state while filtering/collapsing. System roles remain read-only. Render `SUPER_ADMIN` as global access and `NO_ACCESS` as no grants. Preserve deactivation rules/confirmation.
   - Component verification is complete for protected states, filtered grants, independent saves, pending state, dirty-form confirmation, and focus return. Responsive production-browser evidence remains in the final fixture pass.
 - [ ] `/staff`: table for name/email, role, branches, contact and status. Add/manage in Sheets; profile, role and branch assignments remain separate operations. Retain branch/search URL scope, action-specific permissions, self-change protection and unavailable option-list states.
-- [ ] `/branches`: table for name/code, address, opening date, dine-in and status. Create/edit in Dialogs; code immutable on edit. Preserve pagination, branch assignment rules and confirmed deactivation. Add no unsupported search/summary.
+- [x] `/branches`: table for name/code, address, opening date, dine-in and status. Create/edit in Dialogs; code immutable on edit. Preserve pagination, branch assignment rules and confirmed deactivation. Add no unsupported search/summary.
+  - Tests cover scoped action visibility, code immutability, create/update/deactivate payloads, dirty creation dismissal, validation failure retention, empty state, pagination, and keyboard confirmation. Fixture data includes multiple pages, inactive records, and long names; fixture mutation retry and response schemas are checked.
 
 ### Catalogs and product configuration
 
@@ -79,7 +80,8 @@ Split a boundary where its smaller coherent pieces can be reviewed/tested indepe
 - `3203931` — opt-in operational styling and shared presentation helpers.
 - `9de6e2f` — Roles table and permission sheets.
 - `76045d9` — local HTTP fixture foundation with fake auth, role mutations, and schema-checked permission catalog. The fixture currently covers the Roles pilot; endpoint records and mutation responses will be added alongside the pages they verify. This fixture does not replace the real isolated-auth browser harness.
-- Pending catalog commit — explicit per-catalog column configuration, shadcn tables, server GET filters, record details and guarded create/edit dialogs across Suppliers, Stock Items, and Products.
+- `f89b644` — explicit per-catalog column configuration, shadcn tables, server GET filters, full read-only record details and guarded create/edit dialogs across Suppliers, Stock Items, and Products.
+- Pending branch commit — branch table, create/edit dialogs, confirmed deactivation, and deterministic paginated branch API fixture records.
 
 ## Baseline and acceptance
 

@@ -9,11 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { CatalogDiscardConfirmation } from "@/features/catalogs/components/catalog-discard-confirmation";
+import { CatalogEditorFields } from "@/features/catalogs/components/catalog-editor-fields";
 import type {
   CatalogCreateAction,
   CatalogFieldDefinition,
@@ -126,48 +124,15 @@ export function CatalogEditorDialog({
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-5" onSubmit={submit}>
-          <FieldGroup className="gap-4">
-            {fields.map((field) => {
-              const id = `catalog-${idPrefix}-${field.key}`;
-              return (
-                <Field key={field.key}>
-                  <FieldLabel htmlFor={id}>{field.label}</FieldLabel>
-                  {field.type === "textarea" ? (
-                    <Textarea
-                      id={id}
-                      value={values[field.key] ?? ""}
-                      required={field.required}
-                      maxLength={field.maxLength}
-                      disabled={pending}
-                      onChange={(event) => {
-                        const value = event.currentTarget.value;
-                        setValues((current) => ({
-                          ...current,
-                          [field.key]: value,
-                        }));
-                      }}
-                    />
-                  ) : (
-                    <Input
-                      id={id}
-                      type={field.type ?? "text"}
-                      value={values[field.key] ?? ""}
-                      required={field.required}
-                      maxLength={field.maxLength}
-                      disabled={pending}
-                      onChange={(event) => {
-                        const value = event.currentTarget.value;
-                        setValues((current) => ({
-                          ...current,
-                          [field.key]: value,
-                        }));
-                      }}
-                    />
-                  )}
-                </Field>
-              );
-            })}
-          </FieldGroup>
+          <CatalogEditorFields
+            idPrefix={idPrefix}
+            fields={fields}
+            values={values}
+            pending={pending}
+            onChange={(key, value) =>
+              setValues((current) => ({ ...current, [key]: value }))
+            }
+          />
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}

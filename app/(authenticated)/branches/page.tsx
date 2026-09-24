@@ -8,7 +8,7 @@ import { BranchesManagement } from "@/features/branches/components/branches-mana
 import { getBranchPageData } from "@/features/branches/services/branch-queries";
 import type { BranchPage } from "@/features/branches/types/branch.types";
 import { ApiRequestError } from "@/services/api-services";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OperationalLoadError } from "@/components/shared/operational-load-error";
 
 export default async function BranchesPage({
   searchParams,
@@ -42,17 +42,10 @@ export default async function BranchesPage({
   if (!branches) {
     return (
       <AppPageShell user={session.user}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Unable to load branches</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p role="alert" className="text-sm text-muted-foreground">
-              COMS could not load branches. Try refreshing this page in a
-              moment.
-            </p>
-          </CardContent>
-        </Card>
+        <OperationalLoadError
+          title="Branches"
+          description="COMS could not load the branch list. Try again in a moment."
+        />
       </AppPageShell>
     );
   }

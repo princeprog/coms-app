@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { BranchDiscardConfirmation } from "@/features/branches/components/branch-discard-confirmation";
+import { BranchLocationFields } from "@/features/branches/components/branch-location-fields";
 import { updateBranchAction } from "@/features/branches/services/branch-actions";
 import type {
   Branch,
@@ -15,9 +24,13 @@ function dateInputValue(value: string | null) {
 
 export function BranchEditorForm({
   branch,
+  open,
+  onOpenChange,
   onComplete,
 }: {
   branch: Branch;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onComplete: () => void;
 }) {
   const [branchName, setBranchName] = useState(branch.branch_name);
@@ -28,6 +41,21 @@ export function BranchEditorForm({
   const [hasDineIn, setHasDineIn] = useState(branch.has_dine_in);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const dirty =
+    branchName !== branch.branch_name ||
+    address !== (branch.address ?? "") ||
+    dateOpened !== dateInputValue(branch.date_opened) ||
+    hasDineIn !== branch.has_dine_in;
+
+  function requestClose() {
+    if (pending) return;
+    if (dirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    onOpenChange(false);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,78 +79,69 @@ export function BranchEditorForm({
       setError(result.error);
       return;
     }
+    onOpenChange(false);
     onComplete();
   }
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={submit}>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor={`branch-name-${branch.id}`}
-            className="text-sm font-medium"
-          >
-            Branch name for {branch.branch_name}
-          </label>
-          <Input
-            id={`branch-name-${branch.id}`}
-            aria-label={`Branch name for ${branch.branch_name}`}
-            required
-            minLength={2}
-            maxLength={160}
-            value={branchName}
-            onChange={(event) => setBranchName(event.currentTarget.value)}
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) return;
+        requestClose();
+      }}
+    >
+      <DialogContent
+        data-coms-ui="operational"
+        className="max-h-[85vh] overflow-y-auto sm:max-w-lg"
+      >
+        <DialogHeader>
+          <DialogTitle>Edit branch</DialogTitle>
+          <DialogDescription>
+            Update {branch.branch_name}. The branch code is permanent.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="flex flex-col gap-5" onSubmit={submit}>
+          <BranchLocationFields
+            idPrefix={`branch-${branch.id}`}
+            branchName={branchName}
+            address={address}
+            dateOpened={dateOpened}
+            hasDineIn={hasDineIn}
+            disabled={pending}
+            onBranchNameChange={setBranchName}
+            onAddressChange={setAddress}
+            onDateOpenedChange={setDateOpened}
+            onHasDineInChange={setHasDineIn}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor={`branch-address-${branch.id}`}
-            className="text-sm font-medium"
-          >
-            Address
-          </label>
-          <Input
-            id={`branch-address-${branch.id}`}
-            maxLength={1000}
-            value={address}
-            onChange={(event) => setAddress(event.currentTarget.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor={`branch-date-opened-${branch.id}`}
-            className="text-sm font-medium"
-          >
-            Date opened
-          </label>
-          <Input
-            id={`branch-date-opened-${branch.id}`}
-            type="date"
-            value={dateOpened}
-            onChange={(event) => setDateOpened(event.currentTarget.value)}
-          />
-        </div>
-        <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-2 text-sm focus-within:ring-2 focus-within:ring-ring">
-          <input
-            type="checkbox"
-            className="size-4 accent-primary"
-            aria-label={`Dine-in seating at ${branch.branch_name}`}
-            checked={hasDineIn}
-            onChange={(event) => setHasDineIn(event.currentTarget.checked)}
-          />
-          Dine-in seating
-        </label>
-      </div>
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-      <div>
-        <Button type="submit" variant="outline" disabled={pending}>
-          {pending ? "Saving branch…" : "Save branch details"}
-        </Button>
-      </div>
-    </form>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={requestClose}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {pending ? "Saving branch…" : "Save branch details"}
+            </Button>
+          </DialogFooter>
+        </form>
+        <BranchDiscardConfirmation
+          open={discardOpen}
+          onOpenChange={setDiscardOpen}
+          onDiscard={() => {
+            setDiscardOpen(false);
+            onOpenChange(false);
+          }}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

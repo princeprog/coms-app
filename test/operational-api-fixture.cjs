@@ -57,7 +57,27 @@ function send(response, status, payload, headers = {}) {
 }
 
 function createState() {
-  return { roles: clone(seed.roles), failNext: null };
+  const branches = Array.from({ length: 26 }, (_, index) => {
+    const sequence = String(index + 1).padStart(12, "0");
+    return {
+      id: `10000000-0000-4000-8000-${sequence}`,
+      code: `FIXTURE_${String(index + 1).padStart(2, "0")}`,
+      branch_name:
+        index === 0
+          ? "Manila North"
+          : index === 1
+            ? "North Metro Commissary Branch with a deliberately long fixture name for responsive table truncation"
+            : `Fixture Branch ${String(index + 1).padStart(2, "0")}`,
+      address:
+        index === 0
+          ? "North Avenue, Quezon City"
+          : `Fixture address ${String(index + 1).padStart(2, "0")}`,
+      date_opened: `2024-${String((index % 12) + 1).padStart(2, "0")}-01`,
+      has_dine_in: index % 2 === 0,
+      status: index === 2 ? "inactive" : "active",
+    };
+  });
+  return { roles: clone(seed.roles), branches, failNext: null };
 }
 
 function createOperationalApiFixture({ gatewaySecret }) {
@@ -185,6 +205,63 @@ function createOperationalApiFixture({ gatewaySecret }) {
       }
       if (url.pathname === "/roles/permissions" && request.method === "GET") {
         return send(response, 200, seed.permissions);
+      }
+      if (url.pathname === "/branches" && request.method === "GET") {
+        const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+        const pageSize = Math.min(
+          100,
+          Math.max(1, Number(url.searchParams.get("page_size")) || 25),
+        );
+        const start = (page - 1) * pageSize;
+        return send(response, 200, {
+          items: state.branches.slice(start, start + pageSize),
+          total: state.branches.length,
+          page,
+          page_size: pageSize,
+        });
+      }
+      if (url.pathname === "/branches" && request.method === "POST") {
+        if (state.branches.some((branch) => branch.code === body?.code)) {
+          return send(response, 409, {
+            message: "Branch code already exists.",
+          });
+        }
+        const sequence = String(state.branches.length + 1).padStart(12, "0");
+        const id = `10000000-0000-4000-8000-${sequence}`;
+        state.branches.push({
+          id,
+          code: body.code,
+          branch_name: body.branch_name,
+          address: body.address ?? null,
+          date_opened: body.date_opened ?? null,
+          has_dine_in: body.has_dine_in,
+          status: "active",
+        });
+        return send(response, 201, { id });
+      }
+      const branchRoute = url.pathname.match(
+        /^\/branches\/([0-9a-f-]{36})(?:\/(deactivate))?$/i,
+      );
+      if (branchRoute && request.method === "PATCH" && !branchRoute[2]) {
+        const branch = state.branches.find(
+          (item) => item.id === branchRoute[1],
+        );
+        if (!branch)
+          return send(response, 404, { message: "Branch not found." });
+        branch.branch_name = body.branch_name;
+        branch.address = body.address ?? null;
+        branch.date_opened = body.date_opened ?? null;
+        branch.has_dine_in = body.has_dine_in;
+        return send(response, 204);
+      }
+      if (branchRoute && branchRoute[2] && request.method === "POST") {
+        const branch = state.branches.find(
+          (item) => item.id === branchRoute[1],
+        );
+        if (!branch)
+          return send(response, 404, { message: "Branch not found." });
+        branch.status = "inactive";
+        return send(response, 204);
       }
       if (url.pathname === "/roles" && request.method === "POST") {
         if (state.roles.some((role) => role.code === body?.code)) {
