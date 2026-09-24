@@ -41,8 +41,9 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 
 - [x] `/inventory`: scope/branch/search toolbar; separate balance and movement sections; adjustment stays tied to balance with required reason. Preserve scope, branch, inactive branch, exact decimal and paging behavior.
   - Tests cover client GET filters, branch selection, scope/search preservation, labeled keyboard-focusable table scroll regions, empty/error states, inactive restrictions, exact decimal adjustment payloads, retry behavior, and dirty adjustment confirmation.
-- [ ] `/receipts`: table for supplier/date/item count/total cost/status/detail. New receipt in a Sheet with existing supplier/date and repeatable stock lines. Preserve draft creation and retry keys.
-- [ ] `/receipts/[id]`: back link, metadata, received items, exact totals and posting data. Preserve supplied reference/photo information; post confirmation remains authorized; posted content is read-only.
+- [x] `/receipts`: compact table for supplier/date/item count/total cost/status/detail. New receipt uses a scrollable Sheet with supplier/date and repeatable stock lines. Preserve draft creation and retry keys.
+  - Tests cover client GET status/search, filter-preserving pagination, exact decimal payloads, idempotent retries, dirty-draft confirmation, validation, posting confirmation, and labeled table scroll regions. Fixture contracts cover active supplier/stock-item options, paginated draft/posted receipts, long values, create retry, posting, and detail.
+- [x] `/receipts/[id]`: back link, supplier/date/status/count/total metadata, received-items table, exact totals and posting data. The current receipt API schema has no reference/photo fields; none were invented. Post confirmation remains authorized; posted content is read-only.
 - [ ] `/replenishment`: table for branch/requester/item count/status/submitted/detail; request creation Sheet with branch and existing item/quantity lines.
 - [ ] `/replenishment/[id]`: metadata, item table, event history and only currently valid approve/reject/cancel/create-dispatch actions. Keep rejection reason-free.
 - [ ] `/dispatches`: table with branch/request/items/status/created/dispatched/detail. Draft creation stays connected to approved request; no free-form dispatch.
@@ -87,6 +88,8 @@ Split a boundary where its smaller coherent pieces can be reviewed/tested indepe
 - `bdbbd08` — Staff directory table, add/manage sheets, read-only account details, separate profile/role/branch actions, branch-aware GET filters, dirty-draft confirmation, and focused component coverage.
 - `cb9f05a` — Staff fixture responses and mutations, including deterministic 26-record pagination, long/inactive examples, branch filtering, schema validation, and retry/error behavior.
 - `27a5b8e` — Inventory scope/filter toolbar, responsive balances and movements, exact-decimal adjustment dialog, dirty-draft confirmation, and a focusable labeled table scroll container with no default UI style changes.
+- `08ea59a` — Receiving list/detail tables, Next.js search/status navigation, multi-line receipt Sheet with dirty-draft confirmation, and confirmed posting control.
+- `b1bb7d4` — schema-checked receipt list/detail/options, exact-decimal in-memory fixture create/retry/post responses, and fixture tests.
 
 ## Baseline and acceptance
 
