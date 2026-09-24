@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AppPageShell } from "@/components/layout/app-page-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OperationalLoadError } from "@/components/shared/operational-load-error";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
@@ -19,17 +19,12 @@ type SearchParams = Record<string, string | string[] | undefined>;
 
 function BranchOptionsError() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Branches unavailable</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p role="alert" className="text-sm text-muted-foreground">
-          COMS could not load your branch choices. Refresh this page to try
-          again.
-        </p>
-      </CardContent>
-    </Card>
+    <div data-coms-ui="operational" className="p-4 sm:p-6">
+      <OperationalLoadError
+        title="branch choices"
+        description="COMS could not load your branch choices. Try again in a moment."
+      />
+    </div>
   );
 }
 

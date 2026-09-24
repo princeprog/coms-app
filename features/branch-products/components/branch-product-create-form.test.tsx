@@ -3,7 +3,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { BranchProductMutationResult } from "@/features/branch-products/types/branch-product.types";
+import type { BranchProductCreateAction } from "@/features/branch-products/components/branch-product-create-form";
 import { BranchProductCreateForm } from "./branch-product-create-form";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
@@ -15,32 +15,40 @@ const products = [{ id: productId, product_name: "Chicken sandwich" }];
 
 afterEach(() => refresh.mockReset());
 
+async function openCreate(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Add offering" }));
+}
+
+async function chooseProduct(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("combobox", { name: "Product *" }));
+  await user.click(
+    await screen.findByRole("option", { name: "Chicken sandwich" }),
+  );
+}
+
+function renderCreate(action: BranchProductCreateAction) {
+  return render(
+    <BranchProductCreateForm
+      branchId={branchId}
+      branchName="Downtown"
+      products={products}
+      action={action}
+    />,
+  );
+}
+
 describe("branch product create form", () => {
   it("creates an offer with the selected product and exact price string", async () => {
     const user = userEvent.setup();
-    const action = vi
-      .fn<
-        (
-          branchId: string,
-          input: unknown,
-        ) => Promise<BranchProductMutationResult>
-      >()
-      .mockResolvedValue({ ok: true });
-    render(
-      <BranchProductCreateForm
-        branchId={branchId}
-        branchName="Downtown"
-        products={products}
-        action={action}
-      />,
-    );
+    const action = vi.fn<BranchProductCreateAction>().mockResolvedValue({
+      ok: true,
+    });
+    renderCreate(action);
 
-    await user.selectOptions(
-      screen.getByLabelText("Product to offer"),
-      productId,
-    );
-    await user.type(screen.getByLabelText("Offer price"), "000.1250");
-    await user.click(screen.getByRole("button", { name: "Add product offer" }));
+    await openCreate(user);
+    await chooseProduct(user);
+    await user.type(screen.getByLabelText("Offer price *"), "000.1250");
+    await user.click(screen.getByRole("button", { name: "Create offering" }));
 
     await waitFor(() =>
       expect(action).toHaveBeenCalledWith(branchId, {
@@ -49,69 +57,90 @@ describe("branch product create form", () => {
       }),
     );
     expect(refresh).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain(
+      "Offer added to Downtown.",
+    );
   });
 
-  it("rejects missing selections and malformed prices before calling the action", async () => {
+  it("validates missing choices and malformed decimal prices", async () => {
     const user = userEvent.setup();
-    const action = vi.fn().mockResolvedValue({ ok: true });
-    render(
-      <BranchProductCreateForm
-        branchId={branchId}
-        branchName="Downtown"
-        products={products}
-        action={action}
-      />,
-    );
+    const action = vi.fn<BranchProductCreateAction>().mockResolvedValue({
+      ok: true,
+    });
+    renderCreate(action);
 
-    await user.click(screen.getByRole("button", { name: "Add product offer" }));
+    await openCreate(user);
+    await user.click(screen.getByRole("button", { name: "Create offering" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(
       /select a product and enter a nonnegative decimal price/i,
     );
-    await user.selectOptions(
-      screen.getByLabelText("Product to offer"),
-      productId,
-    );
-    await user.type(screen.getByLabelText("Offer price"), "1e2");
-    await user.click(screen.getByRole("button", { name: "Add product offer" }));
+
+    await chooseProduct(user);
+    await user.type(screen.getByLabelText("Offer price *"), "1e2");
+    await user.click(screen.getByRole("button", { name: "Create offering" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(
       /select a product and enter a nonnegative decimal price/i,
     );
     expect(action).not.toHaveBeenCalled();
   });
 
-  it("keeps the form available and shows API errors for retry", async () => {
+  it("retains a failed create draft and retries the same values", async () => {
     const user = userEvent.setup();
     const action = vi
-      .fn<
-        (
-          branchId: string,
-          input: unknown,
-        ) => Promise<BranchProductMutationResult>
-      >()
-      .mockResolvedValue({
+      .fn<BranchProductCreateAction>()
+      .mockResolvedValueOnce({
         ok: false,
         error: "This product is already offered at the branch.",
-      });
-    render(
-      <BranchProductCreateForm
-        branchId={branchId}
-        branchName="Downtown"
-        products={products}
-        action={action}
-      />,
-    );
-    await user.selectOptions(
-      screen.getByLabelText("Product to offer"),
-      productId,
-    );
-    await user.type(screen.getByLabelText("Offer price"), "10.00");
-    await user.click(screen.getByRole("button", { name: "Add product offer" }));
+      })
+      .mockResolvedValue({ ok: true });
+    renderCreate(action);
 
+    await openCreate(user);
+    await chooseProduct(user);
+    await user.type(screen.getByLabelText("Offer price *"), "10.00");
+    await user.click(screen.getByRole("button", { name: "Create offering" }));
     expect((await screen.findByRole("alert")).textContent).toBe(
       "This product is already offered at the branch.",
     );
-    const priceInput = screen.getByLabelText("Offer price") as HTMLInputElement;
-    await waitFor(() => expect(priceInput.disabled).toBe(false));
-    expect(refresh).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Offer price *")).toHaveProperty(
+      "value",
+      "10.00",
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Product *" }).textContent,
+    ).toContain("Chicken sandwich");
+
+    await user.click(screen.getByRole("button", { name: "Create offering" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    expect(action).toHaveBeenLastCalledWith(branchId, {
+      product_id: productId,
+      price: "10.00",
+    });
+  });
+
+  it("asks before discarding a dirty draft and retains it when kept", async () => {
+    const user = userEvent.setup();
+    renderCreate(
+      vi.fn<BranchProductCreateAction>().mockResolvedValue({ ok: true }),
+    );
+
+    await openCreate(user);
+    await user.type(screen.getByLabelText("Offer price *"), "15.00");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      await screen.findByRole("alertdialog", {
+        name: "Discard unsaved offering?",
+      }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(screen.getByLabelText("Offer price *")).toHaveProperty(
+      "value",
+      "15.00",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Discard changes" }));
+    expect(screen.queryByRole("dialog", { name: "Add offering" })).toBeNull();
   });
 });

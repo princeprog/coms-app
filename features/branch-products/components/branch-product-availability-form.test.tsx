@@ -14,29 +14,42 @@ const productId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
 
 afterEach(() => refresh.mockReset());
 
+function renderAvailability(action: BranchProductOperationAction, props = {}) {
+  return render(
+    <BranchProductAvailabilityForm
+      branchId={branchId}
+      productId={productId}
+      productName="Chicken sandwich"
+      isAvailable
+      productIsActive
+      canUpdate
+      action={action}
+      {...props}
+    />,
+  );
+}
+
+async function openAvailability(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Change availability" }));
+}
+
+async function chooseUnavailable(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("combobox", { name: "Availability" }));
+  await user.click(
+    await screen.findByRole("option", { name: "Not available for sale" }),
+  );
+}
+
 describe("branch product availability form", () => {
-  it("saves availability as a separate action and refreshes the listing", async () => {
+  it("saves availability separately and refreshes the listing", async () => {
     const user = userEvent.setup();
     const action = vi
       .fn<BranchProductOperationAction>()
       .mockResolvedValue({ ok: true });
-    render(
-      <BranchProductAvailabilityForm
-        branchId={branchId}
-        productId={productId}
-        productName="Chicken sandwich"
-        isAvailable
-        productIsActive
-        canUpdate
-        action={action}
-      />,
-    );
+    renderAvailability(action);
 
-    await user.click(
-      screen.getByRole("checkbox", {
-        name: "Available for sale for Chicken sandwich",
-      }),
-    );
+    await openAvailability(user);
+    await chooseUnavailable(user);
     await user.click(screen.getByRole("button", { name: "Save availability" }));
 
     await waitFor(() =>
@@ -45,30 +58,35 @@ describe("branch product availability form", () => {
       }),
     );
     expect(refresh).toHaveBeenCalledOnce();
+    expect(screen.getByRole("status").textContent).toBe("Availability saved.");
   });
 
-  it("prevents re-enabling an inactive product and keeps availability read-only without permission", () => {
+  it("keeps availability read-only for inactive products or without permission", () => {
     const action = vi.fn<BranchProductOperationAction>().mockResolvedValue({
       ok: true,
     });
-    const { rerender } = render(
+    const { rerender } = renderAvailability(action, {
+      isAvailable: false,
+      productIsActive: false,
+    });
+    expect(
+      screen.queryByRole("button", { name: "Change availability" }),
+    ).toBeNull();
+
+    rerender(
       <BranchProductAvailabilityForm
         branchId={branchId}
         productId={productId}
         productName="Chicken sandwich"
-        isAvailable={false}
+        isAvailable
         productIsActive={false}
         canUpdate
         action={action}
       />,
     );
     expect(
-      (
-        screen.getByRole("checkbox", {
-          name: "Available for sale for Chicken sandwich",
-        }) as HTMLInputElement
-      ).disabled,
-    ).toBe(true);
+      screen.queryByRole("button", { name: "Change availability" }),
+    ).toBeNull();
 
     rerender(
       <BranchProductAvailabilityForm
@@ -81,12 +99,35 @@ describe("branch product availability form", () => {
         action={action}
       />,
     );
-    expect(screen.getByText("Available")).toBeTruthy();
     expect(
-      screen.queryByRole("checkbox", {
-        name: "Available for sale for Chicken sandwich",
-      }),
+      screen.queryByRole("button", { name: "Change availability" }),
     ).toBeNull();
     expect(action).not.toHaveBeenCalled();
+  });
+
+  it("confirms a dirty availability change before closing", async () => {
+    const user = userEvent.setup();
+    renderAvailability(
+      vi.fn<BranchProductOperationAction>().mockResolvedValue({ ok: true }),
+    );
+
+    await openAvailability(user);
+    await chooseUnavailable(user);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      await screen.findByRole("alertdialog", {
+        name: "Discard unsaved availability changes?",
+      }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(
+      screen.getByRole("combobox", { name: "Availability" }).textContent,
+    ).toContain("Not available for sale");
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Discard changes" }));
+    expect(
+      screen.queryByRole("dialog", { name: "Change availability" }),
+    ).toBeNull();
   });
 });

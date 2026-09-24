@@ -43,7 +43,7 @@ const operationAction = vi
   });
 
 describe("branch products management", () => {
-  it("shows branch filters, offer setup, and current offers", () => {
+  it("shows branch filters, a focused create action, and current offers", () => {
     render(
       <BranchProductsManagement
         branchOptions={branchOptions}
@@ -61,11 +61,15 @@ describe("branch products management", () => {
       />,
     );
 
+    expect(document.querySelector('[data-coms-ui="operational"]')).toBeTruthy();
     expect(screen.getByText(/configure branch-specific prices/i)).toBeTruthy();
     expect(screen.getByLabelText("Branch")).toBeTruthy();
-    expect(screen.getByText("Add a product offer")).toBeTruthy();
-    expect(screen.getByText("Products offered at Downtown")).toBeTruthy();
-    expect(screen.getAllByText("Chicken sandwich")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Add offering" })).toBeTruthy();
+    expect(screen.queryByLabelText("Offer price")).toBeNull();
+    expect(
+      screen.getByRole("table", { name: "Products offered at Downtown" }),
+    ).toBeTruthy();
+    expect(screen.getAllByText("Chicken sandwich")).toHaveLength(1);
   });
 
   it("keeps unavailable branch history accessible and reports the recovery path", () => {
@@ -90,6 +94,34 @@ describe("branch products management", () => {
       /choose another branch/i,
     );
     expect(screen.getByLabelText("Branch")).toBeTruthy();
-    expect(screen.queryByText("Add a product offer")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add offering" })).toBeNull();
+  });
+
+  it("keeps inactive branch offers readable and disables configuration", () => {
+    render(
+      <BranchProductsManagement
+        branchOptions={[{ ...branchOptions[0], status: "inactive" }]}
+        selectedBranch={{ ...branchOptions[0], status: "inactive" }}
+        filters={{ page: 1, search: "", requestedBranchId: branchId }}
+        page={page}
+        productOptions={[{ id: productId, product_name: "Chicken sandwich" }]}
+        productOptionsUnavailable={false}
+        canCreate={false}
+        canUpdatePrice={false}
+        canUpdateAvailability={false}
+        createAction={createAction}
+        priceAction={operationAction}
+        availabilityAction={operationAction}
+      />,
+    );
+
+    expect(screen.getByText(/branch is inactive/i)).toBeTruthy();
+    expect(screen.getByText("Chicken sandwich")).toBeTruthy();
+    expect(screen.getByText("125.00")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add offering" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change price" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Change availability" }),
+    ).toBeNull();
   });
 });
