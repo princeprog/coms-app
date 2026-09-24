@@ -128,7 +128,7 @@ describe("AuthenticatedAppShell", () => {
             resourceName="supplier"
             description="Maintain supplier contact details."
             routePath="/suppliers"
-            nameField="supplier_name"
+            displayColumns={[{ key: "supplier_name", label: "Supplier" }]}
             fields={[
               {
                 key: "supplier_name",
@@ -155,7 +155,10 @@ describe("AuthenticatedAppShell", () => {
     const sidebarBeforeMutation = screen.getByTestId("sidebar");
 
     await user.click(screen.getByRole("button", { name: "Add supplier" }));
-    await user.type(screen.getByLabelText("Supplier name"), supplier.supplier_name);
+    await user.type(
+      screen.getByLabelText("Supplier name"),
+      supplier.supplier_name,
+    );
     await user.click(screen.getByRole("button", { name: "Create supplier" }));
 
     expect(await screen.findByText(supplier.supplier_name)).toBeTruthy();

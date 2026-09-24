@@ -9,9 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CatalogDiscardConfirmation } from "@/features/catalogs/components/catalog-discard-confirmation";
 import type {
   CatalogCreateAction,
   CatalogFieldDefinition,
@@ -55,7 +57,22 @@ export function CatalogEditorDialog({
   );
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const resourceLabel = resourceName[0]?.toUpperCase() + resourceName.slice(1);
+  const idPrefix = resourceName.replaceAll(" ", "-");
+  const originalValues = initialValues(fields, record);
+  const isDirty = fields.some(
+    (field) => values[field.key] !== originalValues[field.key],
+  );
+
+  function requestClose() {
+    if (pending) return;
+    if (isDirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    onOpenChange(false);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,11 +107,14 @@ export function CatalogEditorDialog({
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (pending) return;
-        onOpenChange(nextOpen);
+        if (nextOpen) return;
+        requestClose();
       }}
     >
-      <DialogContent>
+      <DialogContent
+        data-coms-ui="operational"
+        className="max-h-[85vh] overflow-y-auto sm:max-w-lg"
+      >
         <DialogHeader>
           <DialogTitle>
             {record ? `Edit ${resourceName}` : `Create ${resourceName}`}
@@ -105,49 +125,49 @@ export function CatalogEditorDialog({
               : `Add a new ${resourceName} to the catalog.`}
           </DialogDescription>
         </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={submit}>
-          {fields.map((field) => {
-            const id = `catalog-${resourceName}-${field.key}`;
-            return (
-              <div key={field.key} className="flex flex-col gap-2">
-                <label htmlFor={id} className="text-sm font-medium">
-                  {field.label}
-                </label>
-                {field.type === "textarea" ? (
-                  <Textarea
-                    id={id}
-                    value={values[field.key] ?? ""}
-                    required={field.required}
-                    maxLength={field.maxLength}
-                    disabled={pending}
-                    onChange={(event) => {
-                      const value = event.currentTarget.value;
-                      setValues((current) => ({
-                        ...current,
-                        [field.key]: value,
-                      }));
-                    }}
-                  />
-                ) : (
-                  <Input
-                    id={id}
-                    type={field.type ?? "text"}
-                    value={values[field.key] ?? ""}
-                    required={field.required}
-                    maxLength={field.maxLength}
-                    disabled={pending}
-                    onChange={(event) => {
-                      const value = event.currentTarget.value;
-                      setValues((current) => ({
-                        ...current,
-                        [field.key]: value,
-                      }));
-                    }}
-                  />
-                )}
-              </div>
-            );
-          })}
+        <form className="flex flex-col gap-5" onSubmit={submit}>
+          <FieldGroup className="gap-4">
+            {fields.map((field) => {
+              const id = `catalog-${idPrefix}-${field.key}`;
+              return (
+                <Field key={field.key}>
+                  <FieldLabel htmlFor={id}>{field.label}</FieldLabel>
+                  {field.type === "textarea" ? (
+                    <Textarea
+                      id={id}
+                      value={values[field.key] ?? ""}
+                      required={field.required}
+                      maxLength={field.maxLength}
+                      disabled={pending}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setValues((current) => ({
+                          ...current,
+                          [field.key]: value,
+                        }));
+                      }}
+                    />
+                  ) : (
+                    <Input
+                      id={id}
+                      type={field.type ?? "text"}
+                      value={values[field.key] ?? ""}
+                      required={field.required}
+                      maxLength={field.maxLength}
+                      disabled={pending}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setValues((current) => ({
+                          ...current,
+                          [field.key]: value,
+                        }));
+                      }}
+                    />
+                  )}
+                </Field>
+              );
+            })}
+          </FieldGroup>
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -158,7 +178,7 @@ export function CatalogEditorDialog({
               type="button"
               variant="outline"
               disabled={pending}
-              onClick={() => onOpenChange(false)}
+              onClick={requestClose}
             >
               Cancel
             </Button>
@@ -171,6 +191,15 @@ export function CatalogEditorDialog({
             </Button>
           </DialogFooter>
         </form>
+        <CatalogDiscardConfirmation
+          resourceName={resourceName}
+          open={discardOpen}
+          onOpenChange={setDiscardOpen}
+          onDiscard={() => {
+            setDiscardOpen(false);
+            onOpenChange(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -21,13 +21,11 @@ import type {
 export function CatalogDeactivateControl({
   recordId,
   recordName,
-  resourceName,
   action,
   onComplete,
 }: {
   recordId: string;
   recordName: string;
-  resourceName: string;
   action: CatalogDeactivateAction;
   onComplete: () => void;
 }) {
@@ -68,14 +66,16 @@ export function CatalogDeactivateControl({
         render={
           <Button
             type="button"
-            variant="destructive"
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
             aria-label={`Deactivate ${recordName}`}
           >
-            Deactivate {resourceName}
+            Deactivate
           </Button>
         }
       />
-      <AlertDialogContent>
+      <AlertDialogContent data-coms-ui="operational">
         <AlertDialogHeader>
           <AlertDialogTitle>Deactivate {recordName}?</AlertDialogTitle>
           <AlertDialogDescription>

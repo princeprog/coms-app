@@ -27,9 +27,10 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 
 ### Catalogs and product configuration
 
-- [ ] `/suppliers`: table for name/contact/phone/email/status; address in detail/edit. Keep supported search and active filter; reuse shared catalog behavior and authorized actions.
-- [ ] `/stock-items`: table for name/category/unit/status; preserve search/filter, validation and soft deactivation.
-- [ ] `/products`: table for name/description/status; no price here. Recipe link only with permission; create/edit dialogs.
+- [x] `/suppliers`: table for name/contact/phone/email/status; address in detail/edit. Keep supported search and active filter; reuse shared catalog behavior and authorized actions.
+- [x] `/stock-items`: table for name/category/unit/status; preserve search/filter, validation and soft deactivation.
+- [x] `/products`: table for name/description/status; no price here. Recipe link only with permission; create/edit dialogs.
+  - Shared catalog component tests cover explicit columns, full read-only details, filters and pagination, permission-gated row actions, dirty-form discard, server rejection/retry, and successful mutation refresh. Production-browser verification against the populated API fixture remains in the final pass.
 - [ ] `/recipes`: compact product list and existing paging; no inferred completeness metrics.
 - [ ] `/recipes/[productId]`: back link, product/status, notices, ingredient table/editor. Keep positive decimal quantities, units, inactive-item history, duplicate validation and read-only access. Repeatable accessible fields and one existing save action.
 - [ ] `/branch-products`: branch + existing filters and a table for product/price/availability/status. Add offering, change price, and change availability use distinct dialogs/actions/permissions. Inactive branch/product behavior remains.
@@ -71,6 +72,14 @@ At every boundary verify branch `dev`, inspect staged diff, stage explicit files
 14. Full browser/visual/accessibility regression and documentation.
 
 Split a boundary where its smaller coherent pieces can be reviewed/tested independently. No `git add .`, unrelated commits, API edits, squashing, rebasing, or pushing.
+
+## Execution ledger
+
+- `b8e0083` — execution specification, route checklist, and baseline evidence.
+- `3203931` — opt-in operational styling and shared presentation helpers.
+- `9de6e2f` — Roles table and permission sheets.
+- `76045d9` — local HTTP fixture foundation with fake auth, role mutations, and schema-checked permission catalog. The fixture currently covers the Roles pilot; endpoint records and mutation responses will be added alongside the pages they verify. This fixture does not replace the real isolated-auth browser harness.
+- Pending catalog commit — explicit per-catalog column configuration, shadcn tables, server GET filters, record details and guarded create/edit dialogs across Suppliers, Stock Items, and Products.
 
 ## Baseline and acceptance
 

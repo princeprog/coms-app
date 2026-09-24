@@ -6,7 +6,11 @@ import { AuthServiceError } from "@/features/auth/components/auth-service-error"
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { hasPermission } from "@/features/auth/permissions";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
-import { productFields, productsEndpoint } from "@/features/products/constants";
+import {
+  productDisplayColumns,
+  productFields,
+  productsEndpoint,
+} from "@/features/products/constants";
 import {
   createProductAction,
   deactivateProductAction,
@@ -66,7 +70,7 @@ export default async function ProductsPage({
         resourceName="product"
         description="Maintain product definitions. Branch prices and recipes are managed separately."
         routePath={productsEndpoint}
-        nameField="product_name"
+        displayColumns={productDisplayColumns}
         fields={productFields}
         page={pageData}
         search={search}

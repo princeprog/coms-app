@@ -7,6 +7,7 @@ import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { hasPermission } from "@/features/auth/permissions";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import {
+  stockItemDisplayColumns,
   stockItemFields,
   stockItemsEndpoint,
 } from "@/features/stock-items/constants";
@@ -69,7 +70,7 @@ export default async function StockItemsPage({
         resourceName="stock item"
         description="Maintain stock-item names, categories, and units for receiving and inventory."
         routePath={stockItemsEndpoint}
-        nameField="stock_item_name"
+        displayColumns={stockItemDisplayColumns}
         fields={stockItemFields}
         page={pageData}
         search={search}

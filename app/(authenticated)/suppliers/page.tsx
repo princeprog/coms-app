@@ -7,6 +7,7 @@ import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { hasPermission } from "@/features/auth/permissions";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import {
+  supplierDisplayColumns,
   supplierFields,
   suppliersEndpoint,
 } from "@/features/suppliers/constants";
@@ -69,7 +70,7 @@ export default async function SuppliersPage({
         resourceName="supplier"
         description="Maintain supplier contact details for commissary receiving."
         routePath={suppliersEndpoint}
-        nameField="supplier_name"
+        displayColumns={supplierDisplayColumns}
         fields={supplierFields}
         page={pageData}
         search={search}

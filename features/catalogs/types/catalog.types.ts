@@ -19,6 +19,11 @@ export type CatalogFieldDefinition = {
   maxLength?: number;
 };
 
+export type CatalogDisplayColumn = {
+  key: string;
+  label: string;
+};
+
 export type CatalogMutationResult = { ok: true } | { ok: false; error: string };
 
 export type CatalogCreateAction = (

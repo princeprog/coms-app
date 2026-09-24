@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CatalogManagement } from "./catalog-management";
+import type { CatalogDisplayColumn } from "@/features/catalogs/types/catalog.types";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -19,6 +20,12 @@ const fields = [
   },
   { key: "email", label: "Email", type: "email" as const, maxLength: 254 },
   { key: "address", label: "Address", type: "textarea" as const },
+];
+const displayColumns: CatalogDisplayColumn[] = [
+  { key: "supplier_name", label: "Supplier" },
+  { key: "contact_person", label: "Contact person" },
+  { key: "contact_number", label: "Phone" },
+  { key: "email", label: "Email" },
 ];
 
 const supplier = {
@@ -42,7 +49,7 @@ function renderCatalog(
       resourceName="supplier"
       description="Manage supplier contact details."
       routePath="/suppliers"
-      nameField="supplier_name"
+      displayColumns={displayColumns}
       fields={fields}
       page={{ items: [supplier], total: 1, page: 1, page_size: 25 }}
       search=""
@@ -61,6 +68,37 @@ function renderCatalog(
 describe("catalog management", () => {
   beforeEach(() => {
     refresh.mockClear();
+  });
+
+  it("renders explicit catalog columns and keeps long-form address in record details", async () => {
+    const user = userEvent.setup();
+    renderCatalog();
+
+    const table = screen.getByRole("table", { name: "Suppliers" });
+    expect(
+      within(table).getByRole("columnheader", { name: "Supplier" }),
+    ).toBeTruthy();
+    expect(
+      within(table).getByRole("columnheader", { name: "Contact person" }),
+    ).toBeTruthy();
+    expect(
+      within(table).getByRole("columnheader", { name: "Phone" }),
+    ).toBeTruthy();
+    expect(
+      within(table).getByRole("columnheader", { name: "Email" }),
+    ).toBeTruthy();
+    expect(within(table).queryByText("Address")).toBeNull();
+
+    await user.click(
+      screen.getByRole("button", { name: "View North Farm Supply details" }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Supplier details" }),
+    ).toBeTruthy();
+    expect(screen.getByText("Address")).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getAllByText("—")).toHaveLength(
+      1,
+    );
   });
 
   it("creates a catalog entry after trimming text and clearing blank optional fields", async () => {
@@ -84,6 +122,71 @@ describe("catalog management", () => {
       }),
     );
     expect(screen.getByRole("status").textContent).toBe("Supplier created.");
+  });
+
+  it("confirms discarding a dirty form and preserves the draft when asked to keep editing", async () => {
+    const user = userEvent.setup();
+    renderCatalog({ page: { items: [], total: 0, page: 1, page_size: 25 } });
+
+    await user.click(screen.getByRole("button", { name: "Add supplier" }));
+    await user.type(
+      screen.getByLabelText("Supplier name"),
+      "North Farm Supply",
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    const confirmation = screen.getByRole("alertdialog", {
+      name: "Discard unsaved supplier changes?",
+    });
+    await user.click(
+      within(confirmation).getByRole("button", { name: "Keep editing" }),
+    );
+    expect(screen.getByLabelText("Supplier name")).toHaveProperty(
+      "value",
+      "North Farm Supply",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    const secondConfirmation = screen.getByRole("alertdialog", {
+      name: "Discard unsaved supplier changes?",
+    });
+    await user.click(
+      within(secondConfirmation).getByRole("button", {
+        name: "Discard changes",
+      }),
+    );
+    expect(
+      screen.queryByRole("dialog", { name: "Create supplier" }),
+    ).toBeNull();
+  });
+
+  it("retains catalog form values after server rejection so the user can retry", async () => {
+    const user = userEvent.setup();
+    createAction.mockClear();
+    createAction
+      .mockResolvedValueOnce({
+        ok: false as const,
+        error: "Supplier name already exists.",
+      })
+      .mockResolvedValueOnce({ ok: true as const });
+    renderCatalog({ page: { items: [], total: 0, page: 1, page_size: 25 } });
+
+    await user.click(screen.getByRole("button", { name: "Add supplier" }));
+    await user.type(
+      screen.getByLabelText("Supplier name"),
+      "North Farm Supply",
+    );
+    await user.click(screen.getByRole("button", { name: "Create supplier" }));
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Supplier name already exists.",
+    );
+    expect(screen.getByLabelText("Supplier name")).toHaveProperty(
+      "value",
+      "North Farm Supply",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Create supplier" }));
+    await waitFor(() => expect(createAction).toHaveBeenCalledTimes(2));
   });
 
   it("updates the selected record without changing other values", async () => {
@@ -144,7 +247,7 @@ describe("catalog management", () => {
     expect(
       screen.getByRole("searchbox", { name: "Search suppliers" }),
     ).toHaveProperty("value", "North Farm");
-    expect(screen.getByLabelText("Status")).toHaveProperty("value", "true");
+    expect(screen.getByLabelText("Status").textContent).toMatch(/^Active/);
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
     ).toBe("/suppliers?page=2&search=North+Farm&is_active=true");

@@ -1,6 +1,15 @@
-import type { CatalogFieldDefinition } from "@/features/catalogs/types/catalog.types";
+import type {
+  CatalogDisplayColumn,
+  CatalogFieldDefinition,
+} from "@/features/catalogs/types/catalog.types";
 
 export const stockItemsEndpoint = "/stock-items";
+
+export const stockItemDisplayColumns: CatalogDisplayColumn[] = [
+  { key: "stock_item_name", label: "Stock item" },
+  { key: "category", label: "Category" },
+  { key: "unit", label: "Unit" },
+];
 
 export const stockItemFields: CatalogFieldDefinition[] = [
   {

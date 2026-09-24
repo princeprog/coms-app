@@ -4,14 +4,19 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { CatalogFilterForm } from "@/features/catalogs/components/catalog-filter-form";
+import {
+  OperationalEmptyState,
+  OperationalPageIntro,
+} from "@/components/shared/operational-page-ui";
+import { CatalogDetailsDialog } from "@/features/catalogs/components/catalog-details-dialog";
 import { CatalogEditorDialog } from "@/features/catalogs/components/catalog-editor-dialog";
-import { CatalogEntryCard } from "@/features/catalogs/components/catalog-entry-card";
+import { CatalogFilterForm } from "@/features/catalogs/components/catalog-filter-form";
 import { CatalogPagination } from "@/features/catalogs/components/catalog-pagination";
+import { CatalogTable } from "@/features/catalogs/components/catalog-table";
 import type {
   CatalogCreateAction,
   CatalogDeactivateAction,
+  CatalogDisplayColumn,
   CatalogFieldDefinition,
   CatalogPage,
   CatalogRecord,
@@ -23,7 +28,7 @@ export function CatalogManagement({
   resourceName,
   description,
   routePath,
-  nameField,
+  displayColumns,
   fields,
   page,
   search,
@@ -39,7 +44,7 @@ export function CatalogManagement({
   resourceName: string;
   description: string;
   routePath: string;
-  nameField: string;
+  displayColumns: CatalogDisplayColumn[];
   fields: CatalogFieldDefinition[];
   page: CatalogPage;
   search: string;
@@ -54,6 +59,9 @@ export function CatalogManagement({
   const router = useRouter();
   const [editorRecord, setEditorRecord] = useState<CatalogRecord | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [detailsRecord, setDetailsRecord] = useState<CatalogRecord | null>(
+    null,
+  );
   const [status, setStatus] = useState("");
   const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));
   const resourceLabel = resourceName[0]?.toUpperCase() + resourceName.slice(1);
@@ -70,22 +78,21 @@ export function CatalogManagement({
 
   return (
     <div className="flex flex-col gap-6">
-      <section
-        className="flex flex-wrap items-center justify-between gap-4"
-        aria-label={`${title} summary`}
-      >
-        <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
-        <div className="flex items-center gap-3">
+      <OperationalPageIntro
+        description={description}
+        count={
           <Badge variant="outline">
             {page.total} {page.total === 1 ? resourceName : `${resourceName}s`}
           </Badge>
-          {canCreate && (
+        }
+        actions={
+          canCreate ? (
             <Button type="button" onClick={openCreate}>
               Add {resourceName}
             </Button>
-          )}
-        </div>
-      </section>
+          ) : undefined
+        }
+      />
 
       <CatalogFilterForm
         title={title}
@@ -96,62 +103,58 @@ export function CatalogManagement({
       />
 
       <section
-        aria-labelledby={`${resourceName}-directory-heading`}
+        aria-labelledby="catalog-directory-heading"
         className="flex flex-col gap-4"
       >
         <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2
-              id={`${resourceName}-directory-heading`}
-              className="text-lg font-semibold"
-            >
-              {title} directory
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Page {page.page} of {pageCount}
-            </p>
-          </div>
+          <h2 id="catalog-directory-heading" className="text-lg font-semibold">
+            Directory
+          </h2>
           {page.total > 0 && (
             <p className="text-sm text-muted-foreground">
-              Showing {page.items.length} of {page.total}
+              Showing {page.items.length} of {page.total} · Page {page.page} of{" "}
+              {pageCount}
             </p>
           )}
         </div>
+
         {page.items.length > 0 ? (
-          <div className="grid gap-4 xl:grid-cols-2">
-            {page.items.map((record) => (
-              <CatalogEntryCard
-                key={record.id}
-                record={record}
-                nameField={nameField}
-                resourceName={resourceName}
-                fields={fields}
-                canUpdate={canUpdate}
-                canDeactivate={canDeactivate}
-                onEdit={openEdit}
-                onDeactivated={() => {
-                  setStatus(`${resourceLabel} deactivated.`);
-                  router.refresh();
-                }}
-                deactivateAction={deactivateAction}
-              />
-            ))}
+          <div className="overflow-hidden rounded-lg border bg-card">
+            <CatalogTable
+              title={title}
+              pageItems={page.items}
+              columns={displayColumns}
+              canUpdate={canUpdate}
+              canDeactivate={canDeactivate}
+              onView={setDetailsRecord}
+              onEdit={openEdit}
+              onDeactivated={(record) => {
+                setStatus(`${resourceLabel} deactivated.`);
+                setDetailsRecord((current) =>
+                  current?.id === record.id
+                    ? { ...current, is_active: false }
+                    : current,
+                );
+                router.refresh();
+              }}
+              deactivateAction={deactivateAction}
+            />
           </div>
         ) : (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <p className="font-medium">
-                {search || activeFilter !== "all"
-                  ? `No ${title.toLowerCase()} match these filters.`
-                  : `No ${title.toLowerCase()} are available yet.`}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {canCreate
+          <OperationalEmptyState
+            title={
+              search || activeFilter !== "all"
+                ? `No ${title.toLowerCase()} found`
+                : `No ${title.toLowerCase()} yet`
+            }
+            description={
+              search || activeFilter !== "all"
+                ? "Try changing or clearing the current filters."
+                : canCreate
                   ? `Add the first ${resourceName} to get started.`
-                  : `Ask an administrator to add a ${resourceName}.`}
-              </p>
-            </CardContent>
-          </Card>
+                  : `Ask an administrator to add a ${resourceName}.`
+            }
+          />
         )}
 
         <CatalogPagination
@@ -183,6 +186,15 @@ export function CatalogManagement({
           }}
         />
       )}
+      <CatalogDetailsDialog
+        open={detailsRecord !== null}
+        record={detailsRecord}
+        resourceName={resourceName}
+        fields={fields}
+        onOpenChange={(open) => {
+          if (!open) setDetailsRecord(null);
+        }}
+      />
       {status && (
         <p
           role="status"
