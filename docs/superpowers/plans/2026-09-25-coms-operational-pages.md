@@ -47,9 +47,10 @@ Dashboard appearance/content/data, the shared authenticated shell/sidebar/header
 - [x] `/replenishment`: compact table for branch/requester/item count/status/submitted/detail; client GET status/branch filters; multi-item request Sheet with branch and existing item/quantity fields, dirty-draft confirmation, retained errors, and unchanged idempotency behavior.
 - [x] `/replenishment/[id]`: metadata, requested-item table, event history, and only currently valid approve/reject/cancel/create-dispatch actions. Rejection remains reason-free; dispatch creation remains an approved-request action.
   - Feature and fixture coverage passes 38 tests across 10 files, including filter state/page reset, unavailable branch choices, sheet validation and dirty dismissal, exact decimal payloads, idempotent retry, conflict handling, request event history, and approve/reject/cancel transitions. Lint, typecheck, and targeted Prettier checks pass. Browser screenshots and viewport checks remain in the final acceptance pass.
-- [ ] `/dispatches`: table with branch/request/items/status/created/dispatched/detail. Draft creation stays connected to approved request; no free-form dispatch.
-- [ ] `/dispatches/[id]`: quantities requested/dispatched/received/shortage-closed/in-transit plus separate history. Post, partial receive and reasoned shortage close remain confirmed/authorized and idempotent; receive/shortage use Sheets.
-- [ ] Keep received amounts as existing decimal strings without a currency symbol; currency is not established.
+- [x] `/dispatches`: compact table with branch/request/items/status/created/dispatched/detail. Draft creation stays connected to approved request; no free-form dispatch. Status filters use client GET navigation and reset pagination.
+- [x] `/dispatches/[id]`: quantity workspace for requested/dispatched/received/shortage-closed/in-transit plus separate dispatch, receipt, and shortage history. Posting remains confirmed; partial receive and reasoned shortage close use responsive Sheets with dirty-draft confirmation, existing authorization, decimal validation, and retry keys.
+  - Dispatch feature tests cover all workflow states, list filters, accessible table regions, transition sheets, explicit posting confirmation, and exact action payloads. The focused dispatch, stock-request, and operational fixture run passed 89 tests across 22 files; fixture contract tests passed 9/9. Lint, typecheck, Prettier, and whitespace checks passed. Populated production-browser and viewport evidence remains in the final pass.
+- [x] Keep received amounts as existing decimal strings without a currency symbol; the currency is not established.
 
 ### POS and reporting
 
@@ -94,6 +95,8 @@ Split a boundary where its smaller coherent pieces can be reviewed/tested indepe
 - `5277fa3` — Receiving plan checklist and milestone documentation.
 - `038c327` — Replenishment list/detail tables, client GET branch/status filters, multi-item request Sheet, guarded transitions, request history, and focused component tests.
 - `fe67c50` — Paginated stock-request fixture responses, schema validation, normalized decimal/idempotency behavior, and create/retry/transition tests.
+- `bd21f50` — Dispatch directory/detail tables, responsive transition Sheets, dirty-draft confirmation, and focused interaction tests.
+- `3905274` — Schema-checked dispatch fixture with 26 paginated records, all five workflow statuses, request-linked creation, posting, partial receipts, shortage history, and retry behavior.
 
 ## Baseline and acceptance
 
