@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -131,7 +132,7 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton
               className="h-auto data-[slot=sidebar-menu-button]:p-1.5!"
-              render={<a href="#" />}
+              render={<Link href="/dashboard" aria-label="Go to dashboard" />}
             >
               <Image
                 src="/images/emmas%20chicken%20house%20logo.png"
