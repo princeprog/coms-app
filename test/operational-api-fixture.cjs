@@ -1,6 +1,11 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
+const {
+  createDispatchSeed,
+  dispatchListItem,
+  handleDispatchRequest,
+} = require("./fixtures/dispatch-fixture.cjs");
 
 const seed = JSON.parse(
   fs.readFileSync(
@@ -246,10 +251,18 @@ function createState() {
       items: lines,
     };
   });
-  const stockRequests = Array.from({ length: 26 }, (_, index) => {
+  const stockRequests = Array.from({ length: 30 }, (_, index) => {
     const sequence = String(index + 1).padStart(12, "0");
-    const branch = branches[index % branches.length];
-    const status = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"][index % 4];
+    const branch =
+      index >= 26 ? branches[0] : branches[index % branches.length];
+    const status =
+      index === 0 || index === 4
+        ? "PENDING"
+        : index === 1 || index >= 5
+          ? "APPROVED"
+          : index === 2
+            ? "REJECTED"
+            : "CANCELLED";
     const items = [
       {
         id:
@@ -318,6 +331,8 @@ function createState() {
     stockItems,
     receipts,
     stockRequests,
+    dispatches: createDispatchSeed(stockRequests, seed),
+    dispatchActionKeys: [],
     failNext: null,
   };
 }
@@ -366,6 +381,7 @@ function createOperationalApiFixture({ gatewaySecret }) {
           stockItems: state.stockItems,
           receipts: state.receipts,
           stockRequests: state.stockRequests,
+          dispatches: state.dispatches.map(dispatchListItem),
         });
       }
 
@@ -448,6 +464,16 @@ function createOperationalApiFixture({ gatewaySecret }) {
       if (!isAuthenticated) {
         return send(response, 401, { message: "Unauthorized." });
       }
+
+      const dispatchResponse = handleDispatchRequest({
+        request,
+        response,
+        url,
+        body,
+        state,
+        seed,
+      });
+      if (dispatchResponse !== false) return dispatchResponse;
 
       if (
         (url.pathname === "/suppliers" || url.pathname === "/stock-items") &&

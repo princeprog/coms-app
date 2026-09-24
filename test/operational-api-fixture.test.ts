@@ -11,6 +11,10 @@ import {
   stockRequestPageSchema,
 } from "@/features/stock-requests/schemas/stock-request.schema";
 import {
+  dispatchDetailSchema,
+  dispatchPageSchema,
+} from "@/features/dispatches/schemas/dispatch.schema";
+import {
   supplierReceiptDetailSchema,
   supplierReceiptPageSchema,
 } from "@/features/supplier-receipts/schemas/supplier-receipt.schema";
@@ -548,7 +552,7 @@ describe("operational API fixture", () => {
       );
       const first = stockRequestPageSchema.parse(await firstResponse.json());
       expect(first.items).toHaveLength(25);
-      expect(first.total).toBe(26);
+      expect(first.total).toBe(30);
       expect(first.items.some((item) => item.status === "PENDING")).toBe(true);
       expect(first.items.some((item) => item.branch_name.length > 60)).toBe(
         true,
@@ -559,7 +563,7 @@ describe("operational API fixture", () => {
       );
       expect(
         stockRequestPageSchema.parse(await secondResponse.json()).items,
-      ).toHaveLength(1);
+      ).toHaveLength(5);
 
       const branchId = "10000000-0000-4000-8000-000000000002";
       const filteredResponse = await fetch(
@@ -690,6 +694,270 @@ describe("operational API fixture", () => {
       expect(
         stockRequestDetailSchema.parse(await cancelledResponse.json()).status,
       ).toBe("CANCELLED");
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("serves paginated dispatches with each workflow state and linked history", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const login = await fetch(fixture.baseUrl + "/auth/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-coms-auth-gateway": gatewaySecret,
+        },
+        body: JSON.stringify(seed.login),
+      });
+      const cookie = login.headers
+        .getSetCookie()
+        .map((value) => value.split(";")[0])
+        .join("; ");
+      const headers = { cookie, "x-coms-auth-gateway": gatewaySecret };
+
+      const firstResponse = await fetch(
+        fixture.baseUrl + "/dispatches?page=1&page_size=25",
+        { headers },
+      );
+      expect(firstResponse.status).toBe(200);
+      const firstPage = dispatchPageSchema.parse(await firstResponse.json());
+      expect(firstPage).toMatchObject({ total: 26, page: 1, page_size: 25 });
+      expect(firstPage.items).toHaveLength(25);
+      expect(new Set(firstPage.items.map((item) => item.status)).size).toBe(5);
+      const secondResponse = await fetch(
+        fixture.baseUrl + "/dispatches?page=2&page_size=25",
+        { headers },
+      );
+      const secondPage = dispatchPageSchema.parse(await secondResponse.json());
+      expect(secondPage.items).toHaveLength(1);
+      expect(secondPage.page).toBe(2);
+      expect(secondPage.items[0].branch_name.length).toBeGreaterThan(80);
+
+      const receivedResponse = await fetch(
+        fixture.baseUrl + "/dispatches?status=RECEIVED",
+        { headers },
+      );
+      const receivedPage = dispatchPageSchema.parse(
+        await receivedResponse.json(),
+      );
+      expect(receivedPage.total).toBe(5);
+      expect(
+        receivedPage.items.every((item) => item.status === "RECEIVED"),
+      ).toBe(true);
+
+      const partial = firstPage.items.find(
+        (dispatch) => dispatch.status === "PARTIALLY_RECEIVED",
+      );
+      expect(partial).toBeDefined();
+      const partialDetailResponse = await fetch(
+        fixture.baseUrl + "/dispatches/" + partial!.id,
+        { headers },
+      );
+      const partialDetail = dispatchDetailSchema.parse(
+        await partialDetailResponse.json(),
+      );
+      expect(
+        partialDetail.items.some((item) => item.quantity_in_transit !== "0"),
+      ).toBe(true);
+      expect(partialDetail.receipts[0]?.items.length).toBeGreaterThan(0);
+
+      const shortage = firstPage.items.find(
+        (dispatch) => dispatch.status === "CLOSED_WITH_SHORTAGE",
+      );
+      expect(shortage).toBeDefined();
+      const shortageResponse = await fetch(
+        fixture.baseUrl + "/dispatches/" + shortage!.id,
+        { headers },
+      );
+      const shortageDetail = dispatchDetailSchema.parse(
+        await shortageResponse.json(),
+      );
+      expect(shortageDetail.shortage_closures[0]?.reason).toBeTruthy();
+      expect(
+        shortageDetail.items.every((item) => item.quantity_in_transit === "0"),
+      ).toBe(true);
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("supports dispatch creation retry, posting, partial receipts, and shortage closure", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const login = await fetch(fixture.baseUrl + "/auth/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-coms-auth-gateway": gatewaySecret,
+        },
+        body: JSON.stringify(seed.login),
+      });
+      const cookie = login.headers
+        .getSetCookie()
+        .map((value) => value.split(";")[0])
+        .join("; ");
+      const headers = { cookie, "x-coms-auth-gateway": gatewaySecret };
+
+      const pendingCreate = await fetch(fixture.baseUrl + "/dispatches", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": "71000000-0000-4000-8000-000000000006",
+        },
+        body: JSON.stringify({
+          stock_request_id: "33000000-0000-4000-8000-000000000004",
+        }),
+      });
+      expect(pendingCreate.status).toBe(409);
+
+      const approved = await fetch(
+        fixture.baseUrl +
+          "/stock-requests/33000000-0000-4000-8000-000000000001/approve",
+        { method: "POST", headers },
+      );
+      expect(stockRequestDetailSchema.parse(await approved.json()).status).toBe(
+        "APPROVED",
+      );
+
+      const stockRequestId = "33000000-0000-4000-8000-000000000001";
+      const createBody = { stock_request_id: stockRequestId };
+      const createKey = "71000000-0000-4000-8000-000000000001";
+      await fetch(fixture.baseUrl + "/__fixture/fail-next", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          method: "POST",
+          path: "/dispatches",
+          status: 503,
+          message: "Fixture dispatch service unavailable.",
+        }),
+      });
+      const failedCreate = await fetch(fixture.baseUrl + "/dispatches", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": createKey,
+        },
+        body: JSON.stringify(createBody),
+      });
+      expect(failedCreate.status).toBe(503);
+
+      const createDispatch = () =>
+        fetch(fixture.baseUrl + "/dispatches", {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": createKey,
+          },
+          body: JSON.stringify(createBody),
+        });
+      const created = dispatchDetailSchema.parse(
+        await (await createDispatch()).json(),
+      );
+      expect(created).toMatchObject({
+        stock_request_id: stockRequestId,
+        status: "DRAFT",
+        events: [{ event_type: "CREATED" }],
+      });
+      expect(
+        dispatchDetailSchema.parse(await (await createDispatch()).json()).id,
+      ).toBe(created.id);
+
+      const dispatchKey = "71000000-0000-4000-8000-000000000002";
+      const postedResponse = await fetch(
+        fixture.baseUrl + "/dispatches/" + created.id + "/dispatch",
+        {
+          method: "POST",
+          headers: { ...headers, "Idempotency-Key": dispatchKey },
+        },
+      );
+      const posted = dispatchDetailSchema.parse(await postedResponse.json());
+      expect(posted.status).toBe("IN_TRANSIT");
+
+      const firstItem = posted.items.find(
+        (item) => item.quantity_dispatched === "12.5",
+      )!;
+      const receiveKey = "71000000-0000-4000-8000-000000000003";
+      const receiveBody = {
+        items: [{ dispatch_item_id: firstItem.id, quantity_received: "2.5" }],
+      };
+      const receive = () =>
+        fetch(fixture.baseUrl + "/dispatches/" + created.id + "/receive", {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": receiveKey,
+          },
+          body: JSON.stringify(receiveBody),
+        });
+      const firstReceipt = dispatchDetailSchema.parse(
+        await (await receive()).json(),
+      );
+      expect(firstReceipt.status).toBe("PARTIALLY_RECEIVED");
+      expect(
+        dispatchDetailSchema.parse(await (await receive()).json()).receipts,
+      ).toHaveLength(1);
+
+      const secondReceipt = await fetch(
+        fixture.baseUrl + "/dispatches/" + created.id + "/receive",
+        {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": "71000000-0000-4000-8000-000000000004",
+          },
+          body: JSON.stringify({
+            items: [
+              { dispatch_item_id: firstItem.id, quantity_received: "1.5" },
+            ],
+          }),
+        },
+      );
+      const partiallyReceived = dispatchDetailSchema.parse(
+        await secondReceipt.json(),
+      );
+      expect(partiallyReceived.receipts).toHaveLength(2);
+      expect(
+        partiallyReceived.items.find((item) => item.id === firstItem.id),
+      ).toMatchObject({
+        quantity_received: "4",
+        quantity_in_transit: "8.5",
+      });
+
+      const shortageResponse = await fetch(
+        fixture.baseUrl + "/dispatches/" + created.id + "/shortage-closures",
+        {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": "71000000-0000-4000-8000-000000000005",
+          },
+          body: JSON.stringify({
+            reason: "Fixture transport damage.",
+            items: [{ dispatch_item_id: firstItem.id, quantity_closed: "1" }],
+          }),
+        },
+      );
+      const closed = dispatchDetailSchema.parse(await shortageResponse.json());
+      expect(closed.shortage_closures).toHaveLength(1);
+      expect(closed.shortage_closures[0]).toMatchObject({
+        reason: "Fixture transport damage.",
+        items: [{ quantity_closed: "1" }],
+      });
+      expect(
+        closed.items.find((item) => item.id === firstItem.id),
+      ).toMatchObject({
+        quantity_received: "4",
+        quantity_shortage_closed: "1",
+        quantity_in_transit: "7.5",
+      });
     } finally {
       await fixture.close();
     }
