@@ -37,7 +37,7 @@ export function StockRequestFilter({
     <Form
       action={stockRequestsRoute}
       aria-label="Filter stock requests"
-      className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-[minmax(10rem,0.7fr)_minmax(12rem,1fr)_auto] sm:items-end"
+      className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2 sm:items-end lg:grid-cols-[minmax(10rem,0.7fr)_minmax(12rem,1fr)_auto]"
     >
       <Field className="min-w-0">
         <FieldLabel htmlFor="request-status">Request status</FieldLabel>

@@ -80,7 +80,7 @@ export function SupplierReceiptManagement({
         key={search + ":" + statusFilter}
         action="/receipts"
         aria-label="Filter supplier receipts"
-        className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-[minmax(12rem,1fr)_minmax(10rem,0.5fr)_auto] sm:items-end"
+        className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2 sm:items-end lg:grid-cols-[minmax(12rem,1fr)_minmax(10rem,0.5fr)_auto]"
       >
         <Field className="min-w-0">
           <FieldLabel htmlFor="receipt-search">Search supplier</FieldLabel>

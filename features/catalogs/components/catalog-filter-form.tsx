@@ -29,7 +29,7 @@ export function CatalogFilterForm({
   return (
     <Form
       action={routePath}
-      className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-[minmax(12rem,1fr)_12rem_auto_auto] sm:items-end"
+      className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 sm:items-end lg:grid-cols-[minmax(12rem,1fr)_12rem_auto_auto]"
       aria-label={`Filter ${title.toLowerCase()}`}
     >
       <div className="flex min-w-0 flex-col gap-2">

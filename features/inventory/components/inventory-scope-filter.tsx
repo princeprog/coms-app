@@ -71,7 +71,7 @@ export function InventoryScopeFilter({
         action="/inventory"
         className={
           scope === "BRANCH"
-            ? "grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_auto] sm:items-end"
+            ? "grid gap-3 sm:grid-cols-2 sm:items-end lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_auto]"
             : "grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_auto] sm:items-end"
         }
         aria-label="Filter inventory"
