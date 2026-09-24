@@ -2,8 +2,21 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SheetFooter } from "@/components/ui/sheet";
 import { createSupplierReceiptSchema } from "@/features/supplier-receipts/schemas/supplier-receipt.schema";
 import type {
   SupplierReceiptCreateAction,
@@ -21,12 +34,16 @@ export function SupplierReceiptCreateForm({
   stockItems,
   action,
   onPendingChange,
+  onDirtyChange,
+  onCancel,
   onCreated,
 }: {
   suppliers: Supplier[];
   stockItems: StockItem[];
   action: SupplierReceiptCreateAction;
   onPendingChange: (pending: boolean) => void;
+  onDirtyChange: (dirty: boolean) => void;
+  onCancel: () => void;
   onCreated: (id: string) => void;
 }) {
   const [pending, setPending] = useState(false);
@@ -54,6 +71,7 @@ export function SupplierReceiptCreateForm({
         line.key === key ? { ...line, [field]: value } : line,
       ),
     );
+    onDirtyChange(true);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -111,50 +129,65 @@ export function SupplierReceiptCreateForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="receipt-supplier" className="text-sm font-medium">
-            Supplier
-          </label>
-          <select
-            id="receipt-supplier"
-            value={supplierId}
-            disabled={pending}
-            onChange={(event) => setSupplierId(event.target.value)}
-            className="h-9 w-full rounded-3xl border border-transparent bg-input/50 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {suppliers.map((supplier) => (
-              <option key={supplier.id} value={supplier.id}>
-                {supplier.supplier_name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="receipt-date" className="text-sm font-medium">
-            Received date
-          </label>
-          <Input
-            id="receipt-date"
-            type="date"
-            value={receivedAt}
-            disabled={pending}
-            onChange={(event) => setReceivedAt(event.target.value)}
-            required
-          />
-        </div>
-      </div>
-      <SupplierReceiptLineFields
-        lines={lines}
-        stockItems={stockItems}
-        disabled={pending}
-        onChange={updateLine}
-        onRemove={(key) =>
-          setLines((current) => current.filter((line) => line.key !== key))
-        }
-      />
-      <div>
+    <form
+      onSubmit={submit}
+      className="flex min-h-0 flex-1 flex-col"
+      aria-label="Create supplier receipt"
+    >
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+        <FieldGroup className="gap-4">
+          <Field>
+            <FieldLabel htmlFor="receipt-supplier">Supplier</FieldLabel>
+            <Select
+              value={supplierId}
+              disabled={pending}
+              onValueChange={(value) => {
+                setSupplierId(value ?? "");
+                onDirtyChange(true);
+              }}
+            >
+              <SelectTrigger id="receipt-supplier" className="w-full">
+                <SelectValue>
+                  {(value: unknown) =>
+                    suppliers.find((supplier) => supplier.id === value)
+                      ?.supplier_name ?? "Select a supplier"
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent data-coms-ui="operational">
+                {suppliers.map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.supplier_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="receipt-date">Received date</FieldLabel>
+            <Input
+              id="receipt-date"
+              type="date"
+              value={receivedAt}
+              disabled={pending}
+              onChange={(event) => {
+                setReceivedAt(event.target.value);
+                onDirtyChange(true);
+              }}
+              required
+            />
+          </Field>
+        </FieldGroup>
+        <SupplierReceiptLineFields
+          lines={lines}
+          stockItems={stockItems}
+          disabled={pending}
+          onChange={updateLine}
+          onRemove={(key) => {
+            setLines((current) => current.filter((line) => line.key !== key));
+            onDirtyChange(true);
+          }}
+        />
         <Button
           type="button"
           variant="outline"
@@ -169,21 +202,33 @@ export function SupplierReceiptCreateForm({
                 unit_cost: "",
               },
             ]);
+            onDirtyChange(true);
           }}
         >
           Add stock item
         </Button>
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <FieldDescription>
+          Stock is unchanged until an authorized user posts the saved draft.
+        </FieldDescription>
       </div>
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-      <DialogFooter>
+      <SheetFooter className="flex-row justify-end border-t bg-background p-4 sm:p-6">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
         <Button type="submit" disabled={pending}>
           {pending ? "Saving draft…" : "Save draft"}
         </Button>
-      </DialogFooter>
+      </SheetFooter>
     </form>
   );
 }

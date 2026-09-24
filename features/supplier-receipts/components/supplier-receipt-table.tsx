@@ -24,13 +24,21 @@ export function SupplierReceiptTable({ page }: { page: SupplierReceiptPage }) {
         </h2>
         <p className="text-sm text-muted-foreground">{page.total} total</p>
       </div>
-      <Table aria-label="Supplier receipts">
+      <Table
+        aria-label="Supplier receipts"
+        containerProps={{
+          role: "region",
+          "aria-label": "Supplier receipts table",
+          tabIndex: 0,
+          className: "rounded-lg border",
+        }}
+      >
         <TableHeader>
           <TableRow>
             <TableHead>Supplier</TableHead>
             <TableHead>Received date</TableHead>
-            <TableHead>Items</TableHead>
-            <TableHead>Total cost</TableHead>
+            <TableHead className="text-right">Items</TableHead>
+            <TableHead className="text-right">Total cost</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Details</TableHead>
           </TableRow>
@@ -44,8 +52,10 @@ export function SupplierReceiptTable({ page }: { page: SupplierReceiptPage }) {
               <TableCell>
                 {format(parseISO(receipt.received_at), "PP")}
               </TableCell>
-              <TableCell>{receipt.item_count}</TableCell>
-              <TableCell className="tabular-nums">
+              <TableCell className="text-right tabular-nums">
+                {receipt.item_count}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
                 {receipt.total_cost}
               </TableCell>
               <TableCell>

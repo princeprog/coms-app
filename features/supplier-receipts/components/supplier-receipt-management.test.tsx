@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SupplierReceiptManagement } from "./supplier-receipt-management";
 
@@ -29,6 +30,39 @@ const page = {
 };
 
 describe("supplier receipt management", () => {
+  it("uses client navigation for the supported search and status filters", async () => {
+    const user = userEvent.setup();
+    render(
+      <SupplierReceiptManagement
+        page={page}
+        search="North Farm"
+        statusFilter="DRAFT"
+        canCreate={false}
+        formOptions={null}
+        formOptionsIssue={null}
+        createAction={vi.fn()}
+      />,
+    );
+
+    const form = screen.getByRole("form", { name: "Filter supplier receipts" });
+    expect(form.getAttribute("action")).toBe("/receipts");
+    expect(form.getAttribute("method")).toBeNull();
+    expect(
+      screen
+        .getByRole("combobox", { name: "Receipt status" })
+        .getAttribute("data-slot"),
+    ).toBe("select-trigger");
+    await user.click(screen.getByRole("combobox", { name: "Receipt status" }));
+    await user.click(await screen.findByRole("option", { name: "Posted" }));
+
+    expect(
+      form.querySelector('input[name="status"]')?.getAttribute("value"),
+    ).toBe("POSTED");
+    expect(
+      (screen.getByLabelText("Search supplier") as HTMLInputElement).value,
+    ).toBe("North Farm");
+  });
+
   it("shows filtered receipt rows and preserves filters in pagination", () => {
     render(
       <SupplierReceiptManagement
@@ -48,6 +82,11 @@ describe("supplier receipt management", () => {
     expect(screen.getByText("North Farm Supply")).toBeTruthy();
     expect(screen.getByText("DRAFT")).toBeTruthy();
     expect(screen.getByText("31.25")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("region", { name: "Supplier receipts table" })
+        .getAttribute("data-slot"),
+    ).toBe("table-container");
     expect(
       screen.getByRole("link", { name: "View receipt" }).getAttribute("href"),
     ).toBe(`/receipts/${receiptId}`);

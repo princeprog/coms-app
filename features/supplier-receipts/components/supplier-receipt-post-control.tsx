@@ -68,7 +68,7 @@ export function SupplierReceiptPostControl({
       <AlertDialogTrigger
         render={<Button type="button">Post receipt</Button>}
       />
-      <AlertDialogContent>
+      <AlertDialogContent data-coms-ui="operational">
         <AlertDialogHeader>
           <AlertDialogTitle>Post this receipt to inventory?</AlertDialogTitle>
           <AlertDialogDescription>

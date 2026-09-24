@@ -48,7 +48,20 @@ describe("supplier receipt create dialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Create receipt" }));
+    await user.click(screen.getByRole("button", { name: "New receipt" }));
+    expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
+      "operational",
+    );
+    expect(
+      screen
+        .getByRole("combobox", { name: "Supplier" })
+        .getAttribute("data-slot"),
+    ).toBe("select-trigger");
+    expect(
+      screen
+        .getByRole("combobox", { name: "Stock item for line 1" })
+        .getAttribute("data-slot"),
+    ).toBe("select-trigger");
     await user.type(screen.getByLabelText("Received date"), "2026-09-24");
     await user.type(
       screen.getByLabelText("Quantity received for line 1"),
@@ -98,7 +111,7 @@ describe("supplier receipt create dialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Create receipt" }));
+    await user.click(screen.getByRole("button", { name: "New receipt" }));
     await user.type(screen.getByLabelText("Received date"), "2026-09-24");
     await user.type(screen.getByLabelText("Quantity received for line 1"), "0");
     await user.type(screen.getByLabelText("Unit cost for line 1"), "2.50");
@@ -106,5 +119,36 @@ describe("supplier receipt create dialog", () => {
 
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(action).not.toHaveBeenCalled();
+  });
+
+  it("confirms before discarding a receipt draft and keeps entered values on cancel", async () => {
+    const user = userEvent.setup();
+    render(
+      <SupplierReceiptCreateDialog
+        suppliers={[supplier]}
+        stockItems={[stockItem]}
+        action={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "New receipt" }));
+    await user.type(screen.getByLabelText("Received date"), "2026-09-24");
+    await user.type(
+      screen.getByLabelText("Quantity received for line 1"),
+      "2.75",
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(
+      screen.getByRole("alertdialog", { name: "Discard receipt draft?" }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(screen.getByLabelText("Received date")).toHaveProperty(
+      "value",
+      "2026-09-24",
+    );
+    expect(
+      screen.getByLabelText("Quantity received for line 1"),
+    ).toHaveProperty("value", "2.75");
   });
 });

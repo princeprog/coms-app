@@ -1,6 +1,22 @@
+"use client";
+
+import { useState } from "react";
+import Form from "next/form";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  OperationalEmptyState,
+  OperationalPageIntro,
+} from "@/components/shared/operational-page-ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type {
   SupplierReceiptCreateAction,
   SupplierReceiptFormOptions,
@@ -31,45 +47,43 @@ export function SupplierReceiptManagement({
   const canCreateWithOptions = Boolean(
     canCreate && formOptions?.suppliers.length && formOptions.stockItems.length,
   );
+  const [statusChoice, setStatusChoice] = useState(statusFilter);
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Review supplier deliveries. Posting a draft records its received stock
-          in commissary inventory.
-        </p>
-        {canCreateWithOptions && (
-          <SupplierReceiptCreateDialog
-            suppliers={formOptions!.suppliers}
-            stockItems={formOptions!.stockItems}
-            action={createAction}
-          />
-        )}
-      </section>
+    <div data-coms-ui="operational" className="flex flex-col gap-6 p-4 md:p-6">
+      <OperationalPageIntro
+        description="Review supplier deliveries. Posting a draft records its received stock in commissary inventory."
+        count={<Badge variant="secondary">{page.total} receipts</Badge>}
+        actions={
+          canCreateWithOptions ? (
+            <SupplierReceiptCreateDialog
+              suppliers={formOptions!.suppliers}
+              stockItems={formOptions!.stockItems}
+              action={createAction}
+            />
+          ) : null
+        }
+      />
       {canCreate && !canCreateWithOptions && (
-        <Card>
-          <CardContent className="py-5">
-            <p role={formOptionsIssue ? "alert" : "status"} className="text-sm">
-              {formOptionsIssue === "permissions"
-                ? "Supplier and stock-item read permissions are required to prepare a receipt."
-                : formOptionsIssue
-                  ? "Receipt catalog options could not be loaded. Refresh this page to try again."
-                  : "Add an active supplier and stock item before creating a receipt."}
-            </p>
-          </CardContent>
-        </Card>
+        <p
+          role={formOptionsIssue ? "alert" : "status"}
+          className="rounded-lg border bg-card p-4 text-sm"
+        >
+          {formOptionsIssue === "permissions"
+            ? "Supplier and stock-item read permissions are required to prepare a receipt."
+            : formOptionsIssue
+              ? "Receipt catalog options could not be loaded. Refresh this page to try again."
+              : "Add an active supplier and stock item before creating a receipt."}
+        </p>
       )}
-      <form
+      <Form
+        key={search + ":" + statusFilter}
         action="/receipts"
-        method="get"
         aria-label="Filter supplier receipts"
-        className="grid gap-3 rounded-4xl border bg-card p-4 sm:grid-cols-[minmax(12rem,1fr)_minmax(10rem,0.5fr)_auto] sm:items-end"
+        className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-[minmax(12rem,1fr)_minmax(10rem,0.5fr)_auto] sm:items-end"
       >
-        <div className="flex flex-col gap-2">
-          <label htmlFor="receipt-search" className="text-sm font-medium">
-            Search supplier
-          </label>
+        <Field className="min-w-0">
+          <FieldLabel htmlFor="receipt-search">Search supplier</FieldLabel>
           <Input
             id="receipt-search"
             name="search"
@@ -77,41 +91,51 @@ export function SupplierReceiptManagement({
             maxLength={100}
             defaultValue={search}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="receipt-status" className="text-sm font-medium">
-            Receipt status
-          </label>
-          <select
-            id="receipt-status"
-            name="status"
-            defaultValue={statusFilter}
-            className="h-9 w-full rounded-3xl border border-transparent bg-input/50 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+        </Field>
+        <Field className="min-w-0">
+          <FieldLabel htmlFor="receipt-status">Receipt status</FieldLabel>
+          <Select
+            value={statusChoice}
+            onValueChange={(value) =>
+              setStatusChoice((value as typeof statusFilter | null) ?? "all")
+            }
           >
-            <option value="all">All statuses</option>
-            <option value="DRAFT">Draft</option>
-            <option value="POSTED">Posted</option>
-          </select>
-        </div>
-        <Button type="submit" variant="outline">
+            <SelectTrigger id="receipt-status" className="w-full">
+              <SelectValue>
+                {(value: unknown) =>
+                  value === "DRAFT"
+                    ? "Draft"
+                    : value === "POSTED"
+                      ? "Posted"
+                      : "All statuses"
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent data-coms-ui="operational">
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="DRAFT">Draft</SelectItem>
+              <SelectItem value="POSTED">Posted</SelectItem>
+            </SelectContent>
+          </Select>
+          <input type="hidden" name="status" value={statusChoice} />
+        </Field>
+        <Button type="submit" variant="outline" className="w-fit">
           Apply filters
         </Button>
-      </form>
+      </Form>
       {page.items.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="font-medium">
-              {search || statusFilter !== "all"
-                ? "No supplier receipts match these filters."
-                : "No supplier receipts have been recorded yet."}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {search || statusFilter !== "all"
-                ? "Change the supplier search or status filter to see more receipts."
-                : "Create a draft when a supplier delivery arrives, then post it after review."}
-            </p>
-          </CardContent>
-        </Card>
+        <OperationalEmptyState
+          title={
+            search || statusFilter !== "all"
+              ? "No supplier receipts match these filters."
+              : "No supplier receipts have been recorded yet."
+          }
+          description={
+            search || statusFilter !== "all"
+              ? "Change the supplier search or status filter to see more receipts."
+              : "Create a draft when a supplier delivery arrives, then post it after review."
+          }
+        />
       ) : (
         <SupplierReceiptTable page={page} />
       )}

@@ -49,6 +49,11 @@ describe("supplier receipt detail view", () => {
     expect(screen.getByText("North Farm Supply")).toBeTruthy();
     expect(screen.getByText("12.5 kg")).toBeTruthy();
     expect(screen.getAllByText("31.25")).toHaveLength(3);
+    expect(
+      screen
+        .getByRole("region", { name: "Receipt items table" })
+        .getAttribute("data-slot"),
+    ).toBe("table-container");
 
     await user.click(screen.getByRole("button", { name: "Post receipt" }));
     expect(screen.getByText("Post this receipt to inventory?")).toBeTruthy();

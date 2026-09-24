@@ -3,9 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -32,10 +31,10 @@ export function SupplierReceiptDetailView({
   const [status, setStatus] = useState("");
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-coms-ui="operational" className="flex flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
-          className={buttonVariants({ variant: "outline" })}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
           href="/receipts"
         >
           Back to receiving
@@ -52,22 +51,29 @@ export function SupplierReceiptDetailView({
         <p
           role="status"
           aria-live="polite"
-          className="text-sm text-muted-foreground"
+          className="rounded-md border border-emerald-600/30 bg-emerald-600/5 px-3 py-2 text-sm"
         >
           {status}
         </p>
       )}
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <CardTitle>Supplier receipt</CardTitle>
+      <section
+        aria-labelledby="receipt-summary-heading"
+        className="rounded-lg border bg-card"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b p-4 md:p-5">
+          <div className="space-y-1">
+            <h2 id="receipt-summary-heading" className="text-lg font-semibold">
+              Supplier receipt
+            </h2>
             <p className="text-sm text-muted-foreground">
               {receipt.supplier_name}
             </p>
           </div>
-          <Badge variant="outline">{receipt.status}</Badge>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
+          <OperationalStatusBadge variant="outline">
+            {receipt.status}
+          </OperationalStatusBadge>
+        </div>
+        <dl className="grid gap-x-6 gap-y-4 p-4 sm:grid-cols-2 lg:grid-cols-4 md:p-5">
           <DetailField
             label="Received date"
             value={format(parseISO(receipt.received_at), "PPP")}
@@ -76,67 +82,90 @@ export function SupplierReceiptDetailView({
             label="Line items"
             value={String(receipt.items.length)}
           />
-          <DetailField label="Total cost" value={receipt.total_cost} />
+          <DetailField label="Total cost" value={receipt.total_cost} numeric />
           {receipt.posted_at && (
             <DetailField
               label="Posted at"
               value={format(parseISO(receipt.posted_at), "PPp")}
             />
           )}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Received items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table aria-label="Receipt items">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Stock item</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Unit cost</TableHead>
-                <TableHead className="text-right">Line total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {receipt.items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">
-                    {item.stock_item_name}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {item.quantity_received} {item.unit}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {item.unit_cost}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {item.line_total}
-                  </TableCell>
-                </TableRow>
-              ))}
-              <TableRow>
-                <TableCell colSpan={3} className="text-right font-semibold">
-                  Total cost
+        </dl>
+      </section>
+      <section aria-labelledby="receipt-items-heading" className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 id="receipt-items-heading" className="text-lg font-semibold">
+              Received items
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Quantities and costs recorded for this delivery.
+            </p>
+          </div>
+        </div>
+        <Table
+          aria-label="Receipt items"
+          containerProps={{
+            role: "region",
+            "aria-label": "Receipt items table",
+            tabIndex: 0,
+            className: "rounded-lg border",
+          }}
+        >
+          <TableHeader>
+            <TableRow>
+              <TableHead>Stock item</TableHead>
+              <TableHead className="text-right">Quantity</TableHead>
+              <TableHead className="text-right">Unit cost</TableHead>
+              <TableHead className="text-right">Line total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {receipt.items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-medium">
+                  {item.stock_item_name}
                 </TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">
-                  {receipt.total_cost}
+                <TableCell className="text-right tabular-nums">
+                  {item.quantity_received} {item.unit}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {item.unit_cost}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {item.line_total}
                 </TableCell>
               </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            ))}
+            <TableRow>
+              <TableCell colSpan={3} className="text-right font-semibold">
+                Total cost
+              </TableCell>
+              <TableCell className="text-right font-semibold tabular-nums">
+                {receipt.total_cost}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </section>
     </div>
   );
 }
 
-function DetailField({ label, value }: { label: string; value: string }) {
+function DetailField({
+  label,
+  value,
+  numeric = false,
+}: {
+  label: string;
+  value: string;
+  numeric?: boolean;
+}) {
   return (
     <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-medium tabular-nums">{value}</p>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={"font-medium " + (numeric ? "tabular-nums" : "")}>
+        {value}
+      </dd>
     </div>
   );
 }
