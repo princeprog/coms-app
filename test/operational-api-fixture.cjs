@@ -11,6 +11,14 @@ const {
   handleSalesRequest,
   listItem: saleListItem,
 } = require("./fixtures/sales-fixture.cjs");
+const {
+  createDailyReportSeed,
+  handleDailyReportRequest,
+} = require("./fixtures/daily-reports-fixture.cjs");
+const {
+  createInventorySeed,
+  handleInventoryRequest,
+} = require("./fixtures/inventory-fixture.cjs");
 
 const seed = JSON.parse(
   fs.readFileSync(
@@ -388,6 +396,11 @@ function createState() {
     dispatchActionKeys: [],
     sales,
     saleActionKeys: [],
+    dailyReports: createDailyReportSeed({ branches, stockItems, seed }),
+    dailyReportActionKeys: [],
+    dailyReportEventSequence: 0,
+    fixtureUserId: seed.user.id,
+    ...createInventorySeed({ branches, stockItems, seed }),
     failNext: null,
   };
 }
@@ -526,6 +539,12 @@ function createOperationalApiFixture({ gatewaySecret }) {
           stockRequests: state.stockRequests,
           dispatches: state.dispatches.map(dispatchListItem),
           sales: state.sales.map(saleListItem),
+          dailyReports: state.dailyReports.map((report) => ({
+            id: report.id,
+            branch_id: report.branch_id,
+            business_date: report.business_date,
+            status: report.status,
+          })),
         });
       }
 
@@ -628,6 +647,26 @@ function createOperationalApiFixture({ gatewaySecret }) {
         seed,
       });
       if (dispatchResponse !== false) return dispatchResponse;
+
+      const dailyReportResponse = handleDailyReportRequest({
+        request,
+        response,
+        url,
+        body,
+        state,
+        seed,
+      });
+      if (dailyReportResponse !== false) return dailyReportResponse;
+
+      const inventoryResponse = handleInventoryRequest({
+        request,
+        response,
+        url,
+        body,
+        state,
+        seed,
+      });
+      if (inventoryResponse !== false) return inventoryResponse;
 
       if (url.pathname === "/products" && request.method === "GET") {
         const search = (url.searchParams.get("search") ?? "")

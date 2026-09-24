@@ -35,6 +35,14 @@ import {
   saleDetailSchema,
   salePageSchema,
 } from "@/features/sales/schemas/sale.schema";
+import {
+  dailyReportDetailSchema,
+  dailyReportPageSchema,
+} from "@/features/daily-reports/schemas/daily-report.schema";
+import {
+  inventoryMovementPageSchema,
+  inventoryPageSchema,
+} from "@/features/inventory/schemas/inventory.schema";
 
 const require = createRequire(import.meta.url);
 const { createOperationalApiFixture } =
@@ -67,6 +75,10 @@ async function getAuthenticatedHeaders(baseUrl: string) {
 
 function fixtureProductId(index: number) {
   return `35000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+}
+
+function fixtureReportId(index: number) {
+  return `69000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
 }
 
 describe("operational API fixture", () => {
@@ -1554,6 +1566,262 @@ describe("operational API fixture", () => {
         body: JSON.stringify({ reason: "Duplicate attempt." }),
       });
       expect(duplicateVoid.status).toBe(409);
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("serves schema-valid daily reports and simulates create, count, submit, return, and approval flows", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = await getAuthenticatedHeaders(fixture.baseUrl);
+      const branchId = "10000000-0000-4000-8000-000000000001";
+      const reportPath = `/branches/${branchId}/daily-reports`;
+      const firstPage = dailyReportPageSchema.parse(
+        await (
+          await fetch(`${fixture.baseUrl}${reportPath}?page=1&page_size=25`, {
+            headers,
+          })
+        ).json(),
+      );
+      expect(firstPage.items).toHaveLength(25);
+      expect(firstPage.total).toBe(26);
+      expect(
+        new Set(firstPage.items.map((item) => item.status)).size,
+      ).toBeGreaterThan(1);
+      const secondPage = dailyReportPageSchema.parse(
+        await (
+          await fetch(`${fixture.baseUrl}${reportPath}?page=2&page_size=25`, {
+            headers,
+          })
+        ).json(),
+      );
+      expect(secondPage.items).toHaveLength(1);
+
+      const initial = dailyReportDetailSchema.parse(
+        await (
+          await fetch(`${fixture.baseUrl}${reportPath}/${fixtureReportId(0)}`, {
+            headers,
+          })
+        ).json(),
+      );
+      expect(initial.items).toHaveLength(2);
+      expect(initial.items[0]?.physical_closing_quantity).toBeNull();
+
+      const idempotencyKey = "76000000-0000-4000-8000-000000000021";
+      const createBody = { business_date: "2026-09-24" };
+      const failNext = await fetch(`${fixture.baseUrl}/__fixture/fail-next`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          method: "POST",
+          path: reportPath,
+          status: 503,
+          message: "Fixture report service unavailable.",
+        }),
+      });
+      expect(failNext.status).toBe(204);
+      const failedCreate = await fetch(`${fixture.baseUrl}${reportPath}`, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify(createBody),
+      });
+      expect(failedCreate.status).toBe(503);
+      const createdResponse = await fetch(`${fixture.baseUrl}${reportPath}`, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify(createBody),
+      });
+      const created = dailyReportDetailSchema.parse(
+        await createdResponse.json(),
+      );
+      expect(created.status).toBe("DRAFT");
+      const retry = dailyReportDetailSchema.parse(
+        await (
+          await fetch(`${fixture.baseUrl}${reportPath}`, {
+            method: "POST",
+            headers: {
+              ...headers,
+              "content-type": "application/json",
+              "Idempotency-Key": idempotencyKey,
+            },
+            body: JSON.stringify(createBody),
+          })
+        ).json(),
+      );
+      expect(retry.id).toBe(created.id);
+
+      const update = await fetch(
+        `${fixture.baseUrl}${reportPath}/${created.id}`,
+        {
+          method: "PUT",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({
+            items: created.items.map((item, index) => ({
+              stock_item_id: item.stock_item_id,
+              physical_closing_quantity: index === 0 ? "10.5" : "3",
+              waste_quantity: index === 0 ? "0.5" : "0",
+              waste_reason: index === 0 ? "Damaged during prep" : "",
+              adjustment_quantity: index === 0 ? "-0.25" : "0",
+              adjustment_reason: index === 0 ? "Count correction" : "",
+            })),
+          }),
+        },
+      );
+      const updated = dailyReportDetailSchema.parse(await update.json());
+      expect(updated.items[0]).toMatchObject({
+        expected_closing_quantity: "10.25",
+        variance_quantity: "0.25",
+      });
+
+      const submittedResponse = await fetch(
+        `${fixture.baseUrl}${reportPath}/${created.id}/submit`,
+        {
+          method: "POST",
+          headers,
+        },
+      );
+      const submitted = dailyReportDetailSchema.parse(
+        await submittedResponse.json(),
+      );
+      expect(submitted.status).toBe("SUBMITTED");
+      const approvedResponse = await fetch(
+        `${fixture.baseUrl}${reportPath}/${created.id}/approve`,
+        {
+          method: "POST",
+          headers,
+        },
+      );
+      expect(
+        dailyReportDetailSchema.parse(await approvedResponse.json()).status,
+      ).toBe("APPROVED");
+
+      const returnedPath = `${reportPath}/${fixtureReportId(1)}/return`;
+      const invalidReturn = await fetch(`${fixture.baseUrl}${returnedPath}`, {
+        method: "POST",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify({ reason: " " }),
+      });
+      expect(invalidReturn.status).toBe(400);
+      const returned = await fetch(`${fixture.baseUrl}${returnedPath}`, {
+        method: "POST",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify({ reason: "Review the physical count." }),
+      });
+      expect(
+        dailyReportDetailSchema.parse(await returned.json()),
+      ).toMatchObject({
+        status: "RETURNED",
+        return_reason: "Review the physical count.",
+      });
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("serves schema-valid commissary and branch inventory with exact adjustment retries", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = await getAuthenticatedHeaders(fixture.baseUrl);
+      const branchId = "10000000-0000-4000-8000-000000000001";
+      const commissary = inventoryPageSchema.parse(
+        await (
+          await fetch(
+            `${fixture.baseUrl}/inventory/commissary?page=1&page_size=25`,
+            { headers },
+          )
+        ).json(),
+      );
+      const branch = inventoryPageSchema.parse(
+        await (
+          await fetch(
+            `${fixture.baseUrl}/inventory/branches/${branchId}?page=1&page_size=25`,
+            { headers },
+          )
+        ).json(),
+      );
+      expect(commissary.items).toHaveLength(25);
+      expect(branch.items[0]?.quantity_on_hand).toBe("20.25");
+      expect(
+        inventoryMovementPageSchema.parse(
+          await (
+            await fetch(
+              `${fixture.baseUrl}/inventory/commissary/movements?page=1&page_size=25`,
+              { headers },
+            )
+          ).json(),
+        ).items,
+      ).toHaveLength(25);
+      const secondBranchMovements = inventoryMovementPageSchema.parse(
+        await (
+          await fetch(
+            `${fixture.baseUrl}/inventory/branches/10000000-0000-4000-8000-000000000002/movements?page=1&page_size=25`,
+            { headers },
+          )
+        ).json(),
+      );
+      const firstBranchMovements = inventoryMovementPageSchema.parse(
+        await (
+          await fetch(
+            `${fixture.baseUrl}/inventory/branches/${branchId}/movements?page=1&page_size=25`,
+            { headers },
+          )
+        ).json(),
+      );
+      expect(
+        new Set(
+          [...firstBranchMovements.items, ...secondBranchMovements.items].map(
+            (item) => item.id,
+          ),
+        ).size,
+      ).toBe(50);
+
+      const key = "76000000-0000-4000-8000-000000000031";
+      const path = "/inventory/branches/" + branchId + "/adjustments";
+      const body = {
+        stock_item_id: branch.items[0]!.id,
+        quantity_delta: "0.75",
+        reason: "Cycle count correction",
+      };
+      const sendAdjustment = () =>
+        fetch(fixture.baseUrl + path, {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": key,
+          },
+          body: JSON.stringify(body),
+        });
+      const first = await sendAdjustment();
+      expect(first.status).toBe(201);
+      const movement = inventoryMovementPageSchema.shape.items.element.parse(
+        (await first.json()).movement,
+      );
+      expect(movement).toMatchObject({
+        quantity_delta: "0.75",
+        reason: "Cycle count correction",
+        inventory_scope: "BRANCH",
+        branch_id: branchId,
+      });
+      const retry = await sendAdjustment();
+      expect(retry.status).toBe(201);
+      const afterRetry = await fetch(
+        `${fixture.baseUrl}/inventory/branches/${branchId}?page=1&page_size=25`,
+        { headers },
+      );
+      expect(
+        inventoryPageSchema.parse(await afterRetry.json()).items[0]
+          ?.quantity_on_hand,
+      ).toBe("21");
     } finally {
       await fixture.close();
     }
