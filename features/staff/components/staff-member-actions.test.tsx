@@ -120,9 +120,12 @@ describe("staff member actions", () => {
     renderActions();
 
     await user.click(screen.getByText("Assign role", { selector: "summary" }));
-    const roleSelect = screen.getByLabelText("Staff role for Alex Staff");
+    const roleSelect = screen.getByRole("combobox", {
+      name: "Staff role for Alex Staff",
+    });
+    await user.click(roleSelect);
     expect(screen.queryByRole("option", { name: "Super Admin" })).toBeNull();
-    await user.selectOptions(roleSelect, "6");
+    await user.click(await screen.findByRole("option", { name: "Cashier" }));
     await user.click(screen.getByRole("button", { name: "Assign role" }));
 
     expect(assignStaffRoleAction).toHaveBeenCalledWith(staffId, northBranch, {
@@ -152,11 +155,12 @@ describe("staff member actions", () => {
     });
 
     await user.click(screen.getByText("Assign role", { selector: "summary" }));
+    const roleSelect = screen.getByRole("combobox", {
+      name: "Staff role for Alex Staff",
+    });
 
-    expect(screen.getByLabelText("Staff role for Alex Staff")).toHaveProperty(
-      "value",
-      "",
-    );
+    expect(roleSelect.textContent).toContain("Select a role");
+    await user.click(roleSelect);
     expect(screen.queryByRole("option", { name: "Super Admin" })).toBeNull();
     expect(screen.getByRole("button", { name: "Assign role" })).toHaveProperty(
       "disabled",
@@ -170,7 +174,7 @@ describe("staff member actions", () => {
     renderActions();
 
     await user.click(screen.getByText("Manage branch assignments"));
-    await user.click(screen.getByLabelText("Manila South"));
+    await user.click(screen.getByRole("checkbox", { name: "Manila South" }));
     await user.click(
       screen.getByRole("button", { name: "Save branch assignments" }),
     );

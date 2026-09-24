@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { updateStaffAction } from "@/features/staff/services/staff-actions";
 import type {
@@ -13,9 +14,13 @@ import type {
 export function StaffProfileForm({
   staff,
   branchId,
+  onDirtyChange,
+  onPendingChange,
 }: {
   staff: StaffMember;
   branchId?: string;
+  onDirtyChange?: (dirty: boolean) => void;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState(staff.email);
@@ -25,11 +30,24 @@ export function StaffProfileForm({
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
 
+  function reportDirty(next: {
+    email?: string;
+    fullName?: string;
+    contactNumber?: string;
+  }) {
+    onDirtyChange?.(
+      (next.email ?? email) !== staff.email ||
+        (next.fullName ?? fullName) !== staff.full_name ||
+        (next.contactNumber ?? contactNumber) !== staff.contact_number,
+    );
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setStatus("");
     setPending(true);
+    onPendingChange?.(true);
     let result: StaffMutationResult;
     try {
       result = await updateStaffAction(staff.id, branchId, {
@@ -39,10 +57,12 @@ export function StaffProfileForm({
       });
     } catch {
       setPending(false);
+      onPendingChange?.(false);
       setError("COMS could not complete this change. Try again.");
       return;
     }
     setPending(false);
+    onPendingChange?.(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -50,52 +70,74 @@ export function StaffProfileForm({
     setEmail(email.trim().toLowerCase());
     setFullName(fullName.trim());
     setContactNumber(contactNumber.trim());
+    onDirtyChange?.(false);
     setStatus("Staff profile updated.");
     router.refresh();
   }
 
   return (
-    <details className="rounded-xl border p-4">
+    <details className="rounded-lg border p-4">
       <summary className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         Edit profile
       </summary>
       <form onSubmit={submit} className="mt-4 flex flex-col gap-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm font-medium">
-            Full name for {staff.full_name}
+        <FieldGroup className="gap-4 sm:grid sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor={`staff-${staff.id}-full-name`}>
+              Full name for {staff.full_name}
+            </FieldLabel>
             <Input
+              id={`staff-${staff.id}-full-name`}
               required
               minLength={2}
               maxLength={160}
               autoComplete="name"
               value={fullName}
-              onChange={(event) => setFullName(event.currentTarget.value)}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                setFullName(value);
+                reportDirty({ fullName: value });
+              }}
             />
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium">
-            Email for {staff.full_name}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`staff-${staff.id}-email`}>
+              Email for {staff.full_name}
+            </FieldLabel>
             <Input
+              id={`staff-${staff.id}-email`}
               required
               type="email"
               maxLength={320}
               autoComplete="email"
               value={email}
-              onChange={(event) => setEmail(event.currentTarget.value)}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                setEmail(value);
+                reportDirty({ email: value });
+              }}
             />
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium">
-            Contact number for {staff.full_name}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`staff-${staff.id}-contact`}>
+              Contact number for {staff.full_name}
+            </FieldLabel>
             <Input
+              id={`staff-${staff.id}-contact`}
               required
               type="tel"
               minLength={7}
               maxLength={30}
               autoComplete="tel"
               value={contactNumber}
-              onChange={(event) => setContactNumber(event.currentTarget.value)}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                setContactNumber(value);
+                reportDirty({ contactNumber: value });
+              }}
             />
-          </label>
-        </div>
+          </Field>
+        </FieldGroup>
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}

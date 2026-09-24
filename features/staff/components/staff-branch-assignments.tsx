@@ -1,4 +1,11 @@
 import type { StaffBranchOption } from "@/features/staff/types/staff.types";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
 const MAX_BRANCH_ASSIGNMENTS = 100;
 
@@ -27,25 +34,27 @@ export function StaffBranchAssignments({
   }
 
   return (
-    <fieldset className="flex flex-col gap-3 rounded-xl border p-4">
-      <legend className="px-1 text-sm font-medium">Branch assignments</legend>
+    <FieldSet className="gap-3 rounded-lg border p-4">
+      <FieldLegend variant="label">Branch assignments</FieldLegend>
       {branches.length > 0 ? (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {branches.map((branch) => (
-            <label
+            <Field
               key={branch.id}
-              className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 text-sm focus-within:ring-2 focus-within:ring-ring"
+              orientation="horizontal"
+              className="min-h-10 items-center gap-3 rounded-md px-2"
             >
-              <input
-                type="checkbox"
-                className="size-4 accent-primary"
+              <Checkbox
+                id={`staff-branch-${branch.id}`}
                 checked={selectedBranchIds.includes(branch.id)}
-                onChange={(event) =>
-                  toggleBranch(branch.id, event.currentTarget.checked)
+                onCheckedChange={(checked) =>
+                  toggleBranch(branch.id, checked === true)
                 }
               />
-              {branch.name}
-            </label>
+              <FieldLabel htmlFor={`staff-branch-${branch.id}`}>
+                {branch.name}
+              </FieldLabel>
+            </Field>
           ))}
         </div>
       ) : (
@@ -53,6 +62,6 @@ export function StaffBranchAssignments({
           No active branch options are available.
         </p>
       )}
-    </fieldset>
+    </FieldSet>
   );
 }

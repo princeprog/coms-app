@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { AppPageShell } from "@/components/layout/app-page-shell";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
+import { OperationalLoadError } from "@/components/shared/operational-load-error";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { hasPermission } from "@/features/auth/permissions";
@@ -36,37 +36,10 @@ function isProtectedSuperAdmin(user: {
 
 function BranchAccessRequired() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Branch access required</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p role="status" className="text-sm text-muted-foreground">
-          Ask an administrator to assign your account to an active branch before
-          viewing staff.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function StaffLoadError() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Unable to load staff</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-start gap-3">
-        <p role="alert" className="text-sm text-muted-foreground">
-          COMS could not load the staff directory. Try again in a moment.
-        </p>
-        <form>
-          <Button type="submit" variant="outline">
-            Try again
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <OperationalEmptyState
+      title="Branch access required"
+      description="Ask an administrator to assign your account to an active branch before viewing staff."
+    />
   );
 }
 
@@ -175,7 +148,12 @@ async function StaffDirectoryPageContent({
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) redirect("/");
     if (error instanceof ApiRequestError && error.status === 403) notFound();
-    return <StaffLoadError />;
+    return (
+      <OperationalLoadError
+        title="staff"
+        description="COMS could not load the staff directory. Try again in a moment."
+      />
+    );
   }
 
   const lastPage = Math.max(1, Math.ceil(staff.total / staff.page_size));

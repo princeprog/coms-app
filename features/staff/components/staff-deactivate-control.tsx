@@ -69,7 +69,7 @@ export function StaffDeactivateControl({
             </Button>
           }
         />
-        <AlertDialogContent>
+        <AlertDialogContent data-coms-ui="operational">
           <AlertDialogHeader>
             <AlertDialogTitle>Deactivate {staff.full_name}?</AlertDialogTitle>
             <AlertDialogDescription>

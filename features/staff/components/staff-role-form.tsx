@@ -3,10 +3,14 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Role } from "@/features/roles/types/role.types";
 import { assignStaffRoleAction } from "@/features/staff/services/staff-actions";
 import type {
@@ -19,11 +23,15 @@ export function StaffRoleForm({
   branchId,
   roles,
   rolesFailed,
+  onDirtyChange,
+  onPendingChange,
 }: {
   staff: StaffMember;
   branchId?: string;
   roles: Role[];
   rolesFailed: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const router = useRouter();
   const assignableRoles = roles.filter(
@@ -45,6 +53,7 @@ export function StaffRoleForm({
     setError("");
     setStatus("");
     setPending(true);
+    onPendingChange?.(true);
     let result: StaffMutationResult;
     try {
       result = await assignStaffRoleAction(staff.id, branchId, {
@@ -52,20 +61,23 @@ export function StaffRoleForm({
       });
     } catch {
       setPending(false);
+      onPendingChange?.(false);
       setError("COMS could not complete this change. Try again.");
       return;
     }
     setPending(false);
+    onPendingChange?.(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
+    onDirtyChange?.(false);
     setStatus("Staff role updated.");
     router.refresh();
   }
 
   return (
-    <details className="rounded-xl border p-4">
+    <details className="rounded-lg border p-4">
       <summary className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         Assign role
       </summary>
@@ -80,21 +92,34 @@ export function StaffRoleForm({
           </p>
         ) : (
           <>
-            <label className="flex w-full max-w-md flex-col gap-2 text-sm font-medium">
-              Staff role for {staff.full_name}
-              <NativeSelect
-                required
+            <Field className="w-full max-w-md">
+              <FieldLabel htmlFor={`staff-${staff.id}-role`}>
+                Staff role for {staff.full_name}
+              </FieldLabel>
+              <Select
                 value={roleId}
-                onChange={(event) => setRoleId(event.currentTarget.value)}
+                onValueChange={(value) => {
+                  setRoleId(value ?? "");
+                  onDirtyChange?.((value ?? "") !== initialRoleId);
+                }}
               >
-                <NativeSelectOption value="">Select a role</NativeSelectOption>
-                {assignableRoles.map((role) => (
-                  <NativeSelectOption key={role.id} value={role.id}>
-                    {role.role_name}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </label>
+                <SelectTrigger id={`staff-${staff.id}-role`} className="w-full">
+                  <SelectValue placeholder="Select a role">
+                    {(value: unknown) =>
+                      assignableRoles.find((role) => role.id === value)
+                        ?.role_name ?? "Select a role"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent data-coms-ui="operational">
+                  {assignableRoles.map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.role_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             {error && (
               <p role="alert" className="text-sm text-destructive">
                 {error}

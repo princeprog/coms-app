@@ -20,6 +20,8 @@ export function StaffMemberActions({
   currentUserId,
   isSuperAdmin,
   permissions,
+  onDirtyChange,
+  onPendingChange,
 }: {
   staff: StaffMember;
   branches: StaffBranchOption[];
@@ -29,6 +31,14 @@ export function StaffMemberActions({
   currentUserId: string;
   isSuperAdmin: boolean;
   permissions: StaffManagementPermissions;
+  onDirtyChange?: (
+    section: "profile" | "role" | "branches",
+    dirty: boolean,
+  ) => void;
+  onPendingChange?: (
+    section: "profile" | "role" | "branches",
+    pending: boolean,
+  ) => void;
 }) {
   const isSelf = currentUserId === staff.id;
   const protectedTarget = staff.role_code === "SUPER_ADMIN" && !isSuperAdmin;
@@ -59,7 +69,12 @@ export function StaffMemberActions({
       className="flex flex-col gap-3 border-t pt-4"
     >
       {permissions.canUpdate && (
-        <StaffProfileForm staff={staff} branchId={branchId} />
+        <StaffProfileForm
+          staff={staff}
+          branchId={branchId}
+          onDirtyChange={(dirty) => onDirtyChange?.("profile", dirty)}
+          onPendingChange={(pending) => onPendingChange?.("profile", pending)}
+        />
       )}
       {canManageRole &&
         (permissions.canReadRoles ? (
@@ -68,6 +83,8 @@ export function StaffMemberActions({
             branchId={branchId}
             roles={roles}
             rolesFailed={rolesFailed}
+            onDirtyChange={(dirty) => onDirtyChange?.("role", dirty)}
+            onPendingChange={(pending) => onPendingChange?.("role", pending)}
           />
         ) : (
           <p role="status" className="text-sm text-muted-foreground">
@@ -79,6 +96,8 @@ export function StaffMemberActions({
           staff={staff}
           branchId={branchId}
           branches={branches}
+          onDirtyChange={(dirty) => onDirtyChange?.("branches", dirty)}
+          onPendingChange={(pending) => onPendingChange?.("branches", pending)}
         />
       )}
       {showBranchNotice && (

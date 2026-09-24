@@ -71,13 +71,17 @@ describe("staff creation", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Role")).toHaveProperty("value", "1");
+    const role = screen.getByRole("combobox", { name: "Role" });
+    expect(role.textContent).toContain("No access");
+    await user.click(role);
     expect(screen.queryByRole("option", { name: "Super Admin" })).toBeNull();
     expect(screen.queryByRole("option", { name: "Inactive role" })).toBeNull();
-    expect(screen.getByLabelText("Manila North")).toHaveProperty(
-      "checked",
-      true,
-    );
+    await user.click(screen.getByRole("option", { name: "Branch Manager" }));
+    expect(
+      screen
+        .getByRole("checkbox", { name: "Manila North" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
 
     await user.type(screen.getByLabelText("Email"), "alex@example.com");
     await user.type(screen.getByLabelText("Full name"), "Alex Staff");
@@ -86,8 +90,7 @@ describe("staff creation", () => {
       screen.getByLabelText("Initial password"),
       "safe staff passphrase 1",
     );
-    await user.selectOptions(screen.getByLabelText("Role"), "4");
-    await user.click(screen.getByLabelText("Manila South"));
+    await user.click(screen.getByRole("checkbox", { name: "Manila South" }));
     await user.click(screen.getByRole("button", { name: "Create staff" }));
 
     expect(createStaffAction).toHaveBeenCalledWith({

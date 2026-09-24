@@ -1,8 +1,17 @@
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Role } from "@/features/roles/types/role.types";
 
 export function StaffCreateFields({
@@ -31,14 +40,12 @@ export function StaffCreateFields({
   onRoleChange: (value: string) => void;
 }) {
   return (
-    <>
+    <FieldGroup className="gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="staff-email" className="text-sm font-medium">
-            Email
-          </label>
+        <Field>
+          <FieldLabel htmlFor="staff-create-email">Email</FieldLabel>
           <Input
-            id="staff-email"
+            id="staff-create-email"
             type="email"
             autoComplete="email"
             required
@@ -46,13 +53,11 @@ export function StaffCreateFields({
             value={email}
             onChange={(event) => onEmailChange(event.currentTarget.value)}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="staff-full-name" className="text-sm font-medium">
-            Full name
-          </label>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="staff-create-full-name">Full name</FieldLabel>
           <Input
-            id="staff-full-name"
+            id="staff-create-full-name"
             required
             minLength={2}
             maxLength={160}
@@ -60,13 +65,11 @@ export function StaffCreateFields({
             value={fullName}
             onChange={(event) => onFullNameChange(event.currentTarget.value)}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="staff-contact-number" className="text-sm font-medium">
-            Contact number
-          </label>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="staff-create-contact">Contact number</FieldLabel>
           <Input
-            id="staff-contact-number"
+            id="staff-create-contact"
             type="tel"
             autoComplete="tel"
             required
@@ -77,16 +80,13 @@ export function StaffCreateFields({
               onContactNumberChange(event.currentTarget.value)
             }
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor="staff-initial-password"
-            className="text-sm font-medium"
-          >
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="staff-create-password">
             Initial password
-          </label>
+          </FieldLabel>
           <Input
-            id="staff-initial-password"
+            id="staff-create-password"
             type="password"
             autoComplete="new-password"
             required
@@ -95,30 +95,36 @@ export function StaffCreateFields({
             value={password}
             onChange={(event) => onPasswordChange(event.currentTarget.value)}
           />
-          <p className="text-xs text-muted-foreground">
+          <FieldDescription>
             Use at least 12 characters. The password is never shown after
             successful creation.
-          </p>
-        </div>
+          </FieldDescription>
+        </Field>
       </div>
 
-      <div className="flex max-w-md flex-col gap-2">
-        <label htmlFor="staff-role" className="text-sm font-medium">
-          Role
-        </label>
-        <NativeSelect
-          id="staff-role"
-          required
+      <Field className="max-w-md">
+        <FieldLabel htmlFor="staff-create-role">Role</FieldLabel>
+        <Select
           value={roleId}
-          onChange={(event) => onRoleChange(event.currentTarget.value)}
+          onValueChange={(value) => onRoleChange(value ?? "")}
         >
-          {assignableRoles.map((role) => (
-            <NativeSelectOption key={role.id} value={role.id}>
-              {role.role_name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </div>
-    </>
+          <SelectTrigger id="staff-create-role" className="w-full">
+            <SelectValue placeholder="Select a role">
+              {(value: unknown) =>
+                assignableRoles.find((role) => role.id === value)?.role_name ??
+                "Select a role"
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent data-coms-ui="operational">
+            {assignableRoles.map((role) => (
+              <SelectItem key={role.id} value={role.id}>
+                {role.role_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+    </FieldGroup>
   );
 }

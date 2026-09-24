@@ -15,10 +15,14 @@ export function StaffBranchAssignmentForm({
   staff,
   branchId,
   branches,
+  onDirtyChange,
+  onPendingChange,
 }: {
   staff: StaffMember;
   branchId?: string;
   branches: StaffBranchOption[];
+  onDirtyChange?: (dirty: boolean) => void;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const router = useRouter();
   const [branchIds, setBranchIds] = useState(staff.branch_ids);
@@ -31,6 +35,7 @@ export function StaffBranchAssignmentForm({
     setError("");
     setStatus("");
     setPending(true);
+    onPendingChange?.(true);
     let result: StaffMutationResult;
     try {
       result = await assignStaffBranchesAction(staff.id, branchId, {
@@ -38,20 +43,23 @@ export function StaffBranchAssignmentForm({
       });
     } catch {
       setPending(false);
+      onPendingChange?.(false);
       setError("COMS could not complete this change. Try again.");
       return;
     }
     setPending(false);
+    onPendingChange?.(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
+    onDirtyChange?.(false);
     setStatus("Staff branch assignments updated.");
     router.refresh();
   }
 
   return (
-    <details className="rounded-xl border p-4">
+    <details className="rounded-lg border p-4">
       <summary className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         Manage branch assignments
       </summary>
@@ -62,6 +70,10 @@ export function StaffBranchAssignmentForm({
           onChange={(ids) => {
             setError("");
             setBranchIds(ids);
+            onDirtyChange?.(
+              ids.length !== staff.branch_ids.length ||
+                ids.some((id) => !staff.branch_ids.includes(id)),
+            );
           }}
           onLimitReached={() =>
             setError("A staff account can be assigned to at most 100 branches.")

@@ -1,12 +1,22 @@
+"use client";
+
+import { useState } from "react";
+import Form from "next/form";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createStaffPageHref } from "@/features/staff/services/staff-page-params";
-import type { StaffBranchOption } from "@/features/staff/components/staff-card";
+import type { StaffBranchOption } from "@/features/staff/types/staff.types";
+
+const ALL_BRANCHES = "__all_branches__";
 
 export function StaffDirectoryFilters({
   branchOptions,
@@ -19,60 +29,81 @@ export function StaffDirectoryFilters({
   search: string;
   isSuperAdmin: boolean;
 }) {
+  const [branchChoice, setBranchChoice] = useState(
+    selectedBranchId ?? ALL_BRANCHES,
+  );
   const selectedBranchExists = branchOptions.some(
     (branch) => branch.id === selectedBranchId,
   );
   const clearSearchHref = createStaffPageHref(1, selectedBranchId, "");
+  const branchChoiceId =
+    branchChoice === ALL_BRANCHES ? undefined : branchChoice;
+  const unavailableBranchName = selectedBranchId
+    ? `Selected branch ${selectedBranchId.slice(0, 8)}`
+    : "Select a branch";
 
   return (
     <section
       aria-label="Staff filters"
-      className="grid gap-4 rounded-2xl border bg-card p-4 md:grid-cols-2"
+      className="grid gap-4 rounded-lg border bg-card p-4 md:grid-cols-2"
     >
-      <form
+      <Form
         action="/staff"
-        method="get"
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
+        aria-label="Filter staff by branch"
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <label htmlFor="staff-branch-scope" className="text-sm font-medium">
-            Branch scope
-          </label>
-          <NativeSelect
-            id="staff-branch-scope"
-            name="branch_id"
-            defaultValue={selectedBranchId ?? ""}
+        <Field className="min-w-0 flex-1">
+          <FieldLabel htmlFor="staff-branch-scope">Branch scope</FieldLabel>
+          <Select
+            value={branchChoice}
+            onValueChange={(value) => setBranchChoice(value ?? ALL_BRANCHES)}
           >
-            {isSuperAdmin && (
-              <NativeSelectOption value="">All branches</NativeSelectOption>
-            )}
-            {selectedBranchId && !selectedBranchExists && (
-              <NativeSelectOption value={selectedBranchId}>
-                Selected branch {selectedBranchId.slice(0, 8)}
-              </NativeSelectOption>
-            )}
-            {branchOptions.map((branch) => (
-              <NativeSelectOption key={branch.id} value={branch.id}>
-                {branch.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-          {search && <input type="hidden" name="search" value={search} />}
-        </div>
+            <SelectTrigger id="staff-branch-scope" className="w-full">
+              <SelectValue>
+                {(value: unknown) => {
+                  if (value === ALL_BRANCHES) return "All branches";
+                  return (
+                    branchOptions.find((branch) => branch.id === value)?.name ??
+                    (value === selectedBranchId && !selectedBranchExists
+                      ? unavailableBranchName
+                      : "Select a branch")
+                  );
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent data-coms-ui="operational">
+              {isSuperAdmin && (
+                <SelectItem value={ALL_BRANCHES}>All branches</SelectItem>
+              )}
+              {selectedBranchId && !selectedBranchExists && (
+                <SelectItem value={selectedBranchId}>
+                  Selected branch {selectedBranchId.slice(0, 8)}
+                </SelectItem>
+              )}
+              {branchOptions.map((branch) => (
+                <SelectItem key={branch.id} value={branch.id}>
+                  {branch.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        {branchChoiceId && (
+          <input type="hidden" name="branch_id" value={branchChoiceId} />
+        )}
+        {search && <input type="hidden" name="search" value={search} />}
         <Button type="submit" variant="outline">
           Apply branch
         </Button>
-      </form>
+      </Form>
 
-      <form
+      <Form
         action="/staff"
-        method="get"
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
+        aria-label="Search staff"
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <label htmlFor="staff-search" className="text-sm font-medium">
-            Search staff
-          </label>
+        <Field className="min-w-0 flex-1">
+          <FieldLabel htmlFor="staff-search">Search staff</FieldLabel>
           <Input
             id="staff-search"
             type="search"
@@ -81,20 +112,20 @@ export function StaffDirectoryFilters({
             maxLength={120}
             placeholder="Name, email, or contact number"
           />
-          {selectedBranchId && (
-            <input type="hidden" name="branch_id" value={selectedBranchId} />
-          )}
-        </div>
+        </Field>
+        {selectedBranchId && (
+          <input type="hidden" name="branch_id" value={selectedBranchId} />
+        )}
         <Button type="submit">Search</Button>
-      </form>
-      {search && (
-        <Link
-          href={clearSearchHref}
-          className={buttonVariants({ variant: "outline" })}
-        >
-          Clear search
-        </Link>
-      )}
+        {search && (
+          <Link
+            href={clearSearchHref}
+            className={buttonVariants({ variant: "ghost" })}
+          >
+            Clear search
+          </Link>
+        )}
+      </Form>
     </section>
   );
 }
