@@ -51,7 +51,11 @@ export function RoleCodeField({
         onChange={(event) => onChange(event.currentTarget.value.toUpperCase())}
         placeholder="Auto-generated"
       />
-      <FieldDescription id="new-role-code-help" className="text-xs">
+      <FieldDescription
+        id="new-role-code-help"
+        data-role-compact-description
+        className="text-xs"
+      >
         {roleName ? (
           <>
             <span className="sm:hidden">

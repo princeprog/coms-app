@@ -76,7 +76,10 @@ export function RolePermissionPicker({
   }
 
   return (
-    <FieldSet className="flex h-full min-h-0 flex-col gap-4">
+    <FieldSet
+      data-role-permission-picker
+      className="flex h-full min-h-0 min-w-0 flex-col gap-4"
+    >
       <FieldLegend className="sr-only">Permissions</FieldLegend>
       <div className="relative shrink-0">
         <FieldLabel
@@ -123,7 +126,7 @@ export function RolePermissionPicker({
               ).length;
               return (
                 <Collapsible key={module} defaultOpen>
-                  <FieldSet className="gap-0 overflow-hidden rounded-md border">
+                  <FieldSet className="min-w-0 gap-0 overflow-hidden rounded-md border">
                     <FieldLegend className="sr-only capitalize">
                       {moduleLabel}
                     </FieldLegend>
@@ -133,7 +136,7 @@ export function RolePermissionPicker({
                           type="button"
                           variant="ghost"
                           aria-label={`${moduleLabel} permissions`}
-                          className="group w-full justify-between rounded-none px-3 py-2 text-left hover:bg-muted/50"
+                          className="group min-w-0 w-full flex-wrap justify-between rounded-none px-3 py-2 text-left whitespace-normal hover:bg-muted/50"
                         />
                       }
                     >
@@ -144,7 +147,7 @@ export function RolePermissionPicker({
                         />
                         {moduleLabel}
                       </span>
-                      <span className="shrink-0 text-sm font-normal text-muted-foreground">
+                      <span className="min-w-0 text-right text-sm font-normal whitespace-normal text-muted-foreground">
                         {selectedCount} of {counts[module]} selected
                       </span>
                     </CollapsibleTrigger>

@@ -71,19 +71,50 @@ async function navigate(pathname) {
   );
 }
 
-async function assertRoleCreateScroll(width) {
-  const state = await page.evaluate(() => {
+async function assertRoleWorkspaceScroll(width, route, searchId) {
+  await page.locator(`#${searchId}`).waitFor({ state: "visible" });
+  await page
+    .locator(
+      '[aria-label="Permission groups"] [data-slot="scroll-area-viewport"]',
+    )
+    .waitFor({ state: "visible" });
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  const state = await page.evaluate((permissionSearchId) => {
     const viewport = document.querySelector(
       '[aria-label="Permission groups"] [data-slot="scroll-area-viewport"]',
     );
-    const form = document.querySelector("form");
-    const footer = form?.querySelector("footer");
-    const search = document.getElementById("new-role-permission-search");
-    if (!viewport || !footer || !search) return null;
+    const workspaceHeader = document.querySelector(
+      "[data-role-workspace] > header",
+    );
+    const roleTitle = workspaceHeader?.querySelector("h2");
+    const detailsCard = document.querySelector("[data-role-workspace-details]");
+    const footer = document.querySelector("[data-role-workspace-footer]");
+    const search = document.getElementById(permissionSearchId);
+    const permissionTitle = [...document.querySelectorAll("h3")].find(
+      (heading) => heading.textContent?.trim() === "Permissions",
+    );
+    const permissionCard = permissionTitle?.closest('[data-slot="card"]');
+    if (
+      !viewport ||
+      !workspaceHeader ||
+      !roleTitle ||
+      !detailsCard ||
+      !footer ||
+      !search ||
+      !permissionCard ||
+      !permissionTitle
+    )
+      return null;
     const before = viewport.scrollTop;
     viewport.scrollTop = viewport.scrollHeight;
     const after = viewport.scrollTop;
     viewport.scrollTop = before;
+    const viewportRect = viewport.getBoundingClientRect();
     return {
       documentHeight: document.documentElement.scrollHeight,
       windowHeight: window.innerHeight,
@@ -91,32 +122,78 @@ async function assertRoleCreateScroll(width) {
       viewportHeight: viewport.clientHeight,
       contentWidth: viewport.scrollWidth,
       viewportWidth: viewport.clientWidth,
+      permissionCardTop: permissionCard.getBoundingClientRect().top,
+      permissionCardBottom: permissionCard.getBoundingClientRect().bottom,
+      workspaceHeaderTop: workspaceHeader.getBoundingClientRect().top,
+      workspaceHeaderBottom: workspaceHeader.getBoundingClientRect().bottom,
+      roleTitleBottom: roleTitle.getBoundingClientRect().bottom,
+      detailsCardTop: detailsCard.getBoundingClientRect().top,
+      detailsCardBottom: detailsCard.getBoundingClientRect().bottom,
+      permissionTitleTop: permissionTitle.getBoundingClientRect().top,
+      permissionTitleBottom: permissionTitle.getBoundingClientRect().bottom,
+      overflowingChildren: [...viewport.querySelectorAll("*")]
+        .map((element) => ({
+          tag: element.tagName.toLowerCase(),
+          slot: element.getAttribute("data-slot"),
+          className: element.className,
+          right: Math.round(element.getBoundingClientRect().right),
+          width: Math.round(element.getBoundingClientRect().width),
+          text: element.textContent?.trim().slice(0, 48),
+        }))
+        .filter((element) => element.right > viewportRect.right + 1)
+        .slice(0, 8),
       before,
       after,
       documentScroll: document.documentElement.scrollTop,
       footerBottom: footer.getBoundingClientRect().bottom,
       searchBottom: search.getBoundingClientRect().bottom,
+      searchTop: search.getBoundingClientRect().top,
     };
-  });
-  assert(state, `Role create scroll structure missing at ${width}px`);
+  }, searchId);
+  assert(state, `${route} scroll structure missing at ${width}px`);
   assert(
     state.documentHeight <= state.windowHeight + 2,
-    `Role create document scrolls at ${width}px: ${JSON.stringify(state)}`,
+    `${route} document scrolls at ${width}px: ${JSON.stringify(state)}`,
   );
   assert(
     state.contentHeight > state.viewportHeight && state.after > state.before,
-    `Permission list does not scroll at ${width}px: ${JSON.stringify(state)}`,
+    `${route} permission list does not scroll at ${width}px: ${JSON.stringify(state)}`,
   );
   assert(
     state.contentWidth <= state.viewportWidth + 1,
-    `Permission list scrolls horizontally at ${width}px: ${JSON.stringify(state)}`,
+    `${route} permission list scrolls horizontally at ${width}px: ${JSON.stringify(state)}`,
+  );
+  assert(
+    state.searchTop >= state.permissionCardTop - 1 &&
+      state.searchBottom <= state.permissionCardBottom + 1,
+    `${route} permission search is clipped by its card at ${width}px: ${JSON.stringify(state)}`,
+  );
+  assert(
+    state.viewportHeight >= 32,
+    `${route} permission list is not usable at ${width}px: ${JSON.stringify(state)}`,
   );
   assert.equal(state.documentScroll, 0);
   assert(
     state.footerBottom <= state.windowHeight + 1 &&
       state.searchBottom < state.footerBottom,
-    `Role actions or permission search leave the viewport at ${width}px: ${JSON.stringify(state)}`,
+    `${route} actions or permission search leave the viewport at ${width}px: ${JSON.stringify(state)}`,
   );
+  assert(
+    state.workspaceHeaderTop >= 0 &&
+      state.roleTitleBottom <= state.windowHeight &&
+      state.detailsCardTop >= state.workspaceHeaderBottom - 1 &&
+      state.detailsCardBottom <= state.permissionCardBottom + 1 &&
+      state.permissionTitleTop >= state.permissionCardTop &&
+      state.permissionTitleBottom <= state.searchTop,
+    `${route} workspace headings or details leave the viewport at ${width}px: ${JSON.stringify(state)}`,
+  );
+}
+
+async function openRoleAction(roleName, actionName) {
+  await page
+    .getByRole("button", { name: `More actions for ${roleName}` })
+    .click();
+  await page.getByRole("menuitem", { name: actionName, exact: true }).click();
 }
 
 async function assertPageStructure(pathname, width, expectedDeviceScale = 1) {
@@ -344,6 +421,44 @@ let baseUrl;
     for (const route of routes) {
       await navigate(route);
       await assertPageStructure(route, width);
+      if (route === "/roles/new") {
+        await assertRoleWorkspaceScroll(
+          width,
+          route,
+          "new-role-permission-search",
+        );
+      }
+      if (route === "/roles/3") {
+        await assertRoleWorkspaceScroll(
+          width,
+          route,
+          "role-3-permission-search",
+        );
+      }
+      if (width === 195 && route === "/roles/5") {
+        await assertRoleWorkspaceScroll(
+          width,
+          route,
+          "role-5-permission-search",
+        );
+        const sharedEffect = await page
+          .locator("[data-role-shared-effect]")
+          .evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            const style = getComputedStyle(element);
+            return { height: rect.height, position: style.position };
+          });
+        assert(
+          sharedEffect.height > 8 && sharedEffect.position !== "absolute",
+          `Predefined-role guidance must remain visible at 195px: ${JSON.stringify(sharedEffect)}`,
+        );
+      }
+      if (width === 768 && route === "/roles/new") {
+        await saveScreenshot("role-create-page-768.png");
+      }
+      if (width === 768 && route === "/roles/3") {
+        await saveScreenshot("role-edit-page-768.png");
+      }
       if (width === 390 && route === "/roles") {
         const roleTableRegion = page.getByRole("region", {
           name: "Role table",
@@ -371,10 +486,26 @@ let baseUrl;
             `Role code ${code} appears in the directory`,
           );
         }
+        for (const row of await roleDirectory.locator("tbody tr").all()) {
+          assert.equal(
+            await row.getByRole("link").count(),
+            0,
+            "Role names in the directory should not be links",
+          );
+        }
         await saveScreenshot("roles-desktop.png");
+      }
+      if (width === 1440 && route === "/roles/new") {
+        await saveScreenshot("role-create-page-desktop.png");
       }
       if (width === 1440 && route === "/roles/3") {
         await saveScreenshot("role-edit-page-desktop.png");
+      }
+      if (width === 1920 && route === "/roles/new") {
+        await saveScreenshot("role-create-page-1920.png");
+      }
+      if (width === 1920 && route === "/roles/3") {
+        await saveScreenshot("role-edit-page-1920.png");
       }
       if (width === 390 && route === "/pos?branch_id=" + branchId) {
         await saveScreenshot("pos-mobile.png");
@@ -398,6 +529,8 @@ let baseUrl;
     await navigate(route);
     await assertPageStructure(`${route} dark`, 390);
     if (route === "/roles") await saveScreenshot("roles-dark-mobile.png");
+    if (route === "/roles/new")
+      await saveScreenshot("role-create-page-dark-mobile.png");
     if (route === "/roles/3")
       await saveScreenshot("role-edit-page-dark-mobile.png");
   }
@@ -428,7 +561,11 @@ let baseUrl;
 
   await page.setViewportSize({ width: 390, height: 844 });
   await navigate("/roles/new");
-  await assertRoleCreateScroll(390);
+  await assertRoleWorkspaceScroll(
+    390,
+    "/roles/new",
+    "new-role-permission-search",
+  );
   await saveScreenshot("role-create-page-mobile.png");
   await page.getByRole("textbox", { name: "Role name" }).fill("Temporary role");
   await page.getByRole("textbox", { name: "Role code" }).fill("TEMPORARY_ROLE");
@@ -445,19 +582,20 @@ let baseUrl;
   await page.getByRole("button", { name: "Discard changes" }).click();
   await page.waitForURL("**/roles");
 
-  await page.setViewportSize({ width: 1586, height: 992 });
-  await navigate("/roles/new");
-  await assertRoleCreateScroll(1586);
-  await saveScreenshot("role-create-page-desktop.png");
-
   await page.setViewportSize({ width: 390, height: 667 });
-  await assertRoleCreateScroll(390);
+  await navigate("/roles/new");
+  await assertRoleWorkspaceScroll(
+    390,
+    "/roles/new",
+    "new-role-permission-search",
+  );
+  await saveScreenshot("role-create-page-mobile-short.png");
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("link", { name: "Back to roles" }).click();
   await page.waitForURL("**/roles");
   await rememberShellIdentity();
-  await page.getByRole("link", { name: "Manage Branch Manager" }).click();
+  await openRoleAction("Branch Manager", "Manage role");
   await page.waitForURL("**/roles/5");
   await assertShellIdentity();
   await page
@@ -484,7 +622,14 @@ let baseUrl;
   await page.getByRole("link", { name: "Back to roles" }).click();
   await page.waitForURL("**/roles");
 
-  await page.getByRole("link", { name: "Manage Stock Manager" }).click();
+  await openRoleAction("Super Admin", "View role");
+  await page.waitForURL("**/roles/2");
+  await assertShellIdentity();
+  await page.getByRole("heading", { name: "View role" }).waitFor();
+  await page.getByRole("link", { name: "Back to roles" }).click();
+  await page.waitForURL("**/roles");
+
+  await openRoleAction("Stock Manager", "Manage role");
   await page.waitForURL("**/roles/3");
   await assertShellIdentity();
   const roleNameInput = page.getByRole("textbox", { name: "Role name" });
@@ -512,9 +657,44 @@ let baseUrl;
 
   await page.setViewportSize({ width: 390, height: 844 });
   await navigate("/roles/3");
+  await assertRoleWorkspaceScroll(390, "/roles/3", "role-3-permission-search");
   await saveScreenshot("role-edit-page-mobile.png");
+  await page.setViewportSize({ width: 390, height: 667 });
+  await assertRoleWorkspaceScroll(390, "/roles/3", "role-3-permission-search");
+  await saveScreenshot("role-edit-page-mobile-short.png");
+  await navigate("/roles/5");
+  await assertRoleWorkspaceScroll(390, "/roles/5", "role-5-permission-search");
+  const predefinedEffect = await page
+    .locator("[data-role-shared-effect]")
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return { height: rect.height, position: style.position };
+    });
+  assert(
+    predefinedEffect.height > 8 && predefinedEffect.position !== "absolute",
+    `Predefined-role shared-effect guidance must remain visible at 390x667: ${JSON.stringify(predefinedEffect)}`,
+  );
+  await saveScreenshot("role-edit-predefined-mobile-short.png");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await navigate("/roles/3");
+  const unsavedRoleName = page.getByRole("textbox", { name: "Role name" });
+  await unsavedRoleName.fill("Unsaved Stock Manager");
+  await page.getByRole("link", { name: "Back to roles" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Discard unsaved role changes?" })
+    .waitFor();
+  await page.getByRole("button", { name: "Keep editing" }).click();
+  assert.equal(await unsavedRoleName.inputValue(), "Unsaved Stock Manager");
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await page.waitForURL("**/roles");
   await navigate("/roles/2");
-  await page.getByText("Global access across COMS.").waitFor();
+  await page
+    .getByText("This protected role has global access across COMS.", {
+      exact: true,
+    })
+    .waitFor();
   assert.equal(
     await page.getByRole("button", { name: "Save permissions" }).count(),
     0,

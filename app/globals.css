@@ -157,4 +157,60 @@
   [data-coms-ui="operational"][data-slot="dropdown-menu-content"] {
     @apply rounded-lg;
   }
+
+  @media (max-width: 767px) and (max-height: 700px) {
+    [data-role-workspace] {
+      gap: 0.5rem;
+    }
+
+    [data-role-workspace] > header {
+      gap: 0.25rem;
+    }
+
+    [data-role-workspace-grid],
+    [data-role-workspace-form] {
+      gap: 0.5rem;
+    }
+
+    [data-role-workspace-footer] {
+      padding-top: 0.5rem;
+    }
+
+    [data-role-workspace-details] > [data-slot="card-content"] {
+      padding: 0.5rem;
+    }
+
+    [data-role-workspace]
+      [data-role-compact-description]:not([data-role-shared-effect]),
+    [data-role-workspace] [data-role-permission-description] {
+      @apply sr-only;
+    }
+
+    [data-role-permission-picker] {
+      gap: 0.5rem;
+    }
+
+    [data-role-permissions-header] {
+      padding-top: 0.5rem;
+      padding-bottom: 0.25rem;
+    }
+
+    [data-role-permissions-content] {
+      padding-bottom: 0.5rem;
+    }
+  }
+
+  @media (max-width: 359px) {
+    [data-role-workspace-details] > [data-slot="card-content"] {
+      padding: 0.5rem;
+    }
+
+    [data-role-compact-description]:not([data-role-shared-effect]),
+    [data-role-permission-description] {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+    }
+  }
 }

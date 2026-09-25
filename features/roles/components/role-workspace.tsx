@@ -16,7 +16,10 @@ export function RoleWorkspace({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 lg:gap-4">
+    <div
+      data-role-workspace
+      className="flex h-full min-h-0 flex-col gap-3 lg:gap-4"
+    >
       <header className="grid shrink-0 gap-2">
         <Link
           href="/roles"
@@ -34,7 +37,10 @@ export function RoleWorkspace({
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {title}
           </h2>
-          <p className="text-sm text-muted-foreground md:text-base">
+          <p
+            data-role-compact-description
+            className="text-sm text-muted-foreground md:text-base"
+          >
             {description}
           </p>
         </div>
@@ -46,7 +52,10 @@ export function RoleWorkspace({
 
 export function RoleWorkspaceGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 lg:grid-cols-3 lg:grid-rows-1 lg:gap-5">
+    <div
+      data-role-workspace-grid
+      className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 lg:grid-cols-3 lg:grid-rows-1 lg:gap-5"
+    >
       {children}
     </div>
   );

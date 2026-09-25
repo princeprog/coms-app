@@ -30,7 +30,7 @@ export function RoleDetailsPanel({
   onPendingChange: (pending: boolean) => void;
 }) {
   return (
-    <Card className="min-h-0 min-w-0 gap-0 py-0">
+    <Card data-role-workspace-details className="min-h-0 min-w-0 gap-0 py-0">
       <CardHeader className="border-b px-3 py-2 sm:px-5 sm:py-4">
         <CardTitle>
           <h3 className="text-lg font-semibold">Role details</h3>
@@ -94,7 +94,11 @@ export function RoleDetailsPanel({
           >
             {getAccessSummary(role, selectedCount)}
           </Badge>
-          <p className="text-xs text-muted-foreground">
+          <p
+            data-role-compact-description
+            data-role-shared-effect={role.is_predefined ? "" : undefined}
+            className="text-xs text-muted-foreground"
+          >
             {role.is_system
               ? role.code === "SUPER_ADMIN"
                 ? "This protected role has global access across COMS."

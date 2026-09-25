@@ -95,7 +95,11 @@ export function RoleNameForm({
             aria-describedby={`role-code-help-${id}`}
             className="font-mono"
           />
-          <FieldDescription id={`role-code-help-${id}`} className="text-xs">
+          <FieldDescription
+            id={`role-code-help-${id}`}
+            data-role-compact-description
+            className="text-xs"
+          >
             This code is permanent and cannot be changed.
           </FieldDescription>
         </Field>

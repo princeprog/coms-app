@@ -4,17 +4,12 @@ import { useState, type FormEvent } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { RolePermissionPicker } from "@/features/roles/components/role-permission-picker";
+import { RolePermissionsCard } from "@/features/roles/components/role-permissions-card";
 import {
   RoleWorkspaceFooter,
   RoleWorkspaceGrid,
@@ -80,11 +75,12 @@ export function RoleCreateForm({
 
   return (
     <form
+      data-role-workspace-form
       className="flex min-h-0 flex-1 flex-col gap-3 lg:gap-4"
       onSubmit={submit}
     >
       <RoleWorkspaceGrid>
-        <Card className="gap-0 py-0 lg:col-span-1">
+        <Card data-role-workspace-details className="gap-0 py-0 lg:col-span-1">
           <CardHeader className="border-b px-3 py-2 sm:px-5 sm:py-4">
             <CardTitle>
               <h3 className="text-lg font-semibold">Role details</h3>
@@ -135,36 +131,29 @@ export function RoleCreateForm({
               >
                 {selectedPermissions.length} permissions selected
               </Badge>
-              <p className="text-xs text-muted-foreground">
+              <p
+                data-role-compact-description
+                className="text-xs text-muted-foreground"
+              >
                 Members receive only the permissions selected here.
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="min-h-0 min-w-0 gap-0 py-0 lg:col-span-2">
-          <CardHeader className="shrink-0 px-3 pt-3 pb-2 sm:px-5 sm:pt-4 sm:pb-3">
-            <CardTitle>
-              <h3 className="text-lg font-semibold">Permissions</h3>
-            </CardTitle>
-            <CardDescription>
-              Choose what members of this role can view and manage.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex min-h-0 flex-1 flex-col px-3 pb-3 sm:px-5 sm:pb-4">
-            <RolePermissionPicker
-              permissions={permissions}
-              selected={selectedPermissions}
-              disabled={pending}
-              idPrefix="new-role"
-              labelPrefix="New role"
-              onChange={(nextPermissions) => {
-                setSelectedPermissions(nextPermissions);
-                updateDirty(code, roleName, nextPermissions);
-              }}
-            />
-          </CardContent>
-        </Card>
+        <RolePermissionsCard description="Choose what members of this role can view and manage.">
+          <RolePermissionPicker
+            permissions={permissions}
+            selected={selectedPermissions}
+            disabled={pending}
+            idPrefix="new-role"
+            labelPrefix="New role"
+            onChange={(nextPermissions) => {
+              setSelectedPermissions(nextPermissions);
+              updateDirty(code, roleName, nextPermissions);
+            }}
+          />
+        </RolePermissionsCard>
       </RoleWorkspaceGrid>
 
       <RoleWorkspaceFooter className="justify-between">
@@ -174,7 +163,10 @@ export function RoleCreateForm({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p
+            data-role-compact-description
+            className="text-xs text-muted-foreground"
+          >
             You can update permissions after creating the role.
           </p>
         )}

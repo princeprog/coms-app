@@ -73,7 +73,10 @@ export function RoleEditorPage({
       </RoleWorkspaceGrid>
 
       <RoleWorkspaceFooter className="justify-between">
-        <p className="text-xs text-muted-foreground">
+        <p
+          data-role-compact-description
+          className="text-xs text-muted-foreground"
+        >
           {canEditName || canEditPermissions
             ? "Role name and permissions are saved independently."
             : "This role is read-only."}
