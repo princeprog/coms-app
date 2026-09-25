@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -30,6 +31,7 @@ export function RoleNameForm({
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
+  const dirty = name !== savedName;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,13 +87,14 @@ export function RoleNameForm({
           </FieldDescription>
         </Field>
       </FieldGroup>
-      <Button type="submit" variant="outline" disabled={pending}>
+      <Button type="submit" variant="outline" disabled={pending || !dirty}>
         {pending ? "Saving…" : "Save role name"}
       </Button>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertTitle>Role name was not saved</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       {status && (
         <p role="status" className="text-sm text-muted-foreground">

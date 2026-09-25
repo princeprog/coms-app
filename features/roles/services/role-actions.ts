@@ -24,6 +24,7 @@ async function mutateRole(
   method: "POST" | "PATCH" | "PUT",
   endpoint: string,
   body?: unknown,
+  revalidationPaths = ["/roles"],
 ): Promise<RoleMutationResult> {
   try {
     await requestComsApi<unknown>(endpoint, {
@@ -31,7 +32,7 @@ async function mutateRole(
       method,
       body,
     });
-    revalidatePath("/roles");
+    for (const path of revalidationPaths) revalidatePath(path);
     return { ok: true };
   } catch (error) {
     return { ok: false, error: getActionError(error) };
@@ -54,7 +55,10 @@ export async function updateRoleNameAction(
   if (!/^[1-9]\d{0,18}$/.test(id) || !parsed.success) {
     return { ok: false, error: "Check the role details." };
   }
-  return mutateRole("PATCH", `/roles/${id}`, parsed.data);
+  return mutateRole("PATCH", `/roles/${id}`, parsed.data, [
+    "/roles",
+    `/roles/${id}`,
+  ]);
 }
 
 export async function replaceRolePermissionsAction(
@@ -65,7 +69,10 @@ export async function replaceRolePermissionsAction(
   if (!/^[1-9]\d{0,18}$/.test(id) || !parsed.success) {
     return { ok: false, error: "Check the role permissions." };
   }
-  return mutateRole("PUT", `/roles/${id}/permissions`, parsed.data);
+  return mutateRole("PUT", `/roles/${id}/permissions`, parsed.data, [
+    "/roles",
+    `/roles/${id}`,
+  ]);
 }
 
 export async function deactivateRoleAction(

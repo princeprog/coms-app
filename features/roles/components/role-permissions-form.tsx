@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { PermissionPicker } from "@/features/roles/components/permission-picker";
 import { replaceRolePermissionsAction } from "@/features/roles/services/role-actions";
@@ -17,6 +18,7 @@ export function RolePermissionsForm({
   onComplete,
   onDirtyChange,
   onPendingChange,
+  onSelectedCountChange,
 }: {
   roleId: string;
   roleName: string;
@@ -25,12 +27,16 @@ export function RolePermissionsForm({
   onComplete: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onPendingChange: (pending: boolean) => void;
+  onSelectedCountChange: (count: number) => void;
 }) {
   const [selected, setSelected] = useState(initialPermissions);
   const [savedPermissions, setSavedPermissions] = useState(initialPermissions);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
+  const isDirty =
+    selected.length !== savedPermissions.length ||
+    selected.some((key) => !savedPermissions.includes(key));
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,6 +76,7 @@ export function RolePermissionsForm({
         disabled={pending}
         onChange={(nextSelected) => {
           setSelected(nextSelected);
+          onSelectedCountChange(nextSelected.length);
           setStatus("");
           onDirtyChange(
             nextSelected.length !== savedPermissions.length ||
@@ -78,9 +85,10 @@ export function RolePermissionsForm({
         }}
       />
       {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertTitle>Permissions were not saved</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       {status && (
         <p role="status" className="text-sm text-muted-foreground">
@@ -88,7 +96,7 @@ export function RolePermissionsForm({
         </p>
       )}
       <div>
-        <Button type="submit" variant="outline" disabled={pending}>
+        <Button type="submit" variant="outline" disabled={pending || !isDirty}>
           {pending ? "Saving permissions…" : "Save permissions"}
         </Button>
       </div>
