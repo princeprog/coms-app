@@ -49,9 +49,7 @@ export function RoleCodeField({
           if (!customized) event.currentTarget.select();
         }}
         onChange={(event) => onChange(event.currentTarget.value.toUpperCase())}
-        placeholder={
-          roleName ? "Generated from role name" : "Enter a role name"
-        }
+        placeholder="Auto-generated from role name"
       />
       <FieldDescription id="new-role-code-help" className="text-xs">
         {roleName
