@@ -12,6 +12,7 @@ import type {
   StaffBranchOption,
   StaffMutationResult,
 } from "@/features/staff/types/staff.types";
+import { UNASSIGNED_ROLE_VALUE } from "@/features/staff/constants";
 
 export function StaffCreateForm({
   roles,
@@ -35,10 +36,7 @@ export function StaffCreateForm({
     (role) =>
       role.is_active && !(role.is_system && role.code === "SUPER_ADMIN"),
   );
-  const defaultRoleId =
-    assignableRoles.find((role) => role.code === "NO_ACCESS")?.id ??
-    assignableRoles[0]?.id ??
-    "";
+  const defaultRoleId = UNASSIGNED_ROLE_VALUE;
   const initialBranchIds =
     initialBranchId && branches.some((branch) => branch.id === initialBranchId)
       ? [initialBranchId]
@@ -105,7 +103,7 @@ export function StaffCreateForm({
         full_name: fullName,
         contact_number: contactNumber,
         password,
-        role_id: roleId,
+        role_id: roleId === UNASSIGNED_ROLE_VALUE ? null : roleId,
         branch_ids: branchIds,
       });
     } catch {
@@ -194,7 +192,7 @@ export function StaffCreateForm({
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={pending || !defaultRoleId}>
+        <Button type="submit" disabled={pending}>
           {pending ? "Creating staff…" : "Create staff"}
         </Button>
       </SheetFooter>

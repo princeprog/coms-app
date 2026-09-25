@@ -423,6 +423,6 @@ describe("role editor page", () => {
     expect(replaceRolePermissionsAction).toHaveBeenCalledWith("3", {
       permission_keys: [],
     });
-    expect(await screen.findByText("0 permissions selected")).toBeTruthy();
+    expect(await screen.findByText("No permissions")).toBeTruthy();
   });
 });

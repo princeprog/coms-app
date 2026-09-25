@@ -37,15 +37,6 @@ const branchOptions = [
 ];
 const staffRoles = [
   {
-    id: "1",
-    code: "NO_ACCESS",
-    role_name: "No access",
-    is_system: true,
-    is_predefined: false,
-    is_active: true,
-    permission_keys: [],
-  },
-  {
     id: "4",
     code: "BRANCH_MANAGER",
     role_name: "Branch Manager",
@@ -210,6 +201,23 @@ describe("staff directory", () => {
     expect(
       screen.getByRole("combobox", { name: "Branch scope" }).textContent,
     ).toContain("Manila North");
+  });
+
+  it("labels a staff member without a role as unassigned", () => {
+    const unassignedPage = {
+      ...staffPage,
+      items: [
+        {
+          ...staffPage.items[0],
+          role_id: null,
+          role_code: null,
+          role_name: null,
+        },
+      ],
+    };
+    renderDirectory({ staff: unassignedPage });
+
+    expect(screen.getByText("Unassigned")).toBeTruthy();
   });
 
   it("preserves branch and search filters in pagination links", () => {

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Role } from "@/features/roles/types/role.types";
+import { UNASSIGNED_ROLE_VALUE } from "@/features/staff/constants";
 
 export function StaffCreateFields({
   email,
@@ -111,12 +112,15 @@ export function StaffCreateFields({
           <SelectTrigger id="staff-create-role" className="w-full">
             <SelectValue placeholder="Select a role">
               {(value: unknown) =>
-                assignableRoles.find((role) => role.id === value)?.role_name ??
-                "Select a role"
+                value === UNASSIGNED_ROLE_VALUE
+                  ? "Unassigned"
+                  : (assignableRoles.find((role) => role.id === value)
+                      ?.role_name ?? "Select a role")
               }
             </SelectValue>
           </SelectTrigger>
           <SelectContent data-coms-ui="operational">
+            <SelectItem value={UNASSIGNED_ROLE_VALUE}>Unassigned</SelectItem>
             {assignableRoles.map((role) => (
               <SelectItem key={role.id} value={role.id}>
                 {role.role_name}
@@ -124,6 +128,10 @@ export function StaffCreateFields({
             ))}
           </SelectContent>
         </Select>
+        <FieldDescription>
+          An unassigned account can sign in, but cannot access COMS operations
+          until an administrator assigns a role.
+        </FieldDescription>
       </Field>
     </FieldGroup>
   );

@@ -80,15 +80,6 @@
   },
   "roles": [
     {
-      "id": "1",
-      "code": "NO_ACCESS",
-      "role_name": "No Access",
-      "is_system": true,
-      "is_predefined": false,
-      "is_active": true,
-      "permission_keys": []
-    },
-    {
       "id": "2",
       "code": "SUPER_ADMIN",
       "role_name": "Super Admin",

@@ -17,15 +17,6 @@ const northBranch = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const southBranch = "28af8c76-1e33-4745-a03c-7f7fa2db640a";
 const roles = [
   {
-    id: "1",
-    code: "NO_ACCESS",
-    role_name: "No access",
-    is_system: true,
-    is_predefined: false,
-    is_active: true,
-    permission_keys: [],
-  },
-  {
     id: "4",
     code: "BRANCH_MANAGER",
     role_name: "Branch Manager",
@@ -85,7 +76,7 @@ describe("staff creation", () => {
     );
 
     const role = screen.getByRole("combobox", { name: "Role" });
-    expect(role.textContent).toContain("No access");
+    expect(role.textContent).toContain("Unassigned");
     await user.click(role);
     expect(screen.queryByRole("option", { name: "Super Admin" })).toBeNull();
     expect(screen.queryByRole("option", { name: "Inactive role" })).toBeNull();
@@ -119,6 +110,33 @@ describe("staff creation", () => {
       "Staff account created.",
     );
     expect(refreshMock).toHaveBeenCalledOnce();
+  });
+
+  it("creates an unassigned account by default when no role is selected", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createStaffAction).mockResolvedValue({ ok: true });
+    render(<StaffCreateForm roles={roles} branches={branches} />);
+
+    expect(
+      screen.getByRole("combobox", { name: "Role" }).textContent,
+    ).toContain("Unassigned");
+    await user.type(screen.getByLabelText("Email"), "unassigned@example.com");
+    await user.type(screen.getByLabelText("Full name"), "Unassigned Staff");
+    await user.type(screen.getByLabelText("Contact number"), "09170000001");
+    await user.type(
+      screen.getByLabelText("Initial password"),
+      "safe staff passphrase 2",
+    );
+    await user.click(screen.getByRole("button", { name: "Create staff" }));
+
+    expect(createStaffAction).toHaveBeenCalledWith({
+      email: "unassigned@example.com",
+      full_name: "Unassigned Staff",
+      contact_number: "09170000001",
+      password: "safe staff passphrase 2",
+      role_id: null,
+      branch_ids: [],
+    });
   });
 
   it("keeps entered values and reports a rejected create request", async () => {

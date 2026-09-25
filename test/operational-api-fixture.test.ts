@@ -92,7 +92,7 @@ describe("operational API fixture", () => {
 
     expect(user.user.email).toBe("ops-admin@example.test");
     const roles = rolesResponseSchema.parse(seed.roles);
-    expect(roles).toHaveLength(6);
+    expect(roles).toHaveLength(5);
     expect(
       roles.filter((role) => role.is_predefined).map((role) => role.code),
     ).toEqual(["COMMISSARY_MANAGER", "BRANCH_MANAGER", "CASHIER"]);
@@ -123,7 +123,7 @@ describe("operational API fixture", () => {
         headers: { cookie, "x-coms-auth-gateway": gatewaySecret },
       });
       const roleRecords = rolesResponseSchema.parse(await roles.json());
-      expect(roleRecords).toHaveLength(6);
+      expect(roleRecords).toHaveLength(5);
       expect(
         roleRecords.find((role) => role.code === "BRANCH_MANAGER")
           ?.is_predefined,
@@ -332,7 +332,7 @@ describe("operational API fixture", () => {
         full_name: "New Fixture Staff",
         contact_number: "09171234567",
         password: "fixture-only-long-password",
-        role_id: "1",
+        role_id: null,
         branch_ids: [branchId],
       };
 

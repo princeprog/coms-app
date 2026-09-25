@@ -115,6 +115,6 @@ export function RoleDetailsPanel({
 
 function getAccessSummary(role: Role, selectedCount: number) {
   if (role.code === "SUPER_ADMIN") return "Global access";
-  if (role.code === "NO_ACCESS") return "No permissions";
+  if (selectedCount === 0) return "No permissions";
   return `${selectedCount} ${selectedCount === 1 ? "permission" : "permissions"} selected`;
 }

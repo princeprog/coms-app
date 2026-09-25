@@ -111,7 +111,7 @@ export function StaffManagementSheet({
             </Badge>
           </div>
           <SheetDescription>
-            {staff.email} · {staff.role_name}
+            {staff.email} · {staff.role_name ?? "Unassigned"}
           </SheetDescription>
         </SheetHeader>
 

@@ -26,9 +26,9 @@ vi.mock("../services/role-actions", () => ({
 const roles = [
   {
     id: "1",
-    code: "NO_ACCESS",
-    role_name: "No access",
-    is_system: true,
+    code: "EMPTY_ROLE",
+    role_name: "Empty role",
+    is_system: false,
     is_predefined: false,
     is_active: true,
     permission_keys: [],

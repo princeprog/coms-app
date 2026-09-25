@@ -34,4 +34,13 @@ describe("authMeResponseSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("accepts an authenticated account with no assigned role", () => {
+    const payload = {
+      ...authTestMeResponse,
+      role: null,
+    };
+
+    expect(authMeResponseSchema.parse(payload).user.role).toBeNull();
+  });
 });

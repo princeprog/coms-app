@@ -67,7 +67,7 @@ export function StaffDirectoryRow({
             {staff.email}
           </span>
         </TableCell>
-        <TableCell>{staff.role_name}</TableCell>
+        <TableCell>{staff.role_name ?? "Unassigned"}</TableCell>
         <TableCell className="max-w-72">
           <span
             className="block truncate"

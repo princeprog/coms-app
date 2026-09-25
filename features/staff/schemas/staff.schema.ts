@@ -26,9 +26,9 @@ export const staffSchema = z
     full_name: z.string().min(2).max(160),
     contact_number: z.string().min(7).max(30),
     is_active: z.boolean(),
-    role_id: roleIdSchema,
-    role_code: z.string().min(1),
-    role_name: z.string().min(1),
+    role_id: roleIdSchema.nullable(),
+    role_code: z.string().min(1).nullable(),
+    role_name: z.string().min(1).nullable(),
     branch_ids: branchIdsSchema,
   })
   .strict();
@@ -48,7 +48,7 @@ export const createStaffSchema = z
     full_name: z.string().trim().min(2).max(160),
     contact_number: z.string().trim().min(7).max(30),
     password: z.string().min(12).max(128),
-    role_id: roleIdSchema,
+    role_id: roleIdSchema.nullable().optional().default(null),
     branch_ids: branchIdsSchema,
   })
   .strict();
@@ -63,7 +63,7 @@ export const updateStaffSchema = z
   .refine((input) => Object.keys(input).length > 0);
 
 export const assignStaffRoleSchema = z
-  .object({ role_id: roleIdSchema })
+  .object({ role_id: roleIdSchema.nullable() })
   .strict();
 
 export const assignStaffBranchesSchema = z

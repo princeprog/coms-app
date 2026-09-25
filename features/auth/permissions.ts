@@ -16,13 +16,13 @@ function isProtectedSuperAdmin(user: User): boolean {
 
 export function hasPermission(user: User, permission: string): boolean {
   if (isProtectedSuperAdmin(user)) return true;
-  if (user.role?.isSystem && user.role.code === "NO_ACCESS") return false;
+  if (!user.role?.isActive) return false;
   return user.permissions?.includes(permission) ?? false;
 }
 
 export function hasBranchScope(user: User, branchId: string): boolean {
   if (isProtectedSuperAdmin(user)) return true;
-  if (user.role?.isSystem && user.role.code === "NO_ACCESS") return false;
+  if (!user.role?.isActive) return false;
   return user.branch_ids?.includes(branchId) ?? false;
 }
 

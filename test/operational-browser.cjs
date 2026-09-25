@@ -480,7 +480,7 @@ let baseUrl;
         const directoryText = await roleDirectory.innerText();
         assert(directoryText.includes("Commissary Manager"));
         assert(directoryText.includes("Predefined"));
-        for (const code of ["NO_ACCESS", "SUPER_ADMIN", "COMMISSARY_MANAGER"]) {
+        for (const code of ["SUPER_ADMIN", "COMMISSARY_MANAGER"]) {
           assert(
             !directoryText.includes(code),
             `Role code ${code} appears in the directory`,

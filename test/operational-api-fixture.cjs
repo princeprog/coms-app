@@ -1382,10 +1382,11 @@ function createOperationalApiFixture({ gatewaySecret }) {
             message: "A staff account with that email already exists.",
           });
         }
-        const role = state.roles.find(
-          (item) => item.id === String(body?.role_id),
-        );
-        if (!role || role.code === "SUPER_ADMIN") {
+        const role =
+          body?.role_id == null
+            ? null
+            : state.roles.find((item) => item.id === String(body.role_id));
+        if (body?.role_id != null && (!role || role.code === "SUPER_ADMIN")) {
           return send(response, 400, { message: "Invalid staff role." });
         }
         const sequence = String(state.staff.length + 1).padStart(12, "0");
@@ -1396,9 +1397,9 @@ function createOperationalApiFixture({ gatewaySecret }) {
           full_name: body.full_name,
           contact_number: body.contact_number,
           is_active: true,
-          role_id: role.id,
-          role_code: role.code,
-          role_name: role.role_name,
+          role_id: role?.id ?? null,
+          role_code: role?.code ?? null,
+          role_name: role?.role_name ?? null,
           branch_ids: body.branch_ids,
         });
         return send(response, 201, { id });
@@ -1425,15 +1426,19 @@ function createOperationalApiFixture({ gatewaySecret }) {
           return send(response, 204);
         }
         if (request.method === "PUT" && staffRoute[2] === "role") {
-          const role = state.roles.find(
-            (item) => item.id === String(body?.role_id),
-          );
-          if (!role || role.code === "SUPER_ADMIN") {
+          const role =
+            body?.role_id === null
+              ? null
+              : state.roles.find((item) => item.id === String(body?.role_id));
+          if (
+            body?.role_id !== null &&
+            (!role || role.code === "SUPER_ADMIN")
+          ) {
             return send(response, 400, { message: "Invalid staff role." });
           }
-          member.role_id = role.id;
-          member.role_code = role.code;
-          member.role_name = role.role_name;
+          member.role_id = role?.id ?? null;
+          member.role_code = role?.code ?? null;
+          member.role_name = role?.role_name ?? null;
           return send(response, 204);
         }
         if (request.method === "PUT" && staffRoute[2] === "branches") {

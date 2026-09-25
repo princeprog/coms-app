@@ -17,6 +17,7 @@ import type {
   StaffMember,
   StaffMutationResult,
 } from "@/features/staff/types/staff.types";
+import { UNASSIGNED_ROLE_VALUE } from "@/features/staff/constants";
 
 export function StaffRoleForm({
   staff,
@@ -38,11 +39,12 @@ export function StaffRoleForm({
     (role) =>
       role.is_active && !(role.is_system && role.code === "SUPER_ADMIN"),
   );
-  const initialRoleId = assignableRoles.some(
-    (role) => role.id === staff.role_id,
-  )
-    ? staff.role_id
-    : "";
+  const initialRoleId =
+    staff.role_id === null
+      ? UNASSIGNED_ROLE_VALUE
+      : assignableRoles.some((role) => role.id === staff.role_id)
+        ? staff.role_id
+        : "";
   const [roleId, setRoleId] = useState(initialRoleId);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -57,7 +59,7 @@ export function StaffRoleForm({
     let result: StaffMutationResult;
     try {
       result = await assignStaffRoleAction(staff.id, branchId, {
-        role_id: roleId,
+        role_id: roleId === UNASSIGNED_ROLE_VALUE ? null : roleId,
       });
     } catch {
       setPending(false);
@@ -106,12 +108,17 @@ export function StaffRoleForm({
                 <SelectTrigger id={`staff-${staff.id}-role`} className="w-full">
                   <SelectValue placeholder="Select a role">
                     {(value: unknown) =>
-                      assignableRoles.find((role) => role.id === value)
-                        ?.role_name ?? "Select a role"
+                      value === UNASSIGNED_ROLE_VALUE
+                        ? "Unassigned"
+                        : (assignableRoles.find((role) => role.id === value)
+                            ?.role_name ?? "Select a role")
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent data-coms-ui="operational">
+                  <SelectItem value={UNASSIGNED_ROLE_VALUE}>
+                    Unassigned
+                  </SelectItem>
                   {assignableRoles.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
                       {role.role_name}
@@ -130,8 +137,15 @@ export function StaffRoleForm({
                 {status}
               </p>
             )}
-            <Button type="submit" disabled={pending || !roleId}>
-              {pending ? "Assigning role…" : "Assign role"}
+            <Button
+              type="submit"
+              disabled={pending || !roleId || roleId === initialRoleId}
+            >
+              {pending
+                ? "Saving role…"
+                : roleId === UNASSIGNED_ROLE_VALUE && staff.role_id !== null
+                  ? "Remove role"
+                  : "Assign role"}
             </Button>
           </>
         )}

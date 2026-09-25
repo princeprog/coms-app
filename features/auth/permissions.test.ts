@@ -26,6 +26,19 @@ describe("permission aware navigation", () => {
     expect(hasPermission(authTestUser, "inventory.read")).toBe(false);
   });
 
+  it("denies stale permissions and branch scopes when no role is assigned", () => {
+    const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+    const unassigned = {
+      ...authTestSessionUser,
+      role: null,
+      permissions: ["inventory.read"],
+      branch_ids: [branchId],
+    };
+
+    expect(hasPermission(unassigned, "inventory.read")).toBe(false);
+    expect(hasBranchScope(unassigned, branchId)).toBe(false);
+  });
+
   it("reveals recipe management only when recipes.read is granted", () => {
     const recipes = [
       { title: "Recipes", url: "/recipes", permission: "recipes.read" },

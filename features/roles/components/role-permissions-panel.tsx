@@ -56,9 +56,6 @@ function getDescription(role: Role, canUpdate: boolean) {
   if (role.code === "SUPER_ADMIN") {
     return "This protected system role has global access across COMS.";
   }
-  if (role.code === "NO_ACCESS") {
-    return "This protected system role has no grants.";
-  }
   if (canUpdate) {
     return "Choose what members of this role can view and manage.";
   }

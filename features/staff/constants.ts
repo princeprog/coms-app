@@ -5,3 +5,5 @@ export const staffEndpoints = {
   branches: (id: string) => `/staff/${id}/branches`,
   deactivate: (id: string) => `/staff/${id}/deactivate`,
 };
+
+export const UNASSIGNED_ROLE_VALUE = "__unassigned__";

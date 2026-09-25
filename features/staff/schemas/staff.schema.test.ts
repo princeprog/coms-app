@@ -56,6 +56,9 @@ describe("staff schemas", () => {
         branch_ids: [branchId, branchId],
       }).success,
     ).toBe(false);
+    expect(
+      createStaffSchema.safeParse({ ...valid, role_id: null }).success,
+    ).toBe(true);
   });
 
   it("validates each staff mutation and rejects unknown fields", () => {
@@ -64,6 +67,10 @@ describe("staff schemas", () => {
     ).toBe(true);
     expect(updateStaffSchema.safeParse({ full_name: "A" }).success).toBe(false);
     expect(assignStaffRoleSchema.safeParse({ role_id: 4 }).success).toBe(true);
+    expect(assignStaffRoleSchema.safeParse({ role_id: null }).success).toBe(
+      true,
+    );
+    expect(assignStaffRoleSchema.safeParse({}).success).toBe(false);
     expect(
       assignStaffBranchesSchema.safeParse({ branch_ids: [branchId] }).success,
     ).toBe(true);
@@ -73,5 +80,28 @@ describe("staff schemas", () => {
         admin: true,
       }).success,
     ).toBe(false);
+  });
+
+  it("accepts staff accounts with no role assignment", () => {
+    const result = staffPageSchema.safeParse({
+      items: [
+        {
+          id: staffId,
+          email: "alex@example.com",
+          full_name: "Alex Staff",
+          contact_number: "09170000000",
+          is_active: true,
+          role_id: null,
+          role_code: null,
+          role_name: null,
+          branch_ids: [],
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 25,
+    });
+
+    expect(result.success).toBe(true);
   });
 });
