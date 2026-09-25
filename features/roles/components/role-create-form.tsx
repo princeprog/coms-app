@@ -11,16 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { RoleCreatePermissionPicker } from "@/features/roles/components/role-create-permission-picker";
+import { RoleCodeField } from "@/features/roles/components/role-code-field";
 import { createRoleAction } from "@/features/roles/services/role-actions";
+import { generateRoleCode } from "@/features/roles/utils/role-code";
 import type {
   Permission,
   RoleMutationResult,
@@ -99,40 +96,31 @@ export function RoleCreateForm({
                   disabled={pending}
                   onChange={(event) => {
                     const nextName = event.currentTarget.value;
+                    const currentGeneratedCode = generateRoleCode(roleName);
+                    const nextGeneratedCode = generateRoleCode(nextName);
+                    const nextCode =
+                      !code || code === currentGeneratedCode
+                        ? nextGeneratedCode
+                        : code;
                     setRoleName(nextName);
-                    updateDirty(code, nextName, selectedPermissions);
-                  }}
-                  placeholder="Branch Manager"
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="role-code">Role code</FieldLabel>
-                <Input
-                  id="role-code"
-                  required
-                  minLength={2}
-                  maxLength={50}
-                  pattern="[A-Z0-9][A-Z0-9_-]{1,49}"
-                  autoCapitalize="characters"
-                  aria-describedby="new-role-code-help"
-                  value={code}
-                  disabled={pending}
-                  onChange={(event) => {
-                    const nextCode = event.currentTarget.value.toUpperCase();
                     setCode(nextCode);
-                    updateDirty(nextCode, roleName, selectedPermissions);
+                    updateDirty(nextCode, nextName, selectedPermissions);
                   }}
-                  placeholder="BRANCH_MANAGER"
+                  placeholder="e.g. Branch Manager"
                 />
               </Field>
             </FieldGroup>
-            <FieldDescription
-              id="new-role-code-help"
-              className="mt-2 text-xs sm:mt-3"
-            >
-              Use uppercase letters, numbers, underscores, or hyphens. The code
-              cannot be changed after creation.
-            </FieldDescription>
+            <div className="mt-3">
+              <RoleCodeField
+                roleName={roleName}
+                value={code}
+                disabled={pending}
+                onChange={(nextCode) => {
+                  setCode(nextCode);
+                  updateDirty(nextCode, roleName, selectedPermissions);
+                }}
+              />
+            </div>
             <Separator className="my-3 sm:my-5" />
             <div className="grid gap-1 rounded-md bg-muted/40 p-2 sm:gap-2 sm:p-3">
               <Badge
