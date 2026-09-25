@@ -388,6 +388,25 @@ let baseUrl;
     .waitFor({ state: "detached" });
   await assertShellIdentity();
 
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await navigate("/suppliers");
+  const supplierRow = page
+    .getByRole("table", { name: "Suppliers" })
+    .locator("tbody tr")
+    .first();
+  await supplierRow
+    .getByRole("button", { name: "More actions for North Farm Supply" })
+    .click();
+  const supplierActions = page.getByRole("menu");
+  await supplierActions.waitFor({ state: "visible" });
+  await page.getByRole("menuitem", { name: "View details" }).waitFor();
+  await page.getByRole("menuitem", { name: "Edit" }).waitFor();
+  await page.getByRole("menuitem", { name: "Deactivate" }).waitFor();
+  await saveScreenshot("supplier-actions-menu-desktop.png");
+  await page.keyboard.press("Escape");
+  await supplierActions.waitFor({ state: "detached" });
+  await page.setViewportSize({ width: 390, height: 844 });
+
   await navigate(
     `/suppliers?search=${encodeURIComponent("no fixture supplier matches this")}`,
   );
@@ -405,6 +424,7 @@ let baseUrl;
   console.log(
     "PASS report and role dialogs support Escape and report count save refresh",
   );
+  console.log("PASS supplier row actions open as a dismissible action menu");
   console.log(`Screenshots: ${path.relative(root, outputDirectory)}`);
 })()
   .catch(async (error) => {

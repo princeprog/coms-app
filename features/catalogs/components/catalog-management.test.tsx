@@ -65,6 +65,15 @@ function renderCatalog(
   );
 }
 
+async function openRowActions(user: ReturnType<typeof userEvent.setup>) {
+  const trigger = screen.getByRole("button", {
+    name: "More actions for North Farm Supply",
+  });
+  trigger.focus();
+  await user.keyboard("{Enter}");
+  return screen.getByRole("menu");
+}
+
 describe("catalog management", () => {
   beforeEach(() => {
     refresh.mockClear();
@@ -89,9 +98,8 @@ describe("catalog management", () => {
     ).toBeTruthy();
     expect(within(table).queryByText("Address")).toBeNull();
 
-    await user.click(
-      screen.getByRole("button", { name: "View North Farm Supply details" }),
-    );
+    await openRowActions(user);
+    await user.click(screen.getByRole("menuitem", { name: "View details" }));
     expect(
       screen.getByRole("dialog", { name: "Supplier details" }),
     ).toBeTruthy();
@@ -99,6 +107,31 @@ describe("catalog management", () => {
     expect(within(screen.getByRole("dialog")).getAllByText("—")).toHaveLength(
       1,
     );
+  });
+
+  it("puts catalog row actions behind an accessible menu", async () => {
+    const user = userEvent.setup();
+    renderCatalog();
+
+    expect(
+      screen.queryByRole("button", {
+        name: "View North Farm Supply details",
+      }),
+    ).toBeNull();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "More actions for North Farm Supply",
+      }),
+    );
+    const menu = await screen.findByRole("menu");
+    expect(
+      within(menu).getByRole("menuitem", { name: "View details" }),
+    ).toBeTruthy();
+    expect(within(menu).getByRole("menuitem", { name: "Edit" })).toBeTruthy();
+    expect(
+      within(menu).getByRole("menuitem", { name: "Deactivate" }),
+    ).toBeTruthy();
   });
 
   it("creates a catalog entry after trimming text and clearing blank optional fields", async () => {
@@ -194,9 +227,8 @@ describe("catalog management", () => {
     updateAction.mockClear();
     renderCatalog();
 
-    await user.click(
-      screen.getByRole("button", { name: "Edit North Farm Supply" }),
-    );
+    await openRowActions(user);
+    await user.click(screen.getByRole("menuitem", { name: "Edit" }));
     const dialog = screen.getByRole("dialog", { name: "Edit supplier" });
     await user.clear(within(dialog).getByLabelText("Supplier name"));
     await user.type(
@@ -221,20 +253,24 @@ describe("catalog management", () => {
     updateAction.mockClear();
     renderCatalog({ canCreate: false });
 
-    await user.click(
-      screen.getByRole("button", { name: "Edit North Farm Supply" }),
-    );
+    await openRowActions(user);
+    await user.click(screen.getByRole("menuitem", { name: "Edit" }));
     expect(screen.getByRole("dialog", { name: "Edit supplier" })).toBeTruthy();
   });
 
-  it("hides create, edit, and deactivate controls without their grants", () => {
+  it("hides create, edit, and deactivate actions without their grants", async () => {
+    const user = userEvent.setup();
     renderCatalog({ canCreate: false, canUpdate: false, canDeactivate: false });
 
     expect(screen.queryByRole("button", { name: "Add supplier" })).toBeNull();
+    const menu = await openRowActions(user);
+    expect(within(menu).queryByRole("menuitem", { name: "Edit" })).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Edit North Farm Supply" }),
+      within(menu).queryByRole("menuitem", { name: "Deactivate" }),
     ).toBeNull();
-    expect(screen.queryByRole("button", { name: /Deactivate/ })).toBeNull();
+    expect(
+      within(menu).getByRole("menuitem", { name: "View details" }),
+    ).toBeTruthy();
   });
 
   it("keeps the current search and status filters while moving between pages", () => {
@@ -259,10 +295,11 @@ describe("catalog management", () => {
     renderCatalog();
 
     const trigger = screen.getByRole("button", {
-      name: "Deactivate North Farm Supply",
+      name: "More actions for North Farm Supply",
     });
     trigger.focus();
     await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("menuitem", { name: "Deactivate" }));
 
     const dialog = screen.getByRole("alertdialog", {
       name: "Deactivate North Farm Supply?",

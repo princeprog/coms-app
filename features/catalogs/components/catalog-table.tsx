@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -8,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CatalogDeactivateControl } from "@/features/catalogs/components/catalog-deactivate-control";
+import { CatalogRowActions } from "@/features/catalogs/components/catalog-row-actions";
 import type {
   CatalogDeactivateAction,
   CatalogDisplayColumn,
@@ -79,35 +78,17 @@ export function CatalogTable({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onView(record)}
-                      aria-label={`View ${recordName} details`}
-                    >
-                      View
-                    </Button>
-                    {canUpdate && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onEdit(record)}
-                        aria-label={`Edit ${recordName}`}
-                      >
-                        Edit
-                      </Button>
-                    )}
-                    {canDeactivate && record.is_active && (
-                      <CatalogDeactivateControl
-                        recordId={record.id}
-                        recordName={recordName}
-                        action={deactivateAction}
-                        onComplete={() => onDeactivated(record)}
-                      />
-                    )}
+                  <div className="flex justify-end">
+                    <CatalogRowActions
+                      record={record}
+                      recordName={recordName}
+                      canUpdate={canUpdate}
+                      canDeactivate={canDeactivate}
+                      onView={() => onView(record)}
+                      onEdit={() => onEdit(record)}
+                      onDeactivated={() => onDeactivated(record)}
+                      deactivateAction={deactivateAction}
+                    />
                   </div>
                 </TableCell>
               </TableRow>
