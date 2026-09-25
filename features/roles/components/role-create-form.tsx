@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -19,7 +18,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { PermissionPicker } from "@/features/roles/components/permission-picker";
+import { Separator } from "@/components/ui/separator";
+import { RoleCreatePermissionPicker } from "@/features/roles/components/role-create-permission-picker";
 import { createRoleAction } from "@/features/roles/services/role-actions";
 import type {
   Permission,
@@ -78,19 +78,16 @@ export function RoleCreateForm({
   }
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={submit}>
-      <div className="grid min-w-0 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
+    <form className="flex min-h-0 flex-1 flex-col gap-4" onSubmit={submit}>
+      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 lg:grid-cols-3 lg:grid-rows-1 lg:gap-5">
+        <Card className="gap-0 py-0 lg:col-span-1">
+          <CardHeader className="border-b px-3 py-2.5 sm:px-5 sm:py-4">
             <CardTitle>
-              <h3 className="text-base font-semibold">Role details</h3>
+              <h3 className="text-lg font-semibold">Role details</h3>
             </CardTitle>
-            <CardDescription>
-              Give this role a clear name and permanent code.
-            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <FieldGroup className="gap-5">
+          <CardContent className="p-3 sm:p-5">
+            <FieldGroup className="gap-3 min-[360px]:grid min-[360px]:grid-cols-2 lg:flex lg:gap-5">
               <Field>
                 <FieldLabel htmlFor="role-name">Role name</FieldLabel>
                 <Input
@@ -105,7 +102,7 @@ export function RoleCreateForm({
                     setRoleName(nextName);
                     updateDirty(code, nextName, selectedPermissions);
                   }}
-                  placeholder="Stock manager"
+                  placeholder="Branch Manager"
                 />
               </Field>
               <Field>
@@ -117,6 +114,7 @@ export function RoleCreateForm({
                   maxLength={50}
                   pattern="[A-Z0-9][A-Z0-9_-]{1,49}"
                   autoCapitalize="characters"
+                  aria-describedby="new-role-code-help"
                   value={code}
                   disabled={pending}
                   onChange={(event) => {
@@ -124,36 +122,46 @@ export function RoleCreateForm({
                     setCode(nextCode);
                     updateDirty(nextCode, roleName, selectedPermissions);
                   }}
-                  placeholder="STOCK_MANAGER"
+                  placeholder="BRANCH_MANAGER"
                 />
-                <FieldDescription>
-                  Uppercase letters, numbers, underscores, or hyphens. This code
-                  cannot be changed after creation.
-                </FieldDescription>
               </Field>
             </FieldGroup>
+            <FieldDescription
+              id="new-role-code-help"
+              className="mt-2 text-xs sm:mt-3"
+            >
+              Use uppercase letters, numbers, underscores, or hyphens. The code
+              cannot be changed after creation.
+            </FieldDescription>
+            <Separator className="my-3 sm:my-5" />
+            <div className="grid gap-1 rounded-md bg-muted/40 p-2 sm:gap-2 sm:p-3">
+              <Badge
+                variant="secondary"
+                aria-live="polite"
+                className="w-fit text-primary"
+              >
+                {selectedPermissions.length} permissions selected
+              </Badge>
+              <p className="text-xs text-muted-foreground">
+                Members receive only the permissions selected here.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="min-w-0 lg:col-span-2">
-          <CardHeader>
+        <Card className="min-h-0 min-w-0 gap-0 py-0 lg:col-span-2">
+          <CardHeader className="shrink-0 px-3 pt-3 pb-2 sm:px-5 sm:pt-4 sm:pb-3">
             <CardTitle>
-              <h3 className="text-base font-semibold">Permissions</h3>
+              <h3 className="text-lg font-semibold">Permissions</h3>
             </CardTitle>
             <CardDescription>
-              Grant only the actions this role needs. No grants means no access.
+              Choose what members of this role can view and manage.
             </CardDescription>
-            <CardAction>
-              <Badge variant="outline" aria-live="polite">
-                {selectedPermissions.length} selected
-              </Badge>
-            </CardAction>
           </CardHeader>
-          <CardContent>
-            <PermissionPicker
+          <CardContent className="flex min-h-0 flex-1 flex-col px-3 pb-3 sm:px-5 sm:pb-4">
+            <RoleCreatePermissionPicker
               permissions={permissions}
               selected={selectedPermissions}
-              labelPrefix="New role"
               disabled={pending}
               onChange={(nextPermissions) => {
                 setSelectedPermissions(nextPermissions);
@@ -164,26 +172,31 @@ export function RoleCreateForm({
         </Card>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Role was not created</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending}
-          onClick={onCancel}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={pending}>
-          {pending ? "Creating role…" : "Create role"}
-        </Button>
-      </div>
+      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t pt-4">
+        {error ? (
+          <Alert variant="destructive" className="max-w-xl py-2">
+            <AlertTitle>Role was not created</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            You can update permissions after creating the role.
+          </p>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={pending}>
+            {pending ? "Creating role…" : "Create role"}
+          </Button>
+        </div>
+      </footer>
     </form>
   );
 }

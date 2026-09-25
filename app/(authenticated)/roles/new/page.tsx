@@ -46,7 +46,7 @@ export default async function NewRolePage() {
     );
   }
   return (
-    <AppPageShell user={session.user}>
+    <AppPageShell user={session.user} fillViewport>
       <RoleCreatePage permissions={permissions} />
     </AppPageShell>
   );
