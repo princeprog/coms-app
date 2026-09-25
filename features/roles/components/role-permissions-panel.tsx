@@ -1,16 +1,11 @@
-"use client";
-
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PermissionPicker } from "@/features/roles/components/permission-picker";
+import { RolePermissionPicker } from "@/features/roles/components/role-permission-picker";
 import { RolePermissionsForm } from "@/features/roles/components/role-permissions-form";
 import type { Permission, Role } from "@/features/roles/types/role.types";
 
@@ -18,81 +13,70 @@ export function RolePermissionsPanel({
   role,
   permissions,
   canUpdate,
+  disabled,
   onComplete,
   onDirtyChange,
   onPendingChange,
+  onSelectedCountChange,
 }: {
   role: Role;
   permissions: Permission[];
   canUpdate: boolean;
+  disabled: boolean;
   onComplete: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onPendingChange: (pending: boolean) => void;
+  onSelectedCountChange: (count: number) => void;
 }) {
-  const [selectedCount, setSelectedCount] = useState(
-    role.permission_keys.length,
-  );
-
   return (
-    <Card className="min-w-0 lg:col-span-2">
-      <CardHeader>
+    <Card className="min-h-0 min-w-0 gap-0 py-0 lg:col-span-2">
+      <CardHeader className="shrink-0 px-3 pt-3 pb-2 sm:px-5 sm:pt-4 sm:pb-3">
         <CardTitle>
-          <h3 className="text-base font-semibold">Permissions</h3>
+          <h3 className="text-lg font-semibold">Permissions</h3>
         </CardTitle>
-        <CardDescription>
-          {canUpdate
-            ? "Grant only the actions this role needs. Changes save independently of its name."
-            : "Review the fixed permission catalog for this role."}
-        </CardDescription>
-        <CardAction>
-          <Badge variant="outline" aria-live="polite">
-            {selectedCount} selected
-          </Badge>
-        </CardAction>
+        <CardDescription>{getDescription(role, canUpdate)}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 sm:px-5 sm:pb-4">
         {canUpdate ? (
           <RolePermissionsForm
             roleId={role.id}
             roleName={role.role_name}
             permissions={permissions}
             initialPermissions={role.permission_keys}
+            disabled={disabled}
             onComplete={onComplete}
             onDirtyChange={onDirtyChange}
             onPendingChange={onPendingChange}
-            onSelectedCountChange={setSelectedCount}
+            onSelectedCountChange={onSelectedCountChange}
           />
         ) : (
-          <div className="flex flex-col gap-4">
-            {role.code === "SUPER_ADMIN" ? (
-              <p className="text-sm font-medium">Global access across COMS.</p>
-            ) : role.code === "NO_ACCESS" ? (
-              <p className="text-sm font-medium">This role has no grants.</p>
-            ) : role.permission_keys.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No permissions are granted to this role.
-              </p>
-            ) : null}
-            <PermissionPicker
+          <div className="min-h-0 min-w-0 flex-1">
+            <RolePermissionPicker
               permissions={permissions}
               selected={role.permission_keys}
               labelPrefix={role.role_name}
-              onChange={() => {}}
+              idPrefix={`role-${role.id}`}
               disabled
+              onChange={() => {}}
             />
-            {role.is_system && (
-              <p className="text-sm text-muted-foreground">
-                System roles are protected.
-              </p>
-            )}
-            {!role.is_system && !role.is_active && (
-              <p className="text-sm text-muted-foreground">
-                This role is inactive.
-              </p>
-            )}
           </div>
         )}
       </CardContent>
     </Card>
   );
+}
+
+function getDescription(role: Role, canUpdate: boolean) {
+  if (role.code === "SUPER_ADMIN") {
+    return "This protected system role has global access across COMS.";
+  }
+  if (role.code === "NO_ACCESS") {
+    return "This protected system role has no grants.";
+  }
+  if (canUpdate) {
+    return "Choose what members of this role can view and manage.";
+  }
+  if (!role.is_active) return "Inactive roles cannot be edited.";
+  if (role.is_system) return "System roles are protected and cannot be edited.";
+  return "Review the fixed permission catalog for this role.";
 }

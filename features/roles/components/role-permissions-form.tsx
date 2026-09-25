@@ -2,8 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { PermissionPicker } from "@/features/roles/components/permission-picker";
+import { RolePermissionPicker } from "@/features/roles/components/role-permission-picker";
 import { replaceRolePermissionsAction } from "@/features/roles/services/role-actions";
 import type {
   Permission,
@@ -15,6 +14,7 @@ export function RolePermissionsForm({
   roleName,
   permissions,
   initialPermissions,
+  disabled,
   onComplete,
   onDirtyChange,
   onPendingChange,
@@ -24,6 +24,7 @@ export function RolePermissionsForm({
   roleName: string;
   permissions: Permission[];
   initialPermissions: string[];
+  disabled: boolean;
   onComplete: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onPendingChange: (pending: boolean) => void;
@@ -34,9 +35,6 @@ export function RolePermissionsForm({
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
-  const isDirty =
-    selected.length !== savedPermissions.length ||
-    selected.some((key) => !savedPermissions.includes(key));
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,22 +66,29 @@ export function RolePermissionsForm({
   }
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={submit}>
-      <PermissionPicker
-        permissions={permissions}
-        selected={selected}
-        labelPrefix={roleName}
-        disabled={pending}
-        onChange={(nextSelected) => {
-          setSelected(nextSelected);
-          onSelectedCountChange(nextSelected.length);
-          setStatus("");
-          onDirtyChange(
-            nextSelected.length !== savedPermissions.length ||
-              nextSelected.some((key) => !savedPermissions.includes(key)),
-          );
-        }}
-      />
+    <form
+      id={`role-permissions-form-${roleId}`}
+      className="flex min-h-0 flex-1 flex-col gap-2"
+      onSubmit={submit}
+    >
+      <div className="min-h-0 flex-1">
+        <RolePermissionPicker
+          permissions={permissions}
+          selected={selected}
+          labelPrefix={roleName}
+          idPrefix={`role-${roleId}`}
+          disabled={disabled || pending}
+          onChange={(nextSelected) => {
+            setSelected(nextSelected);
+            onSelectedCountChange(nextSelected.length);
+            setStatus("");
+            onDirtyChange(
+              nextSelected.length !== savedPermissions.length ||
+                nextSelected.some((key) => !savedPermissions.includes(key)),
+            );
+          }}
+        />
+      </div>
       {error && (
         <Alert variant="destructive">
           <AlertTitle>Permissions were not saved</AlertTitle>
@@ -95,11 +100,6 @@ export function RolePermissionsForm({
           {status}
         </p>
       )}
-      <div>
-        <Button type="submit" variant="outline" disabled={pending || !isDirty}>
-          {pending ? "Saving permissions…" : "Save permissions"}
-        </Button>
-      </div>
     </form>
   );
 }

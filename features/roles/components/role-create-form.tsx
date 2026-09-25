@@ -14,7 +14,11 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { RoleCreatePermissionPicker } from "@/features/roles/components/role-create-permission-picker";
+import { RolePermissionPicker } from "@/features/roles/components/role-permission-picker";
+import {
+  RoleWorkspaceFooter,
+  RoleWorkspaceGrid,
+} from "@/features/roles/components/role-workspace";
 import { RoleCodeField } from "@/features/roles/components/role-code-field";
 import { createRoleAction } from "@/features/roles/services/role-actions";
 import { generateRoleCode } from "@/features/roles/utils/role-code";
@@ -79,7 +83,7 @@ export function RoleCreateForm({
       className="flex min-h-0 flex-1 flex-col gap-3 lg:gap-4"
       onSubmit={submit}
     >
-      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 lg:grid-cols-3 lg:grid-rows-1 lg:gap-5">
+      <RoleWorkspaceGrid>
         <Card className="gap-0 py-0 lg:col-span-1">
           <CardHeader className="border-b px-3 py-2 sm:px-5 sm:py-4">
             <CardTitle>
@@ -148,10 +152,12 @@ export function RoleCreateForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex min-h-0 flex-1 flex-col px-3 pb-3 sm:px-5 sm:pb-4">
-            <RoleCreatePermissionPicker
+            <RolePermissionPicker
               permissions={permissions}
               selected={selectedPermissions}
               disabled={pending}
+              idPrefix="new-role"
+              labelPrefix="New role"
               onChange={(nextPermissions) => {
                 setSelectedPermissions(nextPermissions);
                 updateDirty(code, roleName, nextPermissions);
@@ -159,9 +165,9 @@ export function RoleCreateForm({
             />
           </CardContent>
         </Card>
-      </div>
+      </RoleWorkspaceGrid>
 
-      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t pt-4">
+      <RoleWorkspaceFooter className="justify-between">
         {error ? (
           <Alert variant="destructive" className="max-w-xl py-2">
             <AlertTitle>Role was not created</AlertTitle>
@@ -185,7 +191,7 @@ export function RoleCreateForm({
             {pending ? "Creating role…" : "Create role"}
           </Button>
         </div>
-      </footer>
+      </RoleWorkspaceFooter>
     </form>
   );
 }

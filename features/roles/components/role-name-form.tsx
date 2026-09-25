@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldDescription,
@@ -16,12 +15,16 @@ import type { RoleMutationResult } from "@/features/roles/types/role.types";
 export function RoleNameForm({
   id,
   initialName,
+  code,
+  disabled,
   onComplete,
   onDirtyChange,
   onPendingChange,
 }: {
   id: string;
   initialName: string;
+  code: string;
+  disabled: boolean;
   onComplete: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onPendingChange: (pending: boolean) => void;
@@ -31,7 +34,6 @@ export function RoleNameForm({
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
-  const dirty = name !== savedName;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,15 +64,16 @@ export function RoleNameForm({
 
   return (
     <form
-      className="flex flex-col gap-2 sm:flex-row sm:items-end"
+      id={`role-name-form-${id}`}
+      className="flex min-h-0 flex-col gap-2"
       onSubmit={submit}
     >
-      <FieldGroup className="flex-1 gap-2">
+      <FieldGroup className="gap-2 min-[360px]:grid min-[360px]:grid-cols-2 lg:flex lg:gap-5">
         <Field>
           <FieldLabel htmlFor={`role-name-${id}`}>Role name</FieldLabel>
           <Input
             id={`role-name-${id}`}
-            disabled={pending}
+            disabled={disabled || pending}
             required
             minLength={2}
             maxLength={160}
@@ -82,22 +85,33 @@ export function RoleNameForm({
               onDirtyChange(nextName !== savedName);
             }}
           />
-          <FieldDescription>
-            This name appears in staff role assignments.
+        </Field>
+        <Field>
+          <FieldLabel htmlFor={`role-code-${id}`}>Role code</FieldLabel>
+          <Input
+            id={`role-code-${id}`}
+            value={code}
+            readOnly
+            aria-describedby={`role-code-help-${id}`}
+            className="font-mono"
+          />
+          <FieldDescription id={`role-code-help-${id}`} className="text-xs">
+            This code is permanent and cannot be changed.
           </FieldDescription>
         </Field>
       </FieldGroup>
-      <Button type="submit" variant="outline" disabled={pending || !dirty}>
-        {pending ? "Saving…" : "Save role name"}
-      </Button>
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="py-2">
           <AlertTitle>Role name was not saved</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       {status && (
-        <p role="status" className="text-sm text-muted-foreground">
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-sm text-muted-foreground"
+        >
           {status}
         </p>
       )}

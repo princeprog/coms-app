@@ -49,7 +49,7 @@ export default async function RoleDetailPage({
   const role = roleData.roles.find((item) => item.id === roleId);
   if (!role) notFound();
   return (
-    <AppPageShell user={session.user}>
+    <AppPageShell user={session.user} fillViewport>
       <RoleEditorPage
         role={role}
         permissions={roleData.permissions}

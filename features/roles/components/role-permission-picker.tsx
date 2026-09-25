@@ -27,13 +27,17 @@ type Props = {
   selected: string[];
   disabled: boolean;
   onChange: (keys: string[]) => void;
+  idPrefix: string;
+  labelPrefix: string;
 };
 
-export function RoleCreatePermissionPicker({
+export function RolePermissionPicker({
   permissions,
   selected,
   disabled,
   onChange,
+  idPrefix,
+  labelPrefix,
 }: Props) {
   const [search, setSearch] = useState("");
   const grouped = useMemo(() => {
@@ -75,7 +79,10 @@ export function RoleCreatePermissionPicker({
     <FieldSet className="flex h-full min-h-0 flex-col gap-4">
       <FieldLegend className="sr-only">Permissions</FieldLegend>
       <div className="relative shrink-0">
-        <FieldLabel htmlFor="new-role-permission-search" className="sr-only">
+        <FieldLabel
+          htmlFor={`${idPrefix}-permission-search`}
+          className="sr-only"
+        >
           Search permissions
         </FieldLabel>
         <Search
@@ -83,7 +90,7 @@ export function RoleCreatePermissionPicker({
           className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         />
         <Input
-          id="new-role-permission-search"
+          id={`${idPrefix}-permission-search`}
           type="search"
           value={search}
           onChange={(event) => setSearch(event.currentTarget.value)}
@@ -144,7 +151,7 @@ export function RoleCreatePermissionPicker({
                     <CollapsibleContent>
                       <FieldGroup className="gap-0">
                         {items.map((permission) => {
-                          const id = `new-role-${permission.key}-checkbox`;
+                          const id = `${idPrefix}-${permission.key}-checkbox`;
                           return (
                             <Field
                               key={permission.key}
@@ -168,7 +175,7 @@ export function RoleCreatePermissionPicker({
                                   className="min-w-0 font-normal capitalize"
                                 >
                                   <span className="sr-only">
-                                    New role {permission.key}{" "}
+                                    {labelPrefix} {permission.key}{" "}
                                   </span>
                                   {permission.action_key.replaceAll("_", " ")}
                                 </FieldLabel>
