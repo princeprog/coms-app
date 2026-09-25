@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -104,6 +104,26 @@ describe("roles directory", () => {
         .getByRole("link", { name: "Manage Branch Manager" })
         .getAttribute("href"),
     ).toBe("/roles/4");
+  });
+
+  it("shows a scannable directory without exposing role codes", () => {
+    renderRoles();
+
+    const directory = screen.getByRole("table", {
+      name: "Roles and their access summary",
+    });
+    expect(screen.getByRole("region", { name: "Role table" }).tabIndex).toBe(0);
+    expect(
+      screen.getByRole("heading", { name: "Role directory" }),
+    ).toBeTruthy();
+    expect(within(directory).getAllByRole("row")).toHaveLength(
+      roles.length + 1,
+    );
+    expect(within(directory).getByText("Super Admin")).toBeTruthy();
+    expect(within(directory).getByText("Branch Manager")).toBeTruthy();
+    for (const role of roles) {
+      expect(within(directory).queryByText(role.code)).toBeNull();
+    }
   });
 
   it("links Create role to its page and keeps view available without edit grants", () => {

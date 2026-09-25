@@ -2,8 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -31,39 +30,49 @@ export function RoleTable({
 }) {
   return (
     <section aria-label="Role directory" className="min-w-0">
-      <Card>
-        <CardContent className="overflow-x-auto p-0">
-          <Table>
+      <Card className="gap-0 py-0">
+        <CardHeader className="gap-1 border-b px-5 py-4">
+          <h2 className="text-base font-semibold">Role directory</h2>
+          <p className="text-xs text-muted-foreground">
+            Open a role to review its permissions.
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table
+            className="min-w-[620px]"
+            containerProps={{
+              role: "region",
+              "aria-label": "Role table",
+              tabIndex: 0,
+              className:
+                "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+            }}
+          >
             <TableCaption className="sr-only">
               Roles and their access summary
             </TableCaption>
-            <TableHeader>
+            <TableHeader className="bg-muted/40">
               <TableRow>
-                <TableHead>Role</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Access</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-2/5 pl-5">Role</TableHead>
+                <TableHead className="w-1/5">Type</TableHead>
+                <TableHead className="w-1/5">Access</TableHead>
+                <TableHead className="w-1/5">Status</TableHead>
+                <TableHead className="w-14 pr-5 text-right">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {roles.map((role) => (
-                <TableRow key={role.id}>
-                  <TableCell className="min-w-48">
+                <TableRow key={role.id} className="focus-within:bg-muted/30">
+                  <TableCell className="min-w-52 py-3.5 pl-5 whitespace-normal">
                     <Link
                       href={`/roles/${role.id}`}
-                      className={buttonVariants({
-                        variant: "link",
-                        className:
-                          "h-auto justify-start px-0 font-medium text-foreground",
-                      })}
+                      className="inline-block max-w-full rounded-sm font-semibold text-foreground underline-offset-4 break-words hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       aria-label={`${canManageRole(role, canUpdateRole, canUpdatePermissions) ? "Manage" : "View"} ${role.role_name}`}
                     >
                       {role.role_name}
                     </Link>
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {role.code}
-                    </p>
                   </TableCell>
                   <TableCell>
                     {role.is_system ? (
@@ -71,10 +80,10 @@ export function RoleTable({
                     ) : role.is_predefined ? (
                       <Badge variant="outline">Predefined</Badge>
                     ) : (
-                      <span className="text-muted-foreground">Custom</span>
+                      <Badge variant="outline">Custom</Badge>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="tabular-nums">
                     {role.is_system && role.code === "SUPER_ADMIN"
                       ? "Global access"
                       : role.permission_keys.length === 0
@@ -86,7 +95,7 @@ export function RoleTable({
                       {role.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="pr-5 text-right">
                     <RoleDirectoryActions
                       role={role}
                       canManage={canManageRole(

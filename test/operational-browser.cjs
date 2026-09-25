@@ -344,7 +344,33 @@ let baseUrl;
     for (const route of routes) {
       await navigate(route);
       await assertPageStructure(route, width);
+      if (width === 390 && route === "/roles") {
+        const roleTableRegion = page.getByRole("region", {
+          name: "Role table",
+        });
+        await roleTableRegion.focus();
+        const scroll = await roleTableRegion.evaluate((element) => {
+          element.scrollLeft = element.scrollWidth;
+          return {
+            scrollLeft: element.scrollLeft,
+            focused: document.activeElement === element,
+          };
+        });
+        assert(scroll.focused && scroll.scrollLeft > 0);
+      }
       if (width === 1440 && route === "/roles") {
+        const roleDirectory = page.getByRole("table", {
+          name: "Roles and their access summary",
+        });
+        const directoryText = await roleDirectory.innerText();
+        assert(directoryText.includes("Commissary Manager"));
+        assert(directoryText.includes("Predefined"));
+        for (const code of ["NO_ACCESS", "SUPER_ADMIN", "COMMISSARY_MANAGER"]) {
+          assert(
+            !directoryText.includes(code),
+            `Role code ${code} appears in the directory`,
+          );
+        }
         await saveScreenshot("roles-desktop.png");
       }
       if (width === 1440 && route === "/roles/3") {
