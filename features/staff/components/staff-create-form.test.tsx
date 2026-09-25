@@ -21,6 +21,7 @@ const roles = [
     code: "NO_ACCESS",
     role_name: "No access",
     is_system: true,
+    is_predefined: false,
     is_active: true,
     permission_keys: [],
   },
@@ -29,6 +30,7 @@ const roles = [
     code: "BRANCH_MANAGER",
     role_name: "Branch Manager",
     is_system: false,
+    is_predefined: true,
     is_active: true,
     permission_keys: ["staff.read"],
   },
@@ -37,6 +39,7 @@ const roles = [
     code: "SUPER_ADMIN",
     role_name: "Super Admin",
     is_system: true,
+    is_predefined: false,
     is_active: true,
     permission_keys: [],
   },
@@ -45,8 +48,18 @@ const roles = [
     code: "INACTIVE_ROLE",
     role_name: "Inactive role",
     is_system: false,
+    is_predefined: false,
     is_active: false,
     permission_keys: [],
+  },
+  {
+    id: "6",
+    code: "CASHIER",
+    role_name: "Cashier",
+    is_system: false,
+    is_predefined: true,
+    is_active: true,
+    permission_keys: ["branches.read", "branch_products.read", "sales.create"],
   },
 ];
 const branches = [
@@ -76,6 +89,7 @@ describe("staff creation", () => {
     await user.click(role);
     expect(screen.queryByRole("option", { name: "Super Admin" })).toBeNull();
     expect(screen.queryByRole("option", { name: "Inactive role" })).toBeNull();
+    expect(screen.getByRole("option", { name: "Cashier" })).toBeTruthy();
     await user.click(screen.getByRole("option", { name: "Branch Manager" }));
     expect(
       screen

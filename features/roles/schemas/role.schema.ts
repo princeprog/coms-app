@@ -12,6 +12,7 @@ export const roleSchema = z.object({
   code: z.string().min(1),
   role_name: z.string().min(1),
   is_system: z.boolean(),
+  is_predefined: z.boolean(),
   is_active: z.boolean(),
   permission_keys: z.array(z.string()),
 });

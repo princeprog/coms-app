@@ -91,7 +91,11 @@ describe("operational API fixture", () => {
     });
 
     expect(user.user.email).toBe("ops-admin@example.test");
-    expect(rolesResponseSchema.parse(seed.roles)).toHaveLength(3);
+    const roles = rolesResponseSchema.parse(seed.roles);
+    expect(roles).toHaveLength(6);
+    expect(
+      roles.filter((role) => role.is_predefined).map((role) => role.code),
+    ).toEqual(["COMMISSARY_MANAGER", "BRANCH_MANAGER", "CASHIER"]);
     expect(permissionsResponseSchema.parse(seed.permissions)).toHaveLength(59);
   });
 
@@ -118,7 +122,12 @@ describe("operational API fixture", () => {
       const roles = await fetch(`${fixture.baseUrl}/roles`, {
         headers: { cookie, "x-coms-auth-gateway": gatewaySecret },
       });
-      expect(rolesResponseSchema.parse(await roles.json())).toHaveLength(3);
+      const roleRecords = rolesResponseSchema.parse(await roles.json());
+      expect(roleRecords).toHaveLength(6);
+      expect(
+        roleRecords.find((role) => role.code === "BRANCH_MANAGER")
+          ?.is_predefined,
+      ).toBe(true);
 
       const deactivate = await fetch(`${fixture.baseUrl}/roles/3/deactivate`, {
         method: "POST",

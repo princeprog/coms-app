@@ -1486,6 +1486,7 @@ function createOperationalApiFixture({ gatewaySecret }) {
           code: body.code,
           role_name: body.role_name,
           is_system: false,
+          is_predefined: false,
           is_active: true,
           permission_keys: body.permission_keys,
         });

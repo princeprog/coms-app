@@ -76,9 +76,7 @@
       "daily_reports.return",
       "daily_reports.approve"
     ],
-    "branch_ids": [
-      "00000000-0000-4000-8000-000000000001"
-    ]
+    "branch_ids": ["00000000-0000-4000-8000-000000000001"]
   },
   "roles": [
     {
@@ -86,6 +84,7 @@
       "code": "NO_ACCESS",
       "role_name": "No Access",
       "is_system": true,
+      "is_predefined": false,
       "is_active": true,
       "permission_keys": []
     },
@@ -94,6 +93,7 @@
       "code": "SUPER_ADMIN",
       "role_name": "Super Admin",
       "is_system": true,
+      "is_predefined": false,
       "is_active": true,
       "permission_keys": []
     },
@@ -102,9 +102,93 @@
       "code": "STOCK_MANAGER",
       "role_name": "Stock Manager",
       "is_system": false,
+      "is_predefined": false,
+      "is_active": true,
+      "permission_keys": ["inventory.read"]
+    },
+    {
+      "id": "4",
+      "code": "COMMISSARY_MANAGER",
+      "role_name": "Commissary Manager",
+      "is_system": false,
+      "is_predefined": true,
       "is_active": true,
       "permission_keys": [
-        "inventory.read"
+        "branches.read",
+        "suppliers.read",
+        "suppliers.create",
+        "suppliers.update",
+        "stock_items.read",
+        "stock_items.create",
+        "stock_items.update",
+        "inventory.read",
+        "inventory.adjust",
+        "supplier_receipts.read",
+        "supplier_receipts.create",
+        "supplier_receipts.post",
+        "stock_requests.read",
+        "stock_requests.approve",
+        "stock_requests.reject",
+        "dispatches.read",
+        "dispatches.create",
+        "dispatches.dispatch",
+        "dispatches.shortage_close",
+        "products.read",
+        "products.create",
+        "products.update",
+        "recipes.read",
+        "recipes.create",
+        "recipes.update",
+        "branch_products.read",
+        "branch_products.create",
+        "branch_products.update",
+        "branch_products.availability_update",
+        "sales.read",
+        "daily_reports.read",
+        "daily_reports.return",
+        "daily_reports.approve"
+      ]
+    },
+    {
+      "id": "5",
+      "code": "BRANCH_MANAGER",
+      "role_name": "Branch Manager",
+      "is_system": false,
+      "is_predefined": true,
+      "is_active": true,
+      "permission_keys": [
+        "branches.read",
+        "stock_items.read",
+        "inventory.read",
+        "stock_requests.read",
+        "stock_requests.create",
+        "stock_requests.cancel",
+        "dispatches.read",
+        "dispatches.receive",
+        "products.read",
+        "branch_products.read",
+        "branch_products.availability_update",
+        "sales.read",
+        "sales.create",
+        "sales.void",
+        "daily_reports.read",
+        "daily_reports.create",
+        "daily_reports.update",
+        "daily_reports.submit"
+      ]
+    },
+    {
+      "id": "6",
+      "code": "CASHIER",
+      "role_name": "Cashier",
+      "is_system": false,
+      "is_predefined": true,
+      "is_active": true,
+      "permission_keys": [
+        "branches.read",
+        "branch_products.read",
+        "sales.read",
+        "sales.create"
       ]
     }
   ],

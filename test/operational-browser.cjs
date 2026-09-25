@@ -431,6 +431,33 @@ let baseUrl;
   await page.getByRole("link", { name: "Back to roles" }).click();
   await page.waitForURL("**/roles");
   await rememberShellIdentity();
+  await page.getByRole("link", { name: "Manage Branch Manager" }).click();
+  await page.waitForURL("**/roles/5");
+  await assertShellIdentity();
+  await page
+    .getByText("Permission changes apply to everyone assigned to this role.")
+    .waitFor();
+  await page.getByText("Predefined", { exact: true }).waitFor();
+  const managerAdjustPermission = page.getByRole("checkbox", {
+    name: /Branch Manager inventory\.adjust/,
+  });
+  assert.equal(
+    await managerAdjustPermission.getAttribute("aria-checked"),
+    "false",
+  );
+  await managerAdjustPermission.click();
+  await page.getByRole("button", { name: "Save permissions" }).click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "Permissions updated." })
+    .waitFor();
+  assert.equal(
+    await managerAdjustPermission.getAttribute("aria-checked"),
+    "true",
+  );
+  await page.getByRole("link", { name: "Back to roles" }).click();
+  await page.waitForURL("**/roles");
+
   await page.getByRole("link", { name: "Manage Stock Manager" }).click();
   await page.waitForURL("**/roles/3");
   await assertShellIdentity();

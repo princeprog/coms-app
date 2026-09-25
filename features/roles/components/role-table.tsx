@@ -67,7 +67,9 @@ export function RoleTable({
                   </TableCell>
                   <TableCell>
                     {role.is_system ? (
-                      <Badge variant="secondary">System role</Badge>
+                      <Badge variant="secondary">System</Badge>
+                    ) : role.is_predefined ? (
+                      <Badge variant="outline">Predefined</Badge>
                     ) : (
                       <span className="text-muted-foreground">Custom</span>
                     )}

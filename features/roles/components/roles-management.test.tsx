@@ -29,6 +29,7 @@ const roles = [
     code: "NO_ACCESS",
     role_name: "No access",
     is_system: true,
+    is_predefined: false,
     is_active: true,
     permission_keys: [],
   },
@@ -37,6 +38,7 @@ const roles = [
     code: "SUPER_ADMIN",
     role_name: "Super Admin",
     is_system: true,
+    is_predefined: false,
     is_active: true,
     permission_keys: [],
   },
@@ -45,8 +47,18 @@ const roles = [
     code: "STOCK_MANAGER",
     role_name: "Stock Manager",
     is_system: false,
+    is_predefined: false,
     is_active: true,
     permission_keys: ["inventory.read"],
+  },
+  {
+    id: "4",
+    code: "BRANCH_MANAGER",
+    role_name: "Branch Manager",
+    is_system: false,
+    is_predefined: true,
+    is_active: true,
+    permission_keys: ["stock_requests.read"],
   },
 ];
 
@@ -86,6 +98,12 @@ describe("roles directory", () => {
     ).toBe("/roles/2");
     expect(screen.getByText("Global access")).toBeTruthy();
     expect(screen.getByText("No permissions")).toBeTruthy();
+    expect(screen.getByText("Predefined")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: "Manage Branch Manager" })
+        .getAttribute("href"),
+    ).toBe("/roles/4");
   });
 
   it("links Create role to its page and keeps view available without edit grants", () => {

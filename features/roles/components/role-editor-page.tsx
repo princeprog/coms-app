@@ -56,7 +56,11 @@ export function RoleEditorPage({
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold">{role.role_name}</h2>
             <Badge variant={role.is_system ? "secondary" : "outline"}>
-              {role.is_system ? "System role" : "Custom role"}
+              {role.is_system
+                ? "System"
+                : role.is_predefined
+                  ? "Predefined"
+                  : "Custom"}
             </Badge>
             <Badge variant={role.is_active ? "outline" : "secondary"}>
               {role.is_active ? "Active" : "Inactive"}
@@ -65,6 +69,11 @@ export function RoleEditorPage({
           <p className="font-mono text-xs text-muted-foreground">
             Role code: {role.code}
           </p>
+          {role.is_predefined && (
+            <p className="text-xs text-muted-foreground">
+              Permission changes apply to everyone assigned to this role.
+            </p>
+          )}
         </div>
         <Link
           href="/roles"

@@ -42,6 +42,7 @@ const stockManager = {
   code: "STOCK_MANAGER",
   role_name: "Stock Manager",
   is_system: false,
+  is_predefined: false,
   is_active: true,
   permission_keys: ["inventory.read"],
 };
@@ -105,6 +106,7 @@ describe("role editor page", () => {
           code: "SUPER_ADMIN",
           role_name: "Super Admin",
           is_system: true,
+          is_predefined: false,
           permission_keys: [],
         }}
         permissions={permissions}
@@ -124,6 +126,34 @@ describe("role editor page", () => {
     });
     await user.click(readPermission);
     expect(readPermission.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("shows predefined roles as editable and explains their shared effect", () => {
+    render(
+      <RoleEditorPage
+        role={{
+          ...stockManager,
+          id: "4",
+          code: "BRANCH_MANAGER",
+          role_name: "Branch Manager",
+          is_predefined: true,
+        }}
+        permissions={permissions}
+        canUpdateRole
+        canUpdatePermissions
+      />,
+    );
+
+    expect(screen.getByText("Predefined")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Permission changes apply to everyone assigned to this role.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Role name" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Save permissions" }),
+    ).toBeTruthy();
   });
 
   it("keeps inactive custom roles read-only even when the operator can edit", () => {

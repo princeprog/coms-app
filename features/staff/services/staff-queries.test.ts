@@ -128,6 +128,7 @@ describe("staff queries", () => {
         code: "BRANCH_MANAGER",
         role_name: "Branch Manager",
         is_system: false,
+        is_predefined: true,
         is_active: true,
         permission_keys: ["staff.read"],
       },
@@ -136,6 +137,7 @@ describe("staff queries", () => {
         code: "SUPER_ADMIN",
         role_name: "Super Admin",
         is_system: true,
+        is_predefined: false,
         is_active: true,
         permission_keys: [],
       },
@@ -144,13 +146,28 @@ describe("staff queries", () => {
         code: "OLD_ROLE",
         role_name: "Old role",
         is_system: false,
+        is_predefined: false,
         is_active: false,
         permission_keys: [],
+      },
+      {
+        id: "6",
+        code: "CASHIER",
+        role_name: "Cashier",
+        is_system: false,
+        is_predefined: true,
+        is_active: true,
+        permission_keys: [
+          "branches.read",
+          "branch_products.read",
+          "sales.create",
+        ],
       },
     ]);
 
     await expect(getStaffRoleOptions()).resolves.toEqual([
       expect.objectContaining({ id: "4", code: "BRANCH_MANAGER" }),
+      expect.objectContaining({ id: "6", code: "CASHIER" }),
     ]);
     expect(requestComsApiMock).toHaveBeenCalledWith("/roles", {
       cookieHeader: "coms_access=test",

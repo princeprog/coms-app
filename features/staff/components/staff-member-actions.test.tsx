@@ -41,6 +41,7 @@ const roles = [
     code: "BRANCH_MANAGER",
     role_name: "Branch Manager",
     is_system: false,
+    is_predefined: true,
     is_active: true,
     permission_keys: [],
   },
@@ -49,6 +50,7 @@ const roles = [
     code: "CASHIER",
     role_name: "Cashier",
     is_system: false,
+    is_predefined: true,
     is_active: true,
     permission_keys: [],
   },
@@ -140,6 +142,7 @@ describe("staff member actions", () => {
       code: "SUPER_ADMIN",
       role_name: "Super Admin",
       is_system: true,
+      is_predefined: false,
       is_active: true,
       permission_keys: [],
     };
