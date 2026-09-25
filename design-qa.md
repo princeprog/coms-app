@@ -42,3 +42,36 @@ No actionable P0, P1, or P2 findings remain.
 - [x] Console error check completed.
 
 final result: passed
+
+---
+
+# COMS Create Role Page Design QA — 2026-09-26
+
+## Comparison target
+
+- Source visual truth: User-provided create-role screenshot at `C:/Users/ALPRIN~1/AppData/Local/Temp/codex-clipboard-f177e205-6b6f-45a4-9e74-5df3aeec6f6b.png`, 1586 × 992 px.
+- Implementation: Production-build browser capture at `test-results/operational-ui/role-create-page-desktop.png`, 1586 × 992 px; durable fake-fixture copy at `C:/Users/Al Prince/Documents/Obsidian Vault/Projects/COMS/Design/Implementation Captures/role-create-page-desktop.png`.
+- State: Light theme, first render of `/roles/new`; no real role data entered and no grants selected. The source uses sample role values and six sample selections. The implementation uses the real COMS permission catalog and intentionally starts blank.
+- Density: Both images are 1586 × 992 pixels at a 1586 × 992 CSS viewport with device scale 1; no density normalization was needed.
+
+## Evidence and findings
+
+- Full-view comparison: Both images place a back link, large title, 1:2 details/permissions cards, and a bottom action area in the same hierarchy. The existing COMS sidebar, branding, and header differ from the generated reference by project design and were preserved.
+- Focused comparison: The details card has labeled name/code inputs, an immutable-code note, separator, and live selected-count inset. The permissions card pins its heading and search above bordered, grouped checkbox rows. The primary action stays orange and the footer stays below a divider. No new image assets are required for the create-page content.
+- Typography and tokens: The implementation retains the application's font and shadcn semantic colors. Weights, border contrast, orange action emphasis, row spacing, and moderate radii closely follow the reference. Copy differs only where the real catalog and existing validation require it.
+- Interaction and layout: The production fixture verified the document did not vertically scroll at 390 × 844, 390 × 667, and 1586 × 992 while the permission viewport did. The permission viewport did not scroll horizontally; search and footer remained visible. The same runner checked route structure and no page-level horizontal overflow at 195, 390, 768, 1440, and 1920 CSS pixels, dark mode, and the narrow 2x-device-scale run. Create/dirty-discard behavior, shell identity, and console errors were included in the runner.
+- Mobile capture: `test-results/operational-ui/role-create-page-mobile.png`, archived in the COMS vault. At 390 × 844, the two detail inputs share a row so the permission list has usable height; the permissions remain the only scrolling content area.
+
+No actionable P0, P1, or P2 visual or interaction findings remain. The generated reference's sample user, role, selected grants, and three displayed groups were not copied as application data. This is an intentional content-state difference, so a pixel-diff score would be misleading.
+
+## Comparison history
+
+1. The first mobile capture showed that vertically stacked details left too little height for the permission list. Tightened mobile spacing and placed name/code fields side by side at normal mobile width; recaptured the page.
+2. The first desktop capture showed the search icon in the middle of its input because the shared Field layout widened it. Changed only the search wrapper and recaptured with the icon at the left edge.
+3. Final production captures at 1586 × 992 and 390 × 844 show the fixed footer and accessible permission list. Automated scroll containment checks passed.
+
+## Follow-up polish
+
+- The source mock's sidebar/header branding and sample role values remain different from the running COMS shell and real create state by design.
+
+final result: passed

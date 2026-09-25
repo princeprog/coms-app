@@ -71,6 +71,54 @@ async function navigate(pathname) {
   );
 }
 
+async function assertRoleCreateScroll(width) {
+  const state = await page.evaluate(() => {
+    const viewport = document.querySelector(
+      '[aria-label="Permission groups"] [data-slot="scroll-area-viewport"]',
+    );
+    const form = document.querySelector("form");
+    const footer = form?.querySelector("footer");
+    const search = document.getElementById("new-role-permission-search");
+    if (!viewport || !footer || !search) return null;
+    const before = viewport.scrollTop;
+    viewport.scrollTop = viewport.scrollHeight;
+    const after = viewport.scrollTop;
+    viewport.scrollTop = before;
+    return {
+      documentHeight: document.documentElement.scrollHeight,
+      windowHeight: window.innerHeight,
+      contentHeight: viewport.scrollHeight,
+      viewportHeight: viewport.clientHeight,
+      contentWidth: viewport.scrollWidth,
+      viewportWidth: viewport.clientWidth,
+      before,
+      after,
+      documentScroll: document.documentElement.scrollTop,
+      footerBottom: footer.getBoundingClientRect().bottom,
+      searchBottom: search.getBoundingClientRect().bottom,
+    };
+  });
+  assert(state, `Role create scroll structure missing at ${width}px`);
+  assert(
+    state.documentHeight <= state.windowHeight + 2,
+    `Role create document scrolls at ${width}px: ${JSON.stringify(state)}`,
+  );
+  assert(
+    state.contentHeight > state.viewportHeight && state.after > state.before,
+    `Permission list does not scroll at ${width}px: ${JSON.stringify(state)}`,
+  );
+  assert(
+    state.contentWidth <= state.viewportWidth + 1,
+    `Permission list scrolls horizontally at ${width}px: ${JSON.stringify(state)}`,
+  );
+  assert.equal(state.documentScroll, 0);
+  assert(
+    state.footerBottom <= state.windowHeight + 1 &&
+      state.searchBottom < state.footerBottom,
+    `Role actions or permission search leave the viewport at ${width}px: ${JSON.stringify(state)}`,
+  );
+}
+
 async function assertPageStructure(pathname, width, expectedDeviceScale = 1) {
   const structure = await page.evaluate(() => {
     const uncontainedOverflowers = [...document.querySelectorAll("body *")]
@@ -354,6 +402,7 @@ let baseUrl;
 
   await page.setViewportSize({ width: 390, height: 844 });
   await navigate("/roles/new");
+  await assertRoleCreateScroll(390);
   await saveScreenshot("role-create-page-mobile.png");
   await page.getByRole("textbox", { name: "Role name" }).fill("Temporary role");
   await page.getByRole("textbox", { name: "Role code" }).fill("TEMPORARY_ROLE");
@@ -370,7 +419,17 @@ let baseUrl;
   await page.getByRole("button", { name: "Discard changes" }).click();
   await page.waitForURL("**/roles");
 
+  await page.setViewportSize({ width: 1586, height: 992 });
+  await navigate("/roles/new");
+  await assertRoleCreateScroll(1586);
+  await saveScreenshot("role-create-page-desktop.png");
+
+  await page.setViewportSize({ width: 390, height: 667 });
+  await assertRoleCreateScroll(390);
+
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("link", { name: "Back to roles" }).click();
+  await page.waitForURL("**/roles");
   await rememberShellIdentity();
   await page.getByRole("link", { name: "Manage Stock Manager" }).click();
   await page.waitForURL("**/roles/3");
