@@ -1,7 +1,6 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
@@ -34,7 +33,7 @@ export function RoleTable({
         <CardHeader className="gap-1 border-b px-5 py-4">
           <h2 className="text-base font-semibold">Role directory</h2>
           <p className="text-xs text-muted-foreground">
-            Open a role to review its permissions.
+            Use the action menu to view or manage a role.
           </p>
         </CardHeader>
         <CardContent className="p-0">
@@ -66,13 +65,9 @@ export function RoleTable({
               {roles.map((role) => (
                 <TableRow key={role.id} className="focus-within:bg-muted/30">
                   <TableCell className="min-w-52 py-3.5 pl-5 whitespace-normal">
-                    <Link
-                      href={`/roles/${role.id}`}
-                      className="inline-block max-w-full rounded-sm font-semibold text-foreground underline-offset-4 break-words hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                      aria-label={`${canManageRole(role, canUpdateRole, canUpdatePermissions) ? "Manage" : "View"} ${role.role_name}`}
-                    >
+                    <span className="font-semibold text-foreground break-words">
                       {role.role_name}
-                    </Link>
+                    </span>
                   </TableCell>
                   <TableCell>
                     {role.is_system ? (

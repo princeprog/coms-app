@@ -83,27 +83,49 @@ describe("roles directory", () => {
     vi.mocked(deactivateRoleAction).mockReset();
   });
 
-  it("links role records to their dedicated pages and summarizes protected access", () => {
+  it("shows role names as plain text and preserves the access summaries", () => {
     renderRoles();
 
-    expect(
-      screen
-        .getByRole("link", { name: "Manage Stock Manager" })
-        .getAttribute("href"),
-    ).toBe("/roles/3");
-    expect(
-      screen
-        .getByRole("link", { name: "View Super Admin" })
-        .getAttribute("href"),
-    ).toBe("/roles/2");
+    const directory = screen.getByRole("table", {
+      name: "Roles and their access summary",
+    });
+    for (const role of roles) {
+      const row = within(directory).getByRole("row", {
+        name: new RegExp(role.role_name, "i"),
+      });
+      expect(within(row).queryByRole("link")).toBeNull();
+      expect(within(row).getByText(role.role_name)).toBeTruthy();
+      expect(within(row).queryByText(role.code)).toBeNull();
+    }
     expect(screen.getByText("Global access")).toBeTruthy();
     expect(screen.getByText("No permissions")).toBeTruthy();
     expect(screen.getByText("Predefined")).toBeTruthy();
+  });
+
+  it("navigates to manage and view pages from the row action menu", async () => {
+    const user = userEvent.setup();
+    renderRoles();
+
+    const manageTrigger = screen.getByRole("button", {
+      name: "More actions for Stock Manager",
+    });
+    manageTrigger.focus();
+    await user.keyboard("{Enter}");
     expect(
       screen
-        .getByRole("link", { name: "Manage Branch Manager" })
+        .getByRole("menuitem", { name: "Manage role" })
         .getAttribute("href"),
-    ).toBe("/roles/4");
+    ).toBe("/roles/3");
+    await user.keyboard("{Escape}");
+
+    const viewTrigger = screen.getByRole("button", {
+      name: "More actions for Super Admin",
+    });
+    viewTrigger.focus();
+    await user.keyboard("{Enter}");
+    expect(
+      screen.getByRole("menuitem", { name: "View role" }).getAttribute("href"),
+    ).toBe("/roles/2");
   });
 
   it("shows a scannable directory without exposing role codes", () => {
@@ -135,8 +157,10 @@ describe("roles directory", () => {
     });
 
     expect(screen.queryByRole("link", { name: "Create role" })).toBeNull();
+    const stockRow = screen.getByRole("row", { name: /Stock Manager/ });
+    expect(within(stockRow).queryByRole("link")).toBeNull();
     expect(
-      screen.getByRole("link", { name: "View Stock Manager" }),
+      screen.getByRole("button", { name: "More actions for Stock Manager" }),
     ).toBeTruthy();
   });
 
