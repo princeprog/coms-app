@@ -81,7 +81,9 @@ describe("branch product price form", () => {
       "The product is inactive or this offer cannot be changed.",
     );
     expect(input).toHaveProperty("value", "100.00");
-    expect((input as HTMLInputElement).disabled).toBe(false);
+    await waitFor(() =>
+      expect((input as HTMLInputElement).disabled).toBe(false),
+    );
     expect(refresh).not.toHaveBeenCalled();
   });
 
