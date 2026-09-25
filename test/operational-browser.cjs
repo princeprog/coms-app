@@ -217,6 +217,7 @@ let baseUrl;
     "/roles/new",
     "/roles/2",
     "/roles/3",
+    "/roles/999",
     "/staff",
     "/branches",
     "/suppliers",
@@ -406,6 +407,8 @@ let baseUrl;
     await page.getByRole("button", { name: "Save permissions" }).count(),
     0,
   );
+  await navigate("/roles/999");
+  await page.getByRole("heading", { name: "Page not found" }).waitFor();
   await page.goto(`${baseUrl}/roles/invalid`, {
     waitUntil: "domcontentloaded",
   });

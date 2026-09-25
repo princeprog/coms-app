@@ -8,7 +8,7 @@ export default function AuthenticatedError({ reset }: { reset: () => void }) {
       className="m-4 flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border p-6 text-center"
       role="alert"
     >
-      <h1 className="text-lg font-semibold">This page could not load</h1>
+      <h2 className="text-lg font-semibold">This page could not load</h2>
       <p className="text-sm text-muted-foreground">
         Your navigation is still available. Try loading the page again.
       </p>
