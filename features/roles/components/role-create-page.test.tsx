@@ -43,6 +43,9 @@ describe("role create page", () => {
 
     expect(screen.getByRole("heading", { name: "Role details" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Permissions" })).toBeTruthy();
+    expect(
+      (screen.getByLabelText("Role code") as HTMLInputElement).placeholder,
+    ).toBe("Auto-generated");
     await user.type(screen.getByLabelText("Role name"), "Receiving Clerk");
     await user.type(screen.getByLabelText("Role code"), "RECEIVING_CLERK");
     const read = screen.getByRole("checkbox", {

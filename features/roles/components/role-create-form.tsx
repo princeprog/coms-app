@@ -75,16 +75,19 @@ export function RoleCreateForm({
   }
 
   return (
-    <form className="flex min-h-0 flex-1 flex-col gap-4" onSubmit={submit}>
-      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 lg:grid-cols-3 lg:grid-rows-1 lg:gap-5">
+    <form
+      className="flex min-h-0 flex-1 flex-col gap-3 lg:gap-4"
+      onSubmit={submit}
+    >
+      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 lg:grid-cols-3 lg:grid-rows-1 lg:gap-5">
         <Card className="gap-0 py-0 lg:col-span-1">
-          <CardHeader className="border-b px-3 py-2.5 sm:px-5 sm:py-4">
+          <CardHeader className="border-b px-3 py-2 sm:px-5 sm:py-4">
             <CardTitle>
               <h3 className="text-lg font-semibold">Role details</h3>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-5">
-            <FieldGroup className="gap-3 min-[360px]:grid min-[360px]:grid-cols-2 lg:flex lg:gap-5">
+            <FieldGroup className="gap-2 min-[360px]:grid min-[360px]:grid-cols-2 lg:flex lg:gap-5">
               <Field>
                 <FieldLabel htmlFor="role-name">Role name</FieldLabel>
                 <Input
@@ -106,11 +109,9 @@ export function RoleCreateForm({
                     setCode(nextCode);
                     updateDirty(nextCode, nextName, selectedPermissions);
                   }}
-                  placeholder="e.g. Branch Manager"
+                  placeholder="e.g. Manager"
                 />
               </Field>
-            </FieldGroup>
-            <div className="mt-3">
               <RoleCodeField
                 roleName={roleName}
                 value={code}
@@ -120,9 +121,9 @@ export function RoleCreateForm({
                   updateDirty(nextCode, roleName, selectedPermissions);
                 }}
               />
-            </div>
-            <Separator className="my-3 sm:my-5" />
-            <div className="grid gap-1 rounded-md bg-muted/40 p-2 sm:gap-2 sm:p-3">
+            </FieldGroup>
+            <Separator className="my-2 sm:my-5" />
+            <div className="grid gap-1 rounded-md bg-muted/40 p-2 min-[360px]:flex min-[360px]:items-center min-[360px]:gap-2 sm:p-3">
               <Badge
                 variant="secondary"
                 aria-live="polite"

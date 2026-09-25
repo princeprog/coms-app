@@ -17,7 +17,7 @@ export function RoleCreatePage({ permissions }: { permissions: Permission[] }) {
   const guard = useRoleDraftGuard(dirty, pending);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-3 lg:gap-4">
       <header className="grid shrink-0 gap-2">
         <Link
           href="/roles"
@@ -36,7 +36,7 @@ export function RoleCreatePage({ permissions }: { permissions: Permission[] }) {
             Create role
           </h2>
           <p className="text-sm text-muted-foreground md:text-base">
-            Define a role and choose what its members can access.
+            Define a role and choose its permissions.
           </p>
         </div>
       </header>

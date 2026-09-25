@@ -49,12 +49,22 @@ export function RoleCodeField({
           if (!customized) event.currentTarget.select();
         }}
         onChange={(event) => onChange(event.currentTarget.value.toUpperCase())}
-        placeholder="Auto-generated from role name"
+        placeholder="Auto-generated"
       />
       <FieldDescription id="new-role-code-help" className="text-xs">
-        {roleName
-          ? "Generated from the name. Edit with uppercase letters, numbers, underscores, or hyphens; it becomes permanent after saving."
-          : "Enter a role name to generate a code, or type a custom code."}
+        {roleName ? (
+          <>
+            <span className="sm:hidden">
+              Generated from the name; editable before saving.
+            </span>
+            <span className="hidden sm:inline">
+              Generated from the name. Edit with uppercase letters, numbers,
+              underscores, or hyphens; it becomes permanent after saving.
+            </span>
+          </>
+        ) : (
+          "Enter a role name to generate a code, or type a custom code."
+        )}
       </FieldDescription>
     </Field>
   );
