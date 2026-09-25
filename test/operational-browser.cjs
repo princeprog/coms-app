@@ -214,6 +214,9 @@ let baseUrl;
   );
   const routes = [
     "/roles",
+    "/roles/new",
+    "/roles/2",
+    "/roles/3",
     "/staff",
     "/branches",
     "/suppliers",
@@ -295,6 +298,9 @@ let baseUrl;
       if (width === 1440 && route === "/roles") {
         await saveScreenshot("roles-desktop.png");
       }
+      if (width === 1440 && route === "/roles/3") {
+        await saveScreenshot("role-edit-page-desktop.png");
+      }
       if (width === 390 && route === "/pos?branch_id=" + branchId) {
         await saveScreenshot("pos-mobile.png");
       }
@@ -317,6 +323,8 @@ let baseUrl;
     await navigate(route);
     await assertPageStructure(`${route} dark`, 390);
     if (route === "/roles") await saveScreenshot("roles-dark-mobile.png");
+    if (route === "/roles/3")
+      await saveScreenshot("role-edit-page-dark-mobile.png");
   }
   console.log(`PASS ${routes.length} operational route states in dark mode`);
   await page.emulateMedia({ colorScheme: "light" });
@@ -344,18 +352,66 @@ let baseUrl;
   await zoomEmulation.detach();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await navigate("/roles");
-  const createRole = page.getByRole("button", { name: /Create role/ });
-  await createRole.click();
-  await page.getByRole("dialog").waitFor();
-  await saveScreenshot("role-create-sheet-mobile.png");
-  await page.keyboard.press("Escape");
-  await page.getByRole("dialog").waitFor({ state: "detached" });
-  await createRole.waitFor({ state: "visible" });
+  await navigate("/roles/new");
+  await saveScreenshot("role-create-page-mobile.png");
+  await page.getByRole("textbox", { name: "Role name" }).fill("Temporary role");
+  await page.getByRole("textbox", { name: "Role code" }).fill("TEMPORARY_ROLE");
+  await page.getByRole("link", { name: "Back to roles" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Discard unsaved role changes?" })
+    .waitFor();
+  await page.getByRole("button", { name: "Keep editing" }).click();
   assert.equal(
-    await createRole.evaluate((element) => element === document.activeElement),
-    true,
+    await page.getByRole("textbox", { name: "Role code" }).inputValue(),
+    "TEMPORARY_ROLE",
   );
+  await page.getByRole("link", { name: "Back to roles" }).click();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await page.waitForURL("**/roles");
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await rememberShellIdentity();
+  await page.getByRole("link", { name: "Manage Stock Manager" }).click();
+  await page.waitForURL("**/roles/3");
+  await assertShellIdentity();
+  const roleNameInput = page.getByRole("textbox", { name: "Role name" });
+  await roleNameInput.fill("Senior Stock Manager");
+  const adjustPermission = page.getByRole("checkbox", {
+    name: /Stock Manager inventory\.adjust/,
+  });
+  await adjustPermission.click();
+  await page.getByRole("button", { name: "Save role name" }).click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "Role name updated." })
+    .waitFor();
+  await assertShellIdentity();
+  const savedPermissionDraft = page.getByRole("checkbox", {
+    name: /inventory\.adjust/,
+  });
+  assert.equal(await savedPermissionDraft.getAttribute("aria-checked"), "true");
+  await page.getByRole("button", { name: "Save permissions" }).click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "Permissions updated." })
+    .waitFor();
+  await assertShellIdentity();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await navigate("/roles/3");
+  await saveScreenshot("role-edit-page-mobile.png");
+  await navigate("/roles/2");
+  await page.getByText("Global access across COMS.").waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: "Save permissions" }).count(),
+    0,
+  );
+  await page.goto(`${baseUrl}/roles/invalid`, {
+    waitUntil: "domcontentloaded",
+  });
+  // Authenticated routes stream their loading shell before role validation, so
+  // Next.js can retain the initial 200 response when rendering the 404 state.
+  await page.getByRole("heading", { name: "Page not found" }).waitFor();
 
   await navigate(`/reports?branch_id=${branchId}&status=all`);
   const createReport = page.getByRole("button", {
@@ -422,7 +478,7 @@ let baseUrl;
     "PASS authenticated client navigation, Back/Forward, and mutation refresh preserve the shell",
   );
   console.log(
-    "PASS report and role dialogs support Escape and report count save refresh",
+    "PASS report dialog, dedicated role pages, draft discard, independent saves, and report count refresh",
   );
   console.log("PASS supplier row actions open as a dismissible action menu");
   console.log(`Screenshots: ${path.relative(root, outputDirectory)}`);

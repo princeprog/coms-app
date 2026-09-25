@@ -45,9 +45,19 @@ describe("role create page", () => {
     expect(screen.getByRole("heading", { name: "Permissions" })).toBeTruthy();
     await user.type(screen.getByLabelText("Role name"), "Receiving Clerk");
     await user.type(screen.getByLabelText("Role code"), "RECEIVING_CLERK");
-    await user.click(
-      screen.getByRole("checkbox", { name: /New role inventory\.read/ }),
-    );
+    const read = screen.getByRole("checkbox", {
+      name: /New role inventory\.read/,
+    });
+    await user.click(read);
+    const permissionSearch = screen.getByRole("searchbox", {
+      name: "Search permissions",
+    });
+    await user.type(permissionSearch, "adjust");
+    expect(
+      screen.queryByRole("checkbox", { name: /New role inventory\.read/ }),
+    ).toBeNull();
+    await user.clear(permissionSearch);
+    expect(read.getAttribute("aria-checked")).toBe("true");
     await user.click(screen.getByRole("button", { name: "Create role" }));
 
     expect(createRoleAction).toHaveBeenCalledWith({
