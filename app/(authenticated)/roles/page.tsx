@@ -7,7 +7,7 @@ import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { ApiRequestError } from "@/services/api-services";
 import { RolesManagement } from "@/features/roles/components/roles-management";
-import { getRoleAdminData } from "@/features/roles/services/role-queries";
+import { getRoles } from "@/features/roles/services/role-queries";
 
 export default async function RolesPage() {
   const session = await getCurrentUserFromServer();
@@ -30,7 +30,7 @@ export default async function RolesPage() {
 
   let data;
   try {
-    data = await getRoleAdminData();
+    data = await getRoles();
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) redirect("/");
     if (error instanceof ApiRequestError && error.status === 403) notFound();
@@ -59,8 +59,7 @@ export default async function RolesPage() {
   return (
     <AppPageShell user={session.user}>
       <RolesManagement
-        roles={data.roles}
-        permissions={data.permissions}
+        roles={data}
         canCreateRole={hasPermission(session.user, "roles.create")}
         canUpdateRole={hasPermission(session.user, "roles.update")}
         canUpdatePermissions={hasPermission(

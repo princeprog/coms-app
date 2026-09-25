@@ -1,7 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -20,14 +21,12 @@ export function RoleTable({
   canUpdateRole,
   canUpdatePermissions,
   canDeactivateRole,
-  onOpen,
   onComplete,
 }: {
   roles: Role[];
   canUpdateRole: boolean;
   canUpdatePermissions: boolean;
   canDeactivateRole: boolean;
-  onOpen: (role: Role, trigger: HTMLButtonElement | null) => void;
   onComplete: () => void;
 }) {
   return (
@@ -51,15 +50,17 @@ export function RoleTable({
               {roles.map((role) => (
                 <TableRow key={role.id}>
                   <TableCell className="min-w-48">
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="h-auto justify-start px-0 font-medium text-foreground"
-                      onClick={(event) => onOpen(role, event.currentTarget)}
+                    <Link
+                      href={`/roles/${role.id}`}
+                      className={buttonVariants({
+                        variant: "link",
+                        className:
+                          "h-auto justify-start px-0 font-medium text-foreground",
+                      })}
                       aria-label={`${canManageRole(role, canUpdateRole, canUpdatePermissions) ? "Manage" : "View"} ${role.role_name}`}
                     >
                       {role.role_name}
-                    </Button>
+                    </Link>
                     <p className="font-mono text-xs text-muted-foreground">
                       {role.code}
                     </p>
@@ -92,7 +93,6 @@ export function RoleTable({
                         canUpdatePermissions,
                       )}
                       canDeactivate={canDeactivateRole}
-                      onOpen={(trigger) => onOpen(role, trigger)}
                       onComplete={onComplete}
                     />
                   </TableCell>

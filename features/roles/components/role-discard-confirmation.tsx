@@ -26,8 +26,7 @@ export function RoleDiscardConfirmation({
         <AlertDialogHeader>
           <AlertDialogTitle>Discard unsaved role changes?</AlertDialogTitle>
           <AlertDialogDescription>
-            Your changes have not been saved. Discard them and close this
-            editor?
+            Your changes have not been saved. Discard them and leave this page?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

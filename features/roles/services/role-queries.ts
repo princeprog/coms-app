@@ -8,16 +8,35 @@ import {
   rolesResponseSchema,
 } from "@/features/roles/schemas/role.schema";
 
-export async function getRoleAdminData() {
+export async function getRoles() {
   const cookieHeader = (await cookies()).toString();
-  const [rolesPayload, permissionsPayload] = await Promise.all([
-    requestComsApi<unknown>("/roles", { cookieHeader }),
-    requestComsApi<unknown>("/roles/permissions", { cookieHeader }),
-  ]);
+  const rolesPayload = await requestComsApi<unknown>("/roles", {
+    cookieHeader,
+  });
   const roles = rolesResponseSchema.safeParse(rolesPayload);
-  const permissions = permissionsResponseSchema.safeParse(permissionsPayload);
-  if (!roles.success || !permissions.success) {
+  if (!roles.success) {
     throw new ApiRequestError("Invalid role administration response.", 502);
   }
-  return { roles: roles.data, permissions: permissions.data };
+  return roles.data;
+}
+
+export async function getRolePermissions() {
+  const cookieHeader = (await cookies()).toString();
+  const permissionsPayload = await requestComsApi<unknown>(
+    "/roles/permissions",
+    { cookieHeader },
+  );
+  const permissions = permissionsResponseSchema.safeParse(permissionsPayload);
+  if (!permissions.success) {
+    throw new ApiRequestError("Invalid role administration response.", 502);
+  }
+  return permissions.data;
+}
+
+export async function getRoleAdminData() {
+  const [roles, permissions] = await Promise.all([
+    getRoles(),
+    getRolePermissions(),
+  ]);
+  return { roles, permissions };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { Ellipsis } from "lucide-react";
 import {
   AlertDialog,
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -28,13 +30,11 @@ export function RoleDirectoryActions({
   role,
   canManage,
   canDeactivate,
-  onOpen,
   onComplete,
 }: {
   role: Role;
   canManage: boolean;
   canDeactivate: boolean;
-  onOpen: (trigger: HTMLButtonElement | null) => void;
   onComplete: () => void;
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -82,20 +82,22 @@ export function RoleDirectoryActions({
           <Ellipsis />
         </DropdownMenuTrigger>
         <DropdownMenuContent data-coms-ui="operational" align="end">
-          <DropdownMenuItem onClick={() => onOpen(triggerRef.current)}>
-            {canManage ? "Manage role" : "View role"}
-          </DropdownMenuItem>
-          {canDeactivateThisRole && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => {
-                setError("");
-                setConfirming(true);
-              }}
-            >
-              Deactivate role
+          <DropdownMenuGroup>
+            <DropdownMenuItem render={<Link href={`/roles/${role.id}`} />}>
+              {canManage ? "Manage role" : "View role"}
             </DropdownMenuItem>
-          )}
+            {canDeactivateThisRole && (
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => {
+                  setError("");
+                  setConfirming(true);
+                }}
+              >
+                Deactivate role
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
 
