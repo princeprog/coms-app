@@ -48,6 +48,14 @@ const user = {
   email: "staff@example.com",
   full_name: "Staff Member",
   contact_number: "09170000000",
+  role: {
+    id: "branch-manager",
+    code: "BRANCH_MANAGER",
+    name: "Branch Manager",
+    isSystem: false,
+    isActive: true,
+  },
+  permissions: ["dashboard.read"],
 };
 
 function createWrapper(queryClient: QueryClient) {

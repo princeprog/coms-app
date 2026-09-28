@@ -3,6 +3,7 @@ import { navItems } from "@/components/app-sidebar";
 import { authTestSessionUser, authTestUser } from "@/test/auth-fixtures";
 import {
   filterNavigationForUser,
+  getAuthorizedLandingPath,
   hasBranchScope,
   hasPermission,
 } from "./permissions";
@@ -18,6 +19,22 @@ const items = [
 ];
 
 describe("permission aware navigation", () => {
+  it("chooses the first allowed workspace after sign-in", () => {
+    expect(
+      getAuthorizedLandingPath({
+        ...authTestSessionUser,
+        permissions: ["inventory.commissary_read", "suppliers.read"],
+      }),
+    ).toBe("/inventory");
+    expect(
+      getAuthorizedLandingPath({
+        ...authTestSessionUser,
+        permissions: ["sales.create", "branch_products.read"],
+      }),
+    ).toBe("/pos");
+    expect(getAuthorizedLandingPath(authTestUser)).toBe("/no-access");
+  });
+
   it("keeps public-in-context links and only granted features", () => {
     expect(filterNavigationForUser(authTestSessionUser, items)).toEqual([
       items[0],

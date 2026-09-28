@@ -11,6 +11,7 @@ import { SidebarQuickActions } from "@/components/layout/sidebar-quick-actions";
 import type { User } from "@/features/auth/types/auth.types";
 import {
   filterNavigationForUser,
+  getAuthorizedLandingPath,
   isProtectedSuperAdmin,
 } from "@/features/auth/permissions";
 import { authKeys } from "@/features/auth/query-keys";
@@ -141,7 +142,7 @@ export function getAppSidebarNavigation(user: User) {
   return filterNavigationForUser(user, contextualItems);
 }
 
-function SidebarBrand() {
+function SidebarBrand({ user }: { user: User }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
@@ -151,8 +152,8 @@ function SidebarBrand() {
           className="h-auto data-[slot=sidebar-menu-button]:p-1.5!"
           render={
             <Link
-              href="/dashboard"
-              aria-label="Go to dashboard"
+              href={getAuthorizedLandingPath(user)}
+              aria-label="Go to your workspace"
               onNavigate={() => {
                 if (isMobile) setOpenMobile(false);
               }}
@@ -187,7 +188,7 @@ export const AppSidebar = React.memo(function AppSidebar({
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <SidebarBrand />
+        <SidebarBrand user={currentUser} />
         <SidebarQuickActions user={currentUser} />
       </SidebarHeader>
       <SidebarContent>

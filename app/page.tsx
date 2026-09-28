@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
 import { LoginPage } from "@/features/auth/components/login-page";
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
+import { getAuthorizedLandingPath } from "@/features/auth/permissions";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 
 export default async function Page() {
   const session = await getCurrentUserFromServer();
 
   if (session.status === "authenticated") {
-    redirect("/dashboard");
+    redirect(getAuthorizedLandingPath(session.user));
   }
 
   if (session.status === "unavailable") {
