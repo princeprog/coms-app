@@ -30,7 +30,7 @@ describe("SiteHeader route titles", () => {
   });
 
   it.each([
-    ["/dashboard", "Documents"],
+    ["/dashboard", "Dashboard"],
     ["/receipts", "Receiving"],
     ["/receipts/receipt-1", "Receiving"],
     ["/recipes/product-1", "Recipe"],

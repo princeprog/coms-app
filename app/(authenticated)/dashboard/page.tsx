@@ -1,44 +1,53 @@
-import { redirect } from "next/navigation";
-
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-import { DataTable } from "@/components/data-table";
-import { SectionCards } from "@/components/section-cards";
-import { AuthQuerySeed } from "@/features/auth/components/auth-query-seed";
+import { notFound, redirect } from "next/navigation";
+import { AppPageShell } from "@/components/layout/app-page-shell";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
+import {
+  hasPermission,
+  isProtectedSuperAdmin,
+} from "@/features/auth/permissions";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
+import { DashboardWorkspace } from "@/features/dashboard/components/dashboard-workspace";
+import { getDashboardDateRange } from "@/features/dashboard/services/dashboard-date-range";
 
-import data from "./data.json";
-
-export default async function Page() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ branch_id?: string | string[] }>;
+}) {
   const session = await getCurrentUserFromServer();
-
-  if (session.status === "unauthenticated") {
-    redirect("/");
-  }
-
-  if (session.status === "unavailable") {
+  if (session.status === "unauthenticated") redirect("/");
+  if (session.status === "recovering") return <SessionRecovery />;
+  if (session.status === "unavailable")
     return <AuthServiceError context="dashboard" />;
-  }
 
-  if (session.status === "recovering") {
-    return <SessionRecovery />;
+  const user = session.user;
+  const canViewDashboard =
+    isProtectedSuperAdmin(user) ||
+    hasPermission(user, "dashboard.read") ||
+    hasPermission(user, "dashboard.global_read");
+  if (!canViewDashboard) notFound();
+
+  const params = await searchParams;
+  const rawBranchId = Array.isArray(params.branch_id)
+    ? params.branch_id[0]
+    : params.branch_id;
+  if (
+    rawBranchId &&
+    !isProtectedSuperAdmin(user) &&
+    !hasPermission(user, "dashboard.global_read") &&
+    !(user.branch_ids ?? []).includes(rawBranchId)
+  ) {
+    notFound();
   }
 
   return (
-    <>
-      <AuthQuerySeed user={session.user} />
-      <div className="flex flex-1 flex-col">
-        <div className="@container/main flex flex-1 flex-col gap-2">
-          <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            <SectionCards />
-            <div className="px-4 lg:px-6">
-              <ChartAreaInteractive />
-            </div>
-            <DataTable data={data} />
-          </div>
-        </div>
-      </div>
-    </>
+    <AppPageShell user={user}>
+      <DashboardWorkspace
+        user={user}
+        requestedBranchId={rawBranchId}
+        initialRange={getDashboardDateRange(30)}
+      />
+    </AppPageShell>
   );
 }
