@@ -189,6 +189,26 @@ describe("stock request page loader", () => {
     });
   });
 
+  it("keeps the Super Admin in the review workflow without stock-request creation", async () => {
+    const admin = {
+      ...user([]),
+      role: {
+        id,
+        code: "SUPER_ADMIN",
+        name: "Super Admin",
+        isSystem: true,
+        isActive: true,
+      },
+    };
+    await expect(loadStockRequestIndexView(admin, {})).resolves.toMatchObject({
+      status: "ready",
+      canCreate: false,
+      canApprove: true,
+      canReject: true,
+    });
+    expect(getStockRequestFormOptions).not.toHaveBeenCalled();
+  });
+
   it("exposes only granted transition actions for an assigned pending request", async () => {
     await expect(
       loadStockRequestDetailView(

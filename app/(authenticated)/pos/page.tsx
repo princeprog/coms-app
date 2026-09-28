@@ -11,6 +11,7 @@ import {
 } from "@/features/sales/services/sales-actions";
 import { loadSalesView } from "@/features/sales/services/sales-page-loader";
 import type { SalesPageSearchParams } from "@/features/sales/services/sales-page-params";
+import { isProtectedSuperAdmin } from "@/features/auth/permissions";
 
 function SalesPageUnavailable({ branches }: { branches: boolean }) {
   return (
@@ -41,6 +42,7 @@ export default async function PointOfSalePage({
   if (session.status === "recovering") return <SessionRecovery />;
   if (session.status === "unavailable")
     return <AuthServiceError context="dashboard" />;
+  if (isProtectedSuperAdmin(session.user)) notFound();
 
   const view = await loadSalesView(session.user, await searchParams);
   if (view.status === "forbidden") notFound();

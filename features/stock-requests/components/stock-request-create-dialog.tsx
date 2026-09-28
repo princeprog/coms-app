@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuickCreateDialog } from "@/components/layout/use-quick-create-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +39,7 @@ export function StockRequestCreateDialog({
   action: StockRequestCreateAction;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const { open, openDialog, closeDialog } = useQuickCreateDialog();
   const [pending, setPending] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -49,7 +50,7 @@ export function StockRequestCreateDialog({
       setConfirmDiscard(true);
       return;
     }
-    setOpen(false);
+    closeDialog();
   }
 
   return (
@@ -57,7 +58,7 @@ export function StockRequestCreateDialog({
       <Sheet
         open={open}
         onOpenChange={(nextOpen) => {
-          if (nextOpen) setOpen(true);
+          if (nextOpen) openDialog();
           else requestClose();
         }}
       >
@@ -87,7 +88,7 @@ export function StockRequestCreateDialog({
             onCancel={requestClose}
             onCreated={(id) => {
               setDirty(false);
-              setOpen(false);
+              closeDialog();
               router.push("/replenishment/" + id);
             }}
           />
@@ -109,7 +110,7 @@ export function StockRequestCreateDialog({
               onClick={() => {
                 setDirty(false);
                 setConfirmDiscard(false);
-                setOpen(false);
+                closeDialog();
               }}
             >
               Discard changes

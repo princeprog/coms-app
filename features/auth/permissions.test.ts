@@ -9,7 +9,11 @@ import {
 
 const items = [
   { title: "Dashboard", url: "/dashboard" },
-  { title: "Inventory", url: "/inventory", permission: "inventory.read" },
+  {
+    title: "Inventory",
+    url: "/inventory",
+    permission: ["inventory.read", "inventory.commissary_read"],
+  },
   { title: "Staff", url: "/staff", permission: "staff.read" },
 ];
 
@@ -19,6 +23,24 @@ describe("permission aware navigation", () => {
       items[0],
       items[1],
     ]);
+  });
+
+  it("shows Inventory for either branch or commissary read access", () => {
+    expect(
+      filterNavigationForUser(
+        { ...authTestSessionUser, permissions: ["inventory.read"] },
+        items,
+      ),
+    ).toContain(items[1]);
+    expect(
+      filterNavigationForUser(
+        {
+          ...authTestSessionUser,
+          permissions: ["inventory.commissary_read"],
+        },
+        items,
+      ),
+    ).toContain(items[1]);
   });
 
   it("does not reveal feature links for grant-free accounts", () => {

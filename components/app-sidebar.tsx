@@ -7,8 +7,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
+import { SidebarQuickActions } from "@/components/layout/sidebar-quick-actions";
 import type { User } from "@/features/auth/types/auth.types";
-import { filterNavigationForUser } from "@/features/auth/permissions";
+import {
+  filterNavigationForUser,
+  isProtectedSuperAdmin,
+} from "@/features/auth/permissions";
 import { authKeys } from "@/features/auth/query-keys";
 import {
   Sidebar,
@@ -38,11 +42,16 @@ import {
 } from "lucide-react";
 
 export const navItems = [
-  { title: "Dashboard", url: "/dashboard", icon: <LayoutDashboardIcon /> },
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    permission: ["dashboard.read", "dashboard.global_read"],
+    icon: <LayoutDashboardIcon />,
+  },
   {
     title: "Inventory",
     url: "/inventory",
-    permission: "inventory.read",
+    permission: ["inventory.read", "inventory.commissary_read"],
     icon: <BoxesIcon />,
   },
   {
@@ -125,37 +134,42 @@ export const navItems = [
   },
 ];
 
+export function getAppSidebarNavigation(user: User) {
+  const contextualItems = isProtectedSuperAdmin(user)
+    ? navItems.filter((item) => item.url !== "/pos")
+    : navItems;
+  return filterNavigationForUser(user, contextualItems);
+}
+
 function SidebarBrand() {
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <SidebarHeader>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            className="h-auto data-[slot=sidebar-menu-button]:p-1.5!"
-            render={
-              <Link
-                href="/dashboard"
-                aria-label="Go to dashboard"
-                onNavigate={() => {
-                  if (isMobile) setOpenMobile(false);
-                }}
-              />
-            }
-          >
-            <Image
-              src="/images/emmas%20chicken%20house%20logo.png"
-              alt="Emma's Chicken House"
-              width={150}
-              height={50}
-              priority
-              className="h-auto w-full max-w-none object-contain"
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          className="h-auto data-[slot=sidebar-menu-button]:p-1.5!"
+          render={
+            <Link
+              href="/dashboard"
+              aria-label="Go to dashboard"
+              onNavigate={() => {
+                if (isMobile) setOpenMobile(false);
+              }}
             />
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarHeader>
+          }
+        >
+          <Image
+            src="/images/emmas%20chicken%20house%20logo.png"
+            alt="Emma's Chicken House"
+            width={150}
+            height={50}
+            priority
+            className="h-auto w-full max-w-none object-contain"
+          />
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }
 
@@ -172,9 +186,12 @@ export const AppSidebar = React.memo(function AppSidebar({
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarBrand />
+      <SidebarHeader>
+        <SidebarBrand />
+        <SidebarQuickActions user={currentUser} />
+      </SidebarHeader>
       <SidebarContent>
-        <NavMain items={filterNavigationForUser(currentUser, navItems)} />
+        <NavMain items={getAppSidebarNavigation(currentUser)} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser

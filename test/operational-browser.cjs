@@ -333,9 +333,15 @@ let baseUrl;
   const draftReport = fixtureState.dailyReports.find(
     (report) => report.status === "DRAFT",
   );
+  const submittedReport = fixtureState.dailyReports.find(
+    (report) => report.status === "SUBMITTED",
+  );
+  const openDiscrepancyDispatch = fixtureState.dispatches.find(
+    (dispatch) => dispatch.discrepancy_status === "OPEN",
+  );
   assert(
-    branchId && draftReport,
-    "Fixture requires an assigned branch and draft report",
+    branchId && draftReport && submittedReport && openDiscrepancyDispatch,
+    "Fixture requires an assigned branch and records for report and discrepancy review",
   );
   const routes = [
     "/roles",
@@ -357,9 +363,7 @@ let baseUrl;
     "/replenishment",
     `/replenishment/${fixtureState.stockRequests[0].id}`,
     "/dispatches",
-    `/dispatches/${fixtureState.dispatches[0].id}`,
-    `/pos?branch_id=${branchId}`,
-    `/pos?branch_id=${branchId}&sale_id=${fixtureState.sales[0].id}`,
+    `/dispatches/${openDiscrepancyDispatch.id}`,
     `/reports?branch_id=${branchId}&status=all`,
     `/reports?branch_id=${branchId}&report_id=${draftReport.id}`,
   ];
@@ -393,7 +397,73 @@ let baseUrl;
   await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await page.waitForURL("**/dashboard");
   await page.getByRole("button", { name: /Test Operations Admin/ }).waitFor();
+  await page.getByRole("region", { name: "Operational summary" }).waitFor();
+  await page.getByText("Sales trend", { exact: true }).waitFor();
+  assert.equal(await page.getByLabel("Loading dashboard").count(), 0);
+  await page.getByRole("region", { name: "Branch performance table" }).waitFor();
   await assertPageStructure("/dashboard", 1440);
+  const logoBounds = await page
+    .getByRole("link", { name: "Go to dashboard" })
+    .boundingBox();
+  const quickBounds = await page
+    .getByRole("button", { name: "Quick Actions" })
+    .boundingBox();
+  const navigationBounds = await page
+    .getByRole("link", { name: "Receiving", exact: true })
+    .first()
+    .boundingBox();
+  assert(
+    logoBounds &&
+      quickBounds &&
+      navigationBounds &&
+      logoBounds.y + logoBounds.height <= quickBounds.y &&
+      quickBounds.y + quickBounds.height <= navigationBounds.y,
+    "Quick Actions must sit between the logo and navigation",
+  );
+  const quickActionsButton = page.getByRole("button", {
+    name: "Quick Actions",
+  });
+  await quickActionsButton.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("menuitem", { name: "New receipt" }).waitFor();
+  for (const unavailableAction of [
+    "New stock request",
+    "New sale",
+    "New daily report",
+  ]) {
+    assert.equal(
+      await page.getByRole("menuitem", { name: unavailableAction }).count(),
+      0,
+      `Super Admin Quick Actions must omit ${unavailableAction}`,
+    );
+  }
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("menuitem", { name: "New receipt" })
+    .waitFor({ state: "detached" });
+  assert(
+    await quickActionsButton.evaluate(
+      (element) => element === document.activeElement,
+    ),
+  );
+  for (const [label, route, dialogTitle] of [
+    ["New receipt", "/receipts?create=1", "Create supplier receipt"],
+  ]) {
+    await page.getByRole("button", { name: "Quick Actions" }).click();
+    await page.getByRole("menuitem", { name: label }).click();
+    await page.waitForURL(`**${route}`);
+    await page.getByRole("dialog", { name: dialogTitle }).waitFor();
+    await page.keyboard.press("Escape");
+    await page.waitForURL((url) => !url.searchParams.has("create"));
+  }
+  const posPage = await context.newPage();
+  await posPage.goto(`${baseUrl}/pos`, { waitUntil: "domcontentloaded" });
+  await posPage.getByRole("heading", { name: "Page not found" }).waitFor();
+  assert.equal(await posPage.locator("#pos-cart-panel").count(), 0);
+  await posPage.close();
+  await page.getByRole("link", { name: "Dashboard", exact: true }).first().click();
+  await page.waitForURL("**/dashboard");
+  await page.getByRole("heading", { name: "Dashboard", level: 2 }).waitFor();
   await saveScreenshot("dashboard-desktop.png");
   await page.setViewportSize({ width: 390, height: 844 });
   await saveScreenshot("dashboard-mobile.png");
@@ -434,6 +504,25 @@ let baseUrl;
           route,
           "role-3-permission-search",
         );
+      }
+      if (
+        width === 1440 &&
+        route === `/dispatches/${openDiscrepancyDispatch.id}`
+      ) {
+        await page
+          .getByRole("button", { name: "Request recount", exact: true })
+          .waitFor();
+        assert.equal(
+          await page.getByRole("button", { name: "Receive dispatch" }).count(),
+          0,
+          "Super Admin cannot enter a branch dispatch receipt",
+        );
+        assert.equal(
+          await page.getByRole("button", { name: "Report discrepancy" }).count(),
+          0,
+          "Super Admin cannot report a branch receipt discrepancy",
+        );
+        await page.getByText("The delivery count is short", { exact: false }).waitFor();
       }
       if (width === 195 && route === "/roles/5") {
         await assertRoleWorkspaceScroll(
@@ -506,9 +595,6 @@ let baseUrl;
       }
       if (width === 1920 && route === "/roles/3") {
         await saveScreenshot("role-edit-page-1920.png");
-      }
-      if (width === 390 && route === "/pos?branch_id=" + branchId) {
-        await saveScreenshot("pos-mobile.png");
       }
       if (
         width === 1440 &&
@@ -709,35 +795,31 @@ let baseUrl;
   await page.getByRole("heading", { name: "Page not found" }).waitFor();
 
   await navigate(`/reports?branch_id=${branchId}&status=all`);
-  const createReport = page.getByRole("button", {
-    name: "Create report",
-    exact: true,
-  });
-  await createReport.click();
-  await page.getByRole("dialog").waitFor();
-  await saveScreenshot("daily-report-create-dialog-mobile.png");
-  await page.keyboard.press("Escape");
-  await page.getByRole("dialog").waitFor({ state: "detached" });
+  assert.equal(
+    await page.getByRole("button", { name: "Create report" }).count(),
+    0,
+    "Super Admin must not prepare a branch daily report",
+  );
 
   await navigate(`/reports?branch_id=${branchId}&report_id=${draftReport.id}`);
   await saveScreenshot("daily-report-counts-mobile.png");
-  await rememberShellIdentity();
-  const physicalCounts = page.getByRole("textbox", {
-    name: /Physical closing for/,
-  });
   assert.equal(
-    await physicalCounts.count(),
-    2,
-    "The fixture report has two stock items",
+    await page.getByRole("textbox", { name: /Physical closing for/ }).count(),
+    0,
+    "Super Admin daily report review must keep physical counts read-only",
   );
-  await physicalCounts.nth(0).fill("12.125");
-  await physicalCounts.nth(1).fill("6.5");
-  await page.getByRole("button", { name: "Save counts", exact: true }).click();
-  await page
-    .getByRole("status")
-    .filter({ hasText: /Unsaved count edits/ })
-    .waitFor({ state: "detached" });
-  await assertShellIdentity();
+  assert.equal(await page.getByRole("button", { name: "Save counts" }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Submit for review" }).count(), 0);
+
+  await navigate(
+    `/reports?branch_id=${branchId}&report_id=${submittedReport.id}`,
+  );
+  await page.getByRole("button", { name: "Return for correction" }).waitFor();
+  await page.getByRole("button", { name: "Approve report" }).waitFor();
+  assert.equal(
+    await page.getByRole("textbox", { name: /Physical closing for/ }).count(),
+    0,
+  );
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await navigate("/suppliers");
@@ -773,7 +855,7 @@ let baseUrl;
     "PASS authenticated client navigation, Back/Forward, and mutation refresh preserve the shell",
   );
   console.log(
-    "PASS report dialog, dedicated role pages, draft discard, independent saves, and report count refresh",
+    "PASS Super Admin report review hides branch preparation and keeps review actions available",
   );
   console.log("PASS supplier row actions open as a dismissible action menu");
   console.log(`Screenshots: ${path.relative(root, outputDirectory)}`);

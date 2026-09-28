@@ -1,6 +1,10 @@
 import "server-only";
 
-import { hasBranchScope, hasPermission } from "@/features/auth/permissions";
+import {
+  hasBranchScope,
+  hasPermission,
+  isProtectedSuperAdmin,
+} from "@/features/auth/permissions";
 import type { User } from "@/features/auth/types/auth.types";
 import type { Branch } from "@/features/branches/types/branch.types";
 import { ApiRequestError } from "@/services/api-services";
@@ -53,14 +57,6 @@ export type StockRequestDetailViewResult =
       canCreateDispatch: boolean;
     };
 
-function isSuperAdmin(user: User) {
-  return Boolean(
-    user.role?.isActive &&
-    user.role.isSystem &&
-    user.role.code === "SUPER_ADMIN",
-  );
-}
-
 function getAccessFailure(
   error: unknown,
 ): { status: "forbidden" } | { status: "session-expired" } | null {
@@ -102,9 +98,11 @@ export async function loadStockRequestIndexView(
       href: createStockRequestHref({ ...filters, page: pageCount }),
     };
 
-  const canCreate = hasPermission(user, "stock_requests.create");
+  const canCreate =
+    !isProtectedSuperAdmin(user) &&
+    hasPermission(user, "stock_requests.create");
   const canReadBranches = hasPermission(user, "branches.read");
-  const branchIds = isSuperAdmin(user) ? null : (user.branch_ids ?? []);
+  const branchIds = isProtectedSuperAdmin(user) ? null : (user.branch_ids ?? []);
   let branchOptions: Branch[] = [];
   let branchOptionsLoaded = false;
   let formOptions: StockRequestFormOptions | null = null;

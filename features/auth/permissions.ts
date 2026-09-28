@@ -3,10 +3,10 @@ import type { User } from "@/features/auth/types/auth.types";
 export type PermissionedNavigationItem = {
   title: string;
   url: string;
-  permission?: string;
+  permission?: string | readonly string[];
 };
 
-function isProtectedSuperAdmin(user: User): boolean {
+export function isProtectedSuperAdmin(user: User): boolean {
   return Boolean(
     user.role?.isActive &&
     user.role.isSystem &&
@@ -31,6 +31,12 @@ export function filterNavigationForUser<T extends PermissionedNavigationItem>(
   items: T[],
 ): T[] {
   return items.filter(
-    (item) => !item.permission || hasPermission(user, item.permission),
+    (item) =>
+      !item.permission ||
+      (typeof item.permission === "string"
+        ? hasPermission(user, item.permission)
+        : item.permission.some((permission) =>
+            hasPermission(user, permission),
+          )),
   );
 }
