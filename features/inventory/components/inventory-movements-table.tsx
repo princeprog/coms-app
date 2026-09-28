@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
 import {
   Table,
@@ -25,23 +26,48 @@ function displayTimestamp(value: string) {
   }).format(new Date(value));
 }
 
+function movementBadgeClass(type: string) {
+  if (type === "RECEIPT" || type === "TRANSFER_IN") {
+    return "rounded-md bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100";
+  }
+  if (type === "SALE" || type === "SALE_VOID") {
+    return "rounded-md bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100";
+  }
+  if (type === "DISPATCH") {
+    return "rounded-md bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100";
+  }
+  return "rounded-md bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100";
+}
+
 export function InventoryMovementsTable({
   movements,
+  compact = false,
 }: {
   movements: InventoryMovementPage;
+  compact?: boolean;
 }) {
   return (
     <section
       aria-labelledby="inventory-movements-heading"
-      className="flex flex-col gap-3"
+      className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}
     >
-      <div>
-        <h2 id="inventory-movements-heading" className="text-lg font-semibold">
-          Recent movements
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Stock changes are recorded in the inventory ledger.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2
+            id="inventory-movements-heading"
+            className="text-xl font-semibold tracking-tight"
+          >
+            Recent movements
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Stock changes are recorded in the inventory ledger.
+          </p>
+        </div>
+        {compact && (
+          <p className="text-sm text-muted-foreground">
+            {movements.items.length} recent
+          </p>
+        )}
       </div>
       {movements.items.length > 0 ? (
         <Table
@@ -53,13 +79,19 @@ export function InventoryMovementsTable({
               "rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           }}
         >
-          <TableHeader>
+          <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Stock item</TableHead>
-              <TableHead>Movement</TableHead>
-              <TableHead className="text-right">Change</TableHead>
-              <TableHead>Reason</TableHead>
+              <TableHead className={compact ? "h-9" : "h-10"}>Date</TableHead>
+              <TableHead className={compact ? "h-9" : "h-10"}>
+                Stock item
+              </TableHead>
+              <TableHead className={compact ? "h-9" : "h-10"}>
+                Movement
+              </TableHead>
+              <TableHead className={`${compact ? "h-9" : "h-10"} text-right`}>
+                Change
+              </TableHead>
+              <TableHead className={compact ? "h-9" : "h-10"}>Reason</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -69,21 +101,36 @@ export function InventoryMovementsTable({
                 : "+" + movement.quantity_delta;
               return (
                 <TableRow key={movement.id}>
-                  <TableCell>
+                  <TableCell className={compact ? "py-1" : "py-2.5"}>
                     <time dateTime={movement.created_at}>
                       {displayTimestamp(movement.created_at)}
                     </time>
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell
+                    className={`${compact ? "py-1" : "py-2.5"} font-medium`}
+                  >
                     {movement.stock_item_name}
                   </TableCell>
-                  <TableCell>
-                    {displayMovementType(movement.movement_type)}
+                  <TableCell className={compact ? "py-1" : "py-2.5"}>
+                    {compact ? (
+                      <Badge
+                        variant="secondary"
+                        className={movementBadgeClass(movement.movement_type)}
+                      >
+                        {displayMovementType(movement.movement_type)}
+                      </Badge>
+                    ) : (
+                      displayMovementType(movement.movement_type)
+                    )}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell
+                    className={`${compact ? "py-1" : "py-2.5"} text-right tabular-nums ${compact ? (quantity.startsWith("-") ? "text-red-700 dark:text-red-400" : "text-green-700 dark:text-green-400") : ""}`}
+                  >
                     {quantity} {movement.unit}
                   </TableCell>
-                  <TableCell className="max-w-64 whitespace-normal">
+                  <TableCell
+                    className={`max-w-64 whitespace-normal ${compact ? "py-1" : "py-2.5"}`}
+                  >
                     {movement.reason ?? "—"}
                   </TableCell>
                 </TableRow>

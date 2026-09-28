@@ -34,7 +34,10 @@ describe("inventory adjustment dialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Adjust Flour" }));
+    await user.click(screen.getByRole("button", { name: "Actions for Flour" }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Adjust stock" }),
+    );
     expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
       "operational",
     );
@@ -73,7 +76,10 @@ describe("inventory adjustment dialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Adjust Flour" }));
+    await user.click(screen.getByRole("button", { name: "Actions for Flour" }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Adjust stock" }),
+    );
     await user.type(screen.getByLabelText("Quantity change (kg)"), "-5");
     await user.type(screen.getByLabelText("Reason for adjustment"), "Count");
     await user.click(screen.getByRole("button", { name: "Save adjustment" }));
@@ -99,7 +105,10 @@ describe("inventory adjustment dialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Adjust Flour" }));
+    await user.click(screen.getByRole("button", { name: "Actions for Flour" }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Adjust stock" }),
+    );
     const quantity = screen.getByLabelText("Quantity change (kg)");
     await user.type(quantity, "1.25");
     await user.click(screen.getByRole("button", { name: "Cancel" }));

@@ -72,6 +72,8 @@ function renderInventory(
       selectedBranchId={branchId}
       search="Flour"
       canAdjust
+      canViewCommissary
+      canViewBranch
       adjustAction={vi.fn()}
       {...overrides}
     />,
@@ -92,6 +94,75 @@ describe("inventory management", () => {
         .getByRole("link", { name: "Branch inventory" })
         .getAttribute("aria-current"),
     ).toBe("page");
+  });
+
+  it("shows a fixed assigned branch instead of scope and branch filters for branch-only access", () => {
+    renderInventory({
+      canViewCommissary: false,
+      canViewBranch: true,
+      canAdjust: false,
+      branchOptions: [
+        { id: branchId, name: "Manila North" },
+        { id: secondBranchId, name: "Manila South" },
+      ],
+    });
+
+    expect(
+      screen.queryByRole("navigation", { name: "Inventory scope" }),
+    ).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
+    expect(
+      screen.getByText("Stock balances and recent movements for Manila North."),
+    ).toBeTruthy();
+    expect(screen.getAllByText("Manila North")).toHaveLength(2);
+    expect(screen.getByText("Showing data for")).toBeTruthy();
+    const form = screen.getByRole("form", {
+      name: "Search stock items in assigned branch",
+    });
+    expect(
+      form.querySelector('input[name="scope"]')?.getAttribute("value"),
+    ).toBe("BRANCH");
+    expect(
+      form.querySelector('input[name="branch_id"]')?.getAttribute("value"),
+    ).toBe(branchId);
+    expect(
+      screen.getByRole("searchbox", { name: "Search stock items" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Actions" })).toBeNull();
+    expect(screen.getByRole("columnheader", { name: "Unit" })).toBeTruthy();
+  });
+
+  it("hides the branch scope for commissary-only users", () => {
+    renderInventory({
+      scope: "COMMISSARY",
+      canViewCommissary: true,
+      canViewBranch: false,
+    });
+
+    expect(
+      screen.getByRole("link", { name: "Commissary inventory" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Branch inventory" })).toBeNull();
+  });
+
+  it("keeps scope controls when commissary read is granted without adjustment", () => {
+    renderInventory({ canViewCommissary: true, canAdjust: false });
+
+    expect(
+      screen.getByRole("navigation", { name: "Inventory scope" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Actions" })).toBeNull();
+  });
+
+  it("keeps branch adjustment actions when only branch adjustment is granted", () => {
+    renderInventory({ canViewCommissary: false, canAdjust: true });
+
+    expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
+    expect(screen.getByRole("columnheader", { name: "Actions" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Actions for Flour" }),
+    ).toBeTruthy();
   });
 
   it("keeps stock balances and movements in labeled scroll regions", () => {
@@ -115,11 +186,15 @@ describe("inventory management", () => {
   it("hides adjustment actions when not granted and for inactive stock", () => {
     renderInventory({ canAdjust: false });
 
-    expect(screen.queryByRole("button", { name: "Adjust Flour" })).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Adjust Cooking oil" }),
+      screen.queryByRole("button", { name: "Actions for Flour" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Actions for Cooking oil" }),
     ).toBeNull();
     expect(screen.getByText("Inactive")).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Actions" })).toBeNull();
+    expect(screen.queryByText("Adjustment unavailable")).toBeNull();
   });
 
   it("hides adjustments for inactive branches while keeping their inventory visible", () => {
@@ -131,7 +206,9 @@ describe("inventory management", () => {
 
     expect(screen.getByText("Manila North")).toBeTruthy();
     expect(screen.getByText("Inactive · adjustments disabled")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Adjust Flour" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Actions for Flour" }),
+    ).toBeNull();
     expect(screen.getByText("2.500 kg")).toBeTruthy();
   });
 
@@ -143,7 +220,9 @@ describe("inventory management", () => {
       ],
     });
 
-    expect(screen.getByRole("button", { name: "Adjust Flour" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Actions for Flour" }),
+    ).toBeTruthy();
   });
 
   it("preserves scope and branch selection when moving between inventory pages", () => {
@@ -180,6 +259,8 @@ describe("inventory management", () => {
         selectedBranchId={secondBranchId}
         search="Flour"
         canAdjust
+        canViewCommissary
+        canViewBranch
         adjustAction={vi.fn()}
       />,
     );
@@ -232,10 +313,15 @@ describe("inventory management", () => {
       branchOptions: [],
       selectedBranchId: undefined,
       branchUnavailable: true,
+      canViewCommissary: false,
     });
     expect(
       screen.getByText("No branch is assigned to this account."),
     ).toBeTruthy();
+    expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
+    expect(
+      screen.queryByRole("searchbox", { name: "Search stock items" }),
+    ).toBeNull();
   });
 
   it("explains when a search has no matching stock", () => {

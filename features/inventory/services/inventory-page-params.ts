@@ -11,7 +11,7 @@ export type InventoryPageSearchParams = Record<
 
 export type InventoryPageFilters = {
   page: number;
-  scope: "COMMISSARY" | "BRANCH";
+  scope?: "COMMISSARY" | "BRANCH";
   search: string;
   requestedBranchId?: string;
 };
@@ -27,13 +27,15 @@ export function parseInventoryPageFilters(
     parsedPage <= pageMaxValue
       ? parsedPage
       : 1;
-  const scope = first(params.scope) === "BRANCH" ? "BRANCH" : "COMMISSARY";
+  const rawScope = first(params.scope);
+  const scope =
+    rawScope === "COMMISSARY" || rawScope === "BRANCH" ? rawScope : undefined;
   const search = (first(params.search) ?? "").trim().slice(0, searchMaxLength);
   const parsedBranchId = branchIdSchema.safeParse(first(params.branch_id));
 
   return {
     page,
-    scope,
+    ...(scope ? { scope } : {}),
     search,
     ...(parsedBranchId.success
       ? { requestedBranchId: parsedBranchId.data.toLowerCase() }

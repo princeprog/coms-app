@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Ellipsis } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,6 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { InventoryAdjustmentForm } from "@/features/inventory/components/inventory-adjustment-form";
 import { InventoryDiscardConfirmation } from "@/features/inventory/components/inventory-discard-confirmation";
 import { createInventoryAdjustmentSchema } from "@/features/inventory/schemas/inventory.schema";
@@ -117,14 +124,26 @@ export function InventoryAdjustmentDialog({
 
   return (
     <>
-      <Button
-        ref={triggerRef}
-        type="button"
-        variant="outline"
-        onClick={() => setOpen(true)}
-      >
-        Adjust {item.stock_item_name}
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              ref={triggerRef}
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Actions for ${item.stock_item_name}`}
+            />
+          }
+        >
+          <Ellipsis aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent data-coms-ui="operational" align="end">
+          <DropdownMenuItem onClick={() => setOpen(true)}>
+            Adjust stock
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <Dialog
         open={open}
         onOpenChange={(nextOpen) => {

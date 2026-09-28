@@ -46,10 +46,23 @@ describe("loadInventoryView", () => {
     getInventoryPageData.mockReset().mockResolvedValue(pageData);
   });
 
-  it("denies users without inventory.read before loading data", async () => {
+  it("denies users without either inventory read permission", async () => {
     await expect(
       loadInventoryView(user({ permissions: [] }), {}),
     ).resolves.toEqual({ status: "forbidden" });
+    expect(getInventoryPageData).not.toHaveBeenCalled();
+  });
+
+  it("rejects an explicitly requested unauthorized scope before loading data", async () => {
+    await expect(
+      loadInventoryView(user(), { scope: "COMMISSARY" }),
+    ).resolves.toEqual({ status: "forbidden" });
+    await expect(
+      loadInventoryView(user({ permissions: ["inventory.commissary_read"] }), {
+        scope: "BRANCH",
+      }),
+    ).resolves.toEqual({ status: "forbidden" });
+    expect(getInventoryBranchOptions).not.toHaveBeenCalled();
     expect(getInventoryPageData).not.toHaveBeenCalled();
   });
 
@@ -67,9 +80,7 @@ describe("loadInventoryView", () => {
     await expect(
       loadInventoryView(
         user({ permissions: ["inventory.read", "inventory.adjust"] }),
-        {
-          scope: "BRANCH",
-        },
+        {},
       ),
     ).resolves.toMatchObject({
       status: "ready",
@@ -77,6 +88,8 @@ describe("loadInventoryView", () => {
       selectedBranchId: branchId,
       branchOptions: [{ id: branchId, name: "Assigned branch" }],
       canAdjust: true,
+      canViewBranch: true,
+      canViewCommissary: false,
     });
     expect(getInventoryBranchOptions).not.toHaveBeenCalled();
     expect(getInventoryPageData).toHaveBeenCalledWith({
@@ -108,19 +121,61 @@ describe("loadInventoryView", () => {
     });
   });
 
-  it("keeps commissary adjustment permission independent of assigned branch state", async () => {
-    getInventoryBranchOptions.mockResolvedValue([
-      { id: branchId, name: "Manila North", status: "inactive" },
-    ]);
+  it("uses dedicated commissary permissions and defaults users with both scopes to commissary", async () => {
+    await expect(
+      loadInventoryView(
+        user({
+          permissions: [
+            "inventory.read",
+            "inventory.adjust",
+            "inventory.commissary_read",
+            "inventory.commissary_adjust",
+            "branches.read",
+          ],
+        }),
+        {},
+      ),
+    ).resolves.toMatchObject({
+      status: "ready",
+      scope: "COMMISSARY",
+      canAdjust: true,
+      canViewBranch: true,
+      canViewCommissary: true,
+    });
+    expect(getInventoryBranchOptions).not.toHaveBeenCalled();
+    expect(getInventoryPageData).toHaveBeenCalledWith({
+      scope: "COMMISSARY",
+      page: 1,
+      search: "",
+    });
+  });
+
+  it("does not treat an adjustment grant for one scope as access to the other", async () => {
+    await expect(
+      loadInventoryView(
+        user({
+          permissions: ["inventory.commissary_read", "inventory.adjust"],
+        }),
+        {},
+      ),
+    ).resolves.toMatchObject({
+      status: "ready",
+      scope: "COMMISSARY",
+      canAdjust: false,
+    });
 
     await expect(
       loadInventoryView(
         user({
-          permissions: ["inventory.read", "inventory.adjust", "branches.read"],
+          permissions: ["inventory.read", "inventory.commissary_adjust"],
         }),
         {},
       ),
-    ).resolves.toMatchObject({ status: "ready", canAdjust: true });
+    ).resolves.toMatchObject({
+      status: "ready",
+      scope: "BRANCH",
+      canAdjust: false,
+    });
   });
 
   it("sends out-of-range pages to the final valid page", async () => {
@@ -130,14 +185,31 @@ describe("loadInventoryView", () => {
     });
 
     await expect(
-      loadInventoryView(user({ branch_ids: [] }), {
-        page: "10",
-        search: "Flour",
-      }),
+      loadInventoryView(
+        user({
+          permissions: ["inventory.commissary_read"],
+          branch_ids: [],
+        }),
+        {
+          page: "10",
+          search: "Flour",
+        },
+      ),
     ).resolves.toEqual({
       status: "redirect",
       href: "/inventory?scope=COMMISSARY&page=3&search=Flour",
     });
+  });
+
+  it("keeps the branch assignment empty state for branch-only users", async () => {
+    await expect(
+      loadInventoryView(user({ branch_ids: [] }), {}),
+    ).resolves.toMatchObject({
+      status: "branch-unavailable",
+      canViewBranch: true,
+      canViewCommissary: false,
+    });
+    expect(getInventoryPageData).not.toHaveBeenCalled();
   });
 
   it("maps expired and forbidden inventory sessions to route-safe results", async () => {

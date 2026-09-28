@@ -8,10 +8,10 @@ import {
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 
 describe("inventory page filters", () => {
-  it("defaults to commissary inventory and trims the search", () => {
+  it("leaves an omitted scope unresolved and trims the search", () => {
     expect(
       parseInventoryPageFilters({ page: "invalid", search: "  Flour  " }),
-    ).toEqual({ page: 1, scope: "COMMISSARY", search: "Flour" });
+    ).toEqual({ page: 1, search: "Flour" });
   });
 
   it("accepts a valid branch scope and clamps the page range", () => {

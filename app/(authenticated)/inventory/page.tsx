@@ -52,6 +52,8 @@ export default async function InventoryPage({
           branchOptions={view.branchOptions}
           search={view.search}
           canAdjust={false}
+          canViewCommissary={view.canViewCommissary}
+          canViewBranch={view.canViewBranch}
           adjustAction={adjustInventoryAction}
           branchUnavailable
           branchUnavailableMessage={view.message}
@@ -70,6 +72,8 @@ export default async function InventoryPage({
         selectedBranchId={view.selectedBranchId}
         search={view.search}
         canAdjust={view.canAdjust}
+        canViewCommissary={view.canViewCommissary}
+        canViewBranch={view.canViewBranch}
         adjustAction={adjustInventoryAction}
         page={view.page}
       />

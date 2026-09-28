@@ -29,6 +29,8 @@ export type InventoryViewResult =
       branchOptions: InventoryBranchOption[];
       search: string;
       message: string;
+      canViewCommissary: boolean;
+      canViewBranch: boolean;
     }
   | { status: "redirect"; href: string }
   | {
@@ -41,6 +43,8 @@ export type InventoryViewResult =
       search: string;
       page: number;
       canAdjust: boolean;
+      canViewCommissary: boolean;
+      canViewBranch: boolean;
     };
 
 type InventoryDataResult =
@@ -81,15 +85,23 @@ export async function loadInventoryView(
   user: User,
   searchParams: InventoryPageSearchParams,
 ): Promise<InventoryViewResult> {
-  if (!hasPermission(user, "inventory.read")) return { status: "forbidden" };
-
   const filters = parseInventoryPageFilters(searchParams);
+  const canViewBranch = hasPermission(user, "inventory.read");
+  const canViewCommissary = hasPermission(user, "inventory.commissary_read");
+  if (!canViewBranch && !canViewCommissary) return { status: "forbidden" };
+  if (
+    (filters.scope === "BRANCH" && !canViewBranch) ||
+    (filters.scope === "COMMISSARY" && !canViewCommissary)
+  ) {
+    return { status: "forbidden" };
+  }
+  const scope = filters.scope ?? (canViewCommissary ? "COMMISSARY" : "BRANCH");
   const isSuperAdmin = isProtectedSuperAdmin(user);
   const assignedBranchIds = user.branch_ids ?? [];
   let branchOptions: InventoryBranchOption[] = [];
   let branchOptionsFailed = false;
 
-  if (hasPermission(user, "branches.read")) {
+  if (scope === "BRANCH" && hasPermission(user, "branches.read")) {
     try {
       const allBranches = await getInventoryBranchOptions();
       const assigned = new Set(assignedBranchIds.map((id) => id.toLowerCase()));
@@ -101,7 +113,7 @@ export async function loadInventoryView(
       if (accessFailure) return accessFailure;
       branchOptionsFailed = true;
     }
-  } else {
+  } else if (scope === "BRANCH") {
     branchOptions = assignedBranchIds.map((id, index) => ({
       id: id.toLowerCase(),
       name:
@@ -116,7 +128,7 @@ export async function loadInventoryView(
     assignedBranchIds,
     requestedBranchId: filters.requestedBranchId,
   });
-  if (filters.scope === "BRANCH" && branchSelection.status === "out-of-scope") {
+  if (scope === "BRANCH" && branchSelection.status === "out-of-scope") {
     return { status: "forbidden" };
   }
   const selectedBranchId =
@@ -124,11 +136,11 @@ export async function loadInventoryView(
       ? (branchSelection.branchId ?? branchOptions[0]?.id)
       : undefined;
 
-  if (filters.scope === "BRANCH" && branchOptionsFailed) {
+  if (scope === "BRANCH" && branchOptionsFailed) {
     return { status: "branch-options-error" };
   }
 
-  if (filters.scope === "BRANCH" && !selectedBranchId) {
+  if (scope === "BRANCH" && !selectedBranchId) {
     const message =
       branchSelection.status === "no-branch"
         ? "Ask an administrator to assign a branch before viewing branch inventory."
@@ -140,11 +152,13 @@ export async function loadInventoryView(
       branchOptions,
       search: filters.search,
       message,
+      canViewCommissary,
+      canViewBranch,
     };
   }
 
   if (
-    filters.scope === "BRANCH" &&
+    scope === "BRANCH" &&
     !branchOptions.some(
       (branch) => branch.id.toLowerCase() === selectedBranchId?.toLowerCase(),
     )
@@ -153,7 +167,7 @@ export async function loadInventoryView(
   }
 
   const dataResult = await loadPageData(
-    filters.scope === "BRANCH"
+    scope === "BRANCH"
       ? {
           scope: "BRANCH",
           branchId: selectedBranchId!,
@@ -177,7 +191,7 @@ export async function loadInventoryView(
     return {
       status: "redirect",
       href: createInventoryHref({
-        scope: filters.scope,
+        scope,
         branchId: selectedBranchId,
         page: pageCount,
         search: filters.search,
@@ -192,13 +206,17 @@ export async function loadInventoryView(
     status: "ready",
     inventory,
     movements,
-    scope: filters.scope,
+    scope,
     branchOptions,
     selectedBranchId,
     search: filters.search,
     page: filters.page,
     canAdjust:
-      hasPermission(user, "inventory.adjust") &&
-      (filters.scope === "COMMISSARY" || selectedBranch?.status !== "inactive"),
+      scope === "COMMISSARY"
+        ? hasPermission(user, "inventory.commissary_adjust")
+        : hasPermission(user, "inventory.adjust") &&
+          selectedBranch?.status !== "inactive",
+    canViewCommissary,
+    canViewBranch,
   };
 }
