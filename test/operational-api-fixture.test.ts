@@ -2,7 +2,10 @@ import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import seed from "./fixtures/operational-api.json";
 import { authMeResponseSchema } from "@/features/auth/schemas/auth.schema";
-import { branchesResponseSchema } from "@/features/branches/schemas/branch.schema";
+import {
+  branchSchema,
+  branchesResponseSchema,
+} from "@/features/branches/schemas/branch.schema";
 import { staffPageSchema } from "@/features/staff/schemas/staff.schema";
 import { stockItemPageSchema } from "@/features/stock-items/schemas/stock-item.schema";
 import { supplierPageSchema } from "@/features/suppliers/schemas/supplier.schema";
@@ -43,6 +46,7 @@ import {
   inventoryMovementPageSchema,
   inventoryPageSchema,
 } from "@/features/inventory/schemas/inventory.schema";
+import { dashboardResponseSchema } from "@/features/dashboard/schemas/dashboard.schema";
 
 const require = createRequire(import.meta.url);
 const { createOperationalApiFixture } =
@@ -96,7 +100,18 @@ describe("operational API fixture", () => {
     expect(
       roles.filter((role) => role.is_predefined).map((role) => role.code),
     ).toEqual(["COMMISSARY_MANAGER", "BRANCH_MANAGER", "CASHIER"]);
-    expect(permissionsResponseSchema.parse(seed.permissions)).toHaveLength(59);
+    expect(permissionsResponseSchema.parse(seed.permissions)).toHaveLength(64);
+    const commissaryManager = roles.find(
+      (role) => role.code === "COMMISSARY_MANAGER",
+    );
+    const branchManager = roles.find((role) => role.code === "BRANCH_MANAGER");
+    const cashier = roles.find((role) => role.code === "CASHIER");
+    expect(commissaryManager?.permission_keys).toContain("dispatches.reconcile");
+    expect(branchManager?.permission_keys).toContain("dashboard.read");
+    expect(
+      roles.every((role) => !role.permission_keys.includes("dashboard.global_read")),
+    ).toBe(true);
+    expect(cashier?.permission_keys).not.toContain("dashboard.read");
   });
 
   it("serves only gateway-authenticated role data and supports deactivation", async () => {
@@ -204,7 +219,6 @@ describe("operational API fixture", () => {
         method: "POST",
         headers: { ...headers, "content-type": "application/json" },
         body: JSON.stringify({
-          code: "RETRY_BRANCH",
           branch_name: "Retry branch",
           address: null,
           date_opened: null,
@@ -217,7 +231,6 @@ describe("operational API fixture", () => {
         method: "POST",
         headers: { ...headers, "content-type": "application/json" },
         body: JSON.stringify({
-          code: "RETRY_BRANCH",
           branch_name: "Retry branch",
           address: null,
           date_opened: null,
@@ -225,6 +238,21 @@ describe("operational API fixture", () => {
         }),
       });
       expect(retriedCreate.status).toBe(201);
+      expect(branchSchema.parse(await retriedCreate.json()).code).toMatch(
+        /^BR-[A-F0-9]{16}$/,
+      );
+      const createdPage = await fetch(
+        `${fixture.baseUrl}/branches?page=2&page_size=25`,
+        { headers },
+      );
+      const createdBranches = branchesResponseSchema.parse(
+        await createdPage.json(),
+      );
+      expect(
+        createdBranches.items.find(
+          (branch) => branch.branch_name === "Retry branch",
+        )?.code,
+      ).toMatch(/^BR-[A-F0-9]{16}$/);
 
       const update = await fetch(
         `${fixture.baseUrl}/branches/${firstBranch.id}`,
@@ -1831,6 +1859,59 @@ describe("operational API fixture", () => {
         inventoryPageSchema.parse(await afterRetry.json()).items[0]
           ?.quantity_on_hand,
       ).toBe("21");
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("serves schema-valid global and branch dashboard summaries for a Manila date range", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = await getAuthenticatedHeaders(fixture.baseUrl);
+      const branchId = "10000000-0000-4000-8000-000000000001";
+      const period = "from=2026-09-01&to=2026-09-28";
+      const globalResponse = await fetch(
+        `${fixture.baseUrl}/dashboard/overview?${period}`,
+        { headers },
+      );
+      expect(globalResponse.status).toBe(200);
+      const global = dashboardResponseSchema.parse(await globalResponse.json());
+      expect(global.period).toEqual({
+        from: "2026-09-01",
+        to: "2026-09-28",
+        time_zone: "Asia/Manila",
+      });
+      expect(global.branches).toHaveLength(26);
+      expect(global.summary.completed_sales_count).toBeGreaterThan(0);
+      expect(global.summary.open_discrepancies_count).toBeGreaterThan(0);
+      expect(global.sales_trend.some((day) => day.completed_sales_count > 0)).toBe(
+        true,
+      );
+
+      const selected = dashboardResponseSchema.parse(
+        await (
+          await fetch(
+            `${fixture.baseUrl}/dashboard/overview?${period}&branch_id=${branchId}`,
+            { headers },
+          )
+        ).json(),
+      );
+      expect(selected.branches.map((branch) => branch.branch_id)).toEqual([
+        branchId,
+      ]);
+
+      const assigned = dashboardResponseSchema.parse(
+        await (
+          await fetch(
+            `${fixture.baseUrl}/branches/${branchId}/dashboard?${period}`,
+            { headers },
+          )
+        ).json(),
+      );
+      expect(assigned.branches.map((branch) => branch.branch_id)).toEqual([
+        branchId,
+      ]);
+      expect(assigned.summary).toEqual(selected.summary);
     } finally {
       await fixture.close();
     }

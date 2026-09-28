@@ -41,6 +41,8 @@
       "stock_items.deactivate",
       "inventory.read",
       "inventory.adjust",
+      "inventory.commissary_read",
+      "inventory.commissary_adjust",
       "supplier_receipts.read",
       "supplier_receipts.create",
       "supplier_receipts.post",
@@ -114,6 +116,8 @@
         "stock_items.update",
         "inventory.read",
         "inventory.adjust",
+        "inventory.commissary_read",
+        "inventory.commissary_adjust",
         "supplier_receipts.read",
         "supplier_receipts.create",
         "supplier_receipts.post",
@@ -124,6 +128,7 @@
         "dispatches.create",
         "dispatches.dispatch",
         "dispatches.shortage_close",
+        "dispatches.reconcile",
         "products.read",
         "products.create",
         "products.update",
@@ -151,6 +156,7 @@
         "branches.read",
         "stock_items.read",
         "inventory.read",
+        "dashboard.read",
         "stock_requests.read",
         "stock_requests.create",
         "stock_requests.cancel",
@@ -326,13 +332,25 @@
       "key": "inventory.read",
       "module_key": "inventory",
       "action_key": "read",
-      "description": "View inventory"
+      "description": "View assigned branch inventory"
     },
     {
       "key": "inventory.adjust",
       "module_key": "inventory",
       "action_key": "adjust",
-      "description": "Adjust inventory with a reason"
+      "description": "Adjust assigned branch inventory with a reason"
+    },
+    {
+      "key": "inventory.commissary_read",
+      "module_key": "inventory",
+      "action_key": "commissary_read",
+      "description": "View commissary inventory"
+    },
+    {
+      "key": "inventory.commissary_adjust",
+      "module_key": "inventory",
+      "action_key": "commissary_adjust",
+      "description": "Adjust commissary inventory with a reason"
     },
     {
       "key": "supplier_receipts.read",
@@ -411,6 +429,12 @@
       "module_key": "dispatches",
       "action_key": "shortage_close",
       "description": "Close an in-transit shortage with a reason"
+    },
+    {
+      "key": "dispatches.reconcile",
+      "module_key": "dispatches",
+      "action_key": "reconcile",
+      "description": "Review dispatch receipt discrepancies and request recounts"
     },
     {
       "key": "products.read",
@@ -537,6 +561,18 @@
       "module_key": "daily_reports",
       "action_key": "approve",
       "description": "Approve daily reports"
+    },
+    {
+      "key": "dashboard.read",
+      "module_key": "dashboard",
+      "action_key": "read",
+      "description": "View dashboard performance for assigned active branches"
+    },
+    {
+      "key": "dashboard.global_read",
+      "module_key": "dashboard",
+      "action_key": "global_read",
+      "description": "View overall and any-branch dashboard performance"
     }
   ]
 }

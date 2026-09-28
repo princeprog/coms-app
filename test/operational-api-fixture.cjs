@@ -26,6 +26,12 @@ const seed = JSON.parse(
     "utf8",
   ),
 );
+const manilaDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Manila",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -97,6 +103,141 @@ function decimalSum(values) {
   return decimalText(total, scale);
 }
 
+function manilaBusinessDate(value) {
+  const parts = manilaDateFormatter.formatToParts(new Date(value));
+  const part = (type) => parts.find((entry) => entry.type === type)?.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function dashboardSummaryForBranch(state, branch, from, to) {
+  const inPeriod = (value) => {
+    const date = manilaBusinessDate(value);
+    return date >= from && date <= to;
+  };
+  const sales = state.sales.filter((sale) => sale.branch_id === branch.id);
+  const completed = sales.filter((sale) => {
+    const event = sale.events.find((item) => item.event_type === "COMPLETED");
+    return sale.status === "COMPLETED" && event && inPeriod(event.created_at);
+  });
+  const voided = sales.filter((sale) => {
+    const event = sale.events.find((item) => item.event_type === "VOIDED");
+    return sale.status === "VOIDED" && event && inPeriod(event.created_at);
+  });
+  const reports = state.dailyReports.filter(
+    (report) =>
+      report.branch_id === branch.id &&
+      report.business_date >= from &&
+      report.business_date <= to,
+  );
+  const dispatches = state.dispatches.filter(
+    (dispatch) =>
+      dispatch.branch_id === branch.id && inPeriod(dispatch.created_at),
+  );
+
+  return {
+    completed_sales_amount: decimalSum(
+      completed.map((sale) => sale.total_amount),
+    ),
+    completed_sales_count: completed.length,
+    voided_sales_amount: decimalSum(voided.map((sale) => sale.total_amount)),
+    voided_sales_count: voided.length,
+    units_sold: decimalSum(
+      completed.flatMap((sale) => sale.items.map((item) => item.quantity)),
+    ),
+    submitted_reports_count: reports.filter(
+      (report) => report.status === "SUBMITTED",
+    ).length,
+    approved_reports_count: reports.filter(
+      (report) => report.status === "APPROVED",
+    ).length,
+    open_discrepancies_count: dispatches.filter(
+      (dispatch) =>
+        dispatch.discrepancy && dispatch.discrepancy.status !== "RESOLVED",
+    ).length,
+    in_transit_dispatches_count: dispatches.filter((dispatch) =>
+      ["IN_TRANSIT", "PARTIALLY_RECEIVED"].includes(dispatch.status),
+    ).length,
+  };
+}
+
+function dashboardResponse(state, from, to, selectedBranchId) {
+  const selectedBranches = state.branches.filter(
+    (branch) => !selectedBranchId || branch.id === selectedBranchId,
+  );
+  const branches = selectedBranches.map((branch) => ({
+    branch_id: branch.id,
+    branch_name: branch.branch_name,
+    branch_status: branch.status,
+    ...dashboardSummaryForBranch(state, branch, from, to),
+  }));
+  const summary = {
+    completed_sales_amount: decimalSum(
+      branches.map((branch) => branch.completed_sales_amount),
+    ),
+    completed_sales_count: branches.reduce(
+      (total, branch) => total + branch.completed_sales_count,
+      0,
+    ),
+    voided_sales_amount: decimalSum(
+      branches.map((branch) => branch.voided_sales_amount),
+    ),
+    voided_sales_count: branches.reduce(
+      (total, branch) => total + branch.voided_sales_count,
+      0,
+    ),
+    units_sold: decimalSum(branches.map((branch) => branch.units_sold)),
+    submitted_reports_count: branches.reduce(
+      (total, branch) => total + branch.submitted_reports_count,
+      0,
+    ),
+    approved_reports_count: branches.reduce(
+      (total, branch) => total + branch.approved_reports_count,
+      0,
+    ),
+    open_discrepancies_count: branches.reduce(
+      (total, branch) => total + branch.open_discrepancies_count,
+      0,
+    ),
+    in_transit_dispatches_count: branches.reduce(
+      (total, branch) => total + branch.in_transit_dispatches_count,
+      0,
+    ),
+  };
+  const firstDay = Date.parse(`${from}T00:00:00.000Z`);
+  const lastDay = Date.parse(`${to}T00:00:00.000Z`);
+  const salesTrend = [];
+  for (let day = firstDay; day <= lastDay; day += 86_400_000) {
+    const date = new Date(day).toISOString().slice(0, 10);
+    const dailySummaries = selectedBranches.map((branch) =>
+      dashboardSummaryForBranch(state, branch, date, date),
+    );
+    salesTrend.push({
+      date,
+      completed_sales_amount: decimalSum(
+        dailySummaries.map((item) => item.completed_sales_amount),
+      ),
+      completed_sales_count: dailySummaries.reduce(
+        (total, item) => total + item.completed_sales_count,
+        0,
+      ),
+      voided_sales_amount: decimalSum(
+        dailySummaries.map((item) => item.voided_sales_amount),
+      ),
+      voided_sales_count: dailySummaries.reduce(
+        (total, item) => total + item.voided_sales_count,
+        0,
+      ),
+      units_sold: decimalSum(dailySummaries.map((item) => item.units_sold)),
+    });
+  }
+  return {
+    period: { from, to, time_zone: "Asia/Manila" },
+    summary,
+    sales_trend: salesTrend,
+    branches,
+  };
+}
+
 function normalizePositiveDecimal(value) {
   if (
     typeof value !== "string" ||
@@ -128,7 +269,7 @@ function send(response, status, payload, headers = {}) {
   response.end(payload === undefined ? undefined : JSON.stringify(payload));
 }
 
-function createState() {
+function createState({ stockItemCount = 26 } = {}) {
   const branches = Array.from({ length: 26 }, (_, index) => {
     const sequence = String(index + 1).padStart(12, "0");
     return {
@@ -204,7 +345,7 @@ function createState() {
       updated_at: "2026-01-01T00:00:00.000Z",
     };
   });
-  const stockItems = Array.from({ length: 26 }, (_, index) => {
+  const stockItems = Array.from({ length: stockItemCount }, (_, index) => {
     const sequence = String(index + 1).padStart(12, "0");
     return {
       id: "31000000-0000-4000-8000-" + sequence,
@@ -490,14 +631,18 @@ function branchProductView(state, offer) {
   };
 }
 
-function createOperationalApiFixture({ gatewaySecret }) {
+function createOperationalApiFixture({
+  gatewaySecret,
+  authUser = seed.user,
+  stockItemCount = 26,
+}) {
   if (!gatewaySecret || !/^[a-f0-9]{64}$/i.test(gatewaySecret)) {
     throw new Error(
       "The operational fixture requires a generated gateway secret.",
     );
   }
 
-  let state = createState();
+  let state = createState({ stockItemCount });
   const server = http.createServer(async (request, response) => {
     const url = new URL(request.url, "http://127.0.0.1");
 
@@ -505,7 +650,7 @@ function createOperationalApiFixture({ gatewaySecret }) {
       const body = await readJson(request);
 
       if (url.pathname === "/__fixture/reset" && request.method === "POST") {
-        state = createState();
+        state = createState({ stockItemCount });
         return send(response, 204);
       }
       if (
@@ -529,6 +674,7 @@ function createOperationalApiFixture({ gatewaySecret }) {
       if (url.pathname === "/__fixture/state" && request.method === "GET") {
         return send(response, 200, {
           roles: state.roles,
+          branches: state.branches,
           staff: state.staff,
           suppliers: state.suppliers,
           stockItems: state.stockItems,
@@ -564,11 +710,11 @@ function createOperationalApiFixture({ gatewaySecret }) {
       const cookies = parseCookies(request.headers.cookie);
       const isAuthenticated = cookies.coms_access === "fixture-access-token";
       const hasRefreshCookie = cookies.coms_refresh === "fixture-refresh-token";
-      const userResponse = clone(seed.user);
+      const userResponse = clone(authUser);
 
       if (url.pathname === "/auth/login" && request.method === "POST") {
         if (
-          body?.email?.toLowerCase() !== seed.login.email ||
+          body?.email?.toLowerCase() !== authUser.email.toLowerCase() ||
           body?.password !== seed.login.password
         ) {
           return send(response, 401, { message: "Invalid email or password." });
@@ -667,6 +813,48 @@ function createOperationalApiFixture({ gatewaySecret }) {
         seed,
       });
       if (inventoryResponse !== false) return inventoryResponse;
+
+      const dashboardBranchRoute = url.pathname.match(
+        /^\/branches\/([0-9a-f-]{36})\/dashboard$/i,
+      );
+      if (
+        request.method === "GET" &&
+        (url.pathname === "/dashboard/overview" || dashboardBranchRoute)
+      ) {
+        const from = url.searchParams.get("from");
+        const to = url.searchParams.get("to");
+        if (
+          !from ||
+          !to ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(from) ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(to) ||
+          from > to
+        ) {
+          return send(response, 400, { message: "Invalid dashboard period." });
+        }
+        if (dashboardBranchRoute) {
+          const branch = state.branches.find(
+            (item) => item.id === dashboardBranchRoute[1],
+          );
+          if (!branch)
+            return send(response, 404, { message: "Branch not found." });
+          return send(
+            response,
+            200,
+            dashboardResponse(state, from, to, branch.id),
+          );
+        }
+        return send(
+          response,
+          200,
+          dashboardResponse(
+            state,
+            from,
+            to,
+            url.searchParams.get("branch_id") ?? undefined,
+          ),
+        );
+      }
 
       if (url.pathname === "/products" && request.method === "GET") {
         const search = (url.searchParams.get("search") ?? "")
@@ -1327,23 +1515,24 @@ function createOperationalApiFixture({ gatewaySecret }) {
         });
       }
       if (url.pathname === "/branches" && request.method === "POST") {
-        if (state.branches.some((branch) => branch.code === body?.code)) {
-          return send(response, 409, {
-            message: "Branch code already exists.",
+        if (body?.code !== undefined) {
+          return send(response, 400, {
+            message: "Branch code is system assigned.",
           });
         }
         const sequence = String(state.branches.length + 1).padStart(12, "0");
         const id = `10000000-0000-4000-8000-${sequence}`;
-        state.branches.push({
+        const branch = {
           id,
-          code: body.code,
+          code: `BR-${sequence.padStart(16, "0")}`,
           branch_name: body.branch_name,
           address: body.address ?? null,
           date_opened: body.date_opened ?? null,
           has_dine_in: body.has_dine_in,
           status: "active",
-        });
-        return send(response, 201, { id });
+        };
+        state.branches.push(branch);
+        return send(response, 201, branch);
       }
 
       if (url.pathname === "/staff" && request.method === "GET") {
@@ -1353,11 +1542,15 @@ function createOperationalApiFixture({ gatewaySecret }) {
           Math.max(1, Number(url.searchParams.get("page_size")) || 25),
         );
         const branchId = url.searchParams.get("branch_id");
+        const status = url.searchParams.get("status");
         const search = (url.searchParams.get("search") ?? "")
           .trim()
           .toLowerCase();
         const matches = state.staff.filter((member) => {
           if (branchId && !member.branch_ids.includes(branchId)) return false;
+          if (status === "active" && !member.is_active) return false;
+          if (status === "inactive" && member.is_active) return false;
+          if (status === "unassigned" && member.role_id !== null) return false;
           if (!search) return true;
           return [member.full_name, member.email, member.contact_number].some(
             (value) => value.toLowerCase().includes(search),

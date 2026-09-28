@@ -157,7 +157,11 @@ function dispatchListItem(dispatch) {
   delete listItem.receipts;
   delete listItem.shortage_closures;
   delete listItem.events;
-  return { ...listItem, item_count: dispatch.items.length };
+  return {
+    ...listItem,
+    discrepancy_status: dispatch.discrepancy?.status ?? null,
+    item_count: dispatch.items.length,
+  };
 }
 
 function makeReceipt(lines, seed, id, idempotencyKey, createdAt) {
@@ -280,6 +284,8 @@ function createDispatchSeed(stockRequests, seed) {
         receipts: [],
         shortage_closures: [],
         events: [],
+        discrepancy: null,
+        discrepancy_events: [],
       };
 
       const dispatchEvent = (
@@ -362,6 +368,28 @@ function createDispatchSeed(stockRequests, seed) {
         status === "CLOSED_WITH_SHORTAGE"
       )
         dispatch.updated_at = timestamp(dispatchIndex + 3);
+      if (status === "PARTIALLY_RECEIVED" && dispatchIndex === 2) {
+        const reportedAt = timestamp(dispatchIndex + 4);
+        dispatch.discrepancy = {
+          id: uuid("62000000", dispatchIndex + 1),
+          status: "OPEN",
+          reported_by_user_id: seed.user.id,
+          reported_by_name: "Fixture Branch Manager",
+          reported_at: reportedAt,
+          recount_requested_by_user_id: null,
+          recount_requested_by_name: null,
+          recount_requested_at: null,
+          resolved_at: null,
+        };
+        dispatch.discrepancy_events.push({
+          id: uuid("63000000", dispatchIndex + 1),
+          event_type: "REPORTED",
+          actor_user_id: seed.user.id,
+          actor_name: "Fixture Branch Manager",
+          note: "The delivery count is short; please recount the remaining items.",
+          created_at: reportedAt,
+        });
+      }
       return dispatch;
     });
 }
