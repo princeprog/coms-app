@@ -8,7 +8,10 @@ const { refresh, replace } = vi.hoisted(() => ({
   refresh: vi.fn(),
   replace: vi.fn(),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh, replace }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh, replace }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 async function getCreateForm() {
   return import(/* @vite-ignore */ "./daily-report-create-form").catch(
@@ -32,6 +35,10 @@ const report = {
   reviewed_by_user_id: null,
   reviewed_at: null,
   return_reason: null,
+  completed_sales_amount: "0",
+  completed_sales_count: 0,
+  voided_sales_amount: "0",
+  voided_sales_count: 0,
   created_at: "2026-09-24T02:00:00.000Z",
   updated_at: "2026-09-24T02:00:00.000Z",
   items: [],

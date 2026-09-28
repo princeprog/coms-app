@@ -1,6 +1,10 @@
 import "server-only";
 
-import { hasBranchScope, hasPermission } from "@/features/auth/permissions";
+import {
+  hasBranchScope,
+  hasPermission,
+  isProtectedSuperAdmin,
+} from "@/features/auth/permissions";
 import type { User } from "@/features/auth/types/auth.types";
 import { getBranchOptions } from "@/features/branch-products/services/branch-product-queries";
 import type { BranchProductBranchOption } from "@/features/branch-products/types/branch-product.types";
@@ -152,16 +156,20 @@ export async function loadDailyReportsView(
         : "unavailable";
   }
 
+  const isBranchOperator = !isProtectedSuperAdmin(user);
   const canCreate =
+    isBranchOperator &&
     selectedBranch.status !== "inactive" &&
     hasPermission(user, "daily_reports.create");
   const canUpdate =
+    isBranchOperator &&
     selectedReport !== null &&
     (selectedReport.status === "DRAFT" ||
       selectedReport.status === "RETURNED") &&
     selectedBranch.status !== "inactive" &&
     hasPermission(user, "daily_reports.update");
   const canSubmit =
+    isBranchOperator &&
     selectedReport !== null &&
     (selectedReport.status === "DRAFT" ||
       selectedReport.status === "RETURNED") &&
@@ -174,7 +182,7 @@ export async function loadDailyReportsView(
     hasPermission(user, "daily_reports.submit");
   const canReview =
     selectedReport?.status === "SUBMITTED" &&
-    selectedBranch.status !== "inactive";
+    (selectedBranch.status !== "inactive" || isProtectedSuperAdmin(user));
 
   return {
     status: "ready",

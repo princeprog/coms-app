@@ -33,32 +33,32 @@ export function DailyReportCountDetails({
       <div className="mt-3 grid gap-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs sm:grid-cols-3">
           <DailyReportMetric
-            label="Opening stock"
+            label="Opening quantity"
             value={item.opening_quantity}
             unit={item.unit}
           />
           <DailyReportMetric
-            label="Receipts"
+            label="Received"
             value={item.receipt_quantity}
             unit={item.unit}
           />
           <DailyReportMetric
-            label="Sale consumption"
+            label="Sales usage"
             value={item.sale_consumption_quantity}
             unit={item.unit}
           />
           <DailyReportMetric
-            label="Sale void reversals"
+            label="Voided sale reversals"
             value={item.sale_void_reversal_quantity}
             unit={item.unit}
           />
           <DailyReportMetric
-            label="Ledger adjustments"
+            label="Ledger movement adjustments"
             value={item.ledger_adjustment_quantity}
             unit={item.unit}
           />
           <DailyReportMetric
-            label="Ledger closing"
+            label="Ledger closing quantity"
             value={item.ledger_closing_quantity}
             unit={item.unit}
           />

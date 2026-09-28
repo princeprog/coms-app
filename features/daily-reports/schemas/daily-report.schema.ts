@@ -72,6 +72,10 @@ const dailyReportHeaderSchema = z.object({
   reviewed_by_user_id: z.uuid().nullable(),
   reviewed_at: z.iso.datetime().nullable(),
   return_reason: z.string().nullable(),
+  completed_sales_amount: decimalStringSchema.default("0"),
+  completed_sales_count: z.number().int().nonnegative().default(0),
+  voided_sales_amount: decimalStringSchema.default("0"),
+  voided_sales_count: z.number().int().nonnegative().default(0),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
 });

@@ -40,7 +40,22 @@ export function DailyReportCountMobileList({
             </header>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <Metric
-                label="Expected closing"
+                label="Opening quantity"
+                value={item.opening_quantity}
+                unit={item.unit}
+              />
+              <Metric
+                label="Received"
+                value={item.receipt_quantity}
+                unit={item.unit}
+              />
+              <Metric
+                label="Sales usage"
+                value={item.sale_consumption_quantity}
+                unit={item.unit}
+              />
+              <Metric
+                label="Expected remaining"
                 value={item.expected_closing_quantity}
                 unit={item.unit}
               />
@@ -88,7 +103,7 @@ export function DailyReportCountMobileList({
             ) : (
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                 <Metric
-                  label="Physical count"
+                  label="Physical closing"
                   value={item.physical_closing_quantity}
                   unit={item.unit}
                 />

@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useQuickCreateDialog } from "@/components/layout/use-quick-create-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,7 +37,7 @@ export function DailyReportCreateForm({
   const router = useRouter();
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
   const [businessDate, setBusinessDate] = useState(todayManila);
-  const [open, setOpen] = useState(false);
+  const { open, openDialog, closeDialog } = useQuickCreateDialog();
   const [discardOpen, setDiscardOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -53,7 +54,7 @@ export function DailyReportCreateForm({
       setDiscardOpen(true);
       return;
     }
-    setOpen(false);
+    closeDialog();
   }
 
   async function createReport(event: FormEvent<HTMLFormElement>) {
@@ -84,7 +85,7 @@ export function DailyReportCreateForm({
         return;
       }
       retry.current = null;
-      setOpen(false);
+      closeDialog();
       router.replace(
         createDailyReportHref({
           branchId,
@@ -107,7 +108,7 @@ export function DailyReportCreateForm({
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
           setError("");
-          setOpen(true);
+          openDialog();
         } else requestClose();
       }}
     >
@@ -180,7 +181,7 @@ export function DailyReportCreateForm({
           onOpenChange={setDiscardOpen}
           onDiscard={() => {
             setDiscardOpen(false);
-            setOpen(false);
+            closeDialog();
             resetDraft();
           }}
         />

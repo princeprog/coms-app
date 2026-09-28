@@ -33,7 +33,7 @@ export function DailyReportCountTable({
   return (
     <div className="hidden min-w-0 max-w-full overflow-hidden lg:block">
       <Table
-        className="min-w-[76rem]"
+        className="min-w-[96rem]"
         containerProps={{
           role: "region",
           "aria-label": "Stock count table",
@@ -48,10 +48,19 @@ export function DailyReportCountTable({
               Stock item
             </TableHead>
             <TableHead scope="col" className="text-right">
-              Expected closing
+              Opening quantity
             </TableHead>
             <TableHead scope="col" className="text-right">
-              Physical count
+              Received
+            </TableHead>
+            <TableHead scope="col" className="text-right">
+              Sales usage
+            </TableHead>
+            <TableHead scope="col" className="text-right">
+              Expected remaining
+            </TableHead>
+            <TableHead scope="col" className="text-right">
+              Physical closing
             </TableHead>
             <TableHead scope="col" className="text-right">
               Waste
@@ -85,6 +94,15 @@ export function DailyReportCountTable({
                     idSuffix="desktop"
                     onChange={onChange}
                   />
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatQuantity(item.opening_quantity, item.unit)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatQuantity(item.receipt_quantity, item.unit)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatQuantity(item.sale_consumption_quantity, item.unit)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatQuantity(item.expected_closing_quantity, item.unit)}

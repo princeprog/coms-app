@@ -100,7 +100,7 @@ export function DailyReportItemEditor({
           Stock counts
         </h3>
         <p className="text-sm text-muted-foreground">
-          Expected closing and variance are calculated by COMS from posted
+          Expected remaining quantity and variance are calculated by COMS from posted
           inventory movements.
         </p>
       </header>
@@ -109,7 +109,7 @@ export function DailyReportItemEditor({
           role="status"
           className="rounded-md border border-orange-300/60 bg-orange-50/60 p-3 text-sm text-foreground dark:bg-orange-950/20"
         >
-          Unsaved count edits. Expected closing and variance show the last saved
+          Unsaved count edits. Expected remaining and variance show the last saved
           values. Save or discard these edits before changing report status.
         </p>
       )}

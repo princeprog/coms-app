@@ -25,6 +25,10 @@ const report = {
   reviewed_by_user_id: null,
   reviewed_at: null,
   return_reason: null,
+  completed_sales_amount: "0",
+  completed_sales_count: 0,
+  voided_sales_amount: "0",
+  voided_sales_count: 0,
   created_at: "2026-09-24T02:00:00.000Z",
   updated_at: "2026-09-24T02:00:00.000Z",
   items: [
@@ -182,17 +186,17 @@ describe("daily report item editor", () => {
     );
 
     expect(
-      screen.getAllByText("Opening stock")[0]?.nextSibling?.textContent,
+      screen.getAllByText("Opening quantity")[1]?.nextSibling?.textContent,
     ).toBe("10.000 kg");
-    expect(screen.getAllByText("Receipts")[0]?.nextSibling?.textContent).toBe(
+    expect(screen.getAllByText("Received")[1]?.nextSibling?.textContent).toBe(
       "2 kg",
     );
     expect(
-      screen.getAllByText("Sale consumption")[0]?.nextSibling?.textContent,
+      screen.getAllByText("Sales usage")[1]?.nextSibling?.textContent,
     ).toBe("1.5 kg");
     expect(screen.getAllByText("Not counted").length).toBeGreaterThan(0);
     expect(
-      screen.getByText(/expected closing and variance are calculated by coms/i),
+      screen.getByText(/expected remaining quantity and variance are calculated by coms/i),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Save counts" })).toBeNull();
   });
@@ -225,7 +229,7 @@ describe("daily report item editor", () => {
 
     const ledgerSections = container.querySelectorAll("details");
     expect(ledgerSections.length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Sale void reversals").length).toBeGreaterThan(
+    expect(screen.getAllByText("Voided sale reversals").length).toBeGreaterThan(
       0,
     );
     expect(screen.getByRole("button", { name: "Save counts" })).toBeTruthy();

@@ -38,6 +38,10 @@ const report = {
   reviewed_by_user_id: null,
   reviewed_at: null,
   return_reason: null,
+  completed_sales_amount: "0",
+  completed_sales_count: 0,
+  voided_sales_amount: "0",
+  voided_sales_count: 0,
   created_at: timestamp,
   updated_at: timestamp,
   items: [],
@@ -134,6 +138,35 @@ describe("daily report page loader", () => {
       status: "SUBMITTED",
     });
     expect(getDailyReportDetail).toHaveBeenCalledWith(branchId, reportId);
+  });
+
+  it("keeps Super Admin review access while hiding branch report preparation", async () => {
+    const loader = await getLoader();
+    expect(loader).not.toBeNull();
+    if (!loader) return;
+    const admin = {
+      ...user([]),
+      role: {
+        id: "1",
+        code: "SUPER_ADMIN",
+        name: "Super Admin",
+        isSystem: true,
+        isActive: true,
+      },
+    };
+    const result = await loader.loadDailyReportsView(admin, {
+      branch_id: branchId,
+      report_id: reportId,
+      status: "SUBMITTED",
+    });
+    expect(result).toMatchObject({
+      status: "ready",
+      canCreate: false,
+      canUpdate: false,
+      canSubmit: false,
+      canApprove: true,
+      canReturn: true,
+    });
   });
 
   it("only enables submission for an ended Manila day with a saved count for every item", async () => {
