@@ -8,6 +8,8 @@ import {
   createDispatchSchema,
   dispatchDetailSchema,
   receiveDispatchSchema,
+  reportDispatchDiscrepancySchema,
+  requestDispatchRecountSchema,
 } from "@/features/dispatches/schemas/dispatch.schema";
 import {
   dispatchesEndpoint,
@@ -39,6 +41,7 @@ function getActionError(error: unknown) {
 function revalidateDispatchRoutes(id: string, stockRequestId?: string) {
   revalidatePath(dispatchesRoute);
   revalidatePath(`${dispatchesRoute}/${id}`);
+  revalidatePath("/dashboard");
   if (stockRequestId) revalidatePath(`/replenishment/${stockRequestId}`);
 }
 
@@ -140,6 +143,42 @@ export async function closeDispatchShortageAction(
     return { ok: false, error: "Check the shortage reason and quantities." };
   return submitDispatchAction(
     `${dispatchesEndpoint}/${parsedId.data}/shortage-closures`,
+    parsedId.data,
+    parsedInput.data,
+    parsedKey.data,
+  );
+}
+
+export async function reportDispatchDiscrepancyAction(
+  id: string,
+  input: unknown,
+  idempotencyKey: string,
+): Promise<DispatchActionResult> {
+  const parsedId = z.uuid().safeParse(id);
+  const parsedKey = z.uuid().safeParse(idempotencyKey);
+  const parsedInput = reportDispatchDiscrepancySchema.safeParse(input);
+  if (!parsedId.success || !parsedKey.success || !parsedInput.success)
+    return { ok: false, error: "Enter a note about the received quantity." };
+  return submitDispatchAction(
+    `${dispatchesEndpoint}/${parsedId.data}/discrepancies`,
+    parsedId.data,
+    parsedInput.data,
+    parsedKey.data,
+  );
+}
+
+export async function requestDispatchRecountAction(
+  id: string,
+  input: unknown,
+  idempotencyKey: string,
+): Promise<DispatchActionResult> {
+  const parsedId = z.uuid().safeParse(id);
+  const parsedKey = z.uuid().safeParse(idempotencyKey);
+  const parsedInput = requestDispatchRecountSchema.safeParse(input);
+  if (!parsedId.success || !parsedKey.success || !parsedInput.success)
+    return { ok: false, error: "Enter a reason for the recount request." };
+  return submitDispatchAction(
+    `${dispatchesEndpoint}/${parsedId.data}/discrepancies/recount`,
     parsedId.data,
     parsedInput.data,
     parsedKey.data,

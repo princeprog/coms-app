@@ -15,6 +15,12 @@ const dispatchLineInputSchema = z
   })
   .strict();
 
+const discrepancyStatusSchema = z.enum([
+  "OPEN",
+  "RECOUNT_REQUESTED",
+  "RESOLVED",
+]);
+
 const receiveItemSchema = dispatchLineInputSchema.extend({
   quantity_received: positiveDecimalText,
 });
@@ -59,6 +65,7 @@ const dispatchListItemSchema = z.object({
   branch_name: z.string().min(1),
   stock_request_status: z.enum(stockRequestStatuses),
   status: z.enum(dispatchStatuses),
+  discrepancy_status: discrepancyStatusSchema.nullable().optional(),
   created_by_user_id: z.uuid(),
   created_by_name: z.string().min(1),
   dispatched_by_user_id: z.uuid().nullable(),
@@ -139,6 +146,32 @@ const dispatchEventSchema = z.object({
   created_at: z.iso.datetime(),
 });
 
+const dispatchDiscrepancySchema = z.object({
+  id: z.uuid(),
+  status: discrepancyStatusSchema,
+  reported_by_user_id: z.uuid(),
+  reported_by_name: z.string().min(1),
+  reported_at: z.iso.datetime(),
+  recount_requested_by_user_id: z.uuid().nullable(),
+  recount_requested_by_name: z.string().min(1).nullable(),
+  recount_requested_at: z.iso.datetime().nullable(),
+  resolved_at: z.iso.datetime().nullable(),
+});
+
+const dispatchDiscrepancyEventSchema = z.object({
+  id: z.uuid(),
+  event_type: z.enum([
+    "REPORTED",
+    "RECOUNT_REQUESTED",
+    "RESOLVED_RECEIVED",
+    "RESOLVED_SHORTAGE",
+  ]),
+  actor_user_id: z.uuid(),
+  actor_name: z.string().min(1),
+  note: z.string().min(1),
+  created_at: z.iso.datetime(),
+});
+
 export const dispatchDetailSchema = z.object({
   id: z.uuid(),
   stock_request_id: z.uuid(),
@@ -157,4 +190,14 @@ export const dispatchDetailSchema = z.object({
   receipts: z.array(dispatchReceiptSchema),
   shortage_closures: z.array(dispatchShortageClosureSchema),
   events: z.array(dispatchEventSchema),
+  discrepancy: dispatchDiscrepancySchema.nullable().optional(),
+  discrepancy_events: z.array(dispatchDiscrepancyEventSchema).optional(),
 });
+
+export const reportDispatchDiscrepancySchema = z
+  .object({ note: z.string().trim().min(1).max(500) })
+  .strict();
+
+export const requestDispatchRecountSchema = z
+  .object({ reason: z.string().trim().min(1).max(500) })
+  .strict();

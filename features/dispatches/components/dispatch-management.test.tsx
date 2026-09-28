@@ -22,7 +22,7 @@ describe("dispatch management", () => {
     render(
       <DispatchManagement
         page={page}
-        filters={{ page: 1, status: "all" }}
+        filters={{ page: 1, status: "all", discrepancyStatus: "all" }}
         canCreate
       />,
     );
@@ -67,7 +67,7 @@ describe("dispatch management", () => {
     render(
       <DispatchManagement
         page={dispatchPage}
-        filters={{ page: 1, status: "IN_TRANSIT" }}
+        filters={{ page: 1, status: "IN_TRANSIT", discrepancyStatus: "all" }}
         canCreate={false}
       />,
     );
@@ -96,7 +96,7 @@ describe("dispatch management", () => {
     render(
       <DispatchManagement
         page={page}
-        filters={{ page: 1, status: "RECEIVED" }}
+        filters={{ page: 1, status: "RECEIVED", discrepancyStatus: "all" }}
         canCreate={false}
       />,
     );
@@ -108,7 +108,7 @@ describe("dispatch management", () => {
     render(
       <DispatchManagement
         page={page}
-        filters={{ page: 3, status: "all" }}
+        filters={{ page: 3, status: "all", discrepancyStatus: "all" }}
         canCreate={false}
       />,
     );

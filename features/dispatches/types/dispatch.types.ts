@@ -3,6 +3,8 @@ import type {
   closeDispatchShortageSchema,
   dispatchDetailSchema,
   dispatchPageSchema,
+  reportDispatchDiscrepancySchema,
+  requestDispatchRecountSchema,
   receiveDispatchSchema,
 } from "@/features/dispatches/schemas/dispatch.schema";
 
@@ -12,6 +14,12 @@ export type DispatchListItem = DispatchPage["items"][number];
 export type ReceiveDispatchInput = z.infer<typeof receiveDispatchSchema>;
 export type CloseDispatchShortageInput = z.infer<
   typeof closeDispatchShortageSchema
+>;
+export type ReportDispatchDiscrepancyInput = z.infer<
+  typeof reportDispatchDiscrepancySchema
+>;
+export type RequestDispatchRecountInput = z.infer<
+  typeof requestDispatchRecountSchema
 >;
 
 export type DispatchMutationResult =
@@ -36,3 +44,9 @@ export type DispatchShortageAction = (
   input: unknown,
   idempotencyKey: string,
 ) => Promise<DispatchActionResult>;
+export type DispatchDiscrepancyAction = (
+  id: string,
+  input: unknown,
+  idempotencyKey: string,
+) => Promise<DispatchActionResult>;
+export type DispatchRecountAction = DispatchDiscrepancyAction;

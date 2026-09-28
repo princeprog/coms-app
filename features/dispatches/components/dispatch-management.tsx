@@ -21,7 +21,8 @@ export function DispatchManagement({
   canCreate: boolean;
 }) {
   const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));
-  const hasFilters = filters.status !== "all";
+  const hasFilters =
+    filters.status !== "all" || filters.discrepancyStatus !== "all";
 
   return (
     <div data-coms-ui="operational" className="flex flex-col gap-6 p-4 md:p-6">

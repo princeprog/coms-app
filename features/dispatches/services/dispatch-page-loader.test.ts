@@ -90,6 +90,7 @@ describe("dispatch page loader", () => {
     expect(getDispatchPageData).toHaveBeenCalledWith({
       page: 4,
       status: "IN_TRANSIT",
+      discrepancyStatus: "all",
     });
   });
 
@@ -114,6 +115,34 @@ describe("dispatch page loader", () => {
       canDispatch: false,
       canReceive: true,
       canCloseShortage: false,
+      canReportDiscrepancy: false,
+      canRequestRecount: false,
+    });
+  });
+
+  it("lets Super Admin reconcile but never enter a branch receipt", async () => {
+    getDispatchDetail.mockResolvedValue({
+      ...detail,
+      status: "PARTIALLY_RECEIVED",
+      discrepancy: { status: "OPEN" },
+      items: [{ quantity_received: "80", quantity_in_transit: "20" }],
+    });
+    const admin = {
+      ...user([]),
+      role: {
+        id,
+        code: "SUPER_ADMIN",
+        name: "Super Admin",
+        isSystem: true,
+        isActive: true,
+      },
+    };
+    await expect(loadDispatchDetailView(admin, id)).resolves.toMatchObject({
+      status: "ready",
+      canReceive: false,
+      canReportDiscrepancy: false,
+      canRequestRecount: true,
+      canCloseShortage: true,
     });
   });
 

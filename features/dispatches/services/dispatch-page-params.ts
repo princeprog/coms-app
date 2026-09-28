@@ -9,10 +9,17 @@ export type DispatchPageSearchParams = Record<
 >;
 
 export type DispatchStatusFilter = "all" | (typeof dispatchStatuses)[number];
+export type DispatchDiscrepancyFilter =
+  | "all"
+  | "NONE"
+  | "OPEN"
+  | "RECOUNT_REQUESTED"
+  | "RESOLVED";
 
 export type DispatchPageFilters = {
   page: number;
   status: DispatchStatusFilter;
+  discrepancyStatus: DispatchDiscrepancyFilter;
 };
 
 export function parseDispatchPageFilters(
@@ -25,14 +32,25 @@ export function parseDispatchPageFilters(
       : 1;
   const rawStatus = first(params.status);
   const status = dispatchStatuses.find((value) => value === rawStatus) ?? "all";
+  const rawDiscrepancyStatus = first(params.discrepancy_status);
+  const discrepancyStatus: DispatchDiscrepancyFilter = [
+    "NONE",
+    "OPEN",
+    "RECOUNT_REQUESTED",
+    "RESOLVED",
+  ].includes(rawDiscrepancyStatus ?? "")
+    ? (rawDiscrepancyStatus as Exclude<DispatchDiscrepancyFilter, "all">)
+    : "all";
 
-  return { page, status };
+  return { page, status, discrepancyStatus };
 }
 
 export function createDispatchHref(filters: DispatchPageFilters) {
   const params = new URLSearchParams();
   if (filters.page > 1) params.set("page", String(filters.page));
   if (filters.status !== "all") params.set("status", filters.status);
+  if (filters.discrepancyStatus !== "all")
+    params.set("discrepancy_status", filters.discrepancyStatus);
   const query = params.toString();
   return query ? `${dispatchesRoute}?${query}` : dispatchesRoute;
 }

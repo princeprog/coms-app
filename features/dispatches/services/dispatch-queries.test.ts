@@ -37,7 +37,11 @@ describe("dispatch queries", () => {
     requestComsApi.mockResolvedValue(page);
 
     await expect(
-      getDispatchPageData({ page: 2, status: "IN_TRANSIT" }),
+      getDispatchPageData({
+        page: 2,
+        status: "IN_TRANSIT",
+        discrepancyStatus: "all",
+      }),
     ).resolves.toEqual(page);
     expect(requestComsApi).toHaveBeenCalledWith(
       "/dispatches?page=2&page_size=25&status=IN_TRANSIT",
@@ -45,10 +49,27 @@ describe("dispatch queries", () => {
     );
   });
 
+  it("sends a discrepancy filter with the other list filters", async () => {
+    const page = { items: [], total: 0, page: 1, page_size: 25 };
+    requestComsApi.mockResolvedValue(page);
+
+    await expect(
+      getDispatchPageData({
+        page: 1,
+        status: "all",
+        discrepancyStatus: "RECOUNT_REQUESTED",
+      }),
+    ).resolves.toEqual(page);
+    expect(requestComsApi).toHaveBeenCalledWith(
+      "/dispatches?page=1&page_size=25&discrepancy_status=RECOUNT_REQUESTED",
+      { cookieHeader: "coms_access=access-token" },
+    );
+  });
+
   it("rejects malformed page data and invalid dispatch IDs", async () => {
     requestComsApi.mockResolvedValue({ ...dispatch, total: "one" });
     await expect(
-      getDispatchPageData({ page: 1, status: "all" }),
+      getDispatchPageData({ page: 1, status: "all", discrepancyStatus: "all" }),
     ).rejects.toMatchObject({ status: 502 });
     await expect(getDispatchDetail("bad-id")).rejects.toMatchObject({
       status: 404,

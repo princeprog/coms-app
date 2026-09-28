@@ -1,7 +1,11 @@
 import "server-only";
 
 import { z } from "zod";
-import { hasBranchScope, hasPermission } from "@/features/auth/permissions";
+import {
+  hasBranchScope,
+  hasPermission,
+  isProtectedSuperAdmin,
+} from "@/features/auth/permissions";
 import type { User } from "@/features/auth/types/auth.types";
 import type {
   Dispatch,
@@ -38,6 +42,8 @@ export type DispatchDetailViewResult =
       canDispatch: boolean;
       canReceive: boolean;
       canCloseShortage: boolean;
+      canReportDiscrepancy: boolean;
+      canRequestRecount: boolean;
     };
 
 function getAccessFailure(
@@ -95,15 +101,35 @@ export async function loadDispatchDetailView(
     const canReceiveStatus =
       dispatch.status === "IN_TRANSIT" ||
       dispatch.status === "PARTIALLY_RECEIVED";
+    const hasRemainingTransit = dispatch.items.some(
+      (item) => Number(item.quantity_in_transit) > 0,
+    );
+    const hasPartialReceipt = dispatch.items.some(
+      (item) => Number(item.quantity_received) > 0,
+    );
     return {
       status: "ready",
       dispatch,
       canDispatch:
         dispatch.status === "DRAFT" &&
         hasPermission(user, "dispatches.dispatch"),
-      canReceive: canReceiveStatus && hasPermission(user, "dispatches.receive"),
+      canReceive:
+        !isProtectedSuperAdmin(user) &&
+        canReceiveStatus &&
+        hasPermission(user, "dispatches.receive"),
       canCloseShortage:
         canReceiveStatus && hasPermission(user, "dispatches.shortage_close"),
+      canReportDiscrepancy:
+        !isProtectedSuperAdmin(user) &&
+        dispatch.status === "PARTIALLY_RECEIVED" &&
+        hasRemainingTransit &&
+        hasPartialReceipt &&
+        hasPermission(user, "dispatches.receive") &&
+        (dispatch.discrepancy?.status === undefined ||
+          dispatch.discrepancy.status === "RESOLVED"),
+      canRequestRecount:
+        dispatch.discrepancy?.status === "OPEN" &&
+        hasPermission(user, "dispatches.reconcile"),
     };
   } catch (error) {
     const accessFailure = getAccessFailure(error);

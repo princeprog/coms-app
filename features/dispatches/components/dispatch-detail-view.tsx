@@ -7,12 +7,14 @@ import type {
   DispatchPostAction,
   DispatchReceiveAction,
   DispatchShortageAction,
+  DispatchDiscrepancyAction,
 } from "@/features/dispatches/types/dispatch.types";
 import { DispatchHistory } from "./dispatch-history";
 import { DispatchItemTable } from "./dispatch-item-table";
 import { DispatchPostControl } from "./dispatch-post-control";
 import { DispatchReceiveControl } from "./dispatch-receive-control";
 import { DispatchShortageControl } from "./dispatch-shortage-control";
+import { DispatchDiscrepancyControl } from "./dispatch-discrepancy-control";
 
 export function DispatchDetailView({
   dispatch,
@@ -22,6 +24,10 @@ export function DispatchDetailView({
   receiveAction,
   canCloseShortage,
   shortageAction,
+  canReportDiscrepancy = false,
+  discrepancyAction,
+  canRequestRecount = false,
+  recountAction,
 }: {
   dispatch: Dispatch;
   canDispatch: boolean;
@@ -30,6 +36,10 @@ export function DispatchDetailView({
   receiveAction: DispatchReceiveAction;
   canCloseShortage: boolean;
   shortageAction: DispatchShortageAction;
+  canReportDiscrepancy?: boolean;
+  discrepancyAction?: DispatchDiscrepancyAction;
+  canRequestRecount?: boolean;
+  recountAction?: DispatchDiscrepancyAction;
 }) {
   const showPostControl = dispatch.status === "DRAFT" && canDispatch;
   const showReceiveControl =
@@ -66,6 +76,20 @@ export function DispatchDetailView({
           <DispatchShortageControl
             dispatch={dispatch}
             action={shortageAction}
+          />
+        )}
+        {canReportDiscrepancy && discrepancyAction && (
+          <DispatchDiscrepancyControl
+            dispatch={dispatch}
+            mode="report"
+            action={discrepancyAction}
+          />
+        )}
+        {canRequestRecount && recountAction && (
+          <DispatchDiscrepancyControl
+            dispatch={dispatch}
+            mode="recount"
+            action={recountAction}
           />
         )}
       </div>

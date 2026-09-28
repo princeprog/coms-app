@@ -4,7 +4,9 @@ import {
   closeDispatchShortageAction,
   createDispatchAction,
   postDispatchAction,
+  reportDispatchDiscrepancyAction,
   receiveDispatchAction,
+  requestDispatchRecountAction,
 } from "./dispatch-actions";
 
 const { requestComsApi, revalidatePath } = vi.hoisted(() => ({
@@ -132,6 +134,59 @@ describe("dispatch actions", () => {
         headers: { "Idempotency-Key": idempotencyKey },
       },
     );
+  });
+
+  it("reports a receipt discrepancy with its note and idempotency key", async () => {
+    requestComsApi.mockResolvedValue({ ...dispatchDetail, discrepancy: null });
+
+    await expect(
+      reportDispatchDiscrepancyAction(
+        id,
+        { note: "  20 units missing  " },
+        idempotencyKey,
+      ),
+    ).resolves.toEqual({ ok: true });
+    expect(requestComsApi).toHaveBeenCalledWith(
+      `/dispatches/${id}/discrepancies`,
+      {
+        cookieHeader: "coms_access=access-token",
+        method: "POST",
+        body: { note: "20 units missing" },
+        headers: { "Idempotency-Key": idempotencyKey },
+      },
+    );
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("requests a recount with its reason and idempotency key", async () => {
+    requestComsApi.mockResolvedValue({ ...dispatchDetail, discrepancy: null });
+
+    await expect(
+      requestDispatchRecountAction(
+        id,
+        { reason: "  Confirm remaining stock  " },
+        idempotencyKey,
+      ),
+    ).resolves.toEqual({ ok: true });
+    expect(requestComsApi).toHaveBeenCalledWith(
+      `/dispatches/${id}/discrepancies/recount`,
+      {
+        cookieHeader: "coms_access=access-token",
+        method: "POST",
+        body: { reason: "Confirm remaining stock" },
+        headers: { "Idempotency-Key": idempotencyKey },
+      },
+    );
+  });
+
+  it("does not call the API when a discrepancy or recount note is empty", async () => {
+    await expect(
+      reportDispatchDiscrepancyAction(id, { note: "   " }, idempotencyKey),
+    ).resolves.toMatchObject({ ok: false });
+    await expect(
+      requestDispatchRecountAction(id, { reason: "   " }, idempotencyKey),
+    ).resolves.toMatchObject({ ok: false });
+    expect(requestComsApi).not.toHaveBeenCalled();
   });
 
   it("rejects invalid IDs, retry keys, and receipt data without calling the API", async () => {

@@ -20,6 +20,8 @@ export async function getDispatchPageData(
     page_size: "25",
   });
   if (filters.status !== "all") params.set("status", filters.status);
+  if (filters.discrepancyStatus !== "all")
+    params.set("discrepancy_status", filters.discrepancyStatus);
 
   const payload = await requestComsApi<unknown>(
     `${dispatchesEndpoint}?${params.toString()}`,

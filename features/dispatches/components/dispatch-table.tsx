@@ -38,6 +38,7 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
             <TableHead>Stock request</TableHead>
             <TableHead className="text-right">Items</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Discrepancy</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Dispatched</TableHead>
             <TableHead className="text-right">Details</TableHead>
@@ -69,6 +70,21 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
                 <OperationalStatusBadge variant="outline">
                   {dispatch.status.replaceAll("_", " ")}
                 </OperationalStatusBadge>
+              </TableCell>
+              <TableCell>
+                {dispatch.discrepancy_status ? (
+                  <OperationalStatusBadge
+                    variant={
+                      dispatch.discrepancy_status === "OPEN"
+                        ? "destructive"
+                        : "outline"
+                    }
+                  >
+                    {dispatch.discrepancy_status.replaceAll("_", " ")}
+                  </OperationalStatusBadge>
+                ) : (
+                  <span className="text-sm text-muted-foreground">None</span>
+                )}
               </TableCell>
               <TableCell>
                 {format(parseISO(dispatch.created_at), "PPp")}
