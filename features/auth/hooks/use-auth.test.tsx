@@ -48,14 +48,6 @@ const user = {
   email: "staff@example.com",
   full_name: "Staff Member",
   contact_number: "09170000000",
-  role: {
-    id: "branch-manager",
-    code: "BRANCH_MANAGER",
-    name: "Branch Manager",
-    isSystem: false,
-    isActive: true,
-  },
-  permissions: ["dashboard.read"],
 };
 
 function createWrapper(queryClient: QueryClient) {
@@ -77,7 +69,7 @@ describe("auth mutations", () => {
     routerMock.refresh.mockReset();
   });
 
-  it("seeds the current-user cache and navigates after login", async () => {
+  it("resolves access context on the server after login", async () => {
     loginMock.mockResolvedValue({ user });
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -93,8 +85,8 @@ describe("auth mutations", () => {
       });
     });
 
-    expect(queryClient.getQueryData(authKeys.me)).toEqual(user);
-    expect(routerMock.push).toHaveBeenCalledWith("/dashboard");
+    expect(queryClient.getQueryData(authKeys.me)).toBeUndefined();
+    expect(routerMock.replace).toHaveBeenCalledWith("/");
   });
 
   it("clears the auth cache and navigates home after logout", async () => {

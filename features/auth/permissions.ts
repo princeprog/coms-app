@@ -11,7 +11,7 @@ const landingRoutes: { url: string; permissions: readonly string[] }[] = [
     url: "/dashboard",
     permissions: ["dashboard.read", "dashboard.global_read"],
   },
-  { url: "/pos", permissions: ["sales.create"] },
+  { url: "/pos", permissions: ["sales.create", "sales.read"] },
   {
     url: "/inventory",
     permissions: ["inventory.read", "inventory.commissary_read"],

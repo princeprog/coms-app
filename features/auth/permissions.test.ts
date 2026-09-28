@@ -32,6 +32,12 @@ describe("permission aware navigation", () => {
         permissions: ["sales.create", "branch_products.read"],
       }),
     ).toBe("/pos");
+    expect(
+      getAuthorizedLandingPath({
+        ...authTestSessionUser,
+        permissions: ["sales.read"],
+      }),
+    ).toBe("/pos");
     expect(getAuthorizedLandingPath(authTestUser)).toBe("/no-access");
   });
 
