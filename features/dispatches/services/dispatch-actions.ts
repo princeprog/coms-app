@@ -28,7 +28,7 @@ function getActionError(error: unknown) {
     if (error.status === 403)
       return "You do not have permission to manage this dispatch or branch.";
     if (error.status === 404)
-      return "This dispatch or stock request is no longer available.";
+      return "This dispatch, branch, or stock item is no longer available.";
     if (error.status === 409)
       return "The workflow changed or this retry key was already used. Refresh and try again.";
     if (error.status === 400)
@@ -38,11 +38,10 @@ function getActionError(error: unknown) {
   return "COMS could not complete this dispatch action. Try again.";
 }
 
-function revalidateDispatchRoutes(id: string, stockRequestId?: string) {
+function revalidateDispatchRoutes(id: string) {
   revalidatePath(dispatchesRoute);
   revalidatePath(`${dispatchesRoute}/${id}`);
   revalidatePath("/dashboard");
-  if (stockRequestId) revalidatePath(`/replenishment/${stockRequestId}`);
 }
 
 async function submitDispatchAction(
@@ -69,16 +68,13 @@ async function submitDispatchAction(
 }
 
 export async function createDispatchAction(
-  stockRequestId: string,
+  input: unknown,
   idempotencyKey: string,
 ): Promise<DispatchMutationResult> {
-  const parsedRequestId = z.uuid().safeParse(stockRequestId);
   const parsedKey = z.uuid().safeParse(idempotencyKey);
-  const parsedInput = createDispatchSchema.safeParse({
-    stock_request_id: stockRequestId,
-  });
-  if (!parsedRequestId.success || !parsedKey.success || !parsedInput.success)
-    return { ok: false, error: "Check the selected stock request." };
+  const parsedInput = createDispatchSchema.safeParse(input);
+  if (!parsedKey.success || !parsedInput.success)
+    return { ok: false, error: "Check the branch and dispatch item lines." };
 
   try {
     const payload = await requestComsApi<unknown>(dispatchesEndpoint, {
@@ -90,7 +86,7 @@ export async function createDispatchAction(
     const parsedDispatch = dispatchDetailSchema.safeParse(payload);
     if (!parsedDispatch.success || parsedDispatch.data.status !== "DRAFT")
       throw new ApiRequestError("Invalid created dispatch response.", 502);
-    revalidateDispatchRoutes(parsedDispatch.data.id, stockRequestId);
+    revalidateDispatchRoutes(parsedDispatch.data.id);
     return { ok: true, dispatch_id: parsedDispatch.data.id };
   } catch (error) {
     return { ok: false, error: getActionError(error) };

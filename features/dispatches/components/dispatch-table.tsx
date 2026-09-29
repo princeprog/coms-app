@@ -35,7 +35,6 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
         <TableHeader>
           <TableRow>
             <TableHead>Branch</TableHead>
-            <TableHead>Stock request</TableHead>
             <TableHead className="text-right">Items</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Discrepancy</TableHead>
@@ -49,19 +48,6 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
             <TableRow key={dispatch.id}>
               <TableCell className="font-medium">
                 {dispatch.branch_name}
-              </TableCell>
-              <TableCell>
-                <Link
-                  className={buttonVariants({ variant: "link", size: "sm" })}
-                  aria-label={
-                    "View stock request " +
-                    dispatch.stock_request_id.slice(0, 8)
-                  }
-                  href={`/replenishment/${dispatch.stock_request_id}`}
-                  title={dispatch.stock_request_id}
-                >
-                  Request {dispatch.stock_request_id.slice(0, 8)}
-                </Link>
               </TableCell>
               <TableCell className="text-right tabular-nums">
                 {dispatch.item_count}

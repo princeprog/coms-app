@@ -22,7 +22,6 @@ export function DispatchItemTable({ dispatch }: { dispatch: Dispatch }) {
       <TableHeader>
         <TableRow>
           <TableHead>Stock item</TableHead>
-          <TableHead className="text-right">Requested</TableHead>
           <TableHead className="text-right">Dispatched</TableHead>
           <TableHead className="text-right">Received</TableHead>
           <TableHead className="text-right">Shortage closed</TableHead>
@@ -35,7 +34,6 @@ export function DispatchItemTable({ dispatch }: { dispatch: Dispatch }) {
             <TableCell className="font-medium">
               {item.stock_item_name}
             </TableCell>
-            <QuantityCell quantity={item.quantity_requested} unit={item.unit} />
             <QuantityCell
               quantity={item.quantity_dispatched}
               unit={item.unit}
@@ -54,7 +52,7 @@ export function DispatchItemTable({ dispatch }: { dispatch: Dispatch }) {
         {dispatch.items.length === 0 && (
           <TableRow>
             <TableCell
-              colSpan={6}
+              colSpan={5}
               className="py-6 text-center text-muted-foreground"
             >
               This dispatch has no item lines.

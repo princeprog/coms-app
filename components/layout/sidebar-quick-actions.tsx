@@ -6,8 +6,8 @@ import {
   ClipboardListIcon,
   FileChartColumnIcon,
   PlusIcon,
+  SendIcon,
   ShoppingCartIcon,
-  TruckIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +25,7 @@ import type { User } from "@/features/auth/types/auth.types";
 
 const quickActions = [
   {
-    title: "New receipt",
+    title: "Record supplier delivery",
     href: "/receipts?create=1",
     icon: ClipboardListIcon,
     permissions: [
@@ -36,12 +36,12 @@ const quickActions = [
     ],
   },
   {
-    title: "New stock request",
-    href: "/replenishment?create=1",
-    icon: TruckIcon,
+    title: "New dispatch",
+    href: "/dispatches?create=1",
+    icon: SendIcon,
     permissions: [
-      "stock_requests.read",
-      "stock_requests.create",
+      "dispatches.read",
+      "dispatches.create",
       "branches.read",
       "stock_items.read",
     ],
@@ -63,7 +63,9 @@ const quickActions = [
 export function getSidebarQuickActions(user: User) {
   return quickActions.filter((action) =>
     action.permissions.every((permission) => hasPermission(user, permission)) &&
-    (!isProtectedSuperAdmin(user) || action.title === "New receipt"),
+    (!isProtectedSuperAdmin(user) ||
+      action.title === "Record supplier delivery" ||
+      action.title === "New dispatch"),
   );
 }
 

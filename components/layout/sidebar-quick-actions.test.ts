@@ -11,8 +11,8 @@ describe("sidebar quick actions", () => {
         "supplier_receipts.create",
         "suppliers.read",
         "stock_items.read",
-        "stock_requests.read",
-        "stock_requests.create",
+        "dispatches.read",
+        "dispatches.create",
         "branches.read",
         "sales.create",
         "branch_products.read",
@@ -24,8 +24,8 @@ describe("sidebar quick actions", () => {
     expect(
       getSidebarQuickActions(user).map(({ title, href }) => [title, href]),
     ).toEqual([
-      ["New receipt", "/receipts?create=1"],
-      ["New stock request", "/replenishment?create=1"],
+      ["Record supplier delivery", "/receipts?create=1"],
+      ["New dispatch", "/dispatches?create=1"],
       ["New sale", "/pos"],
       ["New daily report", "/reports?create=1"],
     ]);
@@ -36,12 +36,12 @@ describe("sidebar quick actions", () => {
     expect(
       getSidebarQuickActions({
         ...authTestSessionUser,
-        permissions: ["supplier_receipts.create", "stock_requests.create"],
+        permissions: ["supplier_receipts.create", "dispatches.create"],
       }),
     ).toEqual([]);
   });
 
-  it("keeps only supplier receiving in the Super Admin quick actions", () => {
+  it("keeps supplier delivery and direct dispatch in Super Admin quick actions", () => {
     const superAdmin = {
       ...authTestUser,
       role: {
@@ -54,7 +54,8 @@ describe("sidebar quick actions", () => {
     };
 
     expect(getSidebarQuickActions(superAdmin).map(({ title }) => title)).toEqual([
-      "New receipt",
+      "Record supplier delivery",
+      "New dispatch",
     ]);
   });
 });

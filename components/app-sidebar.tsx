@@ -29,7 +29,6 @@ import {
   LayoutDashboardIcon,
   BoxesIcon,
   ClipboardListIcon,
-  TruckIcon,
   SendIcon,
   PackageIcon,
   StoreIcon,
@@ -68,7 +67,7 @@ export const navItems = [
     icon: <TagsIcon />,
   },
   {
-    title: "Receiving",
+    title: "Supplier Receiving",
     url: "/receipts",
     permission: "supplier_receipts.read",
     icon: <ClipboardListIcon />,
@@ -78,12 +77,6 @@ export const navItems = [
     url: "/dispatches",
     permission: "dispatches.read",
     icon: <SendIcon />,
-  },
-  {
-    title: "Replenishment",
-    url: "/replenishment",
-    permission: "stock_requests.read",
-    icon: <TruckIcon />,
   },
   {
     title: "Products",

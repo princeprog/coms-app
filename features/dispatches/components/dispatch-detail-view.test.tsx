@@ -23,10 +23,8 @@ const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const timestamp = "2026-09-24T01:30:00.000Z";
 const dispatch: Dispatch = {
   id,
-  stock_request_id: id,
   branch_id: id,
   branch_name: "Downtown",
-  stock_request_status: "APPROVED",
   status: "PARTIALLY_RECEIVED",
   created_by_user_id: id,
   created_by_name: "Commissary Staff",
@@ -38,11 +36,9 @@ const dispatch: Dispatch = {
   items: [
     {
       id,
-      stock_request_item_id: id,
       stock_item_id: id,
       stock_item_name: "Flour",
       unit: "kg",
-      quantity_requested: "8",
       quantity_dispatched: "8",
       quantity_received: "2.5000",
       quantity_shortage_closed: "1",
@@ -134,11 +130,8 @@ describe("dispatch detail view", () => {
     expect(
       screen.getByRole("link", { name: "Back to dispatches" }),
     ).toBeTruthy();
-    expect(
-      screen
-        .getByRole("link", { name: "View stock request" })
-        .getAttribute("href"),
-    ).toBe(`/replenishment/${id}`);
+    expect(screen.queryByRole("link", { name: /stock request/i })).toBeNull();
+    expect(screen.queryByText(/quantity requested/i)).toBeNull();
     expect(screen.getByRole("table", { name: "Dispatch items" })).toBeTruthy();
     expect(
       screen.getByRole("region", { name: "Dispatch quantities table" }),

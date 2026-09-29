@@ -8,6 +8,7 @@ import {
 } from "@/features/auth/permissions";
 import type { User } from "@/features/auth/types/auth.types";
 import type {
+  DispatchCreateOptions,
   Dispatch,
   DispatchPage,
 } from "@/features/dispatches/types/dispatch.types";
@@ -17,7 +18,11 @@ import {
   parseDispatchPageFilters,
   type DispatchPageSearchParams,
 } from "./dispatch-page-params";
-import { getDispatchDetail, getDispatchPageData } from "./dispatch-queries";
+import {
+  getDispatchCreateOptions,
+  getDispatchDetail,
+  getDispatchPageData,
+} from "./dispatch-queries";
 
 export type DispatchIndexViewResult =
   | { status: "forbidden" }
@@ -29,6 +34,8 @@ export type DispatchIndexViewResult =
       page: DispatchPage;
       filters: ReturnType<typeof parseDispatchPageFilters>;
       canCreate: boolean;
+      createOptions: DispatchCreateOptions | null;
+      createOptionsIssue: "permissions" | "forbidden" | "unavailable" | null;
     };
 
 export type DispatchDetailViewResult =
@@ -78,11 +85,35 @@ export async function loadDispatchIndexView(
       href: createDispatchHref({ ...filters, page: pageCount }),
     };
 
+  const canCreate = hasPermission(user, "dispatches.create");
+  let createOptions: DispatchCreateOptions | null = null;
+  let createOptionsIssue: "permissions" | "forbidden" | "unavailable" | null =
+    null;
+  if (canCreate) {
+    if (
+      !hasPermission(user, "branches.read") ||
+      !hasPermission(user, "stock_items.read")
+    ) {
+      createOptionsIssue = "permissions";
+    } else {
+      try {
+        createOptions = await getDispatchCreateOptions();
+      } catch (error) {
+        const accessFailure = getAccessFailure(error);
+        if (accessFailure?.status === "session-expired") return accessFailure;
+        createOptionsIssue =
+          accessFailure?.status === "forbidden" ? "forbidden" : "unavailable";
+      }
+    }
+  }
+
   return {
     status: "ready",
     page,
     filters,
-    canCreate: hasPermission(user, "dispatches.create"),
+    canCreate,
+    createOptions,
+    createOptionsIssue,
   };
 }
 

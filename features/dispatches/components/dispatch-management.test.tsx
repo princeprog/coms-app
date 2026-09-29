@@ -1,7 +1,5 @@
 // @vitest-environment jsdom
-
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import { DispatchManagement } from "./dispatch-management";
@@ -13,45 +11,48 @@ vi.mock("next/link", () => ({
     </a>
   ),
 }));
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const page: DispatchPage = { items: [], total: 0, page: 1, page_size: 25 };
+const baseProps = {
+  page,
+  filters: { page: 1, status: "all" as const, discrepancyStatus: "all" as const },
+  canCreate: false,
+  createOptions: null,
+  createOptionsIssue: null,
+  createAction: vi.fn(),
+};
 
 describe("dispatch management", () => {
-  it("shows a useful empty state, status filter, and approved-request link", () => {
+  it("shows a useful empty state and the direct dispatch action", () => {
     render(
       <DispatchManagement
-        page={page}
-        filters={{ page: 1, status: "all", discrepancyStatus: "all" }}
+        {...baseProps}
         canCreate
+        createOptionsIssue="permissions"
       />,
     );
 
-    expect(
-      screen.getByText("No dispatches have been created yet."),
-    ).toBeTruthy();
+    expect(screen.getByText("No dispatches have been created yet.")).toBeTruthy();
     expect(screen.getByLabelText("Dispatch status")).toBeTruthy();
-    const filters = screen.getByRole("form", { name: "Filter dispatches" });
-    expect(filters.getAttribute("action")).toBe("/dispatches");
-    expect(filters.getAttribute("method")).toBeNull();
-    expect(
-      screen
-        .getByRole("link", { name: "Review approved requests" })
-        .getAttribute("href"),
-    ).toBe("/replenishment?status=APPROVED");
+    expect(screen.getByRole("form", { name: "Filter dispatches" }).getAttribute("action")).toBe("/dispatches");
+    expect(screen.getByRole("button", { name: "Create dispatch" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /request/i })).toBeNull();
   });
 
-  it("renders branch, request, status, and filter-preserving pagination", () => {
+  it("renders direct branch dispatch rows and filter-preserving pagination", () => {
     const dispatchPage: DispatchPage = {
       ...page,
       total: 26,
       items: [
         {
           id,
-          stock_request_id: id,
           branch_id: id,
           branch_name: "Downtown",
-          stock_request_status: "APPROVED",
           status: "IN_TRANSIT",
           created_by_user_id: id,
           created_by_name: "Commissary Staff",
@@ -66,59 +67,29 @@ describe("dispatch management", () => {
     };
     render(
       <DispatchManagement
+        {...baseProps}
         page={dispatchPage}
         filters={{ page: 1, status: "IN_TRANSIT", discrepancyStatus: "all" }}
-        canCreate={false}
       />,
     );
 
     expect(screen.getByText("Downtown")).toBeTruthy();
     expect(screen.getAllByText("IN TRANSIT")).toHaveLength(2);
     expect(
-      screen
-        .getByRole("region", { name: "Dispatches table" })
-        .getAttribute("data-slot"),
+      screen.getByRole("region", { name: "Dispatches table" }).getAttribute("data-slot"),
     ).toBe("table-container");
-    expect(
-      screen.getByRole("link", { name: "View dispatch" }).getAttribute("href"),
-    ).toBe(`/dispatches/${id}`);
-    expect(
-      screen
-        .getByRole("link", { name: "View stock request " + id.slice(0, 8) })
-        .getAttribute("href"),
-    ).toBe(`/replenishment/${id}`);
-    expect(
-      screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
-    ).toBe("/dispatches?page=2&status=IN_TRANSIT");
+    expect(screen.getByRole("link", { name: "View dispatch" }).getAttribute("href")).toBe(`/dispatches/${id}`);
+    expect(screen.queryByText("Stock request")).toBeNull();
+    expect(screen.getByRole("link", { name: "Next page" }).getAttribute("href")).toBe("/dispatches?page=2&status=IN_TRANSIT");
   });
 
   it("explains when the current filters have no matching dispatches", () => {
     render(
       <DispatchManagement
-        page={page}
+        {...baseProps}
         filters={{ page: 1, status: "RECEIVED", discrepancyStatus: "all" }}
-        canCreate={false}
       />,
     );
     expect(screen.getByText("No dispatches match this status.")).toBeTruthy();
-  });
-
-  it("submits an applied status filter through client GET navigation", async () => {
-    const user = userEvent.setup();
-    render(
-      <DispatchManagement
-        page={page}
-        filters={{ page: 3, status: "all", discrepancyStatus: "all" }}
-        canCreate={false}
-      />,
-    );
-
-    const filters = screen.getByRole("form", { name: "Filter dispatches" });
-    await user.click(screen.getByRole("combobox", { name: "Dispatch status" }));
-    await user.click(await screen.findByRole("option", { name: "RECEIVED" }));
-    expect(
-      filters.querySelector('input[name="status"]')?.getAttribute("value"),
-    ).toBe("RECEIVED");
-    expect(filters.querySelector('input[name="page"]')).toBeNull();
   });
 });

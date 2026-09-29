@@ -6,13 +6,15 @@ import {
   loadDispatchIndexView,
 } from "./dispatch-page-loader";
 
-const { getDispatchDetail, getDispatchPageData } = vi.hoisted(() => ({
+const { getDispatchCreateOptions, getDispatchDetail, getDispatchPageData } = vi.hoisted(() => ({
+  getDispatchCreateOptions: vi.fn(),
   getDispatchDetail: vi.fn(),
   getDispatchPageData: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("./dispatch-queries", () => ({
+  getDispatchCreateOptions,
   getDispatchDetail,
   getDispatchPageData,
 }));
@@ -22,10 +24,8 @@ const timestamp = "2026-09-24T01:30:00.000Z";
 const page = { items: [], total: 0, page: 1, page_size: 25 };
 const detail = {
   id,
-  stock_request_id: id,
   branch_id: id,
   branch_name: "Downtown",
-  stock_request_status: "APPROVED" as const,
   status: "IN_TRANSIT" as const,
   created_by_user_id: id,
   created_by_name: "Commissary Staff",
@@ -60,6 +60,10 @@ function user(permissions: string[], branchIds: string[] = [id]): User {
 
 describe("dispatch page loader", () => {
   beforeEach(() => {
+    getDispatchCreateOptions.mockReset().mockResolvedValue({
+      branches: [],
+      stockItems: [],
+    });
     getDispatchDetail.mockReset().mockResolvedValue(detail);
     getDispatchPageData.mockReset().mockResolvedValue(page);
   });
@@ -94,10 +98,35 @@ describe("dispatch page loader", () => {
     });
   });
 
-  it("enables the approved-request link only for users who can create dispatches", async () => {
+  it("enables direct creation only when the user can read both catalogs", async () => {
     await expect(
-      loadDispatchIndexView(user(["dispatches.read", "dispatches.create"]), {}),
-    ).resolves.toMatchObject({ status: "ready", canCreate: true });
+      loadDispatchIndexView(
+        user([
+          "dispatches.read",
+          "dispatches.create",
+          "branches.read",
+          "stock_items.read",
+        ]),
+        {},
+      ),
+    ).resolves.toMatchObject({
+      status: "ready",
+      canCreate: true,
+      createOptions: { branches: [], stockItems: [] },
+      createOptionsIssue: null,
+    });
+    await expect(
+      loadDispatchIndexView(
+        user(["dispatches.read", "dispatches.create"]),
+        {},
+      ),
+    ).resolves.toMatchObject({
+      status: "ready",
+      canCreate: true,
+      createOptions: null,
+      createOptionsIssue: "permissions",
+    });
+    expect(getDispatchCreateOptions).toHaveBeenCalledTimes(1);
     await expect(
       loadDispatchIndexView(user(["dispatches.read"]), {}),
     ).resolves.toMatchObject({ status: "ready", canCreate: false });

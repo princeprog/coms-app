@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type {
+  createDispatchSchema,
   closeDispatchShortageSchema,
   dispatchDetailSchema,
   dispatchPageSchema,
@@ -7,10 +8,14 @@ import type {
   requestDispatchRecountSchema,
   receiveDispatchSchema,
 } from "@/features/dispatches/schemas/dispatch.schema";
+import type { Branch } from "@/features/branches/types/branch.types";
+import type { StockItem } from "@/features/stock-items/types/stock-item.types";
 
 export type Dispatch = z.infer<typeof dispatchDetailSchema>;
 export type DispatchPage = z.infer<typeof dispatchPageSchema>;
 export type DispatchListItem = DispatchPage["items"][number];
+export type CreateDispatchInput = z.infer<typeof createDispatchSchema>;
+export type DispatchCreateOptions = { branches: Branch[]; stockItems: StockItem[] };
 export type ReceiveDispatchInput = z.infer<typeof receiveDispatchSchema>;
 export type CloseDispatchShortageInput = z.infer<
   typeof closeDispatchShortageSchema
@@ -27,7 +32,7 @@ export type DispatchMutationResult =
 export type DispatchActionResult = { ok: true } | { ok: false; error: string };
 
 export type DispatchCreateAction = (
-  stockRequestId: string,
+  input: unknown,
   idempotencyKey: string,
 ) => Promise<DispatchMutationResult>;
 export type DispatchPostAction = (

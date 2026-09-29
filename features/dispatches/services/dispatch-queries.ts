@@ -8,6 +8,11 @@ import {
 } from "@/features/dispatches/schemas/dispatch.schema";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import { dispatchesEndpoint } from "@/features/dispatches/constants";
+import { branchesResponseSchema } from "@/features/branches/schemas/branch.schema";
+import type { Branch } from "@/features/branches/types/branch.types";
+import { stockItemsEndpoint } from "@/features/stock-items/constants";
+import { stockItemPageSchema } from "@/features/stock-items/schemas/stock-item.schema";
+import type { StockItem } from "@/features/stock-items/types/stock-item.types";
 import type { DispatchPageFilters } from "./dispatch-page-params";
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
@@ -43,5 +48,72 @@ export async function getDispatchDetail(id: string) {
   const parsed = dispatchDetailSchema.safeParse(payload);
   if (!parsed.success)
     throw new ApiRequestError("Invalid dispatch detail response.", 502);
+  return parsed.data;
+}
+
+export async function getDispatchCreateOptions(): Promise<{
+  branches: Branch[];
+  stockItems: StockItem[];
+}> {
+  const cookieHeader = (await cookies()).toString();
+  const [branches, stockItems] = await Promise.all([
+    getAllCatalogPages("/branches", cookieHeader, (payload) =>
+      branchesResponseSchema.safeParse(payload),
+    ),
+    getAllCatalogPages(
+      `${stockItemsEndpoint}?is_active=true`,
+      cookieHeader,
+      (payload) => stockItemPageSchema.safeParse(payload),
+    ),
+  ]);
+  return {
+    branches: branches.filter((branch) => branch.status === "active"),
+    stockItems,
+  };
+}
+
+async function getAllCatalogPages<T>(
+  endpoint: string,
+  cookieHeader: string,
+  parse: (payload: unknown) =>
+    | { success: true; data: { items: T[]; total: number; page: number; page_size: number } }
+    | { success: false; error: unknown },
+): Promise<T[]> {
+  const pageSize = 100;
+  const firstPage = await fetchCatalogPage(endpoint, cookieHeader, 1, pageSize, parse);
+  const pages = [firstPage];
+  const pageCount = Math.ceil(firstPage.total / firstPage.page_size);
+  for (let page = 2; page <= pageCount; page++) {
+    pages.push(await fetchCatalogPage(endpoint, cookieHeader, page, pageSize, parse));
+  }
+  if (
+    pages.some(
+      (page) =>
+        page.total !== firstPage.total || page.page_size !== firstPage.page_size,
+    )
+  ) {
+    throw new ApiRequestError("Dispatch catalogs changed while loading.", 502);
+  }
+  return pages.flatMap((page) => page.items);
+}
+
+async function fetchCatalogPage<T>(
+  endpoint: string,
+  cookieHeader: string,
+  page: number,
+  pageSize: number,
+  parse: (payload: unknown) =>
+    | { success: true; data: { items: T[]; total: number; page: number; page_size: number } }
+    | { success: false; error: unknown },
+) {
+  const separator = endpoint.includes("?") ? "&" : "?";
+  const payload = await requestComsApi<unknown>(
+    `${endpoint}${separator}page=${page}&page_size=${pageSize}`,
+    { cookieHeader },
+  );
+  const parsed = parse(payload);
+  if (!parsed.success || parsed.data.page !== page) {
+    throw new ApiRequestError("Invalid dispatch catalog options response.", 502);
+  }
   return parsed.data;
 }

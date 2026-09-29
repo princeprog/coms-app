@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { dispatchStatuses } from "@/features/dispatches/constants";
-import { stockRequestStatuses } from "@/features/stock-requests/constants";
 
 const decimalText = z
   .string()
@@ -38,8 +37,26 @@ function uniqueDispatchItems<T extends { dispatch_item_id: string }>(
 }
 
 export const createDispatchSchema = z
-  .object({ stock_request_id: z.uuid() })
-  .strict();
+  .object({
+    branch_id: z.uuid(),
+    items: z
+      .array(
+        z
+          .object({
+            stock_item_id: z.uuid(),
+            quantity_dispatched: positiveDecimalText,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(100),
+  })
+  .strict()
+  .refine(
+    ({ items }) =>
+      new Set(items.map((item) => item.stock_item_id)).size === items.length,
+    { message: "A stock item may appear only once per dispatch." },
+  );
 
 export const receiveDispatchSchema = z
   .object({ items: z.array(receiveItemSchema).min(1).max(100) })
@@ -60,10 +77,8 @@ export const closeDispatchShortageSchema = z
 
 const dispatchListItemSchema = z.object({
   id: z.uuid(),
-  stock_request_id: z.uuid(),
   branch_id: z.uuid(),
   branch_name: z.string().min(1),
-  stock_request_status: z.enum(stockRequestStatuses),
   status: z.enum(dispatchStatuses),
   discrepancy_status: discrepancyStatusSchema.nullable().optional(),
   created_by_user_id: z.uuid(),
@@ -85,11 +100,9 @@ export const dispatchPageSchema = z.object({
 
 const dispatchItemSchema = z.object({
   id: z.uuid(),
-  stock_request_item_id: z.uuid(),
   stock_item_id: z.uuid(),
   stock_item_name: z.string().min(1),
   unit: z.string().min(1),
-  quantity_requested: nonnegativeDecimalText,
   quantity_dispatched: positiveDecimalText,
   quantity_received: nonnegativeDecimalText,
   quantity_shortage_closed: nonnegativeDecimalText,
@@ -174,10 +187,8 @@ const dispatchDiscrepancyEventSchema = z.object({
 
 export const dispatchDetailSchema = z.object({
   id: z.uuid(),
-  stock_request_id: z.uuid(),
   branch_id: z.uuid(),
   branch_name: z.string().min(1),
-  stock_request_status: z.enum(stockRequestStatuses),
   status: z.enum(dispatchStatuses),
   created_by_user_id: z.uuid(),
   created_by_name: z.string().min(1),

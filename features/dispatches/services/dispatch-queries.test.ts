@@ -14,10 +14,8 @@ const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const timestamp = "2026-09-24T01:30:00.000Z";
 const dispatch = {
   id,
-  stock_request_id: id,
   branch_id: id,
   branch_name: "Downtown",
-  stock_request_status: "APPROVED",
   status: "DRAFT",
   created_by_user_id: id,
   created_by_name: "Commissary Staff",
@@ -80,10 +78,8 @@ describe("dispatch queries", () => {
   it("loads a detail response and rejects an invalid payload", async () => {
     const detail = {
       id,
-      stock_request_id: id,
       branch_id: id,
       branch_name: "Downtown",
-      stock_request_status: "APPROVED",
       status: "DRAFT",
       created_by_user_id: id,
       created_by_name: "Commissary Staff",

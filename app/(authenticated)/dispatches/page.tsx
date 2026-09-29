@@ -5,6 +5,7 @@ import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
 import { DispatchManagement } from "@/features/dispatches/components/dispatch-management";
+import { createDispatchAction } from "@/features/dispatches/services/dispatch-actions";
 import { loadDispatchIndexView } from "@/features/dispatches/services/dispatch-page-loader";
 import type { DispatchPageSearchParams } from "@/features/dispatches/services/dispatch-page-params";
 
@@ -38,6 +39,9 @@ export default async function DispatchesPage({
         page={view.page}
         filters={view.filters}
         canCreate={view.canCreate}
+        createOptions={view.createOptions}
+        createOptionsIssue={view.createOptionsIssue}
+        createAction={createDispatchAction}
       />
     </AppPageShell>
   );

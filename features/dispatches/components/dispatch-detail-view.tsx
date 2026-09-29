@@ -60,12 +60,6 @@ export function DispatchDetailView({
         >
           Back to dispatches
         </Link>
-        <Link
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-          href={`/replenishment/${dispatch.stock_request_id}`}
-        >
-          View stock request
-        </Link>
         {showPostControl && (
           <DispatchPostControl dispatchId={dispatch.id} action={postAction} />
         )}
@@ -103,7 +97,7 @@ export function DispatchDetailView({
               Dispatch to {dispatch.branch_name}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Stock request status: {dispatch.stock_request_status}
+              Commissary shipment prepared for this branch.
             </p>
           </div>
           <OperationalStatusBadge variant="outline">

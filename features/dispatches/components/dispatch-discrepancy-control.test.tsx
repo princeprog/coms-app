@@ -16,10 +16,8 @@ const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const key = "d34b9dc6-135f-4bd0-9f25-43a9617c9e0a";
 const dispatch: Dispatch = {
   id,
-  stock_request_id: id,
   branch_id: id,
   branch_name: "Downtown",
-  stock_request_status: "APPROVED",
   status: "PARTIALLY_RECEIVED",
   created_by_user_id: id,
   created_by_name: "Commissary Staff",

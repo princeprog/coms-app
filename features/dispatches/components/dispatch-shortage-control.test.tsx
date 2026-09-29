@@ -22,10 +22,8 @@ const idempotencyKeys = [
 
 const dispatch: Dispatch = {
   id: dispatchId,
-  stock_request_id: dispatchId,
   branch_id: dispatchId,
   branch_name: "Downtown",
-  stock_request_status: "APPROVED",
   status: "PARTIALLY_RECEIVED",
   created_by_user_id: dispatchId,
   created_by_name: "Commissary Staff",
@@ -37,11 +35,9 @@ const dispatch: Dispatch = {
   items: [
     {
       id: flourLineId,
-      stock_request_item_id: flourLineId,
       stock_item_id: flourLineId,
       stock_item_name: "Flour",
       unit: "kg",
-      quantity_requested: "8",
       quantity_dispatched: "8",
       quantity_received: "2.5000",
       quantity_shortage_closed: "1",
@@ -49,11 +45,9 @@ const dispatch: Dispatch = {
     },
     {
       id: sugarLineId,
-      stock_request_item_id: sugarLineId,
       stock_item_id: sugarLineId,
       stock_item_name: "Sugar",
       unit: "kg",
-      quantity_requested: "3",
       quantity_dispatched: "3",
       quantity_received: "3",
       quantity_shortage_closed: "0",

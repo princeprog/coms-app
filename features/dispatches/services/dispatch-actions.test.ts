@@ -26,10 +26,8 @@ const idempotencyKey = "d34b9dc6-135f-4bd0-9f25-43a9617c9e0a";
 const timestamp = "2026-09-24T01:30:00.000Z";
 const dispatchDetail = {
   id,
-  stock_request_id: id,
   branch_id: id,
   branch_name: "Downtown",
-  stock_request_status: "APPROVED",
   status: "DRAFT",
   created_by_user_id: id,
   created_by_name: "Commissary Staff",
@@ -50,21 +48,25 @@ describe("dispatch actions", () => {
     revalidatePath.mockReset();
   });
 
-  it("creates a validated draft with the request idempotency key", async () => {
+  it("creates a validated direct draft with the request idempotency key", async () => {
     requestComsApi.mockResolvedValue(dispatchDetail);
 
-    await expect(createDispatchAction(id, idempotencyKey)).resolves.toEqual({
+    const input = {
+      branch_id: id,
+      items: [{ stock_item_id: id, quantity_dispatched: "25.5" }],
+    };
+    await expect(createDispatchAction(input, idempotencyKey)).resolves.toEqual({
       ok: true,
       dispatch_id: id,
     });
     expect(requestComsApi).toHaveBeenCalledWith("/dispatches", {
       cookieHeader: "coms_access=access-token",
       method: "POST",
-      body: { stock_request_id: id },
+      body: input,
       headers: { "Idempotency-Key": idempotencyKey },
     });
     expect(revalidatePath).toHaveBeenCalledWith("/dispatches");
-    expect(revalidatePath).toHaveBeenCalledWith(`/replenishment/${id}`);
+    expect(revalidatePath).not.toHaveBeenCalledWith(`/replenishment/${id}`);
   });
 
   it("posts a draft with an idempotency key and revalidates the dispatch", async () => {
@@ -191,7 +193,10 @@ describe("dispatch actions", () => {
 
   it("rejects invalid IDs, retry keys, and receipt data without calling the API", async () => {
     await expect(
-      createDispatchAction("bad-id", idempotencyKey),
+      createDispatchAction(
+        { branch_id: "bad-id", items: [] },
+        idempotencyKey,
+      ),
     ).resolves.toMatchObject({ ok: false });
     await expect(postDispatchAction(id, "bad-key")).resolves.toMatchObject({
       ok: false,

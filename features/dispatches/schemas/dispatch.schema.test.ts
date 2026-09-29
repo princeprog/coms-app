@@ -11,12 +11,33 @@ const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const timestamp = "2026-09-24T01:30:00.000Z";
 
 describe("dispatch schemas", () => {
-  it("accepts only a UUID stock request when creating a draft", () => {
+  it("validates a direct branch dispatch and its unique item lines", () => {
     expect(
-      createDispatchSchema.safeParse({ stock_request_id: id }).success,
+      createDispatchSchema.safeParse({
+        branch_id: id,
+        items: [{ stock_item_id: id, quantity_dispatched: "25.5" }],
+      }).success,
     ).toBe(true);
     expect(
-      createDispatchSchema.safeParse({ stock_request_id: "bad-id" }).success,
+      createDispatchSchema.safeParse({
+        branch_id: "bad-id",
+        items: [{ stock_item_id: id, quantity_dispatched: "1" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      createDispatchSchema.safeParse({
+        branch_id: id,
+        items: [
+          { stock_item_id: id, quantity_dispatched: "1" },
+          { stock_item_id: id, quantity_dispatched: "2" },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      createDispatchSchema.safeParse({
+        branch_id: id,
+        items: [{ stock_item_id: id, quantity_dispatched: "0" }],
+      }).success,
     ).toBe(false);
   });
 
@@ -65,10 +86,8 @@ describe("dispatch schemas", () => {
   it("validates dispatch detail quantities, statuses, receipts, and events", () => {
     const detail = {
       id,
-      stock_request_id: id,
       branch_id: id,
       branch_name: "Downtown",
-      stock_request_status: "APPROVED",
       status: "PARTIALLY_RECEIVED",
       created_by_user_id: id,
       created_by_name: "Commissary Staff",
@@ -80,11 +99,9 @@ describe("dispatch schemas", () => {
       items: [
         {
           id,
-          stock_request_item_id: id,
           stock_item_id: id,
           stock_item_name: "Flour",
           unit: "kg",
-          quantity_requested: "5",
           quantity_dispatched: "5",
           quantity_received: "2.5",
           quantity_shortage_closed: "0",

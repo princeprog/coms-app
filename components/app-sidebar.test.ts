@@ -17,6 +17,7 @@ describe("app sidebar role context", () => {
 
     const items = getAppSidebarNavigation(superAdmin);
     expect(items.some((item) => item.url === "/pos")).toBe(false);
+    expect(items.some((item) => item.url === "/replenishment")).toBe(false);
     expect(items).toEqual(
       expect.arrayContaining(
         navItems.filter((item) =>
