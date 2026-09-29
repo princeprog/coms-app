@@ -45,12 +45,6 @@
       "inventory.commissary_adjust",
       "supplier_receipts.read",
       "supplier_receipts.create",
-      "supplier_receipts.post",
-      "stock_requests.read",
-      "stock_requests.create",
-      "stock_requests.approve",
-      "stock_requests.reject",
-      "stock_requests.cancel",
       "dispatches.read",
       "dispatches.create",
       "dispatches.dispatch",
@@ -78,7 +72,9 @@
       "daily_reports.return",
       "daily_reports.approve"
     ],
-    "branch_ids": ["00000000-0000-4000-8000-000000000001"]
+    "branch_ids": [
+      "00000000-0000-4000-8000-000000000001"
+    ]
   },
   "roles": [
     {
@@ -97,7 +93,9 @@
       "is_system": false,
       "is_predefined": false,
       "is_active": true,
-      "permission_keys": ["inventory.read"]
+      "permission_keys": [
+        "inventory.read"
+      ]
     },
     {
       "id": "4",
@@ -120,10 +118,6 @@
         "inventory.commissary_adjust",
         "supplier_receipts.read",
         "supplier_receipts.create",
-        "supplier_receipts.post",
-        "stock_requests.read",
-        "stock_requests.approve",
-        "stock_requests.reject",
         "dispatches.read",
         "dispatches.create",
         "dispatches.dispatch",
@@ -157,9 +151,6 @@
         "stock_items.read",
         "inventory.read",
         "dashboard.read",
-        "stock_requests.read",
-        "stock_requests.create",
-        "stock_requests.cancel",
         "dispatches.read",
         "dispatches.receive",
         "products.read",
@@ -362,43 +353,7 @@
       "key": "supplier_receipts.create",
       "module_key": "supplier_receipts",
       "action_key": "create",
-      "description": "Record supplier receipts"
-    },
-    {
-      "key": "supplier_receipts.post",
-      "module_key": "supplier_receipts",
-      "action_key": "post",
-      "description": "Post supplier receipts to inventory"
-    },
-    {
-      "key": "stock_requests.read",
-      "module_key": "stock_requests",
-      "action_key": "read",
-      "description": "View stock requests"
-    },
-    {
-      "key": "stock_requests.create",
-      "module_key": "stock_requests",
-      "action_key": "create",
-      "description": "Create branch stock requests"
-    },
-    {
-      "key": "stock_requests.approve",
-      "module_key": "stock_requests",
-      "action_key": "approve",
-      "description": "Approve stock requests"
-    },
-    {
-      "key": "stock_requests.reject",
-      "module_key": "stock_requests",
-      "action_key": "reject",
-      "description": "Reject stock requests"
-    },
-    {
-      "key": "stock_requests.cancel",
-      "module_key": "stock_requests",
-      "action_key": "cancel",
-      "description": "Cancel own stock requests"
+      "description": "Record supplier deliveries and add received quantities to commissary inventory"
     },
     {
       "key": "dispatches.read",

@@ -237,10 +237,8 @@ function createDispatchSeed(stockRequests, seed) {
       const dispatch = {
         id: dispatchId,
         idempotency_key: uuid("72000000", dispatchIndex + 1),
-        stock_request_id: request.id,
         branch_id: request.branch_id,
         branch_name: request.branch_name,
-        stock_request_status: request.status,
         status,
         created_by_user_id: seed.user.id,
         created_by_name: "Fixture Operations Lead",
@@ -267,11 +265,9 @@ function createDispatchSeed(stockRequests, seed) {
               : "0";
           return {
             id: uuid("56000000", dispatchIndex * 100 + itemIndex + 1),
-            stock_request_item_id: requestItem.id,
             stock_item_id: requestItem.stock_item_id,
             stock_item_name: requestItem.stock_item_name,
             unit: requestItem.unit,
-            quantity_requested: quantity,
             quantity_dispatched: quantity,
             quantity_received: received,
             quantity_shortage_closed: shortageClosed,
@@ -548,9 +544,41 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
   }
 
   if (url.pathname === "/dispatches" && request.method === "POST") {
-    if (!validIdempotencyKey(key) || typeof body?.stock_request_id !== "string")
+    if (
+      !validIdempotencyKey(key) ||
+      typeof body?.branch_id !== "string" ||
+      !Array.isArray(body.items) ||
+      body.items.length < 1 ||
+      body.items.length > 100
+    )
       return send(response, 400, { message: "Check the dispatch request." });
-    const fingerprint = body.stock_request_id;
+    const branch = state.branches.find(
+      (item) => item.id === body.branch_id && item.status === "active",
+    );
+    if (!branch)
+      return send(response, 404, { message: "Active branch not found." });
+    const seenStockItemIds = new Set();
+    const lines = body.items.map((line) => {
+      const quantity = normalizePositiveDecimal(line?.quantity_dispatched);
+      const stockItem = state.stockItems.find(
+        (item) => item.id === line?.stock_item_id && item.is_active,
+      );
+      if (
+        !stockItem ||
+        quantity === null ||
+        seenStockItemIds.has(stockItem.id)
+      ) return null;
+      seenStockItemIds.add(stockItem.id);
+      return { stockItem, quantity };
+    });
+    if (lines.some((line) => line === null))
+      return send(response, 400, {
+        message: "Choose unique active stock items and positive quantities.",
+      });
+    const fingerprint = `${branch.id}|${lines
+      .map((line) => `${line.stockItem.id}:${line.quantity}`)
+      .sort()
+      .join("|")}`;
     const retry = resolveIdempotency(state, key, "create", "", fingerprint);
     if (retry) {
       if (retry.conflict)
@@ -560,34 +588,13 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       );
       return send(response, 201, dispatchDetail(existing));
     }
-    const stockRequest = state.stockRequests.find(
-      (item) => item.id === body.stock_request_id,
-    );
-    if (!stockRequest)
-      return send(response, 404, { message: "Stock request not found." });
-    if (stockRequest.status !== "APPROVED")
-      return conflict(
-        response,
-        "Only approved stock requests can be dispatched.",
-      );
-    if (
-      state.dispatches.some((item) => item.stock_request_id === stockRequest.id)
-    )
-      return conflict(response, "A dispatch already exists for this request.");
-    const branch = state.branches.find(
-      (item) => item.id === stockRequest.branch_id && item.status === "active",
-    );
-    if (!branch)
-      return send(response, 404, { message: "Active branch not found." });
     const dispatchNumber = state.dispatches.length + 1;
     const createdAt = timestamp(state.dispatchActionKeys.length + 100);
     const dispatch = {
       id: uuid("36000000", dispatchNumber),
       idempotency_key: key,
-      stock_request_id: stockRequest.id,
       branch_id: branch.id,
       branch_name: branch.branch_name,
-      stock_request_status: stockRequest.status,
       status: "DRAFT",
       created_by_user_id: actorId,
       created_by_name: "Fixture Operations Lead",
@@ -596,25 +603,15 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       dispatched_at: null,
       created_at: createdAt,
       updated_at: createdAt,
-      items: [...stockRequest.items]
-        .sort((left, right) =>
-          left.stock_item_name.localeCompare(right.stock_item_name),
-        )
-        .map((item, itemIndex) => ({
+      items: lines.map(({ stockItem, quantity }, itemIndex) => ({
           id: uuid("56000000", dispatchNumber * 100 + itemIndex + 1),
-          stock_request_item_id: item.id,
-          stock_item_id: item.stock_item_id,
-          stock_item_name: item.stock_item_name,
-          unit: item.unit,
-          quantity_requested: normalizePositiveDecimal(item.quantity_requested),
-          quantity_dispatched: normalizePositiveDecimal(
-            item.quantity_requested,
-          ),
+          stock_item_id: stockItem.id,
+          stock_item_name: stockItem.stock_item_name,
+          unit: stockItem.unit,
+          quantity_dispatched: quantity,
           quantity_received: "0",
           quantity_shortage_closed: "0",
-          quantity_in_transit: normalizePositiveDecimal(
-            item.quantity_requested,
-          ),
+          quantity_in_transit: quantity,
         })),
       receipts: [],
       shortage_closures: [],
@@ -655,6 +652,41 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
     );
     if (!branch)
       return send(response, 404, { message: "Active branch not found." });
+    const balances = dispatch.items.map((item) => ({
+      item,
+      balance: state.commissaryBalances.find(
+        (candidate) => candidate.id === item.stock_item_id,
+      ),
+    }));
+    if (
+      balances.some(
+        ({ item, balance }) =>
+          !balance ||
+          decimalCompare(balance.quantity_on_hand, item.quantity_dispatched) < 0,
+      )
+    ) {
+      return conflict(response, "Commissary inventory is insufficient.");
+    }
+    for (const { item, balance } of balances) {
+      balance.quantity_on_hand = decimalSubtract(
+        balance.quantity_on_hand,
+        item.quantity_dispatched,
+      );
+      state.commissaryMovements.push({
+        id: uuid("74000000", state.commissaryMovements.length + 1),
+        inventory_scope: "COMMISSARY",
+        branch_id: null,
+        stock_item_id: item.stock_item_id,
+        stock_item_name: item.stock_item_name,
+        unit: item.unit,
+        movement_type: "DISPATCH",
+        quantity_delta: decimalText(-decimalParts(item.quantity_dispatched).digits, decimalParts(item.quantity_dispatched).scale),
+        reason: `Dispatch ${dispatch.id}`,
+        actor_user_id: actorId,
+        idempotency_key: key,
+        created_at: timestamp(state.dispatchActionKeys.length + 200),
+      });
+    }
     const dispatchedAt = timestamp(state.dispatchActionKeys.length + 200);
     dispatch.status = "IN_TRANSIT";
     dispatch.dispatched_by_user_id = actorId;

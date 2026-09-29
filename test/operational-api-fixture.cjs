@@ -37,6 +37,12 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function receiptDetail(receipt) {
+  const detail = { ...receipt };
+  delete detail.payload_fingerprint;
+  return detail;
+}
+
 function parseCookies(header = "") {
   return Object.fromEntries(
     header
@@ -253,13 +259,6 @@ function normalizePositiveDecimal(value) {
   return whole + (fraction ? "." + fraction : "");
 }
 
-function stockRequestFingerprint(items) {
-  return items
-    .map((item) => item.stock_item_id + ":" + item.quantity_requested)
-    .sort()
-    .join("|");
-}
-
 function send(response, status, payload, headers = {}) {
   response.writeHead(status, {
     "cache-control": "no-store",
@@ -409,7 +408,6 @@ function createState({ stockItemCount = 26 } = {}) {
   const sales = createSalesSeed({ branches, products, branchProducts, seed });
   const receipts = Array.from({ length: 26 }, (_, index) => {
     const sequence = String(index + 1).padStart(12, "0");
-    const status = index % 4 === 0 ? "DRAFT" : "POSTED";
     const supplier = suppliers[index % suppliers.length];
     const lines = [
       {
@@ -438,11 +436,10 @@ function createState({ stockItemCount = 26 } = {}) {
       supplier_id: supplier.id,
       supplier_name: supplier.supplier_name,
       received_at: "2026-09-" + String((index % 26) + 1).padStart(2, "0"),
-      status,
       idempotency_key: "40000000-0000-4000-8000-" + sequence,
-      created_by_user_id: seed.user.id,
-      posted_by_user_id: status === "POSTED" ? seed.user.id : null,
-      posted_at: status === "POSTED" ? "2026-09-25T01:30:00.000Z" : null,
+      recorded_by_user_id: seed.user.id,
+      recorded_by_name: "Fixture Operations Lead",
+      recorded_at: "2026-09-25T01:30:00.000Z",
       created_at: "2026-09-25T01:00:00.000Z",
       updated_at: "2026-09-25T01:30:00.000Z",
       total_cost: "128.45",
@@ -681,8 +678,9 @@ function createOperationalApiFixture({
           products: state.products,
           branchProducts: state.branchProducts,
           recipes: state.recipes,
-          receipts: state.receipts,
-          stockRequests: state.stockRequests,
+          receipts: state.receipts.map(receiptDetail),
+          commissaryBalances: state.commissaryBalances,
+          commissaryMovements: state.commissaryMovements,
           dispatches: state.dispatches.map(dispatchListItem),
           sales: state.sales.map(saleListItem),
           dailyReports: state.dailyReports.map((report) => ({
@@ -1173,9 +1171,7 @@ function createOperationalApiFixture({
         const search = (url.searchParams.get("search") ?? "")
           .trim()
           .toLowerCase();
-        const status = url.searchParams.get("status");
         const matches = state.receipts.filter((receipt) => {
-          if (status && receipt.status !== status) return false;
           return (
             !search || receipt.supplier_name.toLowerCase().includes(search)
           );
@@ -1188,7 +1184,7 @@ function createOperationalApiFixture({
         const start = (page - 1) * pageSize;
         return send(response, 200, {
           items: matches.slice(start, start + pageSize).map((receipt) => {
-            const listItem = { ...receipt };
+            const listItem = receiptDetail(receipt);
             delete listItem.items;
             return listItem;
           }),
@@ -1201,45 +1197,88 @@ function createOperationalApiFixture({
         if (
           !body ||
           typeof body.supplier_id !== "string" ||
+          typeof body.received_at !== "string" ||
           !Array.isArray(body.items) ||
-          body.items.length === 0
+          body.items.length === 0 ||
+          body.items.length > 100
         ) {
           return send(response, 400, { message: "Invalid fixture receipt." });
         }
         const idempotencyKey = request.headers["idempotency-key"];
-        if (typeof idempotencyKey !== "string") {
+        if (typeof idempotencyKey !== "string" || !idempotencyKey) {
           return send(response, 400, { message: "Missing idempotency key." });
         }
-        const retry = state.receipts.find(
-          (receipt) => receipt.idempotency_key === idempotencyKey,
-        );
-        if (retry) return send(response, 201, retry);
         const supplier = state.suppliers.find(
           (item) => item.id === body.supplier_id,
         );
         if (!supplier || !supplier.is_active) {
           return send(response, 404, { message: "Supplier not found." });
         }
-        const items = body.items.map((line, index) => {
+        const seenStockItemIds = new Set();
+        const normalizedLines = body.items.map((line) => {
+          if (
+            typeof line?.stock_item_id !== "string" ||
+            typeof line?.quantity_received !== "string" ||
+            !/^\d+(?:\.\d+)?$/.test(line.quantity_received) ||
+            !/[1-9]/.test(line.quantity_received) ||
+            typeof line?.unit_cost !== "string" ||
+            !/^\d+(?:\.\d+)?$/.test(line.unit_cost) ||
+            seenStockItemIds.has(line.stock_item_id)
+          ) return null;
+          seenStockItemIds.add(line.stock_item_id);
           const stockItem = state.stockItems.find(
-            (item) => item.id === line.stock_item_id,
+            (item) => item.id === line.stock_item_id && item.is_active,
           );
-          if (!stockItem || !stockItem.is_active) return null;
+          if (!stockItem) return null;
           return {
+            stock_item: stockItem,
+            quantity_received: line.quantity_received,
+            unit_cost: line.unit_cost,
+          };
+        });
+        if (normalizedLines.some((line) => line === null)) {
+          return send(response, 400, {
+            message: "Choose unique active stock items and valid quantities/costs.",
+          });
+        }
+        const fingerprint = JSON.stringify({
+          supplier_id: supplier.id,
+          received_at: body.received_at,
+          items: normalizedLines
+            .map((line) => ({
+              stock_item_id: line.stock_item.id,
+              quantity_received: line.quantity_received,
+              unit_cost: line.unit_cost,
+            }))
+            .sort((left, right) => left.stock_item_id.localeCompare(right.stock_item_id)),
+        });
+        const retry = state.receipts.find(
+          (receipt) => receipt.idempotency_key === idempotencyKey,
+        );
+        if (retry) {
+          if (retry.payload_fingerprint !== fingerprint) {
+            return send(response, 409, {
+              message: "Idempotency key was already used with different data.",
+            });
+          }
+          return send(response, 201, receiptDetail(retry));
+        }
+        const items = normalizedLines.map(
+          ({ stock_item: stockItem, quantity_received, unit_cost }, index) => ({
             id:
               "51000000-0000-4000-8000-" +
-              String(state.receipts.length * 100 + index + 1).padStart(12, "0"),
+              String(state.receipts.length * 100 + index + 1).padStart(
+                12,
+                "0",
+              ),
             stock_item_id: stockItem.id,
             stock_item_name: stockItem.stock_item_name,
             unit: stockItem.unit,
-            quantity_received: String(line.quantity_received),
-            unit_cost: String(line.unit_cost),
-            line_total: decimalMultiply(line.quantity_received, line.unit_cost),
-          };
-        });
-        if (items.some((item) => item === null)) {
-          return send(response, 404, { message: "Stock item not found." });
-        }
+            quantity_received,
+            unit_cost,
+            line_total: decimalMultiply(quantity_received, unit_cost),
+          }),
+        );
         const sequence = String(state.receipts.length + 1).padStart(12, "0");
         const now = "2026-09-25T02:00:00.000Z";
         const receipt = {
@@ -1247,24 +1286,50 @@ function createOperationalApiFixture({
           supplier_id: supplier.id,
           supplier_name: supplier.supplier_name,
           received_at: body.received_at,
-          status: "DRAFT",
           idempotency_key: idempotencyKey,
-          created_by_user_id: seed.user.id,
-          posted_by_user_id: null,
-          posted_at: null,
+          recorded_by_user_id: seed.user.id,
+          recorded_by_name: "Fixture Operations Lead",
+          recorded_at: now,
           created_at: now,
           updated_at: now,
           total_cost: decimalSum(items.map((item) => item.line_total)),
           item_count: items.length,
           items,
+          payload_fingerprint: fingerprint,
         };
         state.receipts.push(receipt);
-        return send(response, 201, receipt);
+        for (const item of items) {
+          const balance = state.commissaryBalances.find(
+            (candidate) => candidate.id === item.stock_item_id,
+          );
+          if (balance) {
+            balance.quantity_on_hand = decimalSum([
+              balance.quantity_on_hand,
+              item.quantity_received,
+            ]);
+          }
+          state.commissaryMovements.push({
+            id: "73000000-0000-4000-8000-" +
+              String(state.commissaryMovements.length + 1).padStart(12, "0"),
+            inventory_scope: "COMMISSARY",
+            branch_id: null,
+            stock_item_id: item.stock_item_id,
+            stock_item_name: item.stock_item_name,
+            unit: item.unit,
+            movement_type: "RECEIPT",
+            quantity_delta: item.quantity_received,
+            reason: `Supplier delivery ${receipt.id}`,
+            actor_user_id: seed.user.id,
+            idempotency_key: idempotencyKey,
+            created_at: now,
+          });
+        }
+        return send(response, 201, receiptDetail(receipt));
       }
       const receiptRoute = url.pathname.match(
-        /^\/supplier-receipts\/([0-9a-f-]{36})(?:\/(post))?$/i,
+        /^\/supplier-receipts\/([0-9a-f-]{36})$/i,
       );
-      if (receiptRoute && request.method === "GET" && !receiptRoute[2]) {
+      if (receiptRoute && request.method === "GET") {
         const receipt = state.receipts.find(
           (item) => item.id === receiptRoute[1],
         );
@@ -1273,225 +1338,11 @@ function createOperationalApiFixture({
             message: "Supplier receipt not found.",
           });
         }
-        return send(response, 200, receipt);
-      }
-      if (
-        receiptRoute &&
-        request.method === "POST" &&
-        receiptRoute[2] === "post"
-      ) {
-        const receipt = state.receipts.find(
-          (item) => item.id === receiptRoute[1],
-        );
-        if (!receipt) {
-          return send(response, 404, {
-            message: "Supplier receipt not found.",
-          });
-        }
-        if (receipt.status !== "POSTED") {
-          receipt.status = "POSTED";
-          receipt.posted_by_user_id = seed.user.id;
-          receipt.posted_at = "2026-09-25T02:30:00.000Z";
-          receipt.updated_at = receipt.posted_at;
-        }
-        return send(response, 200, receipt);
+        return send(response, 200, receiptDetail(receipt));
       }
 
-      if (url.pathname === "/stock-requests" && request.method === "GET") {
-        const status = url.searchParams.get("status");
-        const branchId = url.searchParams.get("branch_id");
-        const matches = state.stockRequests.filter((stockRequest) => {
-          if (status && stockRequest.status !== status) return false;
-          return !branchId || stockRequest.branch_id === branchId;
-        });
-        const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
-        const pageSize = Math.min(
-          100,
-          Math.max(1, Number(url.searchParams.get("page_size")) || 25),
-        );
-        const start = (page - 1) * pageSize;
-        return send(response, 200, {
-          items: matches.slice(start, start + pageSize).map((stockRequest) => {
-            const listItem = { ...stockRequest };
-            delete listItem.items;
-            delete listItem.events;
-            return listItem;
-          }),
-          total: matches.length,
-          page,
-          page_size: pageSize,
-        });
-      }
-      if (url.pathname === "/stock-requests" && request.method === "POST") {
-        if (
-          !body ||
-          typeof body.branch_id !== "string" ||
-          !Array.isArray(body.items) ||
-          body.items.length === 0 ||
-          body.items.length > 100
-        ) {
-          return send(response, 400, { message: "Invalid fixture request." });
-        }
-        const idempotencyKey = request.headers["idempotency-key"];
-        if (
-          typeof idempotencyKey !== "string" ||
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-            idempotencyKey,
-          )
-        ) {
-          return send(response, 400, { message: "Missing idempotency key." });
-        }
-        const seenStockItems = new Set();
-        const normalizedItems = [];
-        for (const line of body.items) {
-          const quantity = normalizePositiveDecimal(line?.quantity_requested);
-          if (
-            typeof line?.stock_item_id !== "string" ||
-            quantity === null ||
-            seenStockItems.has(line.stock_item_id)
-          ) {
-            return send(response, 400, {
-              message: "Choose unique stock items and positive quantities.",
-            });
-          }
-          seenStockItems.add(line.stock_item_id);
-          normalizedItems.push({
-            stock_item_id: line.stock_item_id,
-            quantity_requested: quantity,
-          });
-        }
-        const retry = state.stockRequests.find(
-          (stockRequest) => stockRequest.idempotency_key === idempotencyKey,
-        );
-        if (retry) {
-          const sameRequest =
-            retry.branch_id === body.branch_id &&
-            retry.requested_by_user_id === seed.user.id &&
-            stockRequestFingerprint(retry.items) ===
-              stockRequestFingerprint(normalizedItems);
-          if (!sameRequest) {
-            return send(response, 409, {
-              message: "Idempotency key was already used for another request.",
-            });
-          }
-          return send(response, 201, retry);
-        }
-        const branch = state.branches.find(
-          (item) => item.id === body.branch_id && item.status === "active",
-        );
-        if (!branch) {
-          return send(response, 404, { message: "Branch not found." });
-        }
-        const items = normalizedItems.map((line, index) => {
-          const stockItem = state.stockItems.find(
-            (item) => item.id === line.stock_item_id && item.is_active,
-          );
-          if (!stockItem) return null;
-          return {
-            id:
-              "54000000-0000-4000-8000-" +
-              String(state.stockRequests.length * 100 + index + 1).padStart(
-                12,
-                "0",
-              ),
-            stock_item_id: stockItem.id,
-            stock_item_name: stockItem.stock_item_name,
-            unit: stockItem.unit,
-            quantity_requested: line.quantity_requested,
-            created_at: "2026-09-25T03:00:00.000Z",
-          };
-        });
-        if (items.some((item) => item === null)) {
-          return send(response, 400, {
-            message: "Choose unique active stock items.",
-          });
-        }
-        const sequence = String(state.stockRequests.length + 1).padStart(
-          12,
-          "0",
-        );
-        const submittedAt = "2026-09-25T03:00:00.000Z";
-        const stockRequest = {
-          id: "33000000-0000-4000-8000-" + sequence,
-          branch_id: branch.id,
-          branch_name: branch.branch_name,
-          requested_by_user_id: seed.user.id,
-          requester_name: "Fixture Branch Manager",
-          status: "PENDING",
-          created_at: submittedAt,
-          updated_at: submittedAt,
-          item_count: items.length,
-          items,
-          events: [
-            {
-              id:
-                "55000000-0000-4000-8000-" +
-                String(state.stockRequests.length + 1).padStart(12, "0"),
-              event_type: "SUBMITTED",
-              actor_user_id: seed.user.id,
-              actor_name: "Fixture Branch Manager",
-              created_at: submittedAt,
-            },
-          ],
-          idempotency_key: idempotencyKey,
-        };
-        state.stockRequests.push(stockRequest);
-        return send(response, 201, stockRequest);
-      }
-      const stockRequestRoute = url.pathname.match(
-        /^\/stock-requests\/([0-9a-f-]{36})(?:\/(approve|reject|cancel))?$/i,
-      );
-      if (
-        stockRequestRoute &&
-        request.method === "GET" &&
-        !stockRequestRoute[2]
-      ) {
-        const stockRequest = state.stockRequests.find(
-          (item) => item.id === stockRequestRoute[1],
-        );
-        if (!stockRequest) {
-          return send(response, 404, { message: "Stock request not found." });
-        }
-        return send(response, 200, stockRequest);
-      }
-      if (
-        stockRequestRoute &&
-        request.method === "POST" &&
-        stockRequestRoute[2]
-      ) {
-        const stockRequest = state.stockRequests.find(
-          (item) => item.id === stockRequestRoute[1],
-        );
-        if (!stockRequest) {
-          return send(response, 404, { message: "Stock request not found." });
-        }
-        if (stockRequest.status !== "PENDING") {
-          return send(response, 409, {
-            message: "Request is no longer pending.",
-          });
-        }
-        const statusByAction = {
-          approve: "APPROVED",
-          reject: "REJECTED",
-          cancel: "CANCELLED",
-        };
-        const nextStatus = statusByAction[stockRequestRoute[2]];
-        const updatedAt = "2026-09-25T04:00:00.000Z";
-        stockRequest.status = nextStatus;
-        stockRequest.updated_at = updatedAt;
-        const requestSequence = Number(stockRequest.id.slice(-12));
-        stockRequest.events.push({
-          id:
-            "55000000-0000-4000-8000-" +
-            String(
-              requestSequence * 100 + stockRequest.events.length + 1,
-            ).padStart(12, "0"),
-          event_type: nextStatus,
-          actor_user_id: seed.user.id,
-          actor_name: "Fixture Operations Lead",
-          created_at: updatedAt,
-        });
-        return send(response, 200, stockRequest);
+      if (url.pathname === "/stock-requests" || url.pathname.startsWith("/stock-requests/")) {
+        return send(response, 404, { message: "Not found." });
       }
 
       if (url.pathname === "/roles" && request.method === "GET") {

@@ -10,10 +10,6 @@ import { staffPageSchema } from "@/features/staff/schemas/staff.schema";
 import { stockItemPageSchema } from "@/features/stock-items/schemas/stock-item.schema";
 import { supplierPageSchema } from "@/features/suppliers/schemas/supplier.schema";
 import {
-  stockRequestDetailSchema,
-  stockRequestPageSchema,
-} from "@/features/stock-requests/schemas/stock-request.schema";
-import {
   dispatchDetailSchema,
   dispatchPageSchema,
 } from "@/features/dispatches/schemas/dispatch.schema";
@@ -100,7 +96,16 @@ describe("operational API fixture", () => {
     expect(
       roles.filter((role) => role.is_predefined).map((role) => role.code),
     ).toEqual(["COMMISSARY_MANAGER", "BRANCH_MANAGER", "CASHIER"]);
-    expect(permissionsResponseSchema.parse(seed.permissions)).toHaveLength(64);
+    const permissionCatalog = permissionsResponseSchema.parse(seed.permissions);
+    expect(permissionCatalog).toHaveLength(58);
+    expect(permissionCatalog.map((permission) => permission.key)).not.toContain(
+      "supplier_receipts.post",
+    );
+    expect(
+      permissionCatalog.some((permission) =>
+        permission.key.startsWith("stock_requests."),
+      ),
+    ).toBe(false);
     const commissaryManager = roles.find(
       (role) => role.code === "COMMISSARY_MANAGER",
     );
@@ -488,7 +493,7 @@ describe("operational API fixture", () => {
       const first = supplierReceiptPageSchema.parse(await firstResponse.json());
       expect(first.items).toHaveLength(25);
       expect(first.total).toBe(26);
-      expect(first.items.some((item) => item.status === "DRAFT")).toBe(true);
+      expect(first.items.every((item) => item.recorded_at)).toBe(true);
       expect(first.items.some((item) => item.supplier_name.length > 60)).toBe(
         true,
       );
@@ -502,7 +507,7 @@ describe("operational API fixture", () => {
       ).toHaveLength(1);
 
       const filteredResponse = await fetch(
-        fixture.baseUrl + "/supplier-receipts?search=North+Farm&status=DRAFT",
+        fixture.baseUrl + "/supplier-receipts?search=North+Farm",
         { headers },
       );
       const filtered = supplierReceiptPageSchema.parse(
@@ -513,6 +518,19 @@ describe("operational API fixture", () => {
 
       const supplier = supplierPage.items[0];
       const stockItem = stockItemPage.items[0];
+      const initialStateResponse = await fetch(
+        fixture.baseUrl + "/__fixture/state",
+      );
+      const initialState = (await initialStateResponse.json()) as {
+        commissaryBalances: Array<{ id: string; quantity_on_hand: string }>;
+        commissaryMovements: Array<{ stock_item_id: string }>;
+      };
+      const initialQuantity = initialState.commissaryBalances.find(
+        (balance) => balance.id === stockItem.id,
+      )!.quantity_on_hand;
+      const initialMovementCount = initialState.commissaryMovements.filter(
+        (movement) => movement.stock_item_id === stockItem.id,
+      ).length;
       const idempotencyKey = "60000000-0000-4000-8000-000000000001";
       const createBody = {
         supplier_id: supplier.id,
@@ -563,8 +581,9 @@ describe("operational API fixture", () => {
         await createdResponse.json(),
       );
       expect(created).toMatchObject({
-        status: "DRAFT",
         total_cost: "3.125",
+        recorded_by_user_id: seed.user.id,
+        recorded_by_name: "Fixture Operations Lead",
         items: [{ quantity_received: "1.25", unit_cost: "2.50" }],
       });
 
@@ -583,160 +602,8 @@ describe("operational API fixture", () => {
       expect(
         supplierReceiptDetailSchema.parse(await retryResponse.json()).id,
       ).toBe(created.id);
-
-      const postResponse = await fetch(
-        fixture.baseUrl + "/supplier-receipts/" + created.id + "/post",
-        { method: "POST", headers },
-      );
-      expect(postResponse.status).toBe(200);
-      expect(
-        supplierReceiptDetailSchema.parse(await postResponse.json()).status,
-      ).toBe("POSTED");
-
-      const detailResponse = await fetch(
-        fixture.baseUrl + "/supplier-receipts/" + created.id,
-        { headers },
-      );
-      expect(
-        supplierReceiptDetailSchema.parse(await detailResponse.json()),
-      ).toMatchObject({ id: created.id, status: "POSTED" });
-
-      const stateResponse = await fetch(fixture.baseUrl + "/__fixture/state");
-      const state = (await stateResponse.json()) as {
-        receipts: Array<{ id: string }>;
-      };
-      expect(state.receipts).toHaveLength(27);
-    } finally {
-      await fixture.close();
-    }
-  });
-
-  it("serves paginated stock requests and supports submission retry and transitions", async () => {
-    const fixture = await createOperationalApiFixture({ gatewaySecret });
-    try {
-      const login = await fetch(fixture.baseUrl + "/auth/login", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-coms-auth-gateway": gatewaySecret,
-        },
-        body: JSON.stringify(seed.login),
-      });
-      const cookie = login.headers
-        .getSetCookie()
-        .map((value) => value.split(";")[0])
-        .join("; ");
-      const headers = { cookie, "x-coms-auth-gateway": gatewaySecret };
-
-      const firstResponse = await fetch(
-        fixture.baseUrl + "/stock-requests?page=1&page_size=25",
-        { headers },
-      );
-      const first = stockRequestPageSchema.parse(await firstResponse.json());
-      expect(first.items).toHaveLength(25);
-      expect(first.total).toBe(30);
-      expect(first.items.some((item) => item.status === "PENDING")).toBe(true);
-      expect(first.items.some((item) => item.branch_name.length > 60)).toBe(
-        true,
-      );
-      const secondResponse = await fetch(
-        fixture.baseUrl + "/stock-requests?page=2&page_size=25",
-        { headers },
-      );
-      expect(
-        stockRequestPageSchema.parse(await secondResponse.json()).items,
-      ).toHaveLength(5);
-
-      const branchId = "10000000-0000-4000-8000-000000000002";
-      const filteredResponse = await fetch(
-        fixture.baseUrl +
-          "/stock-requests?branch_id=" +
-          branchId +
-          "&status=APPROVED",
-        { headers },
-      );
-      const filtered = stockRequestPageSchema.parse(
-        await filteredResponse.json(),
-      );
-      expect(filtered.total).toBe(1);
-      expect(filtered.items[0]).toMatchObject({
-        branch_id: branchId,
-        status: "APPROVED",
-      });
-
-      const stockItems = await fetch(
-        fixture.baseUrl + "/stock-items?page=1&page_size=100&is_active=true",
-        { headers },
-      );
-      const stockItemPage = stockItemPageSchema.parse(await stockItems.json());
-      const idempotencyKey = "70000000-0000-4000-8000-000000000001";
-      const createBody = {
-        branch_id: "10000000-0000-4000-8000-000000000001",
-        items: [
-          {
-            stock_item_id: stockItemPage.items[0].id,
-            quantity_requested: "2.5000",
-          },
-        ],
-      };
-      await fetch(fixture.baseUrl + "/__fixture/fail-next", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          method: "POST",
-          path: "/stock-requests",
-          status: 503,
-          message: "Fixture request service unavailable.",
-        }),
-      });
-      const failed = await fetch(fixture.baseUrl + "/stock-requests", {
-        method: "POST",
-        headers: {
-          ...headers,
-          "content-type": "application/json",
-          "Idempotency-Key": idempotencyKey,
-        },
-        body: JSON.stringify(createBody),
-      });
-      expect(failed.status).toBe(503);
-
-      const createdResponse = await fetch(fixture.baseUrl + "/stock-requests", {
-        method: "POST",
-        headers: {
-          ...headers,
-          "content-type": "application/json",
-          "Idempotency-Key": idempotencyKey,
-        },
-        body: JSON.stringify(createBody),
-      });
-      expect(createdResponse.status).toBe(201);
-      const created = stockRequestDetailSchema.parse(
-        await createdResponse.json(),
-      );
-      expect(created).toMatchObject({
-        status: "PENDING",
-        items: [{ quantity_requested: "2.5" }],
-        events: [{ event_type: "SUBMITTED" }],
-      });
-
-      const retryResponse = await fetch(fixture.baseUrl + "/stock-requests", {
-        method: "POST",
-        headers: {
-          ...headers,
-          "content-type": "application/json",
-          "Idempotency-Key": idempotencyKey,
-        },
-        body: JSON.stringify({
-          ...createBody,
-          items: [{ ...createBody.items[0], quantity_requested: "2.50" }],
-        }),
-      });
-      expect(
-        stockRequestDetailSchema.parse(await retryResponse.json()).id,
-      ).toBe(created.id);
-
       const conflictingRetry = await fetch(
-        fixture.baseUrl + "/stock-requests",
+        fixture.baseUrl + "/supplier-receipts",
         {
           method: "POST",
           headers: {
@@ -746,36 +613,67 @@ describe("operational API fixture", () => {
           },
           body: JSON.stringify({
             ...createBody,
-            items: [{ ...createBody.items[0], quantity_requested: "5" }],
+            items: [{ ...createBody.items[0], quantity_received: "2" }],
           }),
         },
       );
       expect(conflictingRetry.status).toBe(409);
 
-      const approvedResponse = await fetch(
-        fixture.baseUrl + "/stock-requests/" + created.id + "/approve",
+      const postResponse = await fetch(
+        fixture.baseUrl + "/supplier-receipts/" + created.id + "/post",
         { method: "POST", headers },
       );
-      expect(
-        stockRequestDetailSchema.parse(await approvedResponse.json()),
-      ).toMatchObject({ id: created.id, status: "APPROVED" });
+      expect(postResponse.status).toBe(404);
 
-      const rejectedResponse = await fetch(
-        fixture.baseUrl +
-          "/stock-requests/33000000-0000-4000-8000-000000000001/reject",
-        { method: "POST", headers },
+      const detailResponse = await fetch(
+        fixture.baseUrl + "/supplier-receipts/" + created.id,
+        { headers },
       );
       expect(
-        stockRequestDetailSchema.parse(await rejectedResponse.json()).status,
-      ).toBe("REJECTED");
-      const cancelledResponse = await fetch(
-        fixture.baseUrl +
-          "/stock-requests/33000000-0000-4000-8000-000000000005/cancel",
-        { method: "POST", headers },
-      );
+        supplierReceiptDetailSchema.parse(await detailResponse.json()),
+      ).toMatchObject({ id: created.id, recorded_at: created.recorded_at });
+
+      const stateResponse = await fetch(fixture.baseUrl + "/__fixture/state");
+      const state = (await stateResponse.json()) as {
+        receipts: Array<{ id: string }>;
+        commissaryBalances: Array<{ id: string; quantity_on_hand: string }>;
+        commissaryMovements: Array<{ stock_item_id: string }>;
+      };
+      expect(state.receipts).toHaveLength(27);
       expect(
-        stockRequestDetailSchema.parse(await cancelledResponse.json()).status,
-      ).toBe("CANCELLED");
+        state.commissaryBalances.find((balance) => balance.id === stockItem.id)
+          ?.quantity_on_hand,
+      ).toBe("21.5");
+      expect(
+        state.commissaryMovements.filter(
+          (movement) => movement.stock_item_id === stockItem.id,
+        ),
+      ).toHaveLength(initialMovementCount + 1);
+      expect(initialQuantity).toBe("20.25");
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("retires active stock request endpoints while retaining legacy dispatch history", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = await getAuthenticatedHeaders(fixture.baseUrl);
+      for (const path of [
+        "/stock-requests",
+        "/stock-requests/33000000-0000-4000-8000-000000000001",
+        "/stock-requests/33000000-0000-4000-8000-000000000001/approve",
+      ]) {
+        const response = await fetch(fixture.baseUrl + path, {
+          headers,
+          method: path.endsWith("/approve") ? "POST" : "GET",
+        });
+        expect(response.status).toBe(404);
+      }
+      const state = await fetch(fixture.baseUrl + "/__fixture/state").then((response) => response.json());
+      expect(state).not.toHaveProperty("stockRequests");
+      expect(state.dispatches.length).toBeGreaterThan(0);
+      expect(state.dispatches.every((dispatch: Record<string, unknown>) => !("stock_request_id" in dispatch))).toBe(true);
     } finally {
       await fixture.close();
     }
@@ -881,30 +779,31 @@ describe("operational API fixture", () => {
         .join("; ");
       const headers = { cookie, "x-coms-auth-gateway": gatewaySecret };
 
-      const pendingCreate = await fetch(fixture.baseUrl + "/dispatches", {
-        method: "POST",
-        headers: {
-          ...headers,
-          "content-type": "application/json",
-          "Idempotency-Key": "71000000-0000-4000-8000-000000000006",
-        },
-        body: JSON.stringify({
-          stock_request_id: "33000000-0000-4000-8000-000000000004",
-        }),
-      });
-      expect(pendingCreate.status).toBe(409);
-
-      const approved = await fetch(
-        fixture.baseUrl +
-          "/stock-requests/33000000-0000-4000-8000-000000000001/approve",
-        { method: "POST", headers },
+      const stockItemsResponse = await fetch(
+        fixture.baseUrl + "/stock-items?page=1&page_size=100&is_active=true",
+        { headers },
       );
-      expect(stockRequestDetailSchema.parse(await approved.json()).status).toBe(
-        "APPROVED",
-      );
+      const stockItemPage = stockItemPageSchema.parse(await stockItemsResponse.json());
+      const stockItem = stockItemPage.items[0];
+      const insufficientItem = stockItemPage.items[0];
+      const branchId = "10000000-0000-4000-8000-000000000001";
+      const initialState = await fetch(fixture.baseUrl + "/__fixture/state").then(
+        (response) => response.json(),
+      ) as {
+        commissaryBalances: Array<{ id: string; quantity_on_hand: string }>;
+        commissaryMovements: Array<{ stock_item_id: string; movement_type: string }>;
+      };
+      const initialQuantity = initialState.commissaryBalances.find(
+        (balance) => balance.id === stockItem.id,
+      )!.quantity_on_hand;
+      const initialMovementCount = initialState.commissaryMovements.filter(
+        (movement) => movement.stock_item_id === stockItem.id,
+      ).length;
 
-      const stockRequestId = "33000000-0000-4000-8000-000000000001";
-      const createBody = { stock_request_id: stockRequestId };
+      const createBody = {
+        branch_id: branchId,
+        items: [{ stock_item_id: stockItem.id, quantity_dispatched: "12.5000" }],
+      };
       const createKey = "71000000-0000-4000-8000-000000000001";
       await fetch(fixture.baseUrl + "/__fixture/fail-next", {
         method: "POST",
@@ -941,13 +840,39 @@ describe("operational API fixture", () => {
         await (await createDispatch()).json(),
       );
       expect(created).toMatchObject({
-        stock_request_id: stockRequestId,
+        branch_id: branchId,
         status: "DRAFT",
+        items: [{ stock_item_id: stockItem.id, quantity_dispatched: "12.5" }],
         events: [{ event_type: "CREATED" }],
       });
+      expect(created).not.toHaveProperty("stock_request_id");
+      const afterCreate = await fetch(fixture.baseUrl + "/__fixture/state").then(
+        (response) => response.json(),
+      );
+      expect(
+        afterCreate.commissaryBalances.find((balance: { id: string }) => balance.id === stockItem.id).quantity_on_hand,
+      ).toBe(initialQuantity);
+      expect(
+        afterCreate.commissaryMovements.filter(
+          (movement: { stock_item_id: string }) => movement.stock_item_id === stockItem.id,
+        ),
+      ).toHaveLength(initialMovementCount);
       expect(
         dispatchDetailSchema.parse(await (await createDispatch()).json()).id,
       ).toBe(created.id);
+      const conflictingRetry = await fetch(fixture.baseUrl + "/dispatches", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": createKey,
+        },
+        body: JSON.stringify({
+          ...createBody,
+          items: [{ stock_item_id: stockItem.id, quantity_dispatched: "3" }],
+        }),
+      });
+      expect(conflictingRetry.status).toBe(409);
 
       const dispatchKey = "71000000-0000-4000-8000-000000000002";
       const postedResponse = await fetch(
@@ -959,6 +884,64 @@ describe("operational API fixture", () => {
       );
       const posted = dispatchDetailSchema.parse(await postedResponse.json());
       expect(posted.status).toBe("IN_TRANSIT");
+      const postedState = await fetch(fixture.baseUrl + "/__fixture/state").then(
+        (response) => response.json(),
+      );
+      expect(
+        postedState.commissaryBalances.find((balance: { id: string }) => balance.id === stockItem.id).quantity_on_hand,
+      ).toBe("7.75");
+      expect(
+        postedState.commissaryMovements.filter(
+          (movement: { stock_item_id: string }) => movement.stock_item_id === stockItem.id,
+        ),
+      ).toHaveLength(initialMovementCount + 1);
+      await fetch(fixture.baseUrl + "/dispatches/" + created.id + "/dispatch", {
+        method: "POST",
+        headers: { ...headers, "Idempotency-Key": dispatchKey },
+      });
+      const retriedPostState = await fetch(fixture.baseUrl + "/__fixture/state").then(
+        (response) => response.json(),
+      );
+      expect(
+        retriedPostState.commissaryMovements.filter(
+          (movement: { stock_item_id: string }) => movement.stock_item_id === stockItem.id,
+        ),
+      ).toHaveLength(initialMovementCount + 1);
+
+      const insufficientKey = "71000000-0000-4000-8000-000000000008";
+      const insufficientCreate = await fetch(fixture.baseUrl + "/dispatches", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": "71000000-0000-4000-8000-000000000007",
+        },
+        body: JSON.stringify({
+          branch_id: branchId,
+          items: [{ stock_item_id: insufficientItem.id, quantity_dispatched: "99999" }],
+        }),
+      });
+      const insufficientDraft = dispatchDetailSchema.parse(await insufficientCreate.json());
+      const insufficientPost = await fetch(
+        fixture.baseUrl + "/dispatches/" + insufficientDraft.id + "/dispatch",
+        { method: "POST", headers: { ...headers, "Idempotency-Key": insufficientKey } },
+      );
+      expect(insufficientPost.status).toBe(409);
+      const afterInsufficientPost = await fetch(fixture.baseUrl + "/__fixture/state").then(
+        (response) => response.json(),
+      );
+      expect(
+        afterInsufficientPost.commissaryBalances.find(
+          (balance: { id: string }) => balance.id === insufficientItem.id,
+        ).quantity_on_hand,
+      ).toBe("7.75");
+      expect(
+        afterInsufficientPost.commissaryMovements.filter(
+          (movement: { stock_item_id: string; movement_type: string }) =>
+            movement.stock_item_id === insufficientItem.id &&
+            movement.movement_type === "DISPATCH",
+        ),
+      ).toHaveLength(1);
 
       const firstItem = posted.items.find(
         (item) => item.quantity_dispatched === "12.5",

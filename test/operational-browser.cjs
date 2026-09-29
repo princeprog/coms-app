@@ -72,11 +72,17 @@ async function navigate(pathname) {
 }
 
 async function assertRoleWorkspaceScroll(width, route, searchId) {
-  await page.locator(`#${searchId}`).waitFor({ state: "visible" });
+  const visibleSearch = page
+    .locator(`#${searchId}`)
+    .filter({ visible: true })
+    .first();
+  await visibleSearch.waitFor({ state: "visible" });
   await page
     .locator(
       '[aria-label="Permission groups"] [data-slot="scroll-area-viewport"]',
     )
+    .filter({ visible: true })
+    .first()
     .waitFor({ state: "visible" });
   await page.evaluate(
     () =>
@@ -85,17 +91,21 @@ async function assertRoleWorkspaceScroll(width, route, searchId) {
       ),
   );
   const state = await page.evaluate((permissionSearchId) => {
-    const viewport = document.querySelector(
+    const search = [...document.querySelectorAll(`#${permissionSearchId}`)].find(
+      (element) => element.getClientRects().length > 0,
+    );
+    const workspace = search?.closest("[data-role-workspace]");
+    const picker = search?.closest("[data-role-permission-picker]");
+    const viewport = picker?.querySelector(
       '[aria-label="Permission groups"] [data-slot="scroll-area-viewport"]',
     );
-    const workspaceHeader = document.querySelector(
-      "[data-role-workspace] > header",
-    );
+    const workspaceHeader = workspace?.querySelector(":scope > header");
     const roleTitle = workspaceHeader?.querySelector("h2");
-    const detailsCard = document.querySelector("[data-role-workspace-details]");
-    const footer = document.querySelector("[data-role-workspace-footer]");
-    const search = document.getElementById(permissionSearchId);
-    const permissionTitle = [...document.querySelectorAll("h3")].find(
+    const detailsCard = workspace?.querySelector(
+      "[data-role-workspace-details]",
+    );
+    const footer = workspace?.querySelector("[data-role-workspace-footer]");
+    const permissionTitle = [...(workspace?.querySelectorAll("h3") ?? [])].find(
       (heading) => heading.textContent?.trim() === "Permissions",
     );
     const permissionCard = permissionTitle?.closest('[data-slot="card"]');
@@ -283,10 +293,10 @@ async function rememberShellIdentity() {
   });
 }
 
-async function saveScreenshot(name, scale = "css") {
+async function saveScreenshot(name, scale = "css", fullPage = true) {
   await page.screenshot({
     path: path.join(outputDirectory, name),
-    fullPage: true,
+    fullPage,
     animations: "disabled",
     scale,
   });
@@ -360,9 +370,8 @@ let baseUrl;
     `/inventory?scope=BRANCH&branch_id=${branchId}`,
     "/receipts",
     `/receipts/${fixtureState.receipts[0].id}`,
-    "/replenishment",
-    `/replenishment/${fixtureState.stockRequests[0].id}`,
     "/dispatches",
+    "/dispatches?create=1",
     `/dispatches/${openDiscrepancyDispatch.id}`,
     `/reports?branch_id=${branchId}&status=all`,
     `/reports?branch_id=${branchId}&report_id=${draftReport.id}`,
@@ -397,19 +406,18 @@ let baseUrl;
   await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await page.waitForURL("**/dashboard");
   await page.getByRole("button", { name: /Test Operations Admin/ }).waitFor();
-  await page.getByRole("region", { name: "Operational summary" }).waitFor();
-  await page.getByText("Sales trend", { exact: true }).waitFor();
-  assert.equal(await page.getByLabel("Loading dashboard").count(), 0);
-  await page.getByRole("region", { name: "Branch performance table" }).waitFor();
+  await page.getByText("Total Revenue", { exact: true }).waitFor();
+  await page.getByText("Total Visitors", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Cover page", exact: true }).waitFor();
   await assertPageStructure("/dashboard", 1440);
   const logoBounds = await page
-    .getByRole("link", { name: "Go to dashboard" })
+    .getByRole("link", { name: "Go to your workspace" })
     .boundingBox();
   const quickBounds = await page
     .getByRole("button", { name: "Quick Actions" })
     .boundingBox();
   const navigationBounds = await page
-    .getByRole("link", { name: "Receiving", exact: true })
+    .getByRole("link", { name: "Supplier Receiving", exact: true })
     .first()
     .boundingBox();
   assert(
@@ -425,7 +433,10 @@ let baseUrl;
   });
   await quickActionsButton.focus();
   await page.keyboard.press("Enter");
-  await page.getByRole("menuitem", { name: "New receipt" }).waitFor();
+  await page
+    .getByRole("menuitem", { name: "Record supplier delivery" })
+    .waitFor();
+  await page.getByRole("menuitem", { name: "New dispatch" }).waitFor();
   for (const unavailableAction of [
     "New stock request",
     "New sale",
@@ -439,7 +450,7 @@ let baseUrl;
   }
   await page.keyboard.press("Escape");
   await page
-    .getByRole("menuitem", { name: "New receipt" })
+    .getByRole("menuitem", { name: "Record supplier delivery" })
     .waitFor({ state: "detached" });
   assert(
     await quickActionsButton.evaluate(
@@ -447,7 +458,8 @@ let baseUrl;
     ),
   );
   for (const [label, route, dialogTitle] of [
-    ["New receipt", "/receipts?create=1", "Create supplier receipt"],
+    ["Record supplier delivery", "/receipts?create=1", "Record supplier delivery"],
+    ["New dispatch", "/dispatches?create=1", "Create dispatch"],
   ]) {
     await page.getByRole("button", { name: "Quick Actions" }).click();
     await page.getByRole("menuitem", { name: label }).click();
@@ -456,6 +468,13 @@ let baseUrl;
     await page.keyboard.press("Escape");
     await page.waitForURL((url) => !url.searchParams.has("create"));
   }
+  for (const retiredRoute of [
+    "/replenishment",
+    "/replenishment/33000000-0000-4000-8000-000000000001",
+  ]) {
+    await navigate(retiredRoute);
+    await page.getByRole("heading", { name: "Page not found" }).waitFor();
+  }
   const posPage = await context.newPage();
   await posPage.goto(`${baseUrl}/pos`, { waitUntil: "domcontentloaded" });
   await posPage.getByRole("heading", { name: "Page not found" }).waitFor();
@@ -463,20 +482,28 @@ let baseUrl;
   await posPage.close();
   await page.getByRole("link", { name: "Dashboard", exact: true }).first().click();
   await page.waitForURL("**/dashboard");
-  await page.getByRole("heading", { name: "Dashboard", level: 2 }).waitFor();
+  await page.getByRole("heading", { name: "Dashboard", level: 1 }).waitFor();
   await saveScreenshot("dashboard-desktop.png");
   await page.setViewportSize({ width: 390, height: 844 });
   await saveScreenshot("dashboard-mobile.png");
   await page.setViewportSize({ width: 1440, height: 960 });
   await rememberShellIdentity();
-  for (const [label, href] of [
-    ["Receiving", "/receipts"],
-    ["Roles", "/roles"],
-    ["Inventory", "/inventory"],
+  for (const [label, href, readyView] of [
+    [
+      "Supplier Receiving",
+      "/receipts",
+      page.getByRole("table", { name: "Supplier deliveries" }),
+    ],
+    [
+      "Roles",
+      "/roles",
+      page.getByRole("table", { name: "Roles and their access summary" }),
+    ],
+    ["Inventory", "/inventory", page.getByRole("heading", { name: "Stock balances" })],
   ]) {
     await page.getByRole("link", { name: label, exact: true }).first().click();
     await page.waitForURL(`**${href}**`);
-    await page.getByRole("main").waitFor();
+    await readyView.waitFor();
     await assertShellIdentity();
   }
   await page.goBack();
@@ -562,6 +589,10 @@ let baseUrl;
         });
         assert(scroll.focused && scroll.scrollLeft > 0);
       }
+      if (width === 390 && route === "/staff") {
+        await page.getByRole("table", { name: "Staff directory" }).waitFor();
+        await saveScreenshot("staff-directory-mobile.png");
+      }
       if (width === 1440 && route === "/roles") {
         const roleDirectory = page.getByRole("table", {
           name: "Roles and their access summary",
@@ -605,6 +636,306 @@ let baseUrl;
     }
     console.log(`PASS ${routes.length} route states at ${width}px`);
   }
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await navigate("/suppliers");
+  await page.getByRole("button", { name: "Add supplier" }).click();
+  const createSupplierDialog = page.getByRole("dialog", {
+    name: "Create supplier",
+  });
+  await createSupplierDialog
+    .getByRole("heading", { name: "Supplier details" })
+    .waitFor();
+  await createSupplierDialog
+    .getByRole("heading", { name: /Contact information/ })
+    .waitFor();
+  await saveScreenshot("supplier-create-modal-desktop.png", "css", false);
+  await page.keyboard.press("Escape");
+  await createSupplierDialog.waitFor({ state: "detached" });
+
+  await page.setViewportSize({ width: 390, height: 667 });
+  await navigate("/suppliers");
+  await page.getByRole("button", { name: "Add supplier" }).click();
+  await createSupplierDialog.waitFor();
+  await saveScreenshot("supplier-create-modal-mobile.png", "css", false);
+  const supplierModalLayout = await createSupplierDialog.evaluate((dialog) => {
+    const body = dialog.querySelector("form > div:first-child");
+    const footer = dialog.querySelector('[data-slot="dialog-footer"]');
+    if (!body || !footer) return null;
+    return {
+      dialogLeft: dialog.getBoundingClientRect().left,
+      dialogRight: dialog.getBoundingClientRect().right,
+      footerBottom: footer.getBoundingClientRect().bottom,
+      bodyScrollable: body.scrollHeight > body.clientHeight,
+    };
+  });
+  assert(
+    supplierModalLayout &&
+      supplierModalLayout.dialogLeft >= 0 &&
+      supplierModalLayout.dialogRight <= 390 &&
+      supplierModalLayout.footerBottom <= 667,
+    `Create supplier modal leaves the mobile viewport: ${JSON.stringify(supplierModalLayout)}`,
+  );
+  await page.keyboard.press("Escape");
+  await createSupplierDialog.waitFor({ state: "detached" });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await navigate("/stock-items");
+  await page.getByRole("button", { name: "Add stock item" }).click();
+  const createStockItemDialog = page.getByRole("dialog", {
+    name: "Create stock item",
+  });
+  await createStockItemDialog
+    .getByRole("heading", { name: "Classification and unit" })
+    .waitFor();
+  await saveScreenshot("stock-item-create-modal-desktop.png", "css", false);
+  const stockNameInput = createStockItemDialog.getByRole("textbox", {
+    name: "Stock item name",
+  });
+  await stockNameInput.focus();
+  await page.keyboard.press("Tab");
+  const stockCategoryTrigger = createStockItemDialog.getByRole("combobox", {
+    name: "Category",
+  });
+  assert(
+    await stockCategoryTrigger.evaluate(
+      (element) => element === document.activeElement,
+    ),
+  );
+  await page.keyboard.press("Tab");
+  assert(
+    await createStockItemDialog
+      .getByRole("textbox", { name: "Unit" })
+      .evaluate((element) => element === document.activeElement),
+  );
+  await page.keyboard.press("Escape");
+  await createStockItemDialog.waitFor({ state: "detached" });
+
+  await page.setViewportSize({ width: 390, height: 667 });
+  await navigate("/stock-items");
+  await page.getByRole("button", { name: "Add stock item" }).click();
+  await createStockItemDialog.waitFor();
+  await saveScreenshot("stock-item-create-modal-mobile.png", "css", false);
+  await createStockItemDialog
+    .getByRole("combobox", { name: "Category" })
+    .click();
+  const categoryPopup = page.locator('[data-slot="select-content"]');
+  await page.getByRole("option", { name: "Dry goods" }).waitFor();
+  await saveScreenshot("stock-item-category-dropdown-mobile.png", "css", false);
+  const categoryPopupBounds = await categoryPopup.boundingBox();
+  assert(
+    categoryPopupBounds &&
+      categoryPopupBounds.x >= 0 &&
+      categoryPopupBounds.x + categoryPopupBounds.width <= 390 &&
+      categoryPopupBounds.y >= 0 &&
+      categoryPopupBounds.y + categoryPopupBounds.height <= 667,
+    `Stock item category menu leaves the mobile viewport: ${JSON.stringify(categoryPopupBounds)}`,
+  );
+  await page.getByRole("option", { name: "Dry goods" }).click();
+  assert.match(
+    await createStockItemDialog
+      .getByRole("combobox", { name: "Category" })
+      .innerText(),
+    /Dry goods/,
+  );
+  const stockItemModalLayout = await createStockItemDialog.evaluate(
+    (dialog) => {
+      const footer = dialog.querySelector('[data-slot="dialog-footer"]');
+      if (!footer) return null;
+      const bounds = dialog.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        footerBottom: footer.getBoundingClientRect().bottom,
+      };
+    },
+  );
+  assert(
+    stockItemModalLayout &&
+      stockItemModalLayout.left >= 0 &&
+      stockItemModalLayout.right <= 390 &&
+      stockItemModalLayout.footerBottom <= 667,
+    `Create stock item modal leaves the mobile viewport: ${JSON.stringify(stockItemModalLayout)}`,
+  );
+  await page.keyboard.press("Escape");
+  await createStockItemDialog.waitFor({ state: "detached" });
+
+  await page.setViewportSize({ width: 390, height: 667 });
+  await navigate("/branches");
+  await page.getByRole("button", { name: "Add branch" }).click();
+  const createBranchDialog = page.getByRole("dialog", {
+    name: "Create branch",
+  });
+  const dateOpenedTrigger = createBranchDialog.getByRole("button", {
+    name: /Date opened:/,
+  });
+  const branchInputRadius = await createBranchDialog
+    .getByRole("textbox", { name: "Branch name" })
+    .evaluate((element) => getComputedStyle(element).borderRadius);
+  const dateTriggerRadius = await dateOpenedTrigger.evaluate(
+    (element) => getComputedStyle(element).borderRadius,
+  );
+  assert.equal(
+    dateTriggerRadius,
+    branchInputRadius,
+    "Date opened should match the other Create branch input corners",
+  );
+  await dateOpenedTrigger.focus();
+  await page.keyboard.press("Enter");
+  const branchCalendar = page.locator(
+    '[data-slot="popover-content"] [data-slot="calendar"]',
+  );
+  await branchCalendar.waitFor();
+  await saveScreenshot("branch-create-date-picker-mobile.png", "css", false);
+  const calendarBounds = await branchCalendar.boundingBox();
+  assert(
+    calendarBounds &&
+      calendarBounds.x >= 0 &&
+      calendarBounds.x + calendarBounds.width <= 390 &&
+      calendarBounds.y >= 0 &&
+      calendarBounds.y + calendarBounds.height <= 667,
+    `Branch calendar leaves the mobile viewport: ${JSON.stringify(calendarBounds)}`,
+  );
+  await page.keyboard.press("Escape");
+  await branchCalendar.waitFor({ state: "detached" });
+  await createBranchDialog.waitFor();
+  await dateOpenedTrigger.click();
+  await branchCalendar.waitFor();
+  const todayDataDay = await page.evaluate(() =>
+    new Date().toLocaleDateString(),
+  );
+  await page
+    .locator(`[data-slot="popover-content"] button[data-day="${todayDataDay}"]`)
+    .click();
+  await branchCalendar.waitFor({ state: "detached" });
+  assert(
+    !(await dateOpenedTrigger.getAttribute("aria-label")).includes(
+      "No date selected",
+    ),
+  );
+  await dateOpenedTrigger.click();
+  await page.getByRole("button", { name: "Clear date" }).click();
+  assert(
+    (await dateOpenedTrigger.getAttribute("aria-label")).includes(
+      "No date selected",
+    ),
+  );
+  await page.keyboard.press("Escape");
+  await createBranchDialog.waitFor({ state: "detached" });
+
+  await page.setViewportSize({ width: 1586, height: 992 });
+  await navigate("/staff");
+  await page.getByRole("table", { name: "Staff directory" }).waitFor();
+  await saveScreenshot("staff-directory-desktop.png", "css", false);
+  await page.getByRole("link", { name: "Inactive", exact: true }).click();
+  await page.waitForURL(
+    (url) =>
+      url.pathname === "/staff" &&
+      url.searchParams.get("status") === "inactive",
+  );
+  assert.equal(
+    await page
+      .getByRole("link", { name: "Inactive", exact: true })
+      .getAttribute("aria-current"),
+    "page",
+  );
+  const inactiveRows = page
+    .getByRole("table", { name: "Staff directory" })
+    .locator("tbody tr");
+  assert((await inactiveRows.count()) > 0);
+  for (const row of await inactiveRows.all()) {
+    assert.match(await row.innerText(), /Inactive/);
+  }
+  const staffSearch = page.getByRole("searchbox", { name: "Search staff" });
+  await staffSearch.fill("Fixture Staff 03");
+  await staffSearch.press("Enter");
+  await page.waitForURL(
+    (url) =>
+      url.pathname === "/staff" &&
+      url.searchParams.get("status") === "inactive" &&
+      url.searchParams.get("search") === "Fixture Staff 03",
+  );
+  const matchingRows = page
+    .getByRole("table", { name: "Staff directory" })
+    .locator("tbody tr");
+  assert.equal(await matchingRows.count(), 1);
+  await page
+    .getByRole("button", { name: "Actions for Fixture Staff 03" })
+    .click();
+  await page.getByRole("menuitem", { name: "Manage staff" }).waitFor();
+  await page.keyboard.press("Escape");
+  await navigate("/staff");
+  await page.getByRole("button", { name: "Add staff" }).click();
+  const addStaffDialog = page.getByRole("dialog", { name: "Add staff" });
+  await addStaffDialog.waitFor();
+  await saveScreenshot("staff-add-modal-desktop.png", "css", false);
+  const desktopModal = await addStaffDialog.boundingBox();
+  assert(
+    desktopModal && desktopModal.width >= 680 && desktopModal.width <= 720,
+  );
+  assert(Math.abs(desktopModal.x + desktopModal.width / 2 - 793) < 2);
+  await addStaffDialog.getByRole("button", { name: "Create staff" }).click();
+  for (const message of [
+    "Enter a full name with 2 to 160 characters.",
+    "Enter a valid email address.",
+    "Enter a Philippine mobile number with 10 digits after +63.",
+    "Use at least 12 characters.",
+  ]) {
+    await addStaffDialog
+      .getByRole("alert")
+      .filter({ hasText: message })
+      .waitFor();
+  }
+  await addStaffDialog
+    .getByRole("textbox", { name: "Email" })
+    .fill("invalid-email");
+  assert.equal(
+    await addStaffDialog
+      .getByRole("combobox", { name: "Country code" })
+      .count(),
+    0,
+  );
+  const contactInput = addStaffDialog.getByRole("textbox", {
+    name: "Contact number",
+  });
+  await contactInput.fill("09a171234567");
+  assert.equal(await contactInput.inputValue(), "9171234567");
+  await contactInput.fill("123");
+  await addStaffDialog.getByLabel("Initial password").fill("short");
+  await addStaffDialog.getByRole("button", { name: "Create staff" }).click();
+  assert.equal(await addStaffDialog.getByRole("alert").count(), 4);
+  await addStaffDialog.getByRole("button", { name: "Close Add staff" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Discard unsaved staff changes?" })
+    .waitFor();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await addStaffDialog.waitFor({ state: "detached" });
+
+  await page.setViewportSize({ width: 390, height: 667 });
+  await navigate("/staff");
+  await page.getByRole("button", { name: "Add staff" }).click();
+  await saveScreenshot("staff-add-modal-mobile-top.png", "css", false);
+  const mobileModal = await addStaffDialog.boundingBox();
+  assert(
+    mobileModal &&
+      mobileModal.x >= 0 &&
+      mobileModal.x + mobileModal.width <= 390,
+  );
+  const modalScroll = await addStaffDialog.evaluate((dialog) => {
+    const body = dialog.querySelector("form > div:first-child");
+    const footer = dialog.querySelector('[data-slot="dialog-footer"]');
+    if (!body || !footer) return null;
+    body.scrollTop = body.scrollHeight;
+    return {
+      scrollable: body.scrollHeight > body.clientHeight && body.scrollTop > 0,
+      footerVisible:
+        footer.getBoundingClientRect().bottom <= window.innerHeight,
+    };
+  });
+  assert(modalScroll?.scrollable && modalScroll.footerVisible);
+  await saveScreenshot("staff-add-modal-mobile.png", "css", false);
+  await page.keyboard.press("Escape");
+  await addStaffDialog.waitFor({ state: "detached" });
 
   await page.emulateMedia({ colorScheme: "dark" });
   await page.waitForFunction(() =>
