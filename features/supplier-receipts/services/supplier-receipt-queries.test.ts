@@ -15,7 +15,7 @@ const timestamp = "2026-09-24T01:30:00.000Z";
 describe("supplier receipt page queries", () => {
   beforeEach(() => requestComsApi.mockReset());
 
-  it("loads a paginated receipt directory with search and status filters", async () => {
+  it("loads a paginated supplier delivery directory with search", async () => {
     requestComsApi.mockResolvedValue({
       items: [
         {
@@ -23,11 +23,10 @@ describe("supplier receipt page queries", () => {
           supplier_id: id,
           supplier_name: "North Farm Supply",
           received_at: "2026-09-24",
-          status: "DRAFT",
           idempotency_key: id,
-          created_by_user_id: id,
-          posted_by_user_id: null,
-          posted_at: null,
+          recorded_by_user_id: id,
+          recorded_by_name: "Alex Manager",
+          recorded_at: timestamp,
           created_at: timestamp,
           updated_at: timestamp,
           total_cost: "33.625",
@@ -43,12 +42,11 @@ describe("supplier receipt page queries", () => {
       getSupplierReceiptPageData({
         page: 2,
         search: " North Farm ",
-        status: "DRAFT",
       }),
     ).resolves.toMatchObject({ total: 1, items: [{ total_cost: "33.625" }] });
 
     expect(requestComsApi).toHaveBeenCalledWith(
-      "/supplier-receipts?page=2&page_size=25&search=North+Farm&status=DRAFT",
+      "/supplier-receipts?page=2&page_size=25&search=North+Farm",
       { cookieHeader: "coms_access=access-token" },
     );
   });

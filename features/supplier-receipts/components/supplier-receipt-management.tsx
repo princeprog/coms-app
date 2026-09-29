@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Form from "next/form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,13 +9,6 @@ import {
   OperationalEmptyState,
   OperationalPageIntro,
 } from "@/components/shared/operational-page-ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type {
   SupplierReceiptCreateAction,
   SupplierReceiptFormOptions,
@@ -29,7 +21,6 @@ import { SupplierReceiptTable } from "./supplier-receipt-table";
 export function SupplierReceiptManagement({
   page,
   search,
-  statusFilter,
   canCreate,
   formOptions,
   formOptionsIssue,
@@ -37,7 +28,6 @@ export function SupplierReceiptManagement({
 }: {
   page: SupplierReceiptPage;
   search: string;
-  statusFilter: "all" | "DRAFT" | "POSTED";
   canCreate: boolean;
   formOptions: SupplierReceiptFormOptions | null;
   formOptionsIssue: "permissions" | "forbidden" | "unavailable" | null;
@@ -47,13 +37,11 @@ export function SupplierReceiptManagement({
   const canCreateWithOptions = Boolean(
     canCreate && formOptions?.suppliers.length && formOptions.stockItems.length,
   );
-  const [statusChoice, setStatusChoice] = useState(statusFilter);
-
   return (
     <div data-coms-ui="operational" className="flex flex-col gap-6 p-4 md:p-6">
       <OperationalPageIntro
-        description="Review supplier deliveries. Posting a draft records its received stock in commissary inventory."
-        count={<Badge variant="secondary">{page.total} receipts</Badge>}
+        description="Record deliveries from suppliers and review the quantities added to commissary inventory."
+        count={<Badge variant="secondary">{page.total} deliveries</Badge>}
         actions={
           canCreateWithOptions ? (
             <SupplierReceiptCreateDialog
@@ -77,10 +65,10 @@ export function SupplierReceiptManagement({
         </p>
       )}
       <Form
-        key={search + ":" + statusFilter}
+        key={search}
         action="/receipts"
         aria-label="Filter supplier receipts"
-        className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2 sm:items-end lg:grid-cols-[minmax(12rem,1fr)_minmax(10rem,0.5fr)_auto]"
+        className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-[minmax(12rem,1fr)_auto] sm:items-end"
       >
         <Field className="min-w-0">
           <FieldLabel htmlFor="receipt-search">Search supplier</FieldLabel>
@@ -92,33 +80,6 @@ export function SupplierReceiptManagement({
             defaultValue={search}
           />
         </Field>
-        <Field className="min-w-0">
-          <FieldLabel htmlFor="receipt-status">Receipt status</FieldLabel>
-          <Select
-            value={statusChoice}
-            onValueChange={(value) =>
-              setStatusChoice((value as typeof statusFilter | null) ?? "all")
-            }
-          >
-            <SelectTrigger id="receipt-status" className="w-full">
-              <SelectValue>
-                {(value: unknown) =>
-                  value === "DRAFT"
-                    ? "Draft"
-                    : value === "POSTED"
-                      ? "Posted"
-                      : "All statuses"
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent data-coms-ui="operational">
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="DRAFT">Draft</SelectItem>
-              <SelectItem value="POSTED">Posted</SelectItem>
-            </SelectContent>
-          </Select>
-          <input type="hidden" name="status" value={statusChoice} />
-        </Field>
         <Button type="submit" variant="outline" className="w-fit">
           Apply filters
         </Button>
@@ -126,14 +87,14 @@ export function SupplierReceiptManagement({
       {page.items.length === 0 ? (
         <OperationalEmptyState
           title={
-            search || statusFilter !== "all"
+            search
               ? "No supplier receipts match these filters."
               : "No supplier receipts have been recorded yet."
           }
           description={
-            search || statusFilter !== "all"
-              ? "Change the supplier search or status filter to see more receipts."
-              : "Create a draft when a supplier delivery arrives, then post it after review."
+            search
+              ? "Change the supplier search to see more deliveries."
+              : "Record a supplier delivery when the goods arrive. Saving it adds the quantities to commissary inventory immediately."
           }
         />
       ) : (
@@ -144,7 +105,6 @@ export function SupplierReceiptManagement({
           page={page.page}
           pageCount={pageCount}
           search={search}
-          status={statusFilter}
         />
       )}
     </div>

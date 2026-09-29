@@ -19,9 +19,6 @@ export type SupplierReceiptFormOptions = {
 export type SupplierReceiptMutationResult =
   { ok: true; receipt_id: string } | { ok: false; error: string };
 
-export type SupplierReceiptPostResult =
-  { ok: true } | { ok: false; error: string };
-
 export type SupplierReceiptCreateAction = (
   input: unknown,
   idempotencyKey: string,

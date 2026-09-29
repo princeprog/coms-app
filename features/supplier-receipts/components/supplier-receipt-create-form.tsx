@@ -19,6 +19,7 @@ import {
 import { SheetFooter } from "@/components/ui/sheet";
 import { createSupplierReceiptSchema } from "@/features/supplier-receipts/schemas/supplier-receipt.schema";
 import type {
+  CreateSupplierReceipt,
   SupplierReceiptCreateAction,
   SupplierReceiptMutationResult,
 } from "@/features/supplier-receipts/types/supplier-receipt.types";
@@ -28,6 +29,7 @@ import {
   SupplierReceiptLineFields,
   type SupplierReceiptLineValue,
 } from "./supplier-receipt-line-fields";
+import { SupplierReceiptReviewDialog } from "./supplier-receipt-review-dialog";
 
 export function SupplierReceiptCreateForm({
   suppliers,
@@ -48,6 +50,9 @@ export function SupplierReceiptCreateForm({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [reviewInput, setReviewInput] = useState<CreateSupplierReceipt | null>(
+    null,
+  );
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? "");
   const [receivedAt, setReceivedAt] = useState("");
   const [lines, setLines] = useState<SupplierReceiptLineValue[]>([
@@ -74,7 +79,7 @@ export function SupplierReceiptCreateForm({
     onDirtyChange(true);
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     const parsed = createSupplierReceiptSchema.safeParse({
@@ -88,12 +93,17 @@ export function SupplierReceiptCreateForm({
     });
     if (!parsed.success) {
       setError(
-        "Enter a receipt date, positive quantities, and valid unit costs.",
+        "Choose a supplier and delivery date, then enter unique stock items, positive quantities, and nonnegative unit costs.",
       );
       return;
     }
 
-    const fingerprint = JSON.stringify(parsed.data);
+    setReviewInput(parsed.data);
+  }
+
+  async function confirmRecord() {
+    if (!reviewInput) return;
+    const fingerprint = JSON.stringify(reviewInput);
     if (keyForRetry.current?.fingerprint !== fingerprint) {
       try {
         keyForRetry.current = {
@@ -110,7 +120,7 @@ export function SupplierReceiptCreateForm({
     onPendingChange(true);
     let result: SupplierReceiptMutationResult;
     try {
-      result = await action(parsed.data, keyForRetry.current.key);
+      result = await action(reviewInput, keyForRetry.current.key);
     } catch {
       result = {
         ok: false as const,
@@ -121,10 +131,12 @@ export function SupplierReceiptCreateForm({
     onPendingChange(false);
     if (!result.ok) {
       setError(result.error);
+      setReviewInput(null);
       return;
     }
 
     keyForRetry.current = null;
+    setReviewInput(null);
     onCreated(result.receipt_id);
   }
 
@@ -132,7 +144,7 @@ export function SupplierReceiptCreateForm({
     <form
       onSubmit={submit}
       className="flex min-h-0 flex-1 flex-col"
-      aria-label="Create supplier receipt"
+      aria-label="Record supplier delivery"
     >
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
         <FieldGroup className="gap-4">
@@ -164,7 +176,7 @@ export function SupplierReceiptCreateForm({
             </Select>
           </Field>
           <Field>
-            <FieldLabel htmlFor="receipt-date">Received date</FieldLabel>
+            <FieldLabel htmlFor="receipt-date">Delivery date</FieldLabel>
             <Input
               id="receipt-date"
               type="date"
@@ -213,7 +225,8 @@ export function SupplierReceiptCreateForm({
           </p>
         )}
         <FieldDescription>
-          Stock is unchanged until an authorized user posts the saved draft.
+          Recording this delivery immediately updates commissary inventory.
+          Supplier delivery records cannot be edited after saving.
         </FieldDescription>
       </div>
       <SheetFooter className="flex-row justify-end border-t bg-background p-4 sm:p-6">
@@ -226,9 +239,21 @@ export function SupplierReceiptCreateForm({
           Cancel
         </Button>
         <Button type="submit" disabled={pending}>
-          {pending ? "Saving draft…" : "Save draft"}
+          Review delivery
         </Button>
       </SheetFooter>
+      <SupplierReceiptReviewDialog
+        input={reviewInput}
+        supplierName={
+          suppliers.find((supplier) => supplier.id === reviewInput?.supplier_id)
+            ?.supplier_name ?? "—"
+        }
+        pending={pending}
+        onOpenChange={(open) => {
+          if (!pending && !open) setReviewInput(null);
+        }}
+        onConfirm={confirmRecord}
+      />
     </form>
   );
 }

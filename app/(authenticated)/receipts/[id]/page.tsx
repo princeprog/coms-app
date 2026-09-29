@@ -5,7 +5,6 @@ import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
 import { SupplierReceiptDetailView } from "@/features/supplier-receipts/components/supplier-receipt-detail-view";
-import { postSupplierReceiptAction } from "@/features/supplier-receipts/services/supplier-receipt-actions";
 import { loadSupplierReceiptDetailView } from "@/features/supplier-receipts/services/supplier-receipt-page-loader";
 
 export default async function SupplierReceiptDetailPage({
@@ -36,8 +35,6 @@ export default async function SupplierReceiptDetailPage({
     <AppPageShell user={session.user}>
       <SupplierReceiptDetailView
         receipt={view.receipt}
-        canPost={view.canPost}
-        postAction={postSupplierReceiptAction}
       />
     </AppPageShell>
   );

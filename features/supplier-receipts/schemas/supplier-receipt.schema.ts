@@ -23,18 +23,22 @@ export const createSupplierReceiptSchema = z
       .min(1)
       .max(100),
   })
-  .strict();
+  .strict()
+  .refine(
+    ({ items }) =>
+      new Set(items.map((item) => item.stock_item_id)).size === items.length,
+    { message: "A stock item may appear only once per supplier delivery." },
+  );
 
 const receiptFields = {
   id: z.uuid(),
   supplier_id: z.uuid(),
   supplier_name: z.string().min(1),
   received_at: z.iso.date(),
-  status: z.enum(["DRAFT", "POSTED"]),
   idempotency_key: z.uuid(),
-  created_by_user_id: z.uuid(),
-  posted_by_user_id: z.uuid().nullable(),
-  posted_at: z.iso.datetime().nullable(),
+  recorded_by_user_id: z.uuid(),
+  recorded_by_name: z.string().min(1),
+  recorded_at: z.iso.datetime(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
   total_cost: decimalText,

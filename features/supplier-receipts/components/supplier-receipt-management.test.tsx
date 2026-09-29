@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SupplierReceiptManagement } from "./supplier-receipt-management";
 
@@ -13,11 +12,10 @@ const page = {
       supplier_id: receiptId,
       supplier_name: "North Farm Supply",
       received_at: "2026-09-24",
-      status: "DRAFT" as const,
       idempotency_key: "d34b9dc6-135f-4bd0-9f25-43a9617c9e0a",
-      created_by_user_id: receiptId,
-      posted_by_user_id: null,
-      posted_at: null,
+      recorded_by_user_id: receiptId,
+      recorded_by_name: "Alex Manager",
+      recorded_at: "2026-09-24T01:30:00.000Z",
       created_at: "2026-09-24T01:30:00.000Z",
       updated_at: "2026-09-24T01:30:00.000Z",
       total_cost: "31.25",
@@ -30,13 +28,11 @@ const page = {
 };
 
 describe("supplier receipt management", () => {
-  it("uses client navigation for the supported search and status filters", async () => {
-    const user = userEvent.setup();
+  it("searches final supplier delivery records and preserves search in pagination", () => {
     render(
       <SupplierReceiptManagement
         page={page}
         search="North Farm"
-        statusFilter="DRAFT"
         canCreate={false}
         formOptions={null}
         formOptionsIssue={null}
@@ -48,62 +44,34 @@ describe("supplier receipt management", () => {
     expect(form.getAttribute("action")).toBe("/receipts");
     expect(form.getAttribute("method")).toBeNull();
     expect(
-      screen
-        .getByRole("combobox", { name: "Receipt status" })
-        .getAttribute("data-slot"),
-    ).toBe("select-trigger");
-    await user.click(screen.getByRole("combobox", { name: "Receipt status" }));
-    await user.click(await screen.findByRole("option", { name: "Posted" }));
-
-    expect(
-      form.querySelector('input[name="status"]')?.getAttribute("value"),
-    ).toBe("POSTED");
-    expect(
       (screen.getByLabelText("Search supplier") as HTMLInputElement).value,
     ).toBe("North Farm");
-  });
-
-  it("shows filtered receipt rows and preserves filters in pagination", () => {
-    render(
-      <SupplierReceiptManagement
-        page={page}
-        search="North Farm"
-        statusFilter="DRAFT"
-        canCreate={false}
-        formOptions={null}
-        formOptionsIssue={null}
-        createAction={vi.fn()}
-      />,
-    );
-
-    expect(
-      screen.getByRole("table", { name: "Supplier receipts" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Supplier deliveries" })).toBeTruthy();
     expect(screen.getByText("North Farm Supply")).toBeTruthy();
-    expect(screen.getByText("DRAFT")).toBeTruthy();
+    expect(screen.getByText("Alex Manager")).toBeTruthy();
     expect(screen.getByText("31.25")).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Status" })).toBeNull();
     expect(
       screen
-        .getByRole("region", { name: "Supplier receipts table" })
+        .getByRole("region", { name: "Supplier deliveries table" })
         .getAttribute("data-slot"),
     ).toBe("table-container");
     expect(
-      screen.getByRole("link", { name: "View receipt" }).getAttribute("href"),
+      screen.getByRole("link", { name: "View delivery" }).getAttribute("href"),
     ).toBe(`/receipts/${receiptId}`);
     expect(
       screen.getByRole("link", { name: "Previous page" }).getAttribute("href"),
-    ).toBe("/receipts?search=North+Farm&status=DRAFT");
+    ).toBe("/receipts?search=North+Farm");
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
-    ).toBe("/receipts?page=3&search=North+Farm&status=DRAFT");
+    ).toBe("/receipts?page=3&search=North+Farm");
   });
 
-  it("explains when no receipts match the filters", () => {
+  it("explains when supplier search has no matches", () => {
     render(
       <SupplierReceiptManagement
         page={{ items: [], total: 0, page: 1, page_size: 25 }}
         search="Unknown supplier"
-        statusFilter="all"
         canCreate={false}
         formOptions={null}
         formOptionsIssue={null}

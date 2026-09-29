@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -14,48 +12,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { SupplierReceipt } from "@/features/supplier-receipts/types/supplier-receipt.types";
-import {
-  SupplierReceiptPostControl,
-  type SupplierReceiptPostAction,
-} from "./supplier-receipt-post-control";
 
 export function SupplierReceiptDetailView({
   receipt,
-  canPost,
-  postAction,
 }: {
   receipt: SupplierReceipt;
-  canPost: boolean;
-  postAction: SupplierReceiptPostAction;
 }) {
-  const [status, setStatus] = useState("");
-
   return (
     <div data-coms-ui="operational" className="flex flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
-          className={buttonVariants({ variant: "outline", size: "sm" })}
+          className={buttonVariants({
+            variant: "outline",
+            size: "sm",
+            className:
+              "h-auto min-h-8 max-w-full whitespace-normal text-center leading-snug",
+          })}
           href="/receipts"
         >
-          Back to receiving
+          Back to supplier receiving
         </Link>
-        {receipt.status === "DRAFT" && canPost && (
-          <SupplierReceiptPostControl
-            receiptId={receipt.id}
-            action={postAction}
-            onComplete={() => setStatus("Supplier receipt posted.")}
-          />
-        )}
       </div>
-      {status && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="rounded-md border border-emerald-600/30 bg-emerald-600/5 px-3 py-2 text-sm"
-        >
-          {status}
-        </p>
-      )}
       <section
         aria-labelledby="receipt-summary-heading"
         className="rounded-lg border bg-card"
@@ -63,19 +40,16 @@ export function SupplierReceiptDetailView({
         <div className="flex flex-wrap items-start justify-between gap-3 border-b p-4 md:p-5">
           <div className="space-y-1">
             <h2 id="receipt-summary-heading" className="text-lg font-semibold">
-              Supplier receipt
+              Supplier delivery record
             </h2>
             <p className="text-sm text-muted-foreground">
               {receipt.supplier_name}
             </p>
           </div>
-          <OperationalStatusBadge variant="outline">
-            {receipt.status}
-          </OperationalStatusBadge>
         </div>
-        <dl className="grid gap-x-6 gap-y-4 p-4 sm:grid-cols-2 lg:grid-cols-4 md:p-5">
+        <dl className="grid gap-x-6 gap-y-4 p-4 sm:grid-cols-2 lg:grid-cols-5 md:p-5">
           <DetailField
-            label="Received date"
+            label="Delivery date"
             value={format(parseISO(receipt.received_at), "PPP")}
           />
           <DetailField
@@ -83,12 +57,11 @@ export function SupplierReceiptDetailView({
             value={String(receipt.items.length)}
           />
           <DetailField label="Total cost" value={receipt.total_cost} numeric />
-          {receipt.posted_at && (
-            <DetailField
-              label="Posted at"
-              value={format(parseISO(receipt.posted_at), "PPp")}
-            />
-          )}
+          <DetailField label="Recorded by" value={receipt.recorded_by_name} />
+          <DetailField
+            label="Recorded at"
+            value={format(parseISO(receipt.recorded_at), "PPp")}
+          />
         </dl>
       </section>
       <section aria-labelledby="receipt-items-heading" className="space-y-3">

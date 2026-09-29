@@ -31,8 +31,8 @@ describe("SiteHeader route titles", () => {
 
   it.each([
     ["/dashboard", "Dashboard"],
-    ["/receipts", "Receiving"],
-    ["/receipts/receipt-1", "Receiving"],
+    ["/receipts", "Supplier Receiving"],
+    ["/receipts/receipt-1", "Supplier Receiving"],
     ["/recipes/product-1", "Recipe"],
   ])("shows the title for %s", (pathname, title) => {
     navigationState.pathname = pathname;

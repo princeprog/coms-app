@@ -41,7 +41,6 @@ export default async function SupplierReceiptsPage({
       <SupplierReceiptManagement
         page={view.page}
         search={view.search}
-        statusFilter={view.statusFilter}
         canCreate={view.canCreate}
         formOptions={view.formOptions}
         formOptionsIssue={view.formOptionsIssue}

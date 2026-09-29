@@ -13,7 +13,6 @@ import {
 } from "@/features/supplier-receipts/schemas/supplier-receipt.schema";
 import type {
   SupplierReceiptMutationResult,
-  SupplierReceiptPostResult,
 } from "@/features/supplier-receipts/types/supplier-receipt.types";
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
@@ -57,35 +56,6 @@ export async function createSupplierReceiptAction(
     revalidatePath(supplierReceiptsRoute);
     revalidatePath(`${supplierReceiptsRoute}/${parsedReceipt.data.id}`);
     return { ok: true, receipt_id: parsedReceipt.data.id };
-  } catch (error) {
-    return { ok: false, error: getActionError(error) };
-  }
-}
-
-export async function postSupplierReceiptAction(
-  id: string,
-): Promise<SupplierReceiptPostResult> {
-  if (!z.uuid().safeParse(id).success) {
-    return { ok: false, error: "Check the selected supplier receipt." };
-  }
-
-  try {
-    const payload = await requestComsApi<unknown>(
-      `${supplierReceiptsEndpoint}/${id}/post`,
-      {
-        cookieHeader: (await cookies()).toString(),
-        method: "POST",
-      },
-    );
-    const parsedReceipt = supplierReceiptDetailSchema.safeParse(payload);
-    if (!parsedReceipt.success || parsedReceipt.data.status !== "POSTED")
-      throw new ApiRequestError(
-        "Invalid posted supplier receipt response.",
-        502,
-      );
-    revalidatePath(supplierReceiptsRoute);
-    revalidatePath(`${supplierReceiptsRoute}/${id}`);
-    return { ok: true };
   } catch (error) {
     return { ok: false, error: getActionError(error) };
   }

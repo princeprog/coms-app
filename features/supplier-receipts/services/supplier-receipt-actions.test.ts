@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/services/api-services";
-import {
-  createSupplierReceiptAction,
-  postSupplierReceiptAction,
-} from "./supplier-receipt-actions";
+import { createSupplierReceiptAction } from "./supplier-receipt-actions";
 
 const { requestComsApi, revalidatePath } = vi.hoisted(() => ({
   requestComsApi: vi.fn(),
@@ -25,11 +22,10 @@ const receiptDetail = {
   supplier_id: id,
   supplier_name: "North Farm Supply",
   received_at: "2026-09-24",
-  status: "DRAFT",
   idempotency_key: idempotencyKey,
-  created_by_user_id: id,
-  posted_by_user_id: null,
-  posted_at: null,
+  recorded_by_user_id: id,
+  recorded_by_name: "Alex Manager",
+  recorded_at: timestamp,
   created_at: timestamp,
   updated_at: timestamp,
   total_cost: "33.125",
@@ -97,21 +93,4 @@ describe("supplier receipt actions", () => {
     });
   });
 
-  it("posts only a valid receipt ID", async () => {
-    requestComsApi.mockResolvedValue({ ...receiptDetail, status: "POSTED" });
-
-    await expect(postSupplierReceiptAction(id)).resolves.toEqual({ ok: true });
-    expect(requestComsApi).toHaveBeenCalledWith(
-      `/supplier-receipts/${id}/post`,
-      {
-        cookieHeader: "coms_access=access-token",
-        method: "POST",
-      },
-    );
-
-    await expect(postSupplierReceiptAction("invalid")).resolves.toMatchObject({
-      ok: false,
-    });
-    expect(requestComsApi).toHaveBeenCalledTimes(1);
-  });
 });

@@ -36,7 +36,7 @@ vi.mock("@/components/site-header", async () => {
       React.createElement(
         "h1",
         null,
-        route.pathname.startsWith("/receipts/") ? "Receiving" : "Documents",
+        route.pathname.startsWith("/receipts/") ? "Supplier Receiving" : "Documents",
       ),
   };
 });
@@ -82,7 +82,7 @@ describe("AuthenticatedAppShell", () => {
 
     expect(screen.getByTestId("sidebar")).toBe(sidebarBeforeNavigation);
     expect(sidebarRenders.count).toBe(rendersBeforeNavigation);
-    expect(screen.getByRole("heading", { name: "Receiving" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Supplier Receiving" })).toBeTruthy();
     expect(screen.getByText("Receipt content")).toBeTruthy();
     expect(screen.queryByText("Dashboard content")).toBeNull();
 

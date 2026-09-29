@@ -13,11 +13,10 @@ const receipt = {
   supplier_id: id,
   supplier_name: "North Farm Supply",
   received_at: "2026-09-24",
-  status: "DRAFT" as const,
   idempotency_key: id,
-  created_by_user_id: id,
-  posted_by_user_id: null,
-  posted_at: null,
+  recorded_by_user_id: id,
+  recorded_by_name: "Alex Manager",
+  recorded_at: timestamp,
   created_at: timestamp,
   updated_at: timestamp,
   total_cost: "33.6250",
@@ -64,6 +63,19 @@ describe("supplier receipt schemas", () => {
         ],
       }).success,
     ).toBe(true);
+  });
+
+  it("rejects duplicate stock items in a single supplier delivery", () => {
+    expect(
+      createSupplierReceiptSchema.safeParse({
+        supplier_id: id,
+        received_at: "2026-09-24",
+        items: [
+          { stock_item_id: id, quantity_received: "1", unit_cost: "2" },
+          { stock_item_id: id, quantity_received: "3", unit_cost: "4" },
+        ],
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects impossible dates, zero quantities, negative costs, and numeric inputs", () => {

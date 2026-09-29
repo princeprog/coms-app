@@ -37,15 +37,12 @@ type CatalogPageParser<T> = {
 export async function getSupplierReceiptPageData({
   page,
   search,
-  status,
 }: {
   page: number;
   search: string;
-  status?: "DRAFT" | "POSTED";
 }): Promise<SupplierReceiptPage> {
   const params = new URLSearchParams({ page: String(page), page_size: "25" });
   if (search.trim()) params.set("search", search.trim());
-  if (status) params.set("status", status);
   const payload = await requestComsApi<unknown>(
     `${supplierReceiptsEndpoint}?${params}`,
     { cookieHeader: (await cookies()).toString() },

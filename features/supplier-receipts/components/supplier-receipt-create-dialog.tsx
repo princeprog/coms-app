@@ -60,7 +60,16 @@ export function SupplierReceiptCreateDialog({
           else requestClose();
         }}
       >
-        <SheetTrigger render={<Button type="button">New receipt</Button>} />
+        <SheetTrigger
+          render={
+            <Button
+              type="button"
+              className="h-auto min-h-9 max-w-full whitespace-normal text-center leading-snug"
+            >
+              Record supplier delivery
+            </Button>
+          }
+        />
         <SheetContent
           data-coms-ui="operational"
           side="right"
@@ -68,10 +77,10 @@ export function SupplierReceiptCreateDialog({
           className="h-full w-full gap-0 overflow-hidden p-0 sm:max-w-2xl"
         >
           <SheetHeader className="border-b pr-16">
-            <SheetTitle>Create supplier receipt</SheetTitle>
+            <SheetTitle>Record supplier delivery</SheetTitle>
             <SheetDescription>
-              Save the delivery as a draft. Stock changes only after an
-              authorized user posts it.
+              Enter the delivered items. After confirmation, commissary
+              inventory updates immediately and the supplier record is final.
             </SheetDescription>
           </SheetHeader>
           <SupplierReceiptCreateForm
@@ -92,7 +101,7 @@ export function SupplierReceiptCreateDialog({
       <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
         <AlertDialogContent data-coms-ui="operational">
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard receipt draft?</AlertDialogTitle>
+            <AlertDialogTitle>Discard delivery details?</AlertDialogTitle>
             <AlertDialogDescription>
               Your unsaved supplier and item entries will be discarded.
             </AlertDialogDescription>

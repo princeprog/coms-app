@@ -5,33 +5,31 @@ import {
 } from "./supplier-receipt-page-params";
 
 describe("supplier receipt page filters", () => {
-  it("defaults invalid pages and status while trimming supplier search", () => {
+  it("defaults invalid pages while trimming supplier search", () => {
     expect(
       parseSupplierReceiptPageFilters({
         page: "invalid",
         search: "  North Farm  ",
         status: "UNKNOWN",
       }),
-    ).toEqual({ page: 1, search: "North Farm", status: "all" });
+    ).toEqual({ page: 1, search: "North Farm" });
   });
 
-  it("accepts a receipt state and bounds search and page values", () => {
+  it("bounds search and page values and ignores retired status filters", () => {
     expect(
       parseSupplierReceiptPageFilters({
         page: "1000001",
         search: "x".repeat(140),
-        status: "DRAFT",
       }),
-    ).toEqual({ page: 1, search: "x".repeat(100), status: "DRAFT" });
+    ).toEqual({ page: 1, search: "x".repeat(100) });
   });
 
-  it("preserves search and status in receipt pagination links", () => {
+  it("preserves supplier search in pagination links", () => {
     expect(
       createSupplierReceiptHref({
         page: 2,
         search: " North Farm ",
-        status: "POSTED",
       }),
-    ).toBe("/receipts?page=2&search=North+Farm&status=POSTED");
+    ).toBe("/receipts?page=2&search=North+Farm");
   });
 });

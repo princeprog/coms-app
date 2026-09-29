@@ -28,7 +28,6 @@ export type SupplierReceiptIndexViewResult =
       status: "ready";
       page: SupplierReceiptPage;
       search: string;
-      statusFilter: "all" | "DRAFT" | "POSTED";
       canCreate: boolean;
       formOptions: SupplierReceiptFormOptions | null;
       formOptionsIssue: "permissions" | "forbidden" | "unavailable" | null;
@@ -39,7 +38,7 @@ export type SupplierReceiptDetailViewResult =
   | { status: "session-expired" }
   | { status: "not-found" }
   | { status: "detail-error" }
-  | { status: "ready"; receipt: SupplierReceipt; canPost: boolean };
+  | { status: "ready"; receipt: SupplierReceipt };
 
 function getAccessFailure(
   error: unknown,
@@ -64,7 +63,6 @@ export async function loadSupplierReceiptIndexView(
     page = await getSupplierReceiptPageData({
       page: filters.page,
       search: filters.search,
-      status: filters.status === "all" ? undefined : filters.status,
     });
   } catch (error) {
     const accessFailure = getAccessFailure(error);
@@ -106,7 +104,6 @@ export async function loadSupplierReceiptIndexView(
     status: "ready",
     page,
     search: filters.search,
-    statusFilter: filters.status,
     canCreate,
     formOptions,
     formOptionsIssue,
@@ -123,11 +120,7 @@ export async function loadSupplierReceiptDetailView(
 
   try {
     const receipt = await getSupplierReceiptDetail(id);
-    return {
-      status: "ready",
-      receipt,
-      canPost: hasPermission(user, "supplier_receipts.post"),
-    };
+    return { status: "ready", receipt };
   } catch (error) {
     const accessFailure = getAccessFailure(error);
     if (accessFailure) return accessFailure;

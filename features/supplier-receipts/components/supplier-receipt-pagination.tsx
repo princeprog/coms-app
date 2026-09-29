@@ -6,22 +6,20 @@ export function SupplierReceiptPagination({
   page,
   pageCount,
   search,
-  status,
 }: {
   page: number;
   pageCount: number;
   search: string;
-  status: "all" | "DRAFT" | "POSTED";
 }) {
   return (
     <nav
-      aria-label="Supplier receipt pages"
+      aria-label="Supplier delivery pages"
       className="flex flex-wrap items-center justify-between gap-3"
     >
       {page > 1 ? (
         <Link
           className={buttonVariants({ variant: "outline" })}
-          href={createSupplierReceiptHref({ page: page - 1, search, status })}
+          href={createSupplierReceiptHref({ page: page - 1, search })}
         >
           Previous page
         </Link>
@@ -36,7 +34,7 @@ export function SupplierReceiptPagination({
       {page < pageCount ? (
         <Link
           className={buttonVariants({ variant: "outline" })}
-          href={createSupplierReceiptHref({ page: page + 1, search, status })}
+          href={createSupplierReceiptHref({ page: page + 1, search })}
         >
           Next page
         </Link>

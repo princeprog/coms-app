@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -15,20 +14,20 @@ import type { SupplierReceiptPage } from "@/features/supplier-receipts/types/sup
 export function SupplierReceiptTable({ page }: { page: SupplierReceiptPage }) {
   return (
     <section
-      aria-labelledby="supplier-receipts-heading"
+      aria-labelledby="supplier-deliveries-heading"
       className="flex flex-col gap-3"
     >
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 id="supplier-receipts-heading" className="text-lg font-semibold">
-          Supplier receipts
+        <h2 id="supplier-deliveries-heading" className="text-lg font-semibold">
+          Supplier deliveries
         </h2>
         <p className="text-sm text-muted-foreground">{page.total} total</p>
       </div>
       <Table
-        aria-label="Supplier receipts"
+        aria-label="Supplier deliveries"
         containerProps={{
           role: "region",
-          "aria-label": "Supplier receipts table",
+          "aria-label": "Supplier deliveries table",
           tabIndex: 0,
           className: "rounded-lg border",
         }}
@@ -36,10 +35,10 @@ export function SupplierReceiptTable({ page }: { page: SupplierReceiptPage }) {
         <TableHeader>
           <TableRow>
             <TableHead>Supplier</TableHead>
-            <TableHead>Received date</TableHead>
+            <TableHead>Delivery date</TableHead>
             <TableHead className="text-right">Items</TableHead>
             <TableHead className="text-right">Total cost</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Recorded</TableHead>
             <TableHead className="text-right">Details</TableHead>
           </TableRow>
         </TableHeader>
@@ -59,14 +58,17 @@ export function SupplierReceiptTable({ page }: { page: SupplierReceiptPage }) {
                 {receipt.total_cost}
               </TableCell>
               <TableCell>
-                <Badge variant="outline">{receipt.status}</Badge>
+                <span>{format(parseISO(receipt.recorded_at), "PPp")}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {receipt.recorded_by_name}
+                </span>
               </TableCell>
               <TableCell className="text-right">
                 <Link
                   className={buttonVariants({ variant: "outline", size: "sm" })}
                   href={`/receipts/${receipt.id}`}
                 >
-                  View receipt
+                  View delivery
                 </Link>
               </TableCell>
             </TableRow>

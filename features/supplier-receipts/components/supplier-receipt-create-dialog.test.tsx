@@ -5,7 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SupplierReceiptCreateDialog } from "./supplier-receipt-create-dialog";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const otherId = "7fa85f64-5717-4562-b3fc-2c963f66afa6";
@@ -48,7 +51,9 @@ describe("supplier receipt create dialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "New receipt" }));
+    await user.click(
+      screen.getByRole("button", { name: "Record supplier delivery" }),
+    );
     expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
       "operational",
     );
@@ -62,16 +67,22 @@ describe("supplier receipt create dialog", () => {
         .getByRole("combobox", { name: "Stock item for line 1" })
         .getAttribute("data-slot"),
     ).toBe("select-trigger");
-    await user.type(screen.getByLabelText("Received date"), "2026-09-24");
+    await user.type(screen.getByLabelText("Delivery date"), "2026-09-24");
     await user.type(
       screen.getByLabelText("Quantity received for line 1"),
       "1.25",
     );
     await user.type(screen.getByLabelText("Unit cost for line 1"), "2.50");
 
-    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await user.click(screen.getByRole("button", { name: "Review delivery" }));
+    expect(screen.getByText("Review supplier delivery")).toBeTruthy();
+    expect(
+      screen.getByText(/This immediately increases commissary inventory/),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Record delivery" }));
     await screen.findByText("Temporary failure.");
-    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await user.click(screen.getByRole("button", { name: "Review delivery" }));
+    await user.click(screen.getByRole("button", { name: "Record delivery" }));
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
 
     const firstCall = action.mock.calls[0];
@@ -92,7 +103,8 @@ describe("supplier receipt create dialog", () => {
     const quantity = screen.getByLabelText("Quantity received for line 1");
     await user.clear(quantity);
     await user.type(quantity, "1.50");
-    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await user.click(screen.getByRole("button", { name: "Review delivery" }));
+    await user.click(screen.getByRole("button", { name: "Record delivery" }));
     await waitFor(() => expect(action).toHaveBeenCalledTimes(3));
 
     expect(action.mock.calls[2][1]).not.toBe(firstCall[1]);
@@ -111,17 +123,19 @@ describe("supplier receipt create dialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "New receipt" }));
-    await user.type(screen.getByLabelText("Received date"), "2026-09-24");
+    await user.click(
+      screen.getByRole("button", { name: "Record supplier delivery" }),
+    );
+    await user.type(screen.getByLabelText("Delivery date"), "2026-09-24");
     await user.type(screen.getByLabelText("Quantity received for line 1"), "0");
     await user.type(screen.getByLabelText("Unit cost for line 1"), "2.50");
-    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await user.click(screen.getByRole("button", { name: "Review delivery" }));
 
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(action).not.toHaveBeenCalled();
   });
 
-  it("confirms before discarding a receipt draft and keeps entered values on cancel", async () => {
+  it("confirms before discarding unsaved delivery details", async () => {
     const user = userEvent.setup();
     render(
       <SupplierReceiptCreateDialog
@@ -131,8 +145,10 @@ describe("supplier receipt create dialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "New receipt" }));
-    await user.type(screen.getByLabelText("Received date"), "2026-09-24");
+    await user.click(
+      screen.getByRole("button", { name: "Record supplier delivery" }),
+    );
+    await user.type(screen.getByLabelText("Delivery date"), "2026-09-24");
     await user.type(
       screen.getByLabelText("Quantity received for line 1"),
       "2.75",
@@ -140,10 +156,10 @@ describe("supplier receipt create dialog", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(
-      screen.getByRole("alertdialog", { name: "Discard receipt draft?" }),
+      screen.getByRole("alertdialog", { name: "Discard delivery details?" }),
     ).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Keep editing" }));
-    expect(screen.getByLabelText("Received date")).toHaveProperty(
+    expect(screen.getByLabelText("Delivery date")).toHaveProperty(
       "value",
       "2026-09-24",
     );

@@ -31,11 +31,10 @@ const detail = {
   supplier_id: id,
   supplier_name: "North Farm Supply",
   received_at: "2026-09-24",
-  status: "DRAFT" as const,
   idempotency_key: "d34b9dc6-135f-4bd0-9f25-43a9617c9e0a",
-  created_by_user_id: id,
-  posted_by_user_id: null,
-  posted_at: null,
+  recorded_by_user_id: id,
+  recorded_by_name: "Alex Manager",
+  recorded_at: timestamp,
   created_at: timestamp,
   updated_at: timestamp,
   total_cost: "33.125",
@@ -135,7 +134,7 @@ describe("supplier receipt page loader", () => {
     expect(getSupplierReceiptFormOptions).toHaveBeenCalledTimes(1);
   });
 
-  it("preserves filters when redirecting an out-of-range page", async () => {
+  it("preserves supplier search when redirecting an out-of-range page", async () => {
     getSupplierReceiptPageData.mockResolvedValue({
       items: [],
       total: 51,
@@ -147,11 +146,10 @@ describe("supplier receipt page loader", () => {
       loadSupplierReceiptIndexView(user(), {
         page: "10",
         search: "North Farm",
-        status: "DRAFT",
       }),
     ).resolves.toEqual({
       status: "redirect",
-      href: "/receipts?page=3&search=North+Farm&status=DRAFT",
+      href: "/receipts?page=3&search=North+Farm",
     });
   });
 
@@ -193,7 +191,7 @@ describe("supplier receipt page loader", () => {
     });
   });
 
-  it("protects receipt detail reads and exposes posting only with its grant", async () => {
+  it("protects final supplier delivery detail reads", async () => {
     await expect(loadSupplierReceiptDetailView(user([]), id)).resolves.toEqual({
       status: "forbidden",
     });
@@ -204,14 +202,7 @@ describe("supplier receipt page loader", () => {
     ).resolves.toMatchObject({
       status: "ready",
       receipt: detail,
-      canPost: false,
     });
-    await expect(
-      loadSupplierReceiptDetailView(
-        user(["supplier_receipts.read", "supplier_receipts.post"]),
-        id,
-      ),
-    ).resolves.toMatchObject({ status: "ready", canPost: true });
   });
 
   it("treats a missing receipt as not found", async () => {
