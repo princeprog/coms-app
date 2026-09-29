@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { BranchDiscardConfirmation } from "@/features/branches/components/branch-discard-confirmation";
 import { BranchLocationFields } from "@/features/branches/components/branch-location-fields";
 import { createBranchAction } from "@/features/branches/services/branch-actions";
-import type { BranchMutationResult } from "@/features/branches/types/branch.types";
+import type { BranchCreateResult } from "@/features/branches/types/branch.types";
 
 export function BranchCreateForm({
   open,
@@ -22,9 +22,8 @@ export function BranchCreateForm({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onComplete: () => void;
+  onComplete: (code: string) => void;
 }) {
-  const [code, setCode] = useState("");
   const [branchName, setBranchName] = useState("");
   const [address, setAddress] = useState("");
   const [dateOpened, setDateOpened] = useState("");
@@ -32,9 +31,7 @@ export function BranchCreateForm({
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
-  const dirty = Boolean(
-    code || branchName || address || dateOpened || hasDineIn,
-  );
+  const dirty = Boolean(branchName || address || dateOpened || hasDineIn);
 
   function requestClose() {
     if (pending) return;
@@ -49,10 +46,9 @@ export function BranchCreateForm({
     event.preventDefault();
     setError("");
     setPending(true);
-    let result: BranchMutationResult;
+    let result: BranchCreateResult;
     try {
       result = await createBranchAction({
-        code,
         branch_name: branchName,
         address: address.trim() || null,
         date_opened: dateOpened || null,
@@ -68,13 +64,12 @@ export function BranchCreateForm({
       setError(result.error);
       return;
     }
-    setCode("");
     setBranchName("");
     setAddress("");
     setDateOpened("");
     setHasDineIn(false);
     onOpenChange(false);
-    onComplete();
+    onComplete(result.code);
   }
 
   return (
@@ -92,19 +87,19 @@ export function BranchCreateForm({
         <DialogHeader>
           <DialogTitle>Create branch</DialogTitle>
           <DialogDescription>
-            Add a location and its basic operating details.
+            Add a location and its basic operating details. COMS assigns the
+            branch code automatically.
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-5" onSubmit={submit}>
           <BranchLocationFields
             idPrefix="branch-create"
-            code={code}
             branchName={branchName}
             address={address}
             dateOpened={dateOpened}
             hasDineIn={hasDineIn}
             disabled={pending}
-            onCodeChange={setCode}
+            useDatePicker
             onBranchNameChange={setBranchName}
             onAddressChange={setAddress}
             onDateOpenedChange={setDateOpened}
@@ -134,7 +129,6 @@ export function BranchCreateForm({
           onOpenChange={setDiscardOpen}
           onDiscard={() => {
             setDiscardOpen(false);
-            setCode("");
             setBranchName("");
             setAddress("");
             setDateOpened("");

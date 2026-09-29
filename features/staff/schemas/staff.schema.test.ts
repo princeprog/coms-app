@@ -48,6 +48,16 @@ describe("staff schemas", () => {
 
     expect(createStaffSchema.safeParse(valid).success).toBe(true);
     expect(
+      createStaffSchema.safeParse({ ...valid, contact_number: "+638912345678" })
+        .success,
+    ).toBe(true);
+    for (const contact of ["abc1234567", "+14155550123", "0917123456"]) {
+      expect(
+        createStaffSchema.safeParse({ ...valid, contact_number: contact })
+          .success,
+      ).toBe(false);
+    }
+    expect(
       createStaffSchema.safeParse({ ...valid, password: "short" }).success,
     ).toBe(false);
     expect(

@@ -5,10 +5,14 @@ import { revalidatePath } from "next/cache";
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
 import {
+  branchSchema,
   createBranchSchema,
   updateBranchSchema,
 } from "@/features/branches/schemas/branch.schema";
-import type { BranchMutationResult } from "@/features/branches/types/branch.types";
+import type {
+  BranchCreateResult,
+  BranchMutationResult,
+} from "@/features/branches/types/branch.types";
 
 const BRANCH_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -43,10 +47,21 @@ async function mutateBranch(
 
 export async function createBranchAction(
   input: unknown,
-): Promise<BranchMutationResult> {
+): Promise<BranchCreateResult> {
   const parsed = createBranchSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Check the branch details." };
-  return mutateBranch("POST", "/branches", parsed.data);
+  try {
+    const response = await requestComsApi<unknown>("/branches", {
+      cookieHeader: (await cookies()).toString(),
+      method: "POST",
+      body: parsed.data,
+    });
+    const branch = branchSchema.parse(response);
+    revalidatePath("/branches");
+    return { ok: true, code: branch.code };
+  } catch (error) {
+    return { ok: false, error: getActionError(error) };
+  }
 }
 
 export async function updateBranchAction(

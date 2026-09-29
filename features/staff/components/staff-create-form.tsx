@@ -2,11 +2,25 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { SheetFooter } from "@/components/ui/sheet";
 import type { Role } from "@/features/roles/types/role.types";
-import { StaffBranchAssignments } from "@/features/staff/components/staff-branch-assignments";
-import { StaffCreateFields } from "@/features/staff/components/staff-create-fields";
+import { StaffCreateAccess } from "@/features/staff/components/staff-create-access";
+import { StaffCreateFormFooter } from "@/features/staff/components/staff-create-form-footer";
+import {
+  initialStaffCreateValues,
+  isStaffCreateDirty,
+  staffCreateFieldIds,
+  staffCreateFieldOrder,
+} from "@/features/staff/components/staff-create-form-config";
+import {
+  StaffCreateFields,
+  type StaffCreateValues,
+} from "@/features/staff/components/staff-create-fields";
+import {
+  normalizeStaffContactNumber,
+  validateStaffCreateField,
+  type StaffCreateField,
+  type StaffCreateFieldErrors,
+} from "@/features/staff/components/staff-create-validation";
 import { createStaffAction } from "@/features/staff/services/staff-actions";
 import type {
   StaffBranchOption,
@@ -36,73 +50,84 @@ export function StaffCreateForm({
     (role) =>
       role.is_active && !(role.is_system && role.code === "SUPER_ADMIN"),
   );
-  const defaultRoleId = UNASSIGNED_ROLE_VALUE;
   const initialBranchIds =
     initialBranchId && branches.some((branch) => branch.id === initialBranchId)
       ? [initialBranchId]
       : [];
-  const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
-  const [password, setPassword] = useState("");
-  const [roleId, setRoleId] = useState(defaultRoleId);
+  const [values, setValues] = useState<StaffCreateValues>(
+    initialStaffCreateValues,
+  );
+  const [roleId, setRoleId] = useState(UNASSIGNED_ROLE_VALUE);
   const [branchIds, setBranchIds] = useState<string[]>(initialBranchIds);
+  const [fieldErrors, setFieldErrors] = useState<StaffCreateFieldErrors>({});
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
 
-  function reportDirty(next: {
-    email?: string;
-    fullName?: string;
-    contactNumber?: string;
-    password?: string;
-    roleId?: string;
-    branchIds?: string[];
-  }) {
-    const values = {
-      email: next.email ?? email,
-      fullName: next.fullName ?? fullName,
-      contactNumber: next.contactNumber ?? contactNumber,
-      password: next.password ?? password,
-      roleId: next.roleId ?? roleId,
-      branchIds: next.branchIds ?? branchIds,
-    };
+  function reportDirty(
+    nextValues = values,
+    nextRoleId = roleId,
+    nextBranchIds = branchIds,
+  ) {
     onDirtyChange?.(
-      Boolean(
-        values.email ||
-        values.fullName ||
-        values.contactNumber ||
-        values.password ||
-        values.roleId !== defaultRoleId ||
-        values.branchIds.length !== initialBranchIds.length ||
-        values.branchIds.some((id) => !initialBranchIds.includes(id)),
+      isStaffCreateDirty(
+        nextValues,
+        nextRoleId,
+        nextBranchIds,
+        initialBranchIds,
       ),
     );
   }
 
-  function updateTextField(
-    field: "email" | "fullName" | "contactNumber" | "password" | "roleId",
-    value: string,
-    update: (value: string) => void,
-  ) {
-    update(value);
+  function updateField(field: keyof StaffCreateValues, value: string) {
+    const nextValues = { ...values, [field]: value };
+    setValues(nextValues);
     setError("");
-    reportDirty({ [field]: value });
+    setFieldErrors((current) => ({
+      ...current,
+      [field]: undefined,
+    }));
+    reportDirty(nextValues);
+  }
+
+  function blurField(field: StaffCreateField) {
+    setFieldErrors((current) => ({
+      ...current,
+      [field]: validateStaffCreateField(field, values[field]),
+    }));
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     setError("");
     setStatus("");
+
+    const nextErrors: StaffCreateFieldErrors = {};
+    for (const field of staffCreateFieldOrder) {
+      nextErrors[field] = validateStaffCreateField(field, values[field]);
+    }
+    setFieldErrors(nextErrors);
+    const firstInvalid = staffCreateFieldOrder.find(
+      (field) => nextErrors[field],
+    );
+    if (firstInvalid) {
+      document.getElementById(staffCreateFieldIds[firstInvalid])?.focus();
+      return;
+    }
+
+    const contactNumber = normalizeStaffContactNumber(values.contactNumber);
+    if (!contactNumber) return;
+
     setPending(true);
     onPendingChange?.(true);
     let result: StaffMutationResult;
     try {
       result = await createStaffAction({
-        email,
-        full_name: fullName,
+        email: values.email.trim().toLowerCase(),
+        full_name: values.fullName.trim(),
         contact_number: contactNumber,
-        password,
+        password: values.password,
         role_id: roleId === UNASSIGNED_ROLE_VALUE ? null : roleId,
         branch_ids: branchIds,
       });
@@ -118,11 +143,10 @@ export function StaffCreateForm({
       setError(result.error);
       return;
     }
-    setEmail("");
-    setFullName("");
-    setContactNumber("");
-    setPassword("");
-    setRoleId(defaultRoleId);
+    setValues(initialStaffCreateValues);
+    setRoleId(UNASSIGNED_ROLE_VALUE);
+    setBranchIds(initialBranchIds);
+    setFieldErrors({});
     onDirtyChange?.(false);
     setStatus("Staff account created.");
     router.refresh();
@@ -133,41 +157,37 @@ export function StaffCreateForm({
     <form
       aria-label="Create a staff account"
       className="flex min-h-0 flex-1 flex-col"
+      noValidate
       onSubmit={submit}
     >
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-5 pt-5 pb-7 sm:px-8">
         <StaffCreateFields
-          email={email}
-          fullName={fullName}
-          contactNumber={contactNumber}
-          password={password}
-          roleId={roleId}
-          assignableRoles={assignableRoles}
-          onEmailChange={(value) => updateTextField("email", value, setEmail)}
-          onFullNameChange={(value) =>
-            updateTextField("fullName", value, setFullName)
-          }
-          onContactNumberChange={(value) =>
-            updateTextField("contactNumber", value, setContactNumber)
-          }
-          onPasswordChange={(value) =>
-            updateTextField("password", value, setPassword)
-          }
-          onRoleChange={(value) => updateTextField("roleId", value, setRoleId)}
+          values={values}
+          errors={fieldErrors}
+          pending={pending}
+          onChange={updateField}
+          onBlur={blurField}
         />
-        <StaffBranchAssignments
+        <StaffCreateAccess
+          roleId={roleId}
+          roles={assignableRoles}
+          branchIds={branchIds}
           branches={branches}
-          selectedBranchIds={branchIds}
-          onChange={(ids) => {
+          pending={pending}
+          onRoleChange={(value) => {
+            setRoleId(value);
+            setError("");
+            reportDirty(values, value);
+          }}
+          onBranchChange={(ids) => {
             setBranchIds(ids);
             setError("");
-            reportDirty({ branchIds: ids });
+            reportDirty(values, roleId, ids);
           }}
           onLimitReached={() =>
             setError("A staff account can be assigned to at most 100 branches.")
           }
         />
-
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
@@ -183,19 +203,7 @@ export function StaffCreateForm({
           </p>
         )}
       </div>
-      <SheetFooter className="mt-0 border-t sm:flex-row sm:justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending}
-          onClick={onCancel}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={pending}>
-          {pending ? "Creating staff…" : "Create staff"}
-        </Button>
-      </SheetFooter>
+      <StaffCreateFormFooter pending={pending} onCancel={onCancel} />
     </form>
   );
 }

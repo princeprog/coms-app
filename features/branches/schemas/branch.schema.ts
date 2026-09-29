@@ -21,10 +21,6 @@ const branchDateSchema = z.union([z.iso.date(), z.iso.datetime()]).nullable();
 
 export const createBranchSchema = z
   .object({
-    code: z
-      .string()
-      .trim()
-      .regex(/^[A-Z0-9][A-Z0-9_-]{1,49}$/),
     branch_name: z.string().trim().min(2).max(160),
     address: z.string().trim().max(1000).nullable(),
     date_opened: branchDateSchema,

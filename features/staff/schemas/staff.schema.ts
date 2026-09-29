@@ -46,7 +46,10 @@ export const createStaffSchema = z
   .object({
     email: z.string().trim().toLowerCase().email().max(320),
     full_name: z.string().trim().min(2).max(160),
-    contact_number: z.string().trim().min(7).max(30),
+    contact_number: z
+      .string()
+      .trim()
+      .regex(/^(?:0|\+63)(?:9\d|89)\d{8}$/),
     password: z.string().min(12).max(128),
     role_id: roleIdSchema.nullable().optional().default(null),
     branch_ids: branchIdsSchema,

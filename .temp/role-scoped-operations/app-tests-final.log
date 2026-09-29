@@ -1,0 +1,218 @@
+
+ RUN  v3.2.7 C:/Users/Al Prince/Documents/Client Projects/COMS - Commissary Management System/coms-app
+
+ ✓ features/catalogs/components/catalog-management.test.tsx (11 tests) 4482ms
+   ✓ catalog management > renders explicit catalog columns and keeps long-form address in record details  367ms
+   ✓ catalog management > creates a catalog entry after trimming text and clearing blank optional fields  952ms
+   ✓ catalog management > creates a stock item from the grouped name, category, and unit fields  930ms
+   ✓ catalog management > confirms discarding a dirty form and preserves the draft when asked to keep editing  606ms
+   ✓ catalog management > retains catalog form values after server rejection so the user can retry  514ms
+   ✓ catalog management > updates the selected record without changing other values  559ms
+ ✓ features/dispatches/components/dispatch-shortage-control.test.tsx (4 tests) 3538ms
+   ✓ dispatch shortage control > uses an operational sheet and discards a shortage draft only after confirmation  882ms
+   ✓ dispatch shortage control > requires a reason and records only quantities still in transit  819ms
+   ✓ dispatch shortage control > rejects a shortage quantity above remaining transit  671ms
+   ✓ dispatch shortage control > reuses an unchanged retry key and rotates it when the reason changes  1163ms
+ ✓ features/staff/components/staff-directory.test.tsx (14 tests) 3034ms
+   ✓ staff directory > keeps a dirty management sheet open until edits are discarded  1022ms
+   ✓ staff directory > asks before closing a populated create sheet and resets only after discard  871ms
+ ✓ features/branch-products/components/branch-product-create-form.test.tsx (4 tests) 2153ms
+   ✓ branch product create form > creates an offer with the selected product and exact price string  663ms
+   ✓ branch product create form > validates missing choices and malformed decimal prices  484ms
+   ✓ branch product create form > retains a failed create draft and retries the same values  540ms
+   ✓ branch product create form > asks before discarding a dirty draft and retains it when kept  465ms
+ ✓ features/roles/components/role-create-page.test.tsx (2 tests) 2267ms
+   ✓ role create page > creates a role with its selected permissions and returns to the directory  1146ms
+   ✓ role create page > keeps values after a server error and confirms before leaving a dirty draft  1119ms
+ ✓ features/recipes/components/recipe-editor.test.tsx (5 tests) 2193ms
+   ✓ recipe editor > creates a recipe with exact decimal quantities and refreshes on success  557ms
+   ✓ recipe editor > blocks empty and duplicate ingredient rows before calling the action  768ms
+   ✓ recipe editor > retains ingredient values after a server error and permits retry  541ms
+   ✓ recipe editor > replaces recipes and requires inactive ingredients to be removed or replaced  309ms
+ ✓ features/roles/components/role-editor-page.test.tsx (12 tests) 2575ms
+   ✓ role editor page > confirms before discarding an unsaved role name  658ms
+   ✓ role editor page > keeps permission edits when the role name is saved independently  996ms
+ ✓ features/supplier-receipts/components/supplier-receipt-create-dialog.test.tsx (3 tests) 2320ms
+   ✓ supplier receipt create dialog > preserves decimal strings, retries with the same key, and changes the key when data changes  1183ms
+   ✓ supplier receipt create dialog > does not submit zero received quantities  592ms
+   ✓ supplier receipt create dialog > confirms before discarding a receipt draft and keeps entered values on cancel  543ms
+ ✓ features/branches/components/branches-management.test.tsx (10 tests) 3216ms
+   ✓ branch management > shows a compact table and opens editing only from the row action  313ms
+   ✓ branch management > creates a branch with its dine-in setting  495ms
+   ✓ branch management > submits a date selected from the Create branch calendar  887ms
+   ✓ branch management > retains branch fields after an API validation failure  425ms
+   ✓ branch management > confirms before discarding a dirty branch creation draft  528ms
+   ✓ branch management > updates branch fields without exposing or changing its code  445ms
+ ✓ features/staff/components/staff-create-form.test.tsx (7 tests) 6876ms
+   ✓ staff creation > creates an account using only an assignable role and selected branches  1995ms
+   ✓ staff creation > searches branches without losing selections and allows clearing assignments  492ms
+   ✓ staff creation > creates an unassigned account by default when no role is selected  1444ms
+   ✓ staff creation > keeps entered values and reports a rejected create request  1246ms
+   ✓ staff creation > shows inline email, contact number, and password errors before sending a request  812ms
+   ✓ staff creation > keeps the Philippine prefix fixed and ignores letters in the contact input  337ms
+   ✓ staff creation > can reveal the initial password without changing its value  547ms
+ ✓ features/inventory/components/inventory-adjustment-dialog.test.tsx (3 tests) 2003ms
+   ✓ inventory adjustment dialog > posts a signed decimal adjustment with a reason and idempotency key  986ms
+   ✓ inventory adjustment dialog > shows server errors and keeps the adjustment form available  491ms
+   ✓ inventory adjustment dialog > confirms before discarding a dirty adjustment and keeps editing on cancel  524ms
+ ✓ features/dispatches/components/dispatch-receive-control.test.tsx (4 tests) 1781ms
+   ✓ dispatch receive control > uses an operational sheet and confirms discarding a partial receipt draft  666ms
+   ✓ dispatch receive control > requires a positive quantity and rejects amounts above remaining transit  358ms
+   ✓ dispatch receive control > keeps a retry key for unchanged input and rotates it when input changes  479ms
+ ✓ features/staff/components/staff-member-actions.test.tsx (7 tests) 1321ms
+   ✓ staff member actions > updates profile fields with the selected branch context  492ms
+   ✓ staff member actions > assigns an active role without offering the bootstrap-only role  340ms
+ ✓ features/dispatches/components/dispatch-discrepancy-control.test.tsx (2 tests) 1534ms
+   ✓ dispatch discrepancy controls > requires and records the branch discrepancy note with an idempotency key  849ms
+   ✓ dispatch discrepancy controls > uses a reasoned recount request without editing any receipt  683ms
+ ✓ features/branch-products/components/branch-product-price-form.test.tsx (4 tests) 1371ms
+   ✓ branch product price form > sends an updated price without converting its decimal string  424ms
+   ✓ branch product price form > validates locally, then retains a server-rejected value for retry  499ms
+   ✓ branch product price form > confirms discard and leaves a dirty price open when the user keeps editing  445ms
+ ✓ features/daily-reports/components/daily-report-review-controls.test.tsx (4 tests) 1091ms
+   ✓ daily report review controls > blocks status changes while count edits are unsaved  447ms
+   ✓ daily report review controls > requires a reason before returning a submitted report  424ms
+ ✓ features/branch-products/components/branch-product-availability-form.test.tsx (3 tests) 981ms
+   ✓ branch product availability form > saves availability separately and refreshes the listing  427ms
+   ✓ branch product availability form > confirms a dirty availability change before closing  550ms
+ ✓ features/inventory/components/inventory-management.test.tsx (15 tests) 758ms
+ ✓ features/roles/components/roles-management.test.tsx (5 tests) 803ms
+ ✓ features/daily-reports/components/daily-report-item-editor.test.tsx (4 tests) 2104ms
+   ✓ daily report item editor > sends decimal strings and reasons without calculating authoritative totals in the app  1639ms
+ ✓ features/daily-reports/components/daily-report-create-form.test.tsx (4 tests) 1806ms
+   ✓ daily report create form > rejects a date after today's Manila business date  903ms
+   ✓ daily report create form > rotates the key when the business date changes after a failed attempt  407ms
+ ✓ features/stock-requests/components/stock-request-create-form.test.tsx (3 tests) 715ms
+   ✓ stock request create form > submits exact decimal text for the selected branch and item  340ms
+ ✓ components/layout/authenticated-app-shell.test.tsx (2 tests) 581ms
+   ✓ AuthenticatedAppShell > keeps the sidebar node through a catalog mutation refresh  520ms
+ ✓ features/stock-requests/components/stock-request-management.test.tsx (4 tests) 602ms
+   ✓ stock request management > uses client GET filters and retains the selected branch and status  421ms
+ ✓ features/sales/components/sales-management.test.tsx (4 tests) 411ms
+ ✓ features/branch-products/components/branch-product-list.test.tsx (4 tests) 411ms
+   ✓ branch product list > keeps price and availability changes in separate dialogs  315ms
+ ✓ features/stock-requests/components/stock-request-create-dialog.test.tsx (1 test) 527ms
+   ✓ stock request create sheet > marks its portal, uses shadcn selects, and confirms dirty draft dismissal  526ms
+ ✓ features/dispatches/components/dispatch-management.test.tsx (4 tests) 411ms
+ ✓ features/dashboard/components/dashboard-workspace.test.tsx (3 tests) 375ms
+ ✓ features/supplier-receipts/components/supplier-receipt-management.test.tsx (3 tests) 389ms
+   ✓ supplier receipt management > uses client navigation for the supported search and status filters  355ms
+ ✓ features/auth/components/logout-menu-item.test.tsx (4 tests) 511ms
+ ✓ features/staff/components/staff-role-form.test.tsx (1 test) 386ms
+   ✓ staff role assignment > can remove an assigned role and leave the account with no access  384ms
+ ✓ features/dispatches/components/dispatch-post-control.test.tsx (2 tests) 382ms
+ ✓ features/branch-products/components/branch-product-filters.test.tsx (1 test) 319ms
+   ✓ branch product filters > keeps branch, search, and availability selections in client GET navigation  318ms
+ ✓ features/stock-requests/components/stock-request-transition-dialog.test.tsx (2 tests) 345ms
+ ✓ features/daily-reports/components/daily-report-directory-toolbar.test.tsx (1 test) 220ms
+ ✓ features/sales/components/pos-branch-selector.test.tsx (1 test) 274ms
+ ✓ features/sales/components/pos-checkout.test.tsx (6 tests) 221ms
+ ✓ features/supplier-receipts/components/supplier-receipt-detail-view.test.tsx (2 tests) 235ms
+ ✓ features/dispatches/components/dispatch-detail-view.test.tsx (5 tests) 203ms
+ ✓ features/sales/components/sale-void-control.test.tsx (1 test) 179ms
+ ✓ features/auth/components/login-form.test.tsx (4 tests) 143ms
+ ✓ features/branch-products/components/branch-products-management.test.tsx (3 tests) 159ms
+ ✓ features/stock-requests/components/stock-request-detail-view.test.tsx (3 tests) 110ms
+ ✓ features/sales/components/sales-history-table.test.tsx (2 tests) 82ms
+ ✓ features/sales/components/sale-detail-content.test.tsx (1 test) 71ms
+ ✓ features/daily-reports/components/daily-report-list.test.tsx (3 tests) 112ms
+ ✓ features/recipes/components/recipe-product-list.test.tsx (3 tests) 116ms
+ ✓ components/site-header.test.tsx (4 tests) 91ms
+ ✓ components/nav-main.test.tsx (3 tests) 99ms
+ ✓ features/dispatches/components/dispatch-create-control.test.tsx (3 tests) 106ms
+ ✓ components/layout/use-quick-create-dialog.test.tsx (1 test) 211ms
+ ✓ components/shared/operational-load-error.test.tsx (1 test) 104ms
+ ✓ components/shared/operational-page-ui.test.tsx (4 tests) 159ms
+ ✓ features/auth/hooks/use-auth.test.tsx (7 tests) 180ms
+ ✓ features/daily-reports/components/daily-reports-management.test.tsx (1 test) 62ms
+ ✓ features/auth/services/auth-coordination.test.ts (8 tests) 12ms
+ ✓ test/operational-api-fixture.test.ts (15 tests) 369ms
+ ✓ features/daily-reports/services/daily-report-actions.test.ts (7 tests) 126ms
+ ✓ features/daily-reports/services/daily-report-page-loader.test.ts (6 tests) 122ms
+ ✓ features/daily-reports/services/daily-report-queries.test.ts (3 tests) 166ms
+ ✓ features/daily-reports/schemas/daily-report.schema.test.ts (3 tests) 91ms
+ ✓ features/daily-reports/services/daily-report-page-params.test.ts (3 tests) 83ms
+ ✓ features/staff/services/staff-queries.test.ts (6 tests) 15ms
+ ✓ services/api-services.test.ts (5 tests) 45ms
+ ✓ features/branch-products/services/branch-product-actions.test.ts (4 tests) 11ms
+ ✓ features/supplier-receipts/services/supplier-receipt-queries.test.ts (1 test) 8ms
+ ✓ features/supplier-receipts/services/supplier-receipt-actions.test.ts (3 tests) 11ms
+ ✓ features/stock-requests/services/stock-request-page-loader.test.ts (9 tests) 11ms
+ ✓ features/sales/services/sales-actions.test.ts (4 tests) 12ms
+ ✓ features/stock-requests/services/stock-request-actions.test.ts (4 tests) 11ms
+ ✓ features/staff/schemas/staff.schema.test.ts (4 tests) 9ms
+stderr | features/auth/services/auth-server.test.ts > getCurrentUserFromServer > distinguishes an expired session from an unavailable API
+{ event: 'auth_outage', status: 503, count: 1 }
+
+stderr | features/auth/services/auth-server.test.ts > getCurrentUserFromServer > treats malformed success as an outage instead of rendering protected UI
+{ event: 'auth_outage', status: 502, count: 2 }
+
+ ✓ features/auth/services/auth-server.test.ts (4 tests) 15ms
+ ✓ features/sales/services/sales-queries.test.ts (2 tests) 11ms
+stderr | features/auth/services/auth-recovery.test.ts > server session recovery > retains session on outage, never retries the refresh POST
+{ event: 'auth_outage', status: 503, count: 1 }
+
+ ✓ features/auth/services/auth-recovery.test.ts (7 tests) 18ms
+stderr | features/auth/services/auth-actions.test.ts > auth-actions > retains cookies when logout fails so the user can retry
+{ event: 'auth_outage', status: 503, count: 1 }
+
+stderr | features/auth/services/auth-actions.test.ts > auth-actions > rejects malformed login success without relaying cookies: {}
+{ event: 'auth_outage', status: 502, count: 2 }
+
+stderr | features/auth/services/auth-actions.test.ts > auth-actions > rejects malformed login success without relaying cookies: {"user":{"id":"incomplete"}}
+{ event: 'auth_outage', status: 502, count: 3 }
+
+stderr | features/auth/services/auth-actions.test.ts > auth-actions > rejects malformed login success without relaying cookies: "<html>Gateway unavailable</html>"
+{ event: 'auth_outage', status: 502, count: 4 }
+
+stderr | features/auth/services/auth-actions.test.ts > auth-actions > requires the logout contract before clearing a session
+{ event: 'auth_outage', status: 502, count: 5 }
+
+ ✓ features/auth/services/auth-actions.test.ts (7 tests) 17ms
+ ✓ features/dashboard/services/dashboard-date-range.test.ts (3 tests) 17ms
+ ✓ features/daily-reports/services/manila-date.test.ts (1 test) 17ms
+ ✓ features/dispatches/services/dispatch-actions.test.ts (9 tests) 13ms
+ ✓ features/suppliers/schemas/supplier.schema.test.ts (3 tests) 7ms
+ ✓ features/recipes/services/recipe-actions.test.ts (4 tests) 10ms
+ ✓ features/sales/schemas/sale.schema.test.ts (2 tests) 8ms
+ ✓ features/stock-requests/schemas/stock-request.schema.test.ts (3 tests) 8ms
+ ✓ features/staff/services/staff-actions.test.ts (5 tests) 10ms
+ ✓ features/inventory/services/inventory-page-loader.test.ts (11 tests) 9ms
+ ✓ features/dispatches/services/dispatch-queries.test.ts (4 tests) 11ms
+ ✓ features/inventory/schemas/inventory.schema.test.ts (4 tests) 9ms
+ ✓ features/dispatches/schemas/dispatch.schema.test.ts (5 tests) 12ms
+ ✓ features/branch-products/services/branch-product-page-loader.test.ts (7 tests) 8ms
+ ✓ features/supplier-receipts/schemas/supplier-receipt.schema.test.ts (4 tests) 9ms
+ ✓ features/recipes/schemas/recipe.schema.test.ts (9 tests) 7ms
+ ✓ features/inventory/services/inventory-queries.test.ts (3 tests) 9ms
+ ✓ features/dispatches/services/dispatch-page-loader.test.ts (8 tests) 8ms
+ ✓ features/branch-products/schemas/branch-product.schema.test.ts (9 tests) 7ms
+ ✓ services/server-api-services.test.ts (3 tests) 9ms
+ ✓ features/products/schemas/product.schema.test.ts (3 tests) 7ms
+ ✓ features/sales/services/sales-page-loader.test.ts (4 tests) 8ms
+ ✓ features/branch-products/services/branch-product-queries.test.ts (2 tests) 9ms
+ ✓ features/inventory/services/inventory-actions.test.ts (2 tests) 9ms
+ ✓ features/auth/schemas/auth.schema.test.ts (4 tests) 7ms
+ ✓ features/supplier-receipts/services/supplier-receipt-page-loader.test.ts (8 tests) 7ms
+ ✓ features/stock-items/schemas/stock-item.schema.test.ts (3 tests) 9ms
+ ✓ features/staff/services/staff-page-params.test.ts (8 tests) 6ms
+ ✓ app/(authenticated)/inventory/page.test.tsx (3 tests) 7ms
+ ✓ features/auth/permissions.test.ts (8 tests) 6ms
+ ✓ features/stock-requests/services/stock-request-page-params.test.ts (3 tests) 7ms
+ ✓ features/sales/services/sales-page-params.test.ts (3 tests) 4ms
+ ✓ features/inventory/services/inventory-page-params.test.ts (5 tests) 6ms
+ ✓ features/sales/services/sale-decimal.test.ts (3 tests) 5ms
+ ✓ features/branch-products/services/branch-product-page-params.test.ts (3 tests) 5ms
+ ✓ features/auth/services/auth-client.test.ts (1 test) 4ms
+ ✓ features/supplier-receipts/services/supplier-receipt-page-params.test.ts (3 tests) 3ms
+ ✓ features/dispatches/services/dispatch-page-params.test.ts (3 tests) 3ms
+ ✓ features/staff/components/staff-create-validation.test.ts (3 tests) 4ms
+ ✓ features/dispatches/services/decimal-quantity.test.ts (4 tests) 3ms
+ ✓ components/app-sidebar.test.ts (1 test) 3ms
+ ✓ components/layout/sidebar-quick-actions.test.ts (3 tests) 3ms
+
+ Test Files  117 passed (117)
+      Tests  506 passed (506)
+   Start at  23:53:32
+   Duration  240.52s (transform 3.25s, setup 31.18s, collect 54.19s, tests 59.18s, environment 57.32s, prepare 17.48s)
+

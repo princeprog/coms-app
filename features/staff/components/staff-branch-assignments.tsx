@@ -1,4 +1,5 @@
 import type { StaffBranchOption } from "@/features/staff/types/staff.types";
+import { MAX_STAFF_BRANCH_ASSIGNMENTS } from "@/features/staff/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -6,8 +7,6 @@ import {
   FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
-
-const MAX_BRANCH_ASSIGNMENTS = 100;
 
 export function StaffBranchAssignments({
   branches,
@@ -23,7 +22,7 @@ export function StaffBranchAssignments({
   function toggleBranch(branchId: string, checked: boolean) {
     if (checked) {
       if (selectedBranchIds.includes(branchId)) return;
-      if (selectedBranchIds.length >= MAX_BRANCH_ASSIGNMENTS) {
+      if (selectedBranchIds.length >= MAX_STAFF_BRANCH_ASSIGNMENTS) {
         onLimitReached();
         return;
       }

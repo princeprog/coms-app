@@ -33,9 +33,14 @@ export function StaffTable({
   permissions: StaffManagementPermissions;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div
+      className="overflow-x-auto"
+      role="region"
+      aria-label="Staff table"
+      tabIndex={0}
+    >
       <Table aria-label="Staff directory" className="min-w-[54rem]">
-        <TableHeader className="bg-muted/40">
+        <TableHeader>
           <TableRow>
             <TableHead>Staff member</TableHead>
             <TableHead>Role</TableHead>

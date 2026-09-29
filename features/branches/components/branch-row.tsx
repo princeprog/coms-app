@@ -76,7 +76,13 @@ export function BranchRow({
           {branch.has_dine_in ? "Available" : "Not available"}
         </TableCell>
         <TableCell>
-          <Badge variant={branch.status === "active" ? "secondary" : "outline"}>
+          <Badge
+            className={
+              branch.status === "active"
+                ? "bg-green-700 text-white"
+                : "bg-red-700 text-white"
+            }
+          >
             {branch.status === "active" ? "Active" : "Inactive"}
           </Badge>
         </TableCell>

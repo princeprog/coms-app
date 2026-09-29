@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { CatalogDiscardConfirmation } from "@/features/catalogs/components/catalog-discard-confirmation";
 import { CatalogEditorFields } from "@/features/catalogs/components/catalog-editor-fields";
+import { SupplierCreateFields } from "@/features/catalogs/components/supplier-create-fields";
+import { StockItemCreateFields } from "@/features/stock-items/components/stock-item-create-fields";
 import type {
   CatalogCreateAction,
   CatalogFieldDefinition,
@@ -29,6 +31,53 @@ function initialValues(
       return [field.key, typeof value === "string" ? value : ""];
     }),
   );
+}
+
+function CatalogCreateFields({
+  layout,
+  fields,
+  values,
+  pending,
+  onChange,
+}: {
+  layout: "supplier" | "stock-item";
+  fields: CatalogFieldDefinition[];
+  values: Record<string, string>;
+  pending: boolean;
+  onChange: (key: string, value: string) => void;
+}) {
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+      {layout === "supplier" ? (
+        <SupplierCreateFields
+          fields={fields}
+          values={values}
+          pending={pending}
+          onChange={onChange}
+        />
+      ) : (
+        <StockItemCreateFields
+          fields={fields}
+          values={values}
+          pending={pending}
+          onChange={onChange}
+        />
+      )}
+    </div>
+  );
+}
+
+function dialogDescription(
+  resourceName: string,
+  record: CatalogRecord | null,
+  createLayout: "supplier" | "stock-item" | null,
+) {
+  if (record) return `Update the saved ${resourceName} details.`;
+  if (createLayout === "supplier")
+    return "Add a supplier for commissary receiving. Contact details can be added now or later.";
+  if (createLayout === "stock-item")
+    return "Define an item and the unit used to track its stock across COMS.";
+  return `Add a new ${resourceName} to the catalog.`;
 }
 
 export function CatalogEditorDialog({
@@ -57,6 +106,14 @@ export function CatalogEditorDialog({
   const [pending, setPending] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const resourceLabel = resourceName[0]?.toUpperCase() + resourceName.slice(1);
+  const createLayout = record
+    ? null
+    : resourceName === "supplier"
+      ? "supplier"
+      : resourceName === "stock item"
+        ? "stock-item"
+        : null;
+  const isDesignedCreate = createLayout !== null;
   const idPrefix = resourceName.replaceAll(" ", "-");
   const originalValues = initialValues(fields, record);
   const isDirty = fields.some(
@@ -70,6 +127,10 @@ export function CatalogEditorDialog({
       return;
     }
     onOpenChange(false);
+  }
+
+  function changeValue(key: string, value: string) {
+    setValues((current) => ({ ...current, [key]: value }));
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -111,43 +172,90 @@ export function CatalogEditorDialog({
     >
       <DialogContent
         data-coms-ui="operational"
-        className="max-h-[85vh] overflow-y-auto sm:max-w-lg"
+        className={
+          isDesignedCreate
+            ? `flex max-h-[90dvh] min-h-0 flex-col gap-0 overflow-hidden p-0 ${createLayout === "supplier" ? "sm:max-w-[40rem]" : "sm:max-w-xl"}`
+            : "max-h-[85vh] overflow-y-auto sm:max-w-lg"
+        }
       >
-        <DialogHeader>
+        <DialogHeader
+          className={
+            isDesignedCreate ? "shrink-0 px-5 pt-6 pb-1 sm:px-7" : undefined
+          }
+        >
           <DialogTitle>
             {record ? `Edit ${resourceName}` : `Create ${resourceName}`}
           </DialogTitle>
           <DialogDescription>
-            {record
-              ? `Update the saved ${resourceName} details.`
-              : `Add a new ${resourceName} to the catalog.`}
+            {dialogDescription(resourceName, record, createLayout)}
           </DialogDescription>
         </DialogHeader>
-        <form className="flex flex-col gap-5" onSubmit={submit}>
-          <CatalogEditorFields
-            idPrefix={idPrefix}
-            fields={fields}
-            values={values}
-            pending={pending}
-            onChange={(key, value) =>
-              setValues((current) => ({ ...current, [key]: value }))
-            }
-          />
+        <form
+          className={
+            isDesignedCreate
+              ? "flex min-h-0 flex-1 flex-col"
+              : "flex flex-col gap-5"
+          }
+          onSubmit={submit}
+        >
+          {createLayout ? (
+            <CatalogCreateFields
+              layout={createLayout}
+              fields={fields}
+              values={values}
+              pending={pending}
+              onChange={changeValue}
+            />
+          ) : (
+            <CatalogEditorFields
+              idPrefix={idPrefix}
+              fields={fields}
+              values={values}
+              pending={pending}
+              onChange={changeValue}
+            />
+          )}
           {error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p
+              role="alert"
+              className={
+                isDesignedCreate
+                  ? "shrink-0 px-5 pb-2 text-sm text-destructive sm:px-7"
+                  : "text-sm text-destructive"
+              }
+            >
               {error}
             </p>
           )}
-          <DialogFooter>
+          <DialogFooter
+            className={
+              isDesignedCreate
+                ? "shrink-0 flex-row border-t bg-muted/30 px-5 py-4 sm:px-7"
+                : undefined
+            }
+          >
             <Button
               type="button"
               variant="outline"
+              className={
+                isDesignedCreate
+                  ? "h-10 flex-1 sm:min-w-24 sm:flex-none"
+                  : undefined
+              }
               disabled={pending}
               onClick={requestClose}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button
+              type="submit"
+              disabled={pending}
+              className={
+                isDesignedCreate
+                  ? "h-10 flex-1 sm:min-w-36 sm:flex-none"
+                  : undefined
+              }
+            >
               {pending
                 ? "Saving…"
                 : record

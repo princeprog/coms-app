@@ -45,6 +45,27 @@ final result: passed
 
 ---
 
+# COMS Branch Manager Inventory Design QA — 2026-09-27
+
+## Comparison target
+
+- Source visual truth: User-provided Branch Manager Inventory reference at `C:/Users/ALPRIN~1/AppData/Local/Temp/codex-clipboard-36d61254-2ecb-4090-bd9b-1b4fab17ccae.png`, 1584 × 993 px.
+- Implementation: Production browser fixture capture at `test-results/inventory-branch/inventory-branch-desktop.png`, 1586 × 992 px, with a 1586 × 992 CSS viewport and device scale 1. The 2 px width and 1 px height difference needs no density normalization.
+- State: Light theme, signed in as the predefined Branch Manager with `inventory.read`, one assigned branch, no commissary grant, and no adjustment grant. The fixture has eight stock items and recent branch movements; its sample names and quantities differ from the mock.
+
+## Evidence and findings
+
+- Full-view comparison: Both screens present a branch name badge beside Inventory, a short location-specific subtitle, a search card with fixed location context, a compact stock table, and a recent-movement table. Neither screen exposes location tabs, a branch selector, or read-only adjustment actions.
+- Focused comparison: The balance table separates on-hand quantity and unit; the movement table uses text-bearing type badges and signed quantity changes. Existing COMS shell spacing, filtered navigation, and real fixture data differ from the generated reference. The reference's In Stock/Low Stock labels require a stock threshold absent from the API contract, so the implementation shows the actual Active/Inactive catalog state.
+- Responsive evidence: `test-results/inventory-branch/inventory-branch-mobile.png` captures the 390 px view. The browser fixture checked no document-level horizontal overflow at 390 and 195 px, and the table scroll regions remain keyboard focusable. Enter on the search field submitted the selected branch ID and returned only matching stock. Browser page errors were empty.
+- Interaction boundary: An explicit unauthorized scope or branch ID is rejected by the server page loader before inventory fetch, as covered by focused tests. The branch browser fixture exercises presentation and search with simulated API data; real API authorization is covered separately by the Inventory guard tests.
+
+No actionable P0, P1, or P2 visual or interaction findings remain. Sample values, status semantics, and the existing COMS shell are intentional differences from the generated reference. The app continues to show its existing recent-movement window without adding a new movement pagination workflow.
+
+final result: passed
+
+---
+
 # COMS Create Role Page Design QA — 2026-09-26
 
 ## Comparison target
@@ -73,5 +94,26 @@ No actionable P0, P1, or P2 visual or interaction findings remain. The generated
 ## Follow-up polish
 
 - The source mock's sidebar/header branding and sample role values remain different from the running COMS shell and real create state by design.
+
+final result: passed
+
+---
+
+# COMS Add Staff Modal Design QA — 2026-09-26
+
+## Comparison target
+
+- Source visual truth: User-provided Add staff screenshot at `C:/Users/ALPRIN~1/AppData/Local/Temp/codex-clipboard-2b9dd16f-1b18-4625-af83-756c6e391f2c.png`, 1586 × 992 px.
+- Implementation: Production browser capture at `test-results/operational-ui/staff-add-modal-desktop.png`, 1586 × 992 px, using the simulated API fixture. The desktop and mobile captures are archived in the COMS vault's `Design/Implementation Captures` folder.
+- State: Light theme, empty Add staff form, default +63 country code, Unassigned role, and no branch selection. Both images depict the initial modal state.
+
+## Evidence and findings
+
+- Full-view comparison: The modal is centered at 704 px wide with a top edge near 157 px, closely matching the reference's placement and size. It uses the same title/description hierarchy, two account-detail rows, access row, close action, section dividers, and right-aligned Cancel/Create actions.
+- Focused comparison: Inputs and selectors align in two columns on desktop; the phone prefix, password visibility control, orange primary action, and clear dim backdrop match the reference's structure. The running COMS shell and fixture directory differ from the generated reference and were preserved.
+- Contract differences: The reference labels Role and Branches as required and suggests an eight-character password. COMS requires a 12-character minimum and supports Unassigned role and empty branch access. The implementation displays the authoritative behavior and validation.
+- Responsive interaction: At 390 × 667, the form stacks, its content scrolls inside the dialog, and the footer stays visible. The browser fixture checked required-field errors, dirty-discard confirmation, modal bounds, responsive route structure, dark mode, and console errors. Focused Staff component tests passed 17/17; lint, typecheck, and production build passed.
+
+No actionable P0, P1, or P2 findings remain.
 
 final result: passed

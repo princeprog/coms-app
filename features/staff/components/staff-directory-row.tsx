@@ -1,8 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { EllipsisVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { StaffManagementSheet } from "@/features/staff/components/staff-management-sheet";
 import type { Role } from "@/features/roles/types/role.types";
@@ -49,9 +56,6 @@ export function StaffDirectoryRow({
         permissions.canAssignBranches ||
         (permissions.canDeactivate && staff.is_active))),
   );
-  const actionLabel = canManage
-    ? `Manage ${staff.full_name}`
-    : `View details for ${staff.full_name}`;
 
   return (
     <>
@@ -80,22 +84,32 @@ export function StaffDirectoryRow({
         </TableCell>
         <TableCell>{staff.contact_number}</TableCell>
         <TableCell>
-          <Badge variant={staff.is_active ? "secondary" : "outline"}>
+          <Badge variant={staff.is_active ? "secondary" : "destructive"}>
             {staff.is_active ? "Active" : "Inactive"}
           </Badge>
         </TableCell>
         <TableCell>
           <div className="flex justify-end">
-            <Button
-              ref={triggerRef}
-              type="button"
-              size="sm"
-              variant="outline"
-              aria-label={actionLabel}
-              onClick={() => setOpen(true)}
-            >
-              {canManage ? "Manage" : "View details"}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    ref={triggerRef}
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Actions for ${staff.full_name}`}
+                  />
+                }
+              >
+                <EllipsisVertical aria-hidden="true" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent data-coms-ui="operational" align="end">
+                <DropdownMenuItem onClick={() => setOpen(true)}>
+                  {canManage ? "Manage staff" : "View details"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </TableCell>
       </TableRow>

@@ -58,7 +58,7 @@ const roles = [
     is_system: false,
     is_predefined: true,
     is_active: true,
-    permission_keys: ["stock_requests.read"],
+    permission_keys: ["dashboard.read"],
   },
 ];
 

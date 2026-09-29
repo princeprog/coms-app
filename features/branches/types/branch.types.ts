@@ -3,6 +3,8 @@ import type { branchSchema } from "@/features/branches/schemas/branch.schema";
 
 export type Branch = z.infer<typeof branchSchema>;
 export type BranchMutationResult = { ok: true } | { ok: false; error: string };
+export type BranchCreateResult =
+  { ok: true; code: string } | { ok: false; error: string };
 export type BranchPage = {
   items: Branch[];
   total: number;

@@ -5,6 +5,21 @@ import type {
 
 export const stockItemsEndpoint = "/stock-items";
 
+export const stockItemCategories = [
+  "Dry goods",
+  "Produce",
+  "Poultry",
+  "Meat",
+  "Seafood",
+  "Dairy and eggs",
+  "Frozen goods",
+  "Beverages",
+  "Condiments and spices",
+  "Packaging",
+  "Cleaning supplies",
+  "Other",
+] as const;
+
 export const stockItemDisplayColumns: CatalogDisplayColumn[] = [
   { key: "stock_item_name", label: "Stock item" },
   { key: "category", label: "Category" },

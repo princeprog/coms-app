@@ -159,9 +159,9 @@ async function historyCount() {
         if (scrollTop !== undefined) assert.equal(identity.scrollTop, scrollTop);
       };
 
-      await first.getByRole("link", { name: "Receiving" }).click();
+      await first.getByRole("link", { name: "Supplier Receiving" }).click();
       await first.waitForURL("**/receipts");
-      await first.getByRole("heading", { name: "Receiving", exact: true }).waitFor();
+      await first.getByRole("heading", { name: "Supplier Receiving", exact: true }).waitFor();
 
       let releaseSuppliersResponse;
       let markSuppliersResponseStarted;
@@ -187,7 +187,7 @@ async function historyCount() {
       ]);
       assert.equal(suppliersRequestStarted, true, "expected an RSC navigation request");
       await assertShellIdentity("expanded");
-      assert(await first.getByRole("link", { name: "Receiving" }).isVisible());
+      assert(await first.getByRole("link", { name: "Supplier Receiving" }).isVisible());
       releaseSuppliersResponse();
       await suppliersNavigation;
       await first.unroute("**/suppliers**");
@@ -272,7 +272,7 @@ async function historyCount() {
       await mobileReceivingLink.focus();
       await first.keyboard.press("Enter");
       await first.waitForURL("**/receipts");
-      await first.getByRole("heading", { name: "Receiving", exact: true }).waitFor();
+      await first.getByRole("heading", { name: "Supplier Receiving", exact: true }).waitFor();
       await mobileReceivingLink.waitFor({ state: "hidden" });
       assert(
         await first.evaluate(

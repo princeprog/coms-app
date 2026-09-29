@@ -15,6 +15,16 @@ describe("staff page parameters", () => {
     );
   });
 
+  it("preserves a staff status filter in page links and rejects unknown values", () => {
+    expect(createStaffPageHref(2, firstBranch, "Alex", "inactive")).toBe(
+      `/staff?page=2&branch_id=${firstBranch}&search=Alex&status=inactive`,
+    );
+    expect(parseStaffPageFilters({ status: "unassigned" }).status).toBe(
+      "unassigned",
+    );
+    expect(parseStaffPageFilters({ status: "unexpected" }).status).toBe("all");
+  });
+
   it("normalizes invalid pagination and bounds search text", () => {
     expect(
       parseStaffPageFilters({
@@ -26,6 +36,7 @@ describe("staff page parameters", () => {
       page: 1,
       search: "a".repeat(120),
       requestedBranchId: undefined,
+      status: "all",
     });
   });
 

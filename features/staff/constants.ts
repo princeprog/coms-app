@@ -7,3 +7,4 @@ export const staffEndpoints = {
 };
 
 export const UNASSIGNED_ROLE_VALUE = "__unassigned__";
+export const MAX_STAFF_BRANCH_ASSIGNMENTS = 100;

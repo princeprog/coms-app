@@ -7,7 +7,10 @@ import {
 import { StaffCreateSection } from "@/features/staff/components/staff-create-section";
 import { StaffDirectoryFilters } from "@/features/staff/components/staff-directory-filters";
 import { StaffTable } from "@/features/staff/components/staff-table";
-import { createStaffPageHref } from "@/features/staff/services/staff-page-params";
+import {
+  createStaffPageHref,
+  type StaffStatusFilter,
+} from "@/features/staff/services/staff-page-params";
 import type { Role } from "@/features/roles/types/role.types";
 import type {
   StaffBranchOption,
@@ -20,6 +23,7 @@ export function StaffDirectory({
   branchOptions,
   selectedBranchId,
   search,
+  status = "all",
   isSuperAdmin,
   canCreateStaff,
   canReadRoles,
@@ -39,6 +43,7 @@ export function StaffDirectory({
   branchOptions: StaffBranchOption[];
   selectedBranchId?: string;
   search: string;
+  status?: StaffStatusFilter;
   isSuperAdmin: boolean;
   canCreateStaff: boolean;
   canReadRoles: boolean;
@@ -54,32 +59,32 @@ export function StaffDirectory({
 
   return (
     <div data-coms-ui="operational" className="flex flex-col gap-6">
-      <OperationalPageIntro
-        description="Manage staff profiles, account roles, and branch access. Each change is saved separately."
-        count={
-          <Badge variant="outline">
-            {staff.total} {staff.total === 1 ? "staff member" : "staff members"}
-          </Badge>
-        }
-        actions={
-          canCreateStaff ? (
-            <StaffCreateSection
-              roles={roleOptions}
-              branches={branchOptions}
-              initialBranchId={selectedBranchId}
-              canReadRoles={canReadRoles}
-              rolesFailed={roleOptionsFailed}
-            />
-          ) : undefined
-        }
-      />
+      <OperationalPageIntro description="Manage staff profiles, account roles, and branch access. Each change is saved separately." />
 
       <StaffDirectoryFilters
-        key={`${selectedBranchId ?? "all"}:${search}`}
+        key={`${selectedBranchId ?? "all"}:${search}:${status}`}
         branchOptions={branchOptions}
         selectedBranchId={selectedBranchId}
         search={search}
+        status={status}
         isSuperAdmin={isSuperAdmin}
+        toolbarActions={
+          <>
+            <Badge variant="outline">
+              {staff.total}{" "}
+              {staff.total === 1 ? "staff member" : "staff members"}
+            </Badge>
+            {canCreateStaff && (
+              <StaffCreateSection
+                roles={roleOptions}
+                branches={branchOptions}
+                initialBranchId={selectedBranchId}
+                canReadRoles={canReadRoles}
+                rolesFailed={roleOptionsFailed}
+              />
+            )}
+          </>
+        }
       />
 
       <section
@@ -87,7 +92,7 @@ export function StaffDirectory({
         className="flex flex-col gap-4"
       >
         <div className="flex flex-wrap items-end justify-between gap-2">
-          <h2 id="staff-directory-heading" className="text-lg font-semibold">
+          <h2 id="staff-directory-heading" className="text-xl font-semibold">
             Staff directory
           </h2>
           {staff.total > 0 && (
@@ -115,28 +120,50 @@ export function StaffDirectory({
             title={
               search
                 ? "No staff match this search"
-                : "No staff in this branch yet"
+                : status === "active"
+                  ? "No active staff found"
+                  : status === "inactive"
+                    ? "No inactive staff found"
+                    : status === "unassigned"
+                      ? "No unassigned staff found"
+                      : "No staff in this branch yet"
             }
-            description="Staff are shown only when assigned to the selected branch."
+            description={
+              selectedBranchId
+                ? "Try another search, status, or branch. Staff appear only in branches you can access."
+                : "Try another search or status filter."
+            }
           />
         )}
 
-        <OperationalPagination
-          ariaLabel="Staff pages"
-          page={staff.page}
-          pageCount={pageCount}
-          previousHref={
-            staff.page > 1
-              ? createStaffPageHref(staff.page - 1, selectedBranchId, search)
-              : undefined
-          }
-          nextHref={
-            staff.page < pageCount
-              ? createStaffPageHref(staff.page + 1, selectedBranchId, search)
-              : undefined
-          }
-          resultSummary={`Page ${staff.page} of ${pageCount}`}
-        />
+        <div className="mx-auto w-full max-w-md">
+          <OperationalPagination
+            ariaLabel="Staff pages"
+            page={staff.page}
+            pageCount={pageCount}
+            previousHref={
+              staff.page > 1
+                ? createStaffPageHref(
+                    staff.page - 1,
+                    selectedBranchId,
+                    search,
+                    status,
+                  )
+                : undefined
+            }
+            nextHref={
+              staff.page < pageCount
+                ? createStaffPageHref(
+                    staff.page + 1,
+                    selectedBranchId,
+                    search,
+                    status,
+                  )
+                : undefined
+            }
+            resultSummary={`Page ${staff.page} of ${pageCount}`}
+          />
+        </div>
       </section>
     </div>
   );

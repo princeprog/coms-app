@@ -2,7 +2,9 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
+import { format } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
 import { BranchesManagement } from "./branches-management";
 import {
   createBranchAction,
@@ -26,6 +28,14 @@ vi.mock("../services/branch-actions", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn() },
+}));
+
+vi.mock("@/components/ui/sonner", () => ({
+  Toaster: () => null,
 }));
 
 const branches = {
@@ -65,6 +75,7 @@ describe("branch management", () => {
     vi.mocked(createBranchAction).mockReset();
     vi.mocked(deactivateBranchAction).mockReset();
     vi.mocked(updateBranchAction).mockReset();
+    vi.mocked(toast.success).mockReset();
   });
 
   it("shows a compact table and opens editing only from the row action", async () => {
@@ -102,21 +113,67 @@ describe("branch management", () => {
 
   it("creates a branch with its dine-in setting", async () => {
     const user = userEvent.setup();
-    vi.mocked(createBranchAction).mockResolvedValue({ ok: true });
+    vi.mocked(createBranchAction).mockResolvedValue({
+      ok: true,
+      code: "BR-0123456789ABCDEF",
+    });
     renderBranches();
 
     await user.click(screen.getByRole("button", { name: "Add branch" }));
-    await user.type(screen.getByLabelText("Branch code"), "MANILA_02");
+    expect(screen.queryByLabelText("Branch code")).toBeNull();
+    expect(
+      screen.getByText(/COMS assigns the branch code automatically/),
+    ).toBeTruthy();
     await user.type(screen.getByLabelText("Branch name"), "Manila South");
     await user.click(screen.getByRole("switch", { name: "Dine-in available" }));
     await user.click(screen.getByRole("button", { name: "Create branch" }));
 
     expect(createBranchAction).toHaveBeenCalledWith({
-      code: "MANILA_02",
       branch_name: "Manila South",
       address: null,
       date_opened: null,
       has_dine_in: true,
+    });
+    expect(toast.success).toHaveBeenCalledWith("Branch created.", {
+      description: "Code: BR-0123456789ABCDEF",
+    });
+  });
+
+  it("submits a date selected from the Create branch calendar", async () => {
+    const user = userEvent.setup();
+    const today = new Date();
+    vi.mocked(createBranchAction).mockResolvedValue({
+      ok: true,
+      code: "BR-0123456789ABCDEF",
+    });
+    renderBranches();
+
+    await user.click(screen.getByRole("button", { name: "Add branch" }));
+    const dialog = screen.getByRole("dialog", { name: "Create branch" });
+    await user.type(
+      within(dialog).getByLabelText("Branch name"),
+      "Manila South",
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: /Date opened/ }),
+    );
+    const todayButton = document.querySelector(
+      `button[data-day="${today.toLocaleDateString()}"]`,
+    );
+    expect(todayButton).toBeTruthy();
+    await user.click(todayButton as HTMLButtonElement);
+    expect(
+      within(dialog).getByRole("button", { name: /Date opened/ }).textContent,
+    ).toContain(format(today, "PPP"));
+    await user.click(
+      within(dialog).getByRole("button", { name: "Create branch" }),
+    );
+
+    expect(createBranchAction).toHaveBeenCalledWith({
+      branch_name: "Manila South",
+      address: null,
+      date_opened: format(today, "yyyy-MM-dd"),
+      has_dine_in: false,
     });
   });
 
@@ -124,26 +181,22 @@ describe("branch management", () => {
     const user = userEvent.setup();
     vi.mocked(createBranchAction).mockResolvedValue({
       ok: false,
-      error: "Branch code already exists.",
+      error: "Could not create branch. Try again.",
     });
     renderBranches();
 
     await user.click(screen.getByRole("button", { name: "Add branch" }));
-    await user.type(screen.getByLabelText("Branch code"), "MANILA_02");
     await user.type(screen.getByLabelText("Branch name"), "Manila South");
     await user.click(screen.getByRole("button", { name: "Create branch" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain(
-      "Branch code already exists.",
-    );
-    expect(screen.getByLabelText("Branch code")).toHaveProperty(
-      "value",
-      "MANILA_02",
+      "Could not create branch. Try again.",
     );
     expect(screen.getByLabelText("Branch name")).toHaveProperty(
       "value",
       "Manila South",
     );
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it("confirms before discarding a dirty branch creation draft", async () => {
@@ -151,7 +204,7 @@ describe("branch management", () => {
     renderBranches();
 
     await user.click(screen.getByRole("button", { name: "Add branch" }));
-    await user.type(screen.getByLabelText("Branch code"), "MANILA_02");
+    await user.type(screen.getByLabelText("Branch name"), "Manila South");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     const confirmation = screen.getByRole("alertdialog", {
@@ -160,9 +213,9 @@ describe("branch management", () => {
     await user.click(
       within(confirmation).getByRole("button", { name: "Keep editing" }),
     );
-    expect(screen.getByLabelText("Branch code")).toHaveProperty(
+    expect(screen.getByLabelText("Branch name")).toHaveProperty(
       "value",
-      "MANILA_02",
+      "Manila South",
     );
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));

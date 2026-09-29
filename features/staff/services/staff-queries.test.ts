@@ -183,6 +183,7 @@ describe("staff queries", () => {
         pageSize: 25,
         search: "Alex Staff",
         branchId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        status: "inactive",
       }),
     ).resolves.toMatchObject({ total: 1, page: 2 });
 
@@ -195,6 +196,7 @@ describe("staff queries", () => {
     expect(url.searchParams.get("branch_id")).toBe(
       "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     );
+    expect(url.searchParams.get("status")).toBe("inactive");
     expect(requestComsApiMock).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ cookieHeader: "coms_access=test" }),

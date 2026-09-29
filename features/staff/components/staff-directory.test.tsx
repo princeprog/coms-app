@@ -99,7 +99,10 @@ describe("staff directory", () => {
     renderDirectory();
 
     await user.click(
-      screen.getByRole("button", { name: "View details for Alex Staff" }),
+      screen.getByRole("button", { name: "Actions for Alex Staff" }),
+    );
+    await user.click(
+      await screen.findByRole("menuitem", { name: "View details" }),
     );
 
     const sheet = screen.getByRole("dialog", { name: "Alex Staff" });
@@ -110,7 +113,7 @@ describe("staff directory", () => {
     ).toBeTruthy();
   });
 
-  it("keeps staff creation inside an explicit add-staff sheet", async () => {
+  it("opens staff creation in a centered modal", async () => {
     const user = userEvent.setup();
     renderDirectory({
       canCreateStaff: true,
@@ -121,18 +124,26 @@ describe("staff directory", () => {
     expect(screen.queryByLabelText("Email")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Add staff" }));
 
-    expect(
-      screen.getByRole("dialog", { name: "Add a staff account" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "Add staff" })).toBeTruthy();
     expect(screen.getByLabelText("Email")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Create staff" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("dialog", { name: "Add staff" })
+        .getAttribute("data-slot"),
+    ).toBe("dialog-content");
   });
 
   it("keeps a dirty management sheet open until edits are discarded", async () => {
     const user = userEvent.setup();
     renderDirectory({ managementPermissions: allManagementPermissions });
 
-    await user.click(screen.getByRole("button", { name: "Manage Alex Staff" }));
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Alex Staff" }),
+    );
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Manage staff" }),
+    );
     await user.click(screen.getByText("Edit profile", { selector: "summary" }));
     const name = screen.getByLabelText("Full name for Alex Staff");
     await user.clear(name);
@@ -154,7 +165,12 @@ describe("staff directory", () => {
     await user.click(screen.getByRole("button", { name: "Discard changes" }));
     expect(screen.queryByRole("dialog", { name: "Alex Staff" })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Manage Alex Staff" }));
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Alex Staff" }),
+    );
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Manage staff" }),
+    );
     await user.click(screen.getByText("Edit profile", { selector: "summary" }));
     expect(screen.getByLabelText("Full name for Alex Staff")).toHaveProperty(
       "value",
@@ -197,7 +213,7 @@ describe("staff directory", () => {
     expect(screen.getByText("Alex Staff")).toBeTruthy();
     expect(screen.getByText("alex@example.test")).toBeTruthy();
     expect(screen.getByText("Branch Manager")).toBeTruthy();
-    expect(screen.getByText("Active")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("Active")).toBeTruthy();
     expect(
       screen.getByRole("combobox", { name: "Branch scope" }).textContent,
     ).toContain("Manila North");
@@ -217,7 +233,9 @@ describe("staff directory", () => {
     };
     renderDirectory({ staff: unassignedPage });
 
-    expect(screen.getByText("Unassigned")).toBeTruthy();
+    expect(
+      within(screen.getByRole("table")).getByText("Unassigned"),
+    ).toBeTruthy();
   });
 
   it("preserves branch and search filters in pagination links", () => {
@@ -261,7 +279,9 @@ describe("staff directory", () => {
     renderDirectory({ staff: { ...staffPage, page: 2 } });
 
     await user.click(screen.getByRole("combobox", { name: "Branch scope" }));
-    await user.click(screen.getByRole("option", { name: "Manila South" }));
+    await user.click(
+      await screen.findByRole("option", { name: "Manila South" }),
+    );
 
     const branchForm = screen.getByRole("form", {
       name: "Filter staff by branch",
@@ -274,5 +294,30 @@ describe("staff directory", () => {
     expect(branchForm.querySelector('[name="page"]')).toBeNull();
     expect(branchForm.getAttribute("action")).toBe("/staff");
     expect(branchForm.getAttribute("method")).toBeNull();
+  });
+
+  it("shows status tabs and preserves branch and search when changing status", () => {
+    renderDirectory({ status: "inactive" });
+    const inactive = screen.getByRole("link", { name: "Inactive" });
+    expect(inactive.getAttribute("aria-current")).toBe("page");
+    expect(
+      screen.getByRole("link", { name: "Unassigned" }).getAttribute("href"),
+    ).toBe(`/staff?branch_id=${branchId}&search=Alex&status=unassigned`);
+    expect(
+      screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
+    ).toBe(`/staff?page=2&branch_id=${branchId}&search=Alex&status=inactive`);
+  });
+
+  it("opens the staff sheet from a three-dot row menu", async () => {
+    const user = userEvent.setup();
+    renderDirectory();
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Alex Staff" }),
+    );
+    expect(
+      await screen.findByRole("menuitem", { name: "View details" }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("menuitem", { name: "View details" }));
+    expect(screen.getByRole("dialog", { name: "Alex Staff" })).toBeTruthy();
   });
 });

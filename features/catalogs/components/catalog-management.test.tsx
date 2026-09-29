@@ -5,6 +5,10 @@ import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CatalogManagement } from "./catalog-management";
 import type { CatalogDisplayColumn } from "@/features/catalogs/types/catalog.types";
+import {
+  stockItemDisplayColumns,
+  stockItemFields,
+} from "@/features/stock-items/constants";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -155,6 +159,70 @@ describe("catalog management", () => {
       }),
     );
     expect(screen.getByRole("status").textContent).toBe("Supplier created.");
+  });
+
+  it("creates a stock item from the grouped name, category, and unit fields", async () => {
+    const user = userEvent.setup();
+    const createStockItem = vi.fn().mockResolvedValue({ ok: true as const });
+    renderCatalog({
+      title: "Stock Items",
+      resourceName: "stock item",
+      description: "Maintain stock items.",
+      routePath: "/stock-items",
+      displayColumns: stockItemDisplayColumns,
+      fields: stockItemFields,
+      page: { items: [], total: 0, page: 1, page_size: 25 },
+      createAction: createStockItem,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add stock item" }));
+    const dialog = screen.getByRole("dialog", { name: "Create stock item" });
+    expect(
+      within(dialog).getByRole("heading", { name: "Stock item details" }),
+    ).toBeTruthy();
+    expect(
+      within(dialog).getByRole("heading", {
+        name: "Classification and unit",
+      }),
+    ).toBeTruthy();
+    expect(within(dialog).getByLabelText("Stock item name")).toHaveProperty(
+      "required",
+      true,
+    );
+    const category = within(dialog).getByRole("combobox", {
+      name: "Category",
+    });
+    expect(category.textContent).toContain("Select a category");
+    expect(
+      within(dialog).queryByRole("textbox", { name: "Category" }),
+    ).toBeNull();
+    expect(within(dialog).getByLabelText("Unit")).toHaveProperty(
+      "required",
+      true,
+    );
+
+    await user.type(
+      within(dialog).getByLabelText("Stock item name"),
+      "  All-purpose flour  ",
+    );
+    await user.type(within(dialog).getByLabelText("Unit"), "kg");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Create stock item" }),
+    );
+    expect(createStockItem).not.toHaveBeenCalled();
+    await user.click(category);
+    await user.click(screen.getByRole("option", { name: "Dry goods" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: "Create stock item" }),
+    );
+
+    await waitFor(() =>
+      expect(createStockItem).toHaveBeenCalledWith({
+        stock_item_name: "All-purpose flour",
+        category: "Dry goods",
+        unit: "kg",
+      }),
+    );
   });
 
   it("confirms discarding a dirty form and preserves the draft when asked to keep editing", async () => {

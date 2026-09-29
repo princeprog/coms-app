@@ -6,6 +6,8 @@ Before creating, modifying, reviewing, or refactoring Next.js frontend code, rea
 
 `../.agents/skills/nextjs-clean-architecture/SKILL.md`
 
+For frontend forms, CRUD screens, relational selectors, tables, status actions, and user-facing data workflows, also read `../.agents/skills/frontend-ux-data-rules/SKILL.md` and the references relevant to the task before choosing the interaction pattern.
+
 ## Context recovery after compaction
 
 When a conversation is compacted, resumed from a summary, or prior context is uncertain, reread this file and the complete applicable frontend skill from `../.agents/skills/` before continuing. Recheck the current repository state afterward; summaries describe prior work but do not replace these instructions or live source files.

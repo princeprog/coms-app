@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 import {
   OperationalEmptyState,
   OperationalPageIntro,
@@ -39,6 +41,7 @@ export function BranchesManagement({
 
   return (
     <div className="flex flex-col gap-6">
+      <Toaster />
       <OperationalPageIntro
         description="Manage branch details and operating availability. Changes are limited to branches assigned to your account."
         count={
@@ -54,6 +57,16 @@ export function BranchesManagement({
           ) : undefined
         }
       />
+
+      {status && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-sm text-muted-foreground"
+        >
+          {status}
+        </p>
+      )}
 
       <section
         aria-labelledby="branch-directory-heading"
@@ -111,17 +124,11 @@ export function BranchesManagement({
       <BranchCreateForm
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onComplete={() => complete("Branch created.")}
+        onComplete={(code) => {
+          toast.success("Branch created.", { description: `Code: ${code}` });
+          router.refresh();
+        }}
       />
-      {status && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="text-sm text-muted-foreground"
-        >
-          {status}
-        </p>
-      )}
     </div>
   );
 }

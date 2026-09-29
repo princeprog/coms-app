@@ -8,12 +8,14 @@ import { branchesResponseSchema } from "@/features/branches/schemas/branch.schem
 import { rolesResponseSchema } from "@/features/roles/schemas/role.schema";
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
+import type { StaffStatusFilter } from "@/features/staff/services/staff-page-params";
 
 export type StaffPageRequest = {
   page: number;
   pageSize: number;
   search?: string;
   branchId?: string;
+  status?: StaffStatusFilter;
 };
 
 export async function getStaffPageData({
@@ -21,6 +23,7 @@ export async function getStaffPageData({
   pageSize,
   search,
   branchId,
+  status,
 }: StaffPageRequest): Promise<StaffPage> {
   const query = new URLSearchParams({
     page: String(page),
@@ -28,6 +31,7 @@ export async function getStaffPageData({
   });
   if (branchId) query.set("branch_id", branchId);
   if (search?.trim()) query.set("search", search.trim());
+  if (status && status !== "all") query.set("status", status);
 
   const payload = await requestComsApi<unknown>(
     `${staffEndpoints.collection}?${query}`,

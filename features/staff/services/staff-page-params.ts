@@ -13,17 +13,22 @@ export type StaffPageFilters = {
   page: number;
   search: string;
   requestedBranchId?: string;
+  status: StaffStatusFilter;
 };
+
+export type StaffStatusFilter = "all" | "active" | "inactive" | "unassigned";
 
 export function createStaffPageHref(
   page: number,
   branchId: string | undefined,
   search: string,
+  status: StaffStatusFilter = "all",
 ): string {
   const params = new URLSearchParams();
   if (page > 1) params.set("page", String(page));
   if (branchId) params.set("branch_id", branchId);
   if (search) params.set("search", search);
+  if (status !== "all") params.set("status", status);
   const query = params.toString();
   return query ? `/staff?${query}` : "/staff";
 }
@@ -52,7 +57,15 @@ export function parseStaffPageFilters(
     ? parsedBranchId.data.toLowerCase()
     : undefined;
 
-  return { page, search, requestedBranchId };
+  const rawStatus = firstValue(params.status);
+  const status: StaffStatusFilter =
+    rawStatus === "active" ||
+    rawStatus === "inactive" ||
+    rawStatus === "unassigned"
+      ? rawStatus
+      : "all";
+
+  return { page, search, requestedBranchId, status };
 }
 
 export type StaffBranchSelection =

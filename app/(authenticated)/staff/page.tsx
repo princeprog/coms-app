@@ -17,6 +17,7 @@ import {
   createStaffPageHref,
   parseStaffPageFilters,
   resolveStaffBranchSelection,
+  type StaffStatusFilter,
 } from "@/features/staff/services/staff-page-params";
 import type {
   StaffManagementPermissions,
@@ -69,6 +70,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
         <StaffDirectoryPageContent
           page={filters.page}
           search={filters.search}
+          status={filters.status}
           selectedBranchId={selection.branchId}
           isSuperAdmin={isSuperAdmin}
           assignedBranchIds={session.user.branch_ids ?? []}
@@ -96,6 +98,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
 async function StaffDirectoryPageContent({
   page,
   search,
+  status,
   selectedBranchId,
   isSuperAdmin,
   assignedBranchIds,
@@ -107,6 +110,7 @@ async function StaffDirectoryPageContent({
 }: {
   page: number;
   search: string;
+  status: StaffStatusFilter;
   selectedBranchId?: string;
   isSuperAdmin: boolean;
   assignedBranchIds: string[];
@@ -143,6 +147,7 @@ async function StaffDirectoryPageContent({
       page,
       pageSize: 25,
       search,
+      status,
       branchId: selectedBranchId,
     });
   } catch (error) {
@@ -158,7 +163,7 @@ async function StaffDirectoryPageContent({
 
   const lastPage = Math.max(1, Math.ceil(staff.total / staff.page_size));
   if (staff.page > lastPage) {
-    redirect(createStaffPageHref(lastPage, selectedBranchId, search));
+    redirect(createStaffPageHref(lastPage, selectedBranchId, search, status));
   }
 
   let roleOptions: Role[] = [];
@@ -179,6 +184,7 @@ async function StaffDirectoryPageContent({
       branchOptions={branchOptions}
       selectedBranchId={selectedBranchId}
       search={search}
+      status={status}
       isSuperAdmin={isSuperAdmin}
       canCreateStaff={canCreateStaff}
       canReadRoles={canReadRoles}

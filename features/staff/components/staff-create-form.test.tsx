@@ -82,6 +82,7 @@ describe("staff creation", () => {
     expect(screen.queryByRole("option", { name: "Inactive role" })).toBeNull();
     expect(screen.getByRole("option", { name: "Cashier" })).toBeTruthy();
     await user.click(screen.getByRole("option", { name: "Branch Manager" }));
+    await user.click(screen.getByRole("button", { name: "Branches" }));
     expect(
       screen
         .getByRole("checkbox", { name: "Manila North" })
@@ -95,13 +96,14 @@ describe("staff creation", () => {
       screen.getByLabelText("Initial password"),
       "safe staff passphrase 1",
     );
+    await user.click(screen.getByRole("button", { name: "Branches" }));
     await user.click(screen.getByRole("checkbox", { name: "Manila South" }));
     await user.click(screen.getByRole("button", { name: "Create staff" }));
 
     expect(createStaffAction).toHaveBeenCalledWith({
       email: "alex@example.com",
       full_name: "Alex Staff",
-      contact_number: "09170000000",
+      contact_number: "+639170000000",
       password: "safe staff passphrase 1",
       role_id: "4",
       branch_ids: [northBranch, southBranch],
@@ -110,6 +112,50 @@ describe("staff creation", () => {
       "Staff account created.",
     );
     expect(refreshMock).toHaveBeenCalledOnce();
+  });
+
+  it("searches branches without losing selections and allows clearing assignments", async () => {
+    const user = userEvent.setup();
+    render(
+      <StaffCreateForm
+        roles={roles}
+        branches={branches}
+        initialBranchId={northBranch}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Branches" }));
+    const search = screen.getByRole("searchbox", { name: "Search branches" });
+    await user.type(search, "south");
+    expect(screen.queryByRole("checkbox", { name: "Manila North" })).toBeNull();
+    await user.click(screen.getByRole("checkbox", { name: "Manila South" }));
+    expect(
+      screen.getByText("2 selected · Up to 100 active branches"),
+    ).toBeTruthy();
+
+    await user.clear(search);
+    expect(
+      screen
+        .getByRole("checkbox", { name: "Manila North" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    await user.click(screen.getByRole("button", { name: "Clear selection" }));
+    expect(
+      screen
+        .getByRole("checkbox", { name: "Manila North" })
+        .getAttribute("aria-checked"),
+    ).toBe("false");
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    expect(
+      screen.queryByRole("dialog", { name: "Assign branches" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Branches" }).textContent,
+    ).toContain("Select branches");
+    await user.click(screen.getByRole("button", { name: "Branches" }));
+    expect(
+      screen.getByRole("searchbox", { name: "Search branches" }),
+    ).toHaveProperty("value", "");
   });
 
   it("creates an unassigned account by default when no role is selected", async () => {
@@ -132,7 +178,7 @@ describe("staff creation", () => {
     expect(createStaffAction).toHaveBeenCalledWith({
       email: "unassigned@example.com",
       full_name: "Unassigned Staff",
-      contact_number: "09170000001",
+      contact_number: "+639170000001",
       password: "safe staff passphrase 2",
       role_id: null,
       branch_ids: [],
@@ -168,5 +214,56 @@ describe("staff creation", () => {
       "safe staff passphrase 1",
     );
     expect(refreshMock).not.toHaveBeenCalled();
+  });
+
+  it("shows inline email, contact number, and password errors before sending a request", async () => {
+    const user = userEvent.setup();
+    render(<StaffCreateForm roles={roles} branches={branches} />);
+
+    await user.type(screen.getByLabelText("Full name"), "Alex Staff");
+    await user.type(screen.getByLabelText("Email"), "not-an-email");
+    await user.type(screen.getByLabelText("Contact number"), "abc123");
+    await user.type(screen.getByLabelText("Initial password"), "short");
+    await user.click(screen.getByRole("button", { name: "Create staff" }));
+
+    expect(screen.getByText("Enter a valid email address.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Enter a Philippine mobile number with 10 digits after +63.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Use at least 12 characters.")).toBeTruthy();
+    expect(createStaffAction).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Email").getAttribute("aria-invalid")).toBe(
+      "true",
+    );
+  });
+
+  it("keeps the Philippine prefix fixed and ignores letters in the contact input", async () => {
+    const user = userEvent.setup();
+    render(<StaffCreateForm roles={roles} branches={branches} />);
+
+    expect(screen.queryByRole("combobox", { name: "Country code" })).toBeNull();
+    expect(screen.getByText("+63")).toBeTruthy();
+    const contact = screen.getByLabelText("Contact number") as HTMLInputElement;
+    await user.type(contact, "09a171234567");
+    expect(contact.value).toBe("9171234567");
+    await user.type(contact, "8");
+    expect(contact.value).toBe("9171234567");
+  });
+
+  it("can reveal the initial password without changing its value", async () => {
+    const user = userEvent.setup();
+    render(<StaffCreateForm roles={roles} branches={branches} />);
+
+    const password = screen.getByLabelText(
+      "Initial password",
+    ) as HTMLInputElement;
+    await user.type(password, "safe staff passphrase 1");
+    await user.click(screen.getByRole("button", { name: "Show password" }));
+    expect(password.type).toBe("text");
+    expect(password.value).toBe("safe staff passphrase 1");
+    await user.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(password.type).toBe("password");
   });
 });

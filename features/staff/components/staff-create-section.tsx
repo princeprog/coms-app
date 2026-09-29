@@ -2,14 +2,15 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { StaffCreateForm } from "@/features/staff/components/staff-create-form";
 import { StaffDiscardConfirmation } from "@/features/staff/components/staff-discard-confirmation";
 import type { Role } from "@/features/roles/types/role.types";
@@ -96,22 +97,35 @@ export function StaffCreateSection({
       >
         Add staff
       </Button>
-      <Sheet
+      <Dialog
         open={open}
         onOpenChange={(nextOpen) => !nextOpen && requestClose()}
       >
-        <SheetContent
+        <DialogContent
           data-coms-ui="operational"
-          side="right"
-          className="h-full w-full gap-0 overflow-hidden sm:max-w-2xl"
+          showCloseButton={false}
+          overlayClassName="bg-black/45 supports-backdrop-filter:backdrop-blur-none"
+          className="flex max-h-[min(90dvh,48rem)] w-full min-h-0 flex-col gap-0 overflow-hidden rounded-xl p-0 sm:max-w-[44rem]"
         >
-          <SheetHeader className="border-b">
-            <SheetTitle>Add a staff account</SheetTitle>
-            <SheetDescription>
-              Set the initial profile, a least-privilege role, and branch
-              access. The initial password is never shown after creation.
-            </SheetDescription>
-          </SheetHeader>
+          <DialogHeader className="relative shrink-0 gap-1 px-5 pt-6 pb-1 sm:px-8 sm:pt-7">
+            <DialogTitle className="pr-10 text-2xl font-semibold">
+              Add staff
+            </DialogTitle>
+            <DialogDescription className="pr-10">
+              Create an account and assign role and branch access.
+            </DialogDescription>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="absolute top-5 right-5 rounded-md sm:right-7"
+              aria-label="Close Add staff"
+              disabled={pending}
+              onClick={requestClose}
+            >
+              <XIcon />
+            </Button>
+          </DialogHeader>
           <StaffCreateForm
             key={formVersion}
             roles={roles}
@@ -125,13 +139,13 @@ export function StaffCreateSection({
               closeCreate();
             }}
           />
-        </SheetContent>
+        </DialogContent>
         <StaffDiscardConfirmation
           open={discardOpen}
           onOpenChange={setDiscardOpen}
           onDiscard={closeCreate}
         />
-      </Sheet>
+      </Dialog>
       {status && (
         <p role="status" aria-live="polite" className="sr-only">
           {status}
