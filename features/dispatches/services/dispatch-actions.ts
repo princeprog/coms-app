@@ -42,6 +42,7 @@ function revalidateDispatchRoutes(id: string) {
   revalidatePath(dispatchesRoute);
   revalidatePath(`${dispatchesRoute}/${id}`);
   revalidatePath("/dashboard");
+  revalidatePath("/inventory");
 }
 
 async function submitDispatchAction(
@@ -64,6 +65,43 @@ async function submitDispatchAction(
     return { ok: true };
   } catch (error) {
     return { ok: false, error: getActionError(error) };
+  }
+}
+
+export async function sendDispatchAction(
+  input: unknown,
+  idempotencyKey: string,
+): Promise<DispatchMutationResult> {
+  const parsedKey = z.uuid().safeParse(idempotencyKey);
+  const parsedInput = createDispatchSchema.safeParse(input);
+  if (!parsedKey.success || !parsedInput.success)
+    return { ok: false, error: "Check the branch and dispatch item lines." };
+  try {
+    const payload = await requestComsApi<unknown>(
+      `${dispatchesEndpoint}/send`,
+      {
+        cookieHeader: (await cookies()).toString(),
+        method: "POST",
+        body: parsedInput.data,
+        headers: { "Idempotency-Key": parsedKey.data },
+      },
+    );
+    const parsed = dispatchDetailSchema.safeParse(payload);
+    if (!parsed.success || parsed.data.status === "DRAFT")
+      throw new ApiRequestError(
+        "The sending response could not be confirmed. Retry without editing to safely check the same dispatch.",
+        502,
+      );
+    revalidateDispatchRoutes(parsed.data.id);
+    return { ok: true, dispatch_id: parsed.data.id };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof ApiRequestError && error.status === 400
+          ? error.message
+          : getActionError(error),
+    };
   }
 }
 

@@ -38,7 +38,7 @@ export function DispatchPostControl({
     } catch {
       result = {
         ok: false,
-        error: "COMS could not post this dispatch. Try again.",
+        error: "COMS could not send this dispatch. Try again.",
       };
     }
     setPending(false);
@@ -62,17 +62,16 @@ export function DispatchPostControl({
       <DialogTrigger
         render={
           <Button type="button" variant="default">
-            Post dispatch
+            Send dispatch
           </Button>
         }
       />
       <DialogContent data-coms-ui="operational">
         <DialogHeader>
-          <DialogTitle>Post this dispatch?</DialogTitle>
+          <DialogTitle>Send this dispatch?</DialogTitle>
           <DialogDescription>
-            Posting will reduce commissary stock and begin branch transit for
-            every approved quantity. The movement will be recorded in inventory
-            history.
+            Confirm that this stock is leaving the commissary. Sending will
+            deduct commissary inventory.
           </DialogDescription>
         </DialogHeader>
         {error && (
@@ -94,7 +93,7 @@ export function DispatchPostControl({
             disabled={pending}
             onClick={() => void confirm()}
           >
-            {pending ? "Posting…" : "Confirm dispatch"}
+            {pending ? "Sending…" : "Confirm dispatch"}
           </Button>
         </DialogFooter>
       </DialogContent>

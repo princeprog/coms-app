@@ -13,6 +13,7 @@ describe("sidebar quick actions", () => {
         "stock_items.read",
         "dispatches.read",
         "dispatches.create",
+        "dispatches.dispatch",
         "branches.read",
         "sales.create",
         "branch_products.read",
@@ -53,9 +54,8 @@ describe("sidebar quick actions", () => {
       },
     };
 
-    expect(getSidebarQuickActions(superAdmin).map(({ title }) => title)).toEqual([
-      "Record supplier delivery",
-      "New dispatch",
-    ]);
+    expect(
+      getSidebarQuickActions(superAdmin).map(({ title }) => title),
+    ).toEqual(["Record supplier delivery", "New dispatch"]);
   });
 });

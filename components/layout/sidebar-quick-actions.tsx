@@ -42,6 +42,7 @@ const quickActions = [
     permissions: [
       "dispatches.read",
       "dispatches.create",
+      "dispatches.dispatch",
       "branches.read",
       "stock_items.read",
     ],
@@ -61,11 +62,14 @@ const quickActions = [
 ] as const;
 
 export function getSidebarQuickActions(user: User) {
-  return quickActions.filter((action) =>
-    action.permissions.every((permission) => hasPermission(user, permission)) &&
-    (!isProtectedSuperAdmin(user) ||
-      action.title === "Record supplier delivery" ||
-      action.title === "New dispatch"),
+  return quickActions.filter(
+    (action) =>
+      action.permissions.every((permission) =>
+        hasPermission(user, permission),
+      ) &&
+      (!isProtectedSuperAdmin(user) ||
+        action.title === "Record supplier delivery" ||
+        action.title === "New dispatch"),
   );
 }
 

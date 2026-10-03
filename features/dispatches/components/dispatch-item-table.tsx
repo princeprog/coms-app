@@ -9,6 +9,7 @@ import {
 import type { Dispatch } from "@/features/dispatches/types/dispatch.types";
 
 export function DispatchItemTable({ dispatch }: { dispatch: Dispatch }) {
+  const draft = dispatch.status === "DRAFT";
   return (
     <Table
       aria-label="Dispatch items"
@@ -22,10 +23,16 @@ export function DispatchItemTable({ dispatch }: { dispatch: Dispatch }) {
       <TableHeader>
         <TableRow>
           <TableHead>Stock item</TableHead>
-          <TableHead className="text-right">Dispatched</TableHead>
-          <TableHead className="text-right">Received</TableHead>
-          <TableHead className="text-right">Shortage closed</TableHead>
-          <TableHead className="text-right">In transit</TableHead>
+          <TableHead className="text-right">
+            {draft ? "Planned quantity" : "Dispatched"}
+          </TableHead>
+          {!draft && (
+            <>
+              <TableHead className="text-right">Received</TableHead>
+              <TableHead className="text-right">Shortage closed</TableHead>
+              <TableHead className="text-right">In transit</TableHead>
+            </>
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -38,21 +45,28 @@ export function DispatchItemTable({ dispatch }: { dispatch: Dispatch }) {
               quantity={item.quantity_dispatched}
               unit={item.unit}
             />
-            <QuantityCell quantity={item.quantity_received} unit={item.unit} />
-            <QuantityCell
-              quantity={item.quantity_shortage_closed}
-              unit={item.unit}
-            />
-            <QuantityCell
-              quantity={item.quantity_in_transit}
-              unit={item.unit}
-            />
+            {!draft && (
+              <>
+                <QuantityCell
+                  quantity={item.quantity_received}
+                  unit={item.unit}
+                />
+                <QuantityCell
+                  quantity={item.quantity_shortage_closed}
+                  unit={item.unit}
+                />
+                <QuantityCell
+                  quantity={item.quantity_in_transit}
+                  unit={item.unit}
+                />
+              </>
+            )}
           </TableRow>
         ))}
         {dispatch.items.length === 0 && (
           <TableRow>
             <TableCell
-              colSpan={5}
+              colSpan={draft ? 2 : 5}
               className="py-6 text-center text-muted-foreground"
             >
               This dispatch has no item lines.

@@ -3,31 +3,28 @@
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { StockItem } from "@/features/stock-items/types/stock-item.types";
+import { DispatchStockPicker } from "./dispatch-stock-picker";
+import type { DispatchStockOption } from "../types/dispatch.types";
 
 export type DispatchCreateLine = {
   key: number;
   stock_item_id: string;
   quantity_dispatched: string;
+  stock?: DispatchStockOption;
 };
 
 export function DispatchCreateLineFields({
   lines,
-  stockItems,
+  onStockSelect,
   disabled,
+  availabilityVisible,
   onChange,
   onRemove,
 }: {
   lines: DispatchCreateLine[];
-  stockItems: StockItem[];
+  onStockSelect: (key: number, stock: DispatchStockOption | null) => void;
   disabled: boolean;
+  availabilityVisible: boolean;
   onChange: (
     key: number,
     field: "stock_item_id" | "quantity_dispatched",
@@ -51,9 +48,7 @@ export function DispatchCreateLineFields({
         </span>
       </div>
       {lines.map((line, index) => {
-        const stockItem = stockItems.find(
-          (item) => item.id === line.stock_item_id,
-        );
+        const stockItem = line.stock;
         const selectedByAnotherLine = new Set(
           lines
             .filter((other) => other.key !== line.key)
@@ -68,36 +63,14 @@ export function DispatchCreateLineFields({
               <FieldLabel htmlFor={`dispatch-item-${line.key}`}>
                 Stock item {index + 1}
               </FieldLabel>
-              <Select
-                value={line.stock_item_id}
+              <DispatchStockPicker
+                id={`dispatch-item-${line.key}`}
+                selected={line.stock}
                 disabled={disabled}
-                onValueChange={(value) =>
-                  onChange(line.key, "stock_item_id", value ?? "")
-                }
-              >
-                <SelectTrigger
-                  id={`dispatch-item-${line.key}`}
-                  className="w-full rounded-md"
-                >
-                  <SelectValue>
-                    {(value: unknown) =>
-                      stockItems.find((item) => item.id === value)
-                        ?.stock_item_name ?? "Select stock item"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent data-coms-ui="operational">
-                  {stockItems.map((item) => (
-                    <SelectItem
-                      key={item.id}
-                      value={item.id}
-                      disabled={selectedByAnotherLine.has(item.id)}
-                    >
-                      {item.stock_item_name} · {item.unit}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                availabilityVisible={availabilityVisible}
+                excluded={selectedByAnotherLine}
+                onSelect={(stock) => onStockSelect(line.key, stock)}
+              />
             </Field>
             <Field className="min-w-0">
               <FieldLabel htmlFor={`dispatch-quantity-${line.key}`}>
@@ -112,20 +85,17 @@ export function DispatchCreateLineFields({
                 value={line.quantity_dispatched}
                 disabled={disabled}
                 onChange={(event) =>
-                  onChange(
-                    line.key,
-                    "quantity_dispatched",
-                    event.target.value,
-                  )
+                  onChange(line.key, "quantity_dispatched", event.target.value)
                 }
-                className="rounded-md"
                 aria-describedby={`dispatch-quantity-help-${line.key}`}
               />
               <span
                 id={`dispatch-quantity-help-${line.key}`}
                 className="text-xs text-muted-foreground"
               >
-                Enter a positive decimal quantity.
+                {availabilityVisible && stockItem?.quantity_on_hand != null
+                  ? `Available: ${stockItem.quantity_on_hand} ${stockItem.unit}. Checked again when sending.`
+                  : "Enter a positive decimal quantity."}
               </span>
             </Field>
             <Button

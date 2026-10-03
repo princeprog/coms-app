@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import { DispatchManagement } from "./dispatch-management";
 
+vi.mock("../services/dispatch-stock-actions", () => ({
+  searchDispatchStock: vi.fn(),
+}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: React.ComponentProps<"a">) => (
     <a href={href} {...props}>
@@ -20,7 +24,11 @@ const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const page: DispatchPage = { items: [], total: 0, page: 1, page_size: 25 };
 const baseProps = {
   page,
-  filters: { page: 1, status: "all" as const, discrepancyStatus: "all" as const },
+  filters: {
+    page: 1,
+    status: "all" as const,
+    discrepancyStatus: "all" as const,
+  },
   canCreate: false,
   createOptions: null,
   createOptionsIssue: null,
@@ -37,10 +45,18 @@ describe("dispatch management", () => {
       />,
     );
 
-    expect(screen.getByText("No dispatches have been created yet.")).toBeTruthy();
+    expect(
+      screen.getByText("No dispatches have been created yet."),
+    ).toBeTruthy();
     expect(screen.getByLabelText("Dispatch status")).toBeTruthy();
-    expect(screen.getByRole("form", { name: "Filter dispatches" }).getAttribute("action")).toBe("/dispatches");
-    expect(screen.getByRole("button", { name: "Create dispatch" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("form", { name: "Filter dispatches" })
+        .getAttribute("action"),
+    ).toBe("/dispatches");
+    expect(
+      screen.getByRole("button", { name: "Create dispatch" }),
+    ).toBeTruthy();
     expect(screen.queryByRole("link", { name: /request/i })).toBeNull();
   });
 
@@ -76,11 +92,17 @@ describe("dispatch management", () => {
     expect(screen.getByText("Downtown")).toBeTruthy();
     expect(screen.getAllByText("IN TRANSIT")).toHaveLength(2);
     expect(
-      screen.getByRole("region", { name: "Dispatches table" }).getAttribute("data-slot"),
+      screen
+        .getByRole("region", { name: "Dispatches table" })
+        .getAttribute("data-slot"),
     ).toBe("table-container");
-    expect(screen.getByRole("link", { name: "View dispatch" }).getAttribute("href")).toBe(`/dispatches/${id}`);
+    expect(
+      screen.getByRole("link", { name: "View dispatch" }).getAttribute("href"),
+    ).toBe(`/dispatches/${id}`);
     expect(screen.queryByText("Stock request")).toBeNull();
-    expect(screen.getByRole("link", { name: "Next page" }).getAttribute("href")).toBe("/dispatches?page=2&status=IN_TRANSIT");
+    expect(
+      screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
+    ).toBe("/dispatches?page=2&status=IN_TRANSIT");
   });
 
   it("explains when the current filters have no matching dispatches", () => {

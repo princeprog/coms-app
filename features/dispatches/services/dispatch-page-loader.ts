@@ -35,7 +35,12 @@ export type DispatchIndexViewResult =
       filters: ReturnType<typeof parseDispatchPageFilters>;
       canCreate: boolean;
       createOptions: DispatchCreateOptions | null;
-      createOptionsIssue: "permissions" | "forbidden" | "unavailable" | null;
+      createOptionsIssue:
+        | "permissions"
+        | "forbidden"
+        | "unavailable"
+        | "sending-permission"
+        | null;
     };
 
 export type DispatchDetailViewResult =
@@ -85,19 +90,28 @@ export async function loadDispatchIndexView(
       href: createDispatchHref({ ...filters, page: pageCount }),
     };
 
-  const canCreate = hasPermission(user, "dispatches.create");
+  const canCreate =
+    hasPermission(user, "dispatches.create") &&
+    hasPermission(user, "dispatches.dispatch");
   let createOptions: DispatchCreateOptions | null = null;
-  let createOptionsIssue: "permissions" | "forbidden" | "unavailable" | null =
-    null;
+  let createOptionsIssue:
+    "permissions" | "forbidden" | "unavailable" | "sending-permission" | null =
+    hasPermission(user, "dispatches.create") && !canCreate
+      ? "sending-permission"
+      : null;
   if (canCreate) {
     if (
       !hasPermission(user, "branches.read") ||
-      !hasPermission(user, "stock_items.read")
+      (!hasPermission(user, "stock_items.read") &&
+        !hasPermission(user, "inventory.commissary_read"))
     ) {
       createOptionsIssue = "permissions";
     } else {
       try {
-        createOptions = await getDispatchCreateOptions();
+        createOptions = {
+          ...(await getDispatchCreateOptions()),
+          availabilityVisible: hasPermission(user, "inventory.commissary_read"),
+        };
       } catch (error) {
         const accessFailure = getAccessFailure(error);
         if (accessFailure?.status === "session-expired") return accessFailure;

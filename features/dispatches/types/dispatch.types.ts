@@ -15,7 +15,22 @@ export type Dispatch = z.infer<typeof dispatchDetailSchema>;
 export type DispatchPage = z.infer<typeof dispatchPageSchema>;
 export type DispatchListItem = DispatchPage["items"][number];
 export type CreateDispatchInput = z.infer<typeof createDispatchSchema>;
-export type DispatchCreateOptions = { branches: Branch[]; stockItems: StockItem[] };
+export type DispatchStockOption = Pick<
+  StockItem,
+  "id" | "stock_item_name" | "unit"
+> & { quantity_on_hand?: string | null; is_active?: boolean };
+export type DispatchStockPage = {
+  items: DispatchStockOption[];
+  total: number;
+  page: number;
+  page_size: number;
+  availabilityVisible: boolean;
+};
+export type DispatchCreateOptions = {
+  branches: Branch[];
+  stockItems: DispatchStockOption[];
+  availabilityVisible?: boolean;
+};
 export type ReceiveDispatchInput = z.infer<typeof receiveDispatchSchema>;
 export type CloseDispatchShortageInput = z.infer<
   typeof closeDispatchShortageSchema

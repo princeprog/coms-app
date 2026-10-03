@@ -26,7 +26,8 @@ export function DispatchManagement({
   filters: DispatchPageFilters;
   canCreate: boolean;
   createOptions: DispatchCreateOptions | null;
-  createOptionsIssue: "permissions" | "forbidden" | "unavailable" | null;
+  createOptionsIssue:
+    "permissions" | "forbidden" | "unavailable" | "sending-permission" | null;
   createAction: DispatchCreateAction;
 }) {
   const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));
@@ -47,6 +48,12 @@ export function DispatchManagement({
           />
         }
       />
+      {createOptionsIssue === "sending-permission" && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Creating a new dispatch requires both dispatch creation and sending
+          permissions. Ask an administrator to review your role.
+        </p>
+      )}
       <DispatchFilter key={filters.status} filters={filters} />
       {page.items.length === 0 ? (
         <OperationalEmptyState
@@ -58,7 +65,7 @@ export function DispatchManagement({
           description={
             hasFilters
               ? "Choose another status to review dispatches."
-              : "Create a dispatch draft by choosing a branch, stock items, and quantities. Posting the draft deducts commissary inventory."
+              : "Choose a branch, stock items, and quantities, then review and confirm sending. Commissary stock is deducted only on confirmation."
           }
         />
       ) : (

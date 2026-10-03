@@ -25,13 +25,13 @@ describe("dispatch post control", () => {
     const action = vi.fn().mockResolvedValue({ ok: true });
     render(<DispatchPostControl dispatchId={dispatchId} action={action} />);
 
-    await user.click(screen.getByRole("button", { name: "Post dispatch" }));
+    await user.click(screen.getByRole("button", { name: "Send dispatch" }));
     expect(action).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
       "operational",
     );
     expect(
-      screen.getByText(/reduce commissary stock and begin branch transit/i),
+      screen.getByText(/Sending will deduct commissary inventory/i),
     ).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
@@ -53,7 +53,7 @@ describe("dispatch post control", () => {
       .mockResolvedValueOnce({ ok: true });
     render(<DispatchPostControl dispatchId={dispatchId} action={action} />);
 
-    await user.click(screen.getByRole("button", { name: "Post dispatch" }));
+    await user.click(screen.getByRole("button", { name: "Send dispatch" }));
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
     await screen.findByRole("alert");
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));

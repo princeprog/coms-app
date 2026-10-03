@@ -125,12 +125,16 @@ export function StaffCreateBranchPicker({
                   className="flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted"
                 >
                   <Checkbox
+                    aria-labelledby={`staff-create-branch-${branch.id}`}
                     checked={checked}
                     onCheckedChange={(value) =>
                       toggleBranch(branch.id, value === true)
                     }
                   />
-                  <span className="min-w-0 flex-1 break-words">
+                  <span
+                    id={`staff-create-branch-${branch.id}`}
+                    className="min-w-0 flex-1 break-words"
+                  >
                     {branch.name}
                   </span>
                 </label>

@@ -6,11 +6,12 @@ import {
   loadDispatchIndexView,
 } from "./dispatch-page-loader";
 
-const { getDispatchCreateOptions, getDispatchDetail, getDispatchPageData } = vi.hoisted(() => ({
-  getDispatchCreateOptions: vi.fn(),
-  getDispatchDetail: vi.fn(),
-  getDispatchPageData: vi.fn(),
-}));
+const { getDispatchCreateOptions, getDispatchDetail, getDispatchPageData } =
+  vi.hoisted(() => ({
+    getDispatchCreateOptions: vi.fn(),
+    getDispatchDetail: vi.fn(),
+    getDispatchPageData: vi.fn(),
+  }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("./dispatch-queries", () => ({
@@ -104,6 +105,7 @@ describe("dispatch page loader", () => {
         user([
           "dispatches.read",
           "dispatches.create",
+          "dispatches.dispatch",
           "branches.read",
           "stock_items.read",
         ]),
@@ -117,7 +119,7 @@ describe("dispatch page loader", () => {
     });
     await expect(
       loadDispatchIndexView(
-        user(["dispatches.read", "dispatches.create"]),
+        user(["dispatches.read", "dispatches.create", "dispatches.dispatch"]),
         {},
       ),
     ).resolves.toMatchObject({

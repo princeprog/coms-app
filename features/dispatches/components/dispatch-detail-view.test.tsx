@@ -142,12 +142,8 @@ describe("dispatch detail view", () => {
     expect(screen.getByText("One bag was damaged during transit")).toBeTruthy();
     expect(screen.getByText("2.5000 kg")).toBeTruthy();
     expect(screen.getByText("SHORTAGE CLOSED")).toBeTruthy();
-    expect(
-      screen.getByRole("heading", { name: "Branch receipts" }),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("heading", { name: "Shortage closures" }),
-    ).toBeTruthy();
+    expect(screen.getByText(/Branch receipts \(1\)/)).toBeTruthy();
+    expect(screen.getByText(/Shortage closures \(1\)/)).toBeTruthy();
   });
 
   it("explains when a dispatch has no receipt or shortage history", () => {
@@ -178,11 +174,11 @@ describe("dispatch detail view", () => {
     );
 
     expect(
-      screen.getByText("No branch receipts have been recorded."),
-    ).toBeTruthy();
+      screen.queryByText("No branch receipts have been recorded."),
+    ).toBeNull();
     expect(
-      screen.getByText("No shortage closures have been recorded."),
-    ).toBeTruthy();
+      screen.queryByText("No shortage closures have been recorded."),
+    ).toBeNull();
   });
 
   it("offers a confirmed post action only when the user can dispatch a draft", () => {
@@ -198,7 +194,13 @@ describe("dispatch detail view", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Post dispatch" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Send dispatch" })).toBeTruthy();
+    expect(
+      screen.getByRole("columnheader", { name: "Planned quantity" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("columnheader", { name: "In transit" }),
+    ).toBeNull();
   });
 
   it("offers partial receiving only for transit quantities and granted access", () => {

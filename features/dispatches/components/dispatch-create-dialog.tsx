@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { XIcon } from "lucide-react";
 import { useQuickCreateDialog } from "@/components/layout/use-quick-create-dialog";
 import {
   AlertDialog,
@@ -14,14 +15,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type {
   DispatchCreateAction,
   DispatchCreateOptions,
@@ -36,7 +38,8 @@ export function DispatchCreateDialog({
 }: {
   canCreate: boolean;
   options: DispatchCreateOptions | null;
-  optionsIssue: "permissions" | "forbidden" | "unavailable" | null;
+  optionsIssue:
+    "permissions" | "forbidden" | "unavailable" | "sending-permission" | null;
   action: DispatchCreateAction;
 }) {
   const router = useRouter();
@@ -61,70 +64,81 @@ export function DispatchCreateDialog({
       : optionsIssue === "forbidden"
         ? "You do not have access to the dispatch catalogs. Ask an administrator to review your permissions."
         : optionsIssue === "unavailable"
-          ? "Branch and stock item options could not be loaded. Close this sheet and refresh to try again."
+          ? "Branch and stock item options could not be loaded. Close this dialog and refresh to try again."
           : null;
 
   return (
-    <>
-      <Sheet
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (nextOpen) openDialog();
-          else requestClose();
-        }}
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) openDialog();
+        else requestClose();
+      }}
+    >
+      {canCreate && (
+        <DialogTrigger
+          render={<Button type="button">Create dispatch</Button>}
+        />
+      )}
+      <DialogContent
+        data-coms-ui="operational"
+        showCloseButton={false}
+        className="flex max-h-[min(90dvh,48rem)] min-h-0 w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
       >
-        {canCreate && (
-          <SheetTrigger
-            render={<Button type="button">Create dispatch</Button>}
+        <DialogHeader className="relative shrink-0 gap-1 border-b px-5 pt-6 pb-4 sm:px-8 sm:pt-7">
+          <DialogTitle className="pr-10 text-xl font-semibold">
+            Create dispatch
+          </DialogTitle>
+          <DialogDescription className="pr-10">
+            Choose an active branch and the stock items and quantities to send.
+          </DialogDescription>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-5 right-5 sm:right-7"
+            aria-label="Close Create dispatch"
+            disabled={pending}
+            onClick={requestClose}
+          >
+            <XIcon />
+          </Button>
+        </DialogHeader>
+        {!canCreate ? (
+          <p className="m-6 rounded-lg border p-4 text-sm">
+            Creating a new dispatch requires both dispatch creation and sending
+            permissions. Ask an administrator to review your role.
+          </p>
+        ) : catalogIssue ? (
+          <p role="alert" className="m-6 rounded-lg border p-4 text-sm">
+            {catalogIssue}
+          </p>
+        ) : !options?.branches.length ? (
+          <p role="status" className="m-6 rounded-lg border p-4 text-sm">
+            No active branch is available to your account. Assign an active
+            branch before creating a dispatch.
+          </p>
+        ) : (
+          <DispatchCreateForm
+            key={formKey}
+            options={options}
+            action={action}
+            onPendingChange={setPending}
+            onDirtyChange={setDirty}
+            onCancel={requestClose}
+            onCreated={(id) => {
+              toast.add({
+                title: "Dispatch sent",
+                description:
+                  "The dispatch is in transit. Branch staff can confirm actual receipt.",
+              });
+              setDirty(false);
+              closeDialog();
+              router.push(`/dispatches/${id}`);
+            }}
           />
         )}
-        <SheetContent
-          data-coms-ui="operational"
-          side="right"
-          showCloseButton
-          className="h-full w-full gap-0 overflow-hidden p-0 sm:max-w-2xl"
-        >
-          <SheetHeader className="border-b pr-16">
-            <SheetTitle>Create dispatch</SheetTitle>
-            <SheetDescription>
-              Choose an active branch and the stock items and quantities to send.
-            </SheetDescription>
-          </SheetHeader>
-          {!canCreate ? (
-            <p className="m-6 rounded-lg border p-4 text-sm">
-              Your role does not have permission to create dispatches.
-            </p>
-          ) : catalogIssue ? (
-            <p role="alert" className="m-6 rounded-lg border p-4 text-sm">
-              {catalogIssue}
-            </p>
-          ) : !options?.branches.length ? (
-            <p role="status" className="m-6 rounded-lg border p-4 text-sm">
-              No active branch is available to your account. Assign an active
-              branch before creating a dispatch.
-            </p>
-          ) : !options.stockItems.length ? (
-            <p role="status" className="m-6 rounded-lg border p-4 text-sm">
-              There are no active stock items to dispatch. Add or activate a
-              stock item first.
-            </p>
-          ) : (
-            <DispatchCreateForm
-              key={formKey}
-              options={options}
-              action={action}
-              onPendingChange={setPending}
-              onDirtyChange={setDirty}
-              onCancel={requestClose}
-              onCreated={(id) => {
-                setDirty(false);
-                closeDialog();
-                router.push(`/dispatches/${id}`);
-              }}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+      </DialogContent>
       <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
         <AlertDialogContent data-coms-ui="operational">
           <AlertDialogHeader>
@@ -149,6 +163,6 @@ export function DispatchCreateDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </Dialog>
   );
 }

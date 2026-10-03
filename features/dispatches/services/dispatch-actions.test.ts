@@ -3,6 +3,7 @@ import { ApiRequestError } from "@/services/api-services";
 import {
   closeDispatchShortageAction,
   createDispatchAction,
+  sendDispatchAction,
   postDispatchAction,
   reportDispatchDiscrepancyAction,
   receiveDispatchAction,
@@ -43,6 +44,29 @@ const dispatchDetail = {
 };
 
 describe("dispatch actions", () => {
+  it("sends to the atomic endpoint and accepts the original dispatch after receipt", async () => {
+    const input = {
+      branch_id: id,
+      items: [{ stock_item_id: id, quantity_dispatched: "2.5" }],
+    };
+    requestComsApi.mockResolvedValue({
+      ...dispatchDetail,
+      status: "RECEIVED",
+      dispatched_by_user_id: id,
+      dispatched_by_name: "Commissary Staff",
+      dispatched_at: timestamp,
+    });
+    expect(await sendDispatchAction(input, idempotencyKey)).toEqual({
+      ok: true,
+      dispatch_id: id,
+    });
+    expect(requestComsApi).toHaveBeenCalledWith("/dispatches/send", {
+      cookieHeader: "coms_access=access-token",
+      method: "POST",
+      body: input,
+      headers: { "Idempotency-Key": idempotencyKey },
+    });
+  });
   beforeEach(() => {
     requestComsApi.mockReset();
     revalidatePath.mockReset();
@@ -193,10 +217,7 @@ describe("dispatch actions", () => {
 
   it("rejects invalid IDs, retry keys, and receipt data without calling the API", async () => {
     await expect(
-      createDispatchAction(
-        { branch_id: "bad-id", items: [] },
-        idempotencyKey,
-      ),
+      createDispatchAction({ branch_id: "bad-id", items: [] }, idempotencyKey),
     ).resolves.toMatchObject({ ok: false });
     await expect(postDispatchAction(id, "bad-key")).resolves.toMatchObject({
       ok: false,
