@@ -57,6 +57,77 @@ const { createOperationalApiFixture } =
 
 const gatewaySecret = "a".repeat(64);
 
+describe("reviewed dispatch fixture", () => {
+  it("sends atomically, retries without another deduction, and leaves no record after failure", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = {
+        ...(await getAuthenticatedHeaders(fixture.baseUrl)),
+        "content-type": "application/json",
+      };
+      const stock = await fetch(
+        fixture.baseUrl + "/stock-items?page=1&page_size=25&is_active=true",
+        { headers },
+      ).then((r) => r.json());
+      const branch = await fetch(fixture.baseUrl + "/branches", {
+        headers,
+      }).then((r) => r.json());
+      const payload = {
+        branch_id: branch.items[0].id,
+        items: [
+          { stock_item_id: stock.items[0].id, quantity_dispatched: "2.5" },
+        ],
+      };
+      const key = "92000000-0000-4000-8000-000000000001";
+      const send = () =>
+        fetch(fixture.baseUrl + "/dispatches/send", {
+          method: "POST",
+          headers: { ...headers, "Idempotency-Key": key },
+          body: JSON.stringify(payload),
+        });
+      const response = await send();
+      expect(response.status).toBe(201);
+      const dispatched = dispatchDetailSchema.parse(await response.json());
+      expect(dispatched.status).toBe("IN_TRANSIT");
+      expect(dispatched.events).toHaveLength(1);
+      const after = await fetch(fixture.baseUrl + "/__fixture/state").then(
+        (r) => r.json(),
+      );
+      expect(dispatchDetailSchema.parse(await (await send()).json()).id).toBe(
+        dispatched.id,
+      );
+      const replayed = await fetch(fixture.baseUrl + "/__fixture/state").then(
+        (r) => r.json(),
+      );
+      expect(replayed.commissaryBalances).toEqual(after.commissaryBalances);
+      expect(replayed.commissaryMovements).toHaveLength(
+        after.commissaryMovements.length,
+      );
+      const failed = await fetch(fixture.baseUrl + "/dispatches/send", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "Idempotency-Key": "92000000-0000-4000-8000-000000000002",
+        },
+        body: JSON.stringify({
+          ...payload,
+          items: [
+            { stock_item_id: stock.items[0].id, quantity_dispatched: "999999" },
+          ],
+        }),
+      });
+      expect(failed.status).toBe(400);
+      const rolledBack = await fetch(fixture.baseUrl + "/__fixture/state").then(
+        (r) => r.json(),
+      );
+      expect(rolledBack.dispatches).toHaveLength(after.dispatches.length);
+      expect(rolledBack.commissaryBalances).toEqual(after.commissaryBalances);
+    } finally {
+      await fixture.close();
+    }
+  });
+});
+
 async function getAuthenticatedHeaders(baseUrl: string) {
   const login = await fetch(baseUrl + "/auth/login", {
     method: "POST",

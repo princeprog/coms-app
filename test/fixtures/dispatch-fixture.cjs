@@ -138,7 +138,11 @@ function withoutInternalKeys(value) {
 function dispatchDetail(dispatch) {
   return {
     ...withoutInternalKeys(dispatch),
-    items: dispatch.items.map(withoutInternalKeys),
+    items: dispatch.items.map((item) => ({
+      ...withoutInternalKeys(item),
+      quantity_in_transit:
+        dispatch.status === "DRAFT" ? "0" : item.quantity_in_transit,
+    })),
     receipts: dispatch.receipts.map((receipt) => ({
       ...withoutInternalKeys(receipt),
       items: receipt.items.map(withoutInternalKeys),
@@ -543,7 +547,11 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
     });
   }
 
-  if (url.pathname === "/dispatches" && request.method === "POST") {
+  const sending = url.pathname === "/dispatches/send";
+  if (
+    (url.pathname === "/dispatches" || sending) &&
+    request.method === "POST"
+  ) {
     if (
       !validIdempotencyKey(key) ||
       typeof body?.branch_id !== "string" ||
@@ -563,11 +571,8 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       const stockItem = state.stockItems.find(
         (item) => item.id === line?.stock_item_id && item.is_active,
       );
-      if (
-        !stockItem ||
-        quantity === null ||
-        seenStockItemIds.has(stockItem.id)
-      ) return null;
+      if (!stockItem || quantity === null || seenStockItemIds.has(stockItem.id))
+        return null;
       seenStockItemIds.add(stockItem.id);
       return { stockItem, quantity };
     });
@@ -579,7 +584,8 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       .map((line) => `${line.stockItem.id}:${line.quantity}`)
       .sort()
       .join("|")}`;
-    const retry = resolveIdempotency(state, key, "create", "", fingerprint);
+    const kind = sending ? "send" : "create";
+    const retry = resolveIdempotency(state, key, kind, "", fingerprint);
     if (retry) {
       if (retry.conflict)
         return conflict(response, "Idempotency key was already used.");
@@ -588,6 +594,23 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       );
       return send(response, 201, dispatchDetail(existing));
     }
+    const sendBalances = sending
+      ? lines.map(({ stockItem, quantity }) => ({
+          stockItem,
+          quantity,
+          balance: state.commissaryBalances.find(
+            (balance) => balance.id === stockItem.id,
+          ),
+        }))
+      : [];
+    const insufficient = sendBalances.find(
+      ({ balance, quantity }) =>
+        !balance || decimalCompare(balance.quantity_on_hand, quantity) < 0,
+    );
+    if (insufficient)
+      return send(response, 400, {
+        message: `Insufficient commissary inventory for ${insufficient.stockItem.stock_item_name}. Reduce the quantity or replenish stock.`,
+      });
     const dispatchNumber = state.dispatches.length + 1;
     const createdAt = timestamp(state.dispatchActionKeys.length + 100);
     const dispatch = {
@@ -595,31 +618,64 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       idempotency_key: key,
       branch_id: branch.id,
       branch_name: branch.branch_name,
-      status: "DRAFT",
+      status: sending ? "IN_TRANSIT" : "DRAFT",
       created_by_user_id: actorId,
       created_by_name: "Fixture Operations Lead",
-      dispatched_by_user_id: null,
-      dispatched_by_name: null,
-      dispatched_at: null,
+      dispatched_by_user_id: sending ? actorId : null,
+      dispatched_by_name: sending ? "Fixture Operations Lead" : null,
+      dispatched_at: sending ? createdAt : null,
       created_at: createdAt,
       updated_at: createdAt,
       items: lines.map(({ stockItem, quantity }, itemIndex) => ({
-          id: uuid("56000000", dispatchNumber * 100 + itemIndex + 1),
-          stock_item_id: stockItem.id,
-          stock_item_name: stockItem.stock_item_name,
-          unit: stockItem.unit,
-          quantity_dispatched: quantity,
-          quantity_received: "0",
-          quantity_shortage_closed: "0",
-          quantity_in_transit: quantity,
-        })),
+        id: uuid("56000000", dispatchNumber * 100 + itemIndex + 1),
+        stock_item_id: stockItem.id,
+        stock_item_name: stockItem.stock_item_name,
+        unit: stockItem.unit,
+        quantity_dispatched: quantity,
+        quantity_received: "0",
+        quantity_shortage_closed: "0",
+        quantity_in_transit: quantity,
+      })),
       receipts: [],
       shortage_closures: [],
       events: [],
     };
-    addEvent(dispatch, seed, "CREATED", key, createdAt);
+    for (const { stockItem, quantity, balance } of sendBalances) {
+      balance.quantity_on_hand = decimalSubtract(
+        balance.quantity_on_hand,
+        quantity,
+      );
+      const line = dispatch.items.find(
+        (line) => line.stock_item_id === stockItem.id,
+      );
+      state.commissaryMovements.push({
+        id: uuid("74000000", state.commissaryMovements.length + 1),
+        inventory_scope: "COMMISSARY",
+        branch_id: null,
+        stock_item_id: stockItem.id,
+        stock_item_name: stockItem.stock_item_name,
+        unit: stockItem.unit,
+        movement_type: "DISPATCH",
+        quantity_delta: decimalText(
+          -decimalParts(quantity).digits,
+          decimalParts(quantity).scale,
+        ),
+        reason: `Dispatch ${dispatch.id}`,
+        actor_user_id: actorId,
+        dispatch_item_id: line.id,
+        idempotency_key: key,
+        created_at: createdAt,
+      });
+    }
+    addEvent(
+      dispatch,
+      seed,
+      sending ? "DISPATCHED" : "CREATED",
+      key,
+      createdAt,
+    );
     state.dispatches.push(dispatch);
-    recordIdempotency(state, key, "create", "", fingerprint);
+    recordIdempotency(state, key, kind, "", fingerprint);
     return send(response, 201, dispatchDetail(dispatch));
   }
 
@@ -662,7 +718,8 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       balances.some(
         ({ item, balance }) =>
           !balance ||
-          decimalCompare(balance.quantity_on_hand, item.quantity_dispatched) < 0,
+          decimalCompare(balance.quantity_on_hand, item.quantity_dispatched) <
+            0,
       )
     ) {
       return conflict(response, "Commissary inventory is insufficient.");
@@ -680,7 +737,10 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
         stock_item_name: item.stock_item_name,
         unit: item.unit,
         movement_type: "DISPATCH",
-        quantity_delta: decimalText(-decimalParts(item.quantity_dispatched).digits, decimalParts(item.quantity_dispatched).scale),
+        quantity_delta: decimalText(
+          -decimalParts(item.quantity_dispatched).digits,
+          decimalParts(item.quantity_dispatched).scale,
+        ),
         reason: `Dispatch ${dispatch.id}`,
         actor_user_id: actorId,
         idempotency_key: key,

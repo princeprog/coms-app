@@ -21,7 +21,7 @@ Sending means stock is physically ready to leave. Branch inventory increases onl
 - [x] Frontend tests: mutation-free review, Back, failure retention, duplicate/pending dismissal guards, retry keys, search races and recoverable lookup failures.
 - [x] Focused/full suites, lint, formatting, typechecks and both production builds. Update/run API and browser fixtures; report simulated fixture evidence separately from real transaction evidence.
 - [x] Browser: desktop, phone, dark mode, keyboard/focus return and narrow layouts with simulated accounts only.
-- [ ] Update Obsidian workflow, decisions and progress after verified milestones.
+- [x] Update Obsidian workflow, decisions and progress after verified milestones.
 
 ## Delivery
 
@@ -32,7 +32,7 @@ Completion requires all relevant checks passing. Failed confirmation leaves no s
 ## Verified evidence — 2026-10-03
 
 - Frontend: 115 files / 508 tests passed with four workers; ESLint, changed-file Prettier, production build and post-build typecheck passed.
-- API: 112 unit tests passed; 37 opt-in database checks are skipped in the default unit command. All 108 end-to-end tests across 11 files passed against a uniquely named disposable PostgreSQL database with 20 existing migrations, then the database was dropped. The final focused dispatch suite passed all 20 checks, including nonexistent/inactive references and zero transit for drafts.
+- API: all 149 tests across 31 files passed with COMS_RUN_DB_TESTS enabled, including the 37 optional database checks in their own uniquely named disposable databases. The default command separately passed 112 unit tests. All 108 end-to-end tests across 11 files passed against a uniquely named disposable PostgreSQL database with 20 existing migrations, then the database was dropped. The final focused dispatch suite passed all 20 checks, including nonexistent/inactive references and zero transit for drafts.
 - Real transaction regressions: forced reversed-line send/legacy-draft overlap and concurrent cross-action key reuse across branches failed before the stock-lock fix and passed afterward. Exact decimal deductions, per-line linked movements, actor/timestamp, rollback, permission/scope denials and replay after receipt are asserted.
 - Frontend regressions: lost response followed by equivalent/reverted quantity edits creates one operation; current permission changes mask retained selected and cached balances. Review is mutation-free; Back, failure retention, pending guards, lookup races and retry recovery are covered.
 - Browser: the task-only fixture passed 21 route states at 195, 390, 768, 1440 and 1920px, all states in dark mode, and 2x scale at 195px. It exercises review, Back, failed confirmation, retry, success announcement, transit detail navigation, keyboard dismissal/focus and persistent shell. Browser/API fixture evidence uses synthetic accounts and simulated inventory, independently of the PostgreSQL transaction evidence. The wider working-tree fixture also passed 23 states, including prior inventory work; those unrelated additions are excluded from this task's commit.
@@ -50,3 +50,5 @@ Completion requires all relevant checks passing. Failed confirmation leaves no s
 ## Release and handoff
 
 The additive API must be released before the updated frontend. No deployment is part of this implementation. Existing drafts remain intact and manually sendable. No migration, dependency, new permission grant or automatic inventory adjustment was introduced. Task commits preserve prior unrelated working-tree changes; verification used the current workspace and is not a claim that all prior uncommitted design-system work has been committed.
+
+Commits: app instructions 8c02cc2; API instructions c2b839d; atomic API 3eb05c0; concurrency regression fix 61cb36a; reviewed frontend 02f8366. The final fixture/evidence commit records this completed checklist. Six focused commits include one additional concurrency-fix commit discovered during final review. Obsidian workflow, decisions, Home and progress notes are updated.

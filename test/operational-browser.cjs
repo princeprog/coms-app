@@ -468,6 +468,103 @@ let baseUrl;
     await page.keyboard.press("Escape");
     await page.waitForURL((url) => !url.searchParams.has("create"));
   }
+  await page.setViewportSize({ width: 390, height: 667 });
+  await navigate("/dispatches");
+  await page
+    .getByRole("button", { name: "Create dispatch", exact: true })
+    .click();
+  const sendModal = page.getByRole("dialog", { name: "Create dispatch" });
+  await sendModal
+    .getByRole("combobox", { name: "Branch", exact: true })
+    .click();
+  await page.getByRole("option", { name: "Manila North", exact: true }).click();
+  const stockSearch = sendModal.getByRole("combobox", {
+    name: "Stock item 1",
+    exact: true,
+  });
+  await stockSearch.fill("Flour");
+  await page.getByRole("option", { name: /Flour · kg/ }).click();
+  await sendModal.getByLabel("Quantity (kg)").fill("3.125");
+  const beforeSend = await fetch(fixture.baseUrl + "/__fixture/state").then(
+    (r) => r.json(),
+  );
+  await sendModal
+    .getByRole("button", { name: "Review & send", exact: true })
+    .click();
+  await sendModal.getByText("3.125 kg", { exact: true }).waitFor();
+  assert.deepEqual(
+    (await fetch(fixture.baseUrl + "/__fixture/state").then((r) => r.json()))
+      .dispatches,
+    beforeSend.dispatches,
+    "Review saved a dispatch",
+  );
+  await sendModal.getByRole("button", { name: "Back to edit" }).click();
+  assert.equal(
+    await sendModal.getByLabel("Quantity (kg)").inputValue(),
+    "3.125",
+  );
+  assert.equal(await stockSearch.inputValue(), "Flour");
+  await sendModal
+    .getByRole("button", { name: "Review & send", exact: true })
+    .click();
+  for (const width of viewportWidths) {
+    await page.setViewportSize({ width, height: width <= 390 ? 667 : 960 });
+    assert(
+      await sendModal
+        .getByRole("button", { name: "Confirm dispatch" })
+        .isVisible(),
+    );
+    assert(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    );
+  }
+  await page.emulateMedia({ colorScheme: "dark" });
+  await saveScreenshot("dispatch-send-review-dark.png", "css", false);
+  await page.emulateMedia({ colorScheme: "light" });
+  await fetch(fixture.baseUrl + "/__fixture/fail-next", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      method: "POST",
+      path: "/dispatches/send",
+      status: 503,
+      message: "Temporary dispatch sending failure.",
+    }),
+  });
+  await sendModal.getByRole("button", { name: "Confirm dispatch" }).click();
+  await sendModal.getByRole("alert").waitFor();
+  const afterFailure = await fetch(fixture.baseUrl + "/__fixture/state").then(
+    (r) => r.json(),
+  );
+  assert.deepEqual(
+    afterFailure.dispatches,
+    beforeSend.dispatches,
+    "Failed confirmation saved a record",
+  );
+  assert.deepEqual(
+    afterFailure.commissaryBalances,
+    beforeSend.commissaryBalances,
+    "Failed confirmation deducted inventory",
+  );
+  await sendModal.getByRole("button", { name: "Confirm dispatch" }).click();
+  await page.waitForURL(/\/dispatches\/[0-9a-f-]+$/);
+  await page.getByText("Dispatch sent", { exact: true }).waitFor();
+  await page.getByText("IN TRANSIT", { exact: true }).waitFor();
+  const afterSend = await fetch(fixture.baseUrl + "/__fixture/state").then(
+    (r) => r.json(),
+  );
+  assert.equal(afterSend.dispatches.length, beforeSend.dispatches.length + 1);
+  assert.equal(
+    afterSend.commissaryMovements.length,
+    beforeSend.commissaryMovements.length + 1,
+  );
+  console.log(
+    "PASS reviewed atomic sending, Back preserves fields, failed confirmation preserves stock, retry opens transit details, responsive/dark review",
+  );
+  await page.setViewportSize({ width: 1440, height: 960 });
+
   for (const retiredRoute of [
     "/replenishment",
     "/replenishment/33000000-0000-4000-8000-000000000001",
@@ -549,7 +646,7 @@ let baseUrl;
           0,
           "Super Admin cannot report a branch receipt discrepancy",
         );
-        await page.getByText("The delivery count is short", { exact: false }).waitFor();
+        await page.getByText("The delivery count is short", { exact: false }).first().waitFor();
       }
       if (width === 195 && route === "/roles/5") {
         await assertRoleWorkspaceScroll(
