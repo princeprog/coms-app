@@ -16,7 +16,7 @@ export function StaffCreateFormFooter({
         <Button
           type="button"
           variant="outline"
-          className="h-11 flex-1 rounded-md sm:min-w-24 sm:flex-none"
+          className="h-11 flex-1 sm:min-w-24 sm:flex-none"
           disabled={pending}
           onClick={onCancel}
         >
@@ -24,7 +24,7 @@ export function StaffCreateFormFooter({
         </Button>
         <Button
           type="submit"
-          className="h-11 flex-1 rounded-md sm:min-w-32 sm:flex-none"
+          className="h-11 flex-1 sm:min-w-32 sm:flex-none"
           disabled={pending}
         >
           {pending ? "Creating staff…" : "Create staff"}

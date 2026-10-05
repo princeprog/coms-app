@@ -91,9 +91,9 @@ async function assertRoleWorkspaceScroll(width, route, searchId) {
       ),
   );
   const state = await page.evaluate((permissionSearchId) => {
-    const search = [...document.querySelectorAll(`#${permissionSearchId}`)].find(
-      (element) => element.getClientRects().length > 0,
-    );
+    const search = [
+      ...document.querySelectorAll(`#${permissionSearchId}`),
+    ].find((element) => element.getClientRects().length > 0);
     const workspace = search?.closest("[data-role-workspace]");
     const picker = search?.closest("[data-role-permission-picker]");
     const viewport = picker?.querySelector(
@@ -302,6 +302,55 @@ async function saveScreenshot(name, scale = "css", fullPage = true) {
   });
 }
 
+async function assertLoginPresetPresentation(label) {
+  const presentation = await page.evaluate(() => {
+    const signIn = document.querySelector('form button[type="submit"]');
+    const email = document.querySelector('[data-slot="input-group"]');
+    const card = document.querySelector('[data-slot="card"]');
+    if (!signIn || !email || !card) return null;
+
+    const root = getComputedStyle(document.documentElement);
+    const radius = Number.parseFloat(root.getPropertyValue("--radius"));
+    const rootFontSize = Number.parseFloat(root.fontSize);
+    const primary = root
+      .getPropertyValue("--primary")
+      .match(/lab\(\s*([-\d.]+)%?\s+([-\d.]+)\s+([-\d.]+)/);
+    return {
+      expectedButtonRadius: radius * rootFontSize,
+      buttonRadius: Number.parseFloat(
+        getComputedStyle(signIn).borderTopLeftRadius,
+      ),
+      inputRadius: Number.parseFloat(
+        getComputedStyle(email).borderTopLeftRadius,
+      ),
+      cardRadius: Number.parseFloat(getComputedStyle(card).borderTopLeftRadius),
+      primaryAxes: primary
+        ? { a: Number(primary[2]), b: Number(primary[3]) }
+        : null,
+    };
+  });
+
+  assert(presentation, `${label} sign-in controls were not rendered`);
+  assert.equal(
+    presentation.buttonRadius,
+    presentation.expectedButtonRadius,
+    `${label} sign-in button should use the Nova button radius`,
+  );
+  assert.equal(
+    presentation.inputRadius,
+    presentation.expectedButtonRadius,
+    `${label} sign-in input group should use the Nova control radius`,
+  );
+  assert(
+    presentation.cardRadius > presentation.buttonRadius,
+    `${label} sign-in card should use Nova's larger card radius`,
+  );
+  assert(
+    presentation.primaryAxes?.a > 0 && presentation.primaryAxes.b > 0,
+    `${label} theme should retain a chromatic orange primary color: ${JSON.stringify(presentation)}`,
+  );
+}
+
 let baseUrl;
 
 (async () => {
@@ -367,6 +416,8 @@ let baseUrl;
     "/recipes",
     `/recipes/${fixtureState.products[0].id}`,
     `/branch-products?branch_id=${branchId}`,
+    "/inventory",
+    "/inventory?scope=COMMISSARY&status=inactive&category=Dry+goods",
     `/inventory?scope=BRANCH&branch_id=${branchId}`,
     "/receipts",
     `/receipts/${fixtureState.receipts[0].id}`,
@@ -397,6 +448,19 @@ let baseUrl;
     }
   });
   await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Sign In", exact: true }).waitFor();
+  await assertLoginPresetPresentation("light");
+  await saveScreenshot("login-nova-desktop.png");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.waitForFunction(() =>
+    document.documentElement.classList.contains("dark"),
+  );
+  await assertLoginPresetPresentation("dark");
+  await saveScreenshot("login-nova-dark-desktop.png");
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.waitForFunction(() =>
+    document.documentElement.classList.contains("light"),
+  );
   await page
     .getByRole("textbox", { name: "Email", exact: true })
     .fill(seed.login.email);
@@ -409,6 +473,7 @@ let baseUrl;
   await page.getByText("Total Revenue", { exact: true }).waitFor();
   await page.getByText("Total Visitors", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Cover page", exact: true }).waitFor();
+  await saveScreenshot("dashboard-nova-desktop.png");
   await assertPageStructure("/dashboard", 1440);
   const logoBounds = await page
     .getByRole("link", { name: "Go to your workspace" })
@@ -458,7 +523,11 @@ let baseUrl;
     ),
   );
   for (const [label, route, dialogTitle] of [
-    ["Record supplier delivery", "/receipts?create=1", "Record supplier delivery"],
+    [
+      "Record supplier delivery",
+      "/receipts?create=1",
+      "Record supplier delivery",
+    ],
     ["New dispatch", "/dispatches?create=1", "Create dispatch"],
   ]) {
     await page.getByRole("button", { name: "Quick Actions" }).click();
@@ -468,6 +537,266 @@ let baseUrl;
     await page.keyboard.press("Escape");
     await page.waitForURL((url) => !url.searchParams.has("create"));
   }
+
+  for (const modalCheck of [
+    {
+      path: "/receipts",
+      trigger: "Record supplier delivery",
+      name: "Record supplier delivery",
+      screenshotStem: "supplier-delivery-modal-nova",
+      addLines: 4,
+      selector: { label: "Supplier", option: "North Farm Supply" },
+      lineSelector: { label: "Stock item for line 1", option: "Flour (kg)" },
+    },
+    {
+      path: "/dispatches",
+      trigger: "Create dispatch",
+      name: "Create dispatch",
+      screenshotStem: "dispatch-create-modal-nova",
+      addLines: 7,
+      selector: { label: "Branch", option: "Manila North" },
+      lineSelector: { label: "Stock item 1", option: "Flour · kg" },
+    },
+  ]) {
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await navigate(modalCheck.path);
+    const trigger = page.getByRole("button", { name: modalCheck.trigger });
+    await trigger.click();
+    const modal = page.getByRole("dialog", { name: modalCheck.name });
+    await modal.waitFor();
+    assert.equal(await modal.getAttribute("data-slot"), "dialog-content");
+    await saveScreenshot(
+      `${modalCheck.screenshotStem}-desktop.png`,
+      "css",
+      false,
+    );
+
+    for (const width of viewportWidths) {
+      const height = width === 390 || width === 195 ? 667 : 960;
+      await page.setViewportSize({ width, height });
+      await page.waitForFunction(
+        ({ width, height }) => {
+          const dialog = document.querySelector('[data-slot="dialog-content"]');
+          if (!dialog) return false;
+          const bounds = dialog.getBoundingClientRect();
+          return (
+            bounds.x >= 8 &&
+            bounds.right <= width - 8 &&
+            bounds.y >= 8 &&
+            bounds.bottom <= height - 8 &&
+            Math.abs(bounds.x + bounds.width / 2 - width / 2) < 2 &&
+            Math.abs(bounds.y + bounds.height / 2 - height / 2) < 2
+          );
+        },
+        { width, height },
+        { timeout: 4000 },
+      );
+      const bounds = await modal.boundingBox();
+      const sizing = await modal.evaluate((dialog) => {
+        const style = getComputedStyle(dialog);
+        return {
+          width: style.width,
+          minWidth: style.minWidth,
+          maxWidth: style.maxWidth,
+          childWidths: [...dialog.children].map(
+            (child) => getComputedStyle(child).width,
+          ),
+        };
+      });
+      assert(
+        bounds &&
+          bounds.x >= 8 &&
+          bounds.x + bounds.width <= width - 8 &&
+          bounds.y >= 8 &&
+          bounds.y + bounds.height <= height - 8 &&
+          Math.abs(bounds.x + bounds.width / 2 - width / 2) < 2 &&
+          Math.abs(bounds.y + bounds.height / 2 - height / 2) < 2,
+        `${modalCheck.name} is not centered with viewport margins at ${width}px: ${JSON.stringify({ bounds, sizing })}`,
+      );
+      assert(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+        `${modalCheck.name} causes horizontal page overflow at ${width}px`,
+      );
+    }
+
+    await page.setViewportSize({ width: 390, height: 667 });
+    for (let index = 0; index < modalCheck.addLines; index += 1) {
+      await modal.getByRole("button", { name: "Add stock item" }).click();
+    }
+    const scrollLayout = await modal.evaluate((dialog) => {
+      const body = dialog.querySelector("form > div:first-child");
+      const header = dialog.querySelector('[data-slot="dialog-header"]');
+      const footer = dialog.querySelector('[data-slot="dialog-footer"]');
+      if (!body || !header || !footer) return null;
+      body.scrollTop = body.scrollHeight;
+      const actionBounds = [...footer.querySelectorAll("button")].map(
+        (button) => button.getBoundingClientRect(),
+      );
+      return {
+        bodyScrollable:
+          body.scrollHeight > body.clientHeight && body.scrollTop > 0,
+        headerVisible:
+          header.getBoundingClientRect().top >=
+          dialog.getBoundingClientRect().top,
+        footerBottom: footer.getBoundingClientRect().bottom,
+        footerActionsStacked:
+          actionBounds.length === 2 &&
+          Math.abs(actionBounds[0].left - actionBounds[1].left) < 2 &&
+          Math.abs(actionBounds[0].top - actionBounds[1].top) > 8,
+      };
+    });
+    assert(
+      scrollLayout &&
+        scrollLayout.bodyScrollable &&
+        scrollLayout.headerVisible &&
+        scrollLayout.footerBottom <= 659 &&
+        scrollLayout.footerActionsStacked,
+      `${modalCheck.name} does not contain form scrolling at 390 × 667: ${JSON.stringify(scrollLayout)}`,
+    );
+    await saveScreenshot(
+      `${modalCheck.screenshotStem}-mobile.png`,
+      "css",
+      false,
+    );
+
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.waitForFunction(() =>
+      document.documentElement.classList.contains("dark"),
+    );
+    assert(await modal.isVisible());
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.waitForFunction(
+      () => !document.documentElement.classList.contains("dark"),
+    );
+
+    for (const selectorCheck of [
+      modalCheck.selector,
+      modalCheck.lineSelector,
+    ]) {
+      const selectTrigger = modal.getByRole("combobox", {
+        name: selectorCheck.label,
+      });
+      await selectTrigger.click();
+      const selectPopup = page.locator(
+        modalCheck.name === "Create dispatch" &&
+          selectorCheck.label.startsWith("Stock item")
+          ? '[data-slot="combobox-content"][data-open]'
+          : '[data-slot="select-content"][data-open]',
+      );
+      const option = page.getByRole("option", {
+        name: selectorCheck.option,
+      });
+      await option.waitFor();
+      await selectPopup.evaluate(async (element) => {
+        await Promise.all(
+          element
+            .getAnimations()
+            .map((animation) => animation.finished.catch(() => undefined)),
+        );
+      });
+      const [triggerBounds, popupBounds, radii] = await Promise.all([
+        selectTrigger.boundingBox(),
+        selectPopup.boundingBox(),
+        Promise.all([
+          selectTrigger.evaluate(
+            (element) => getComputedStyle(element).borderTopLeftRadius,
+          ),
+          selectPopup.evaluate(
+            (element) => getComputedStyle(element).borderTopLeftRadius,
+          ),
+        ]),
+      ]);
+      assert(
+        triggerBounds &&
+          popupBounds &&
+          (popupBounds.y >= triggerBounds.y + triggerBounds.height - 1 ||
+            (modalCheck.name === "Create dispatch" &&
+              selectorCheck.label.startsWith("Stock item") &&
+              popupBounds.y + popupBounds.height <= triggerBounds.y + 1)),
+        modalCheck.name +
+          " selector dropdown overlaps its trigger: " +
+          JSON.stringify({ triggerBounds, popupBounds }),
+      );
+      if (!(
+        modalCheck.name === "Create dispatch" &&
+        selectorCheck.label.startsWith("Stock item")
+      )) {
+        assert.equal(
+          radii[0],
+          radii[1],
+          modalCheck.name + " selector and dropdown corner radii do not match",
+        );
+      }
+      await option.click();
+    }
+
+    const submitName =
+      modalCheck.name === "Create dispatch"
+        ? "Review & send"
+        : "Review delivery";
+    const submit = modal.getByRole("button", {
+      name: submitName,
+      exact: true,
+    });
+    await submit.focus();
+    await page.keyboard.press("Tab");
+    await page.waitForFunction(() =>
+      Boolean(document.activeElement?.closest('[data-slot="dialog-content"]')),
+    );
+    const focusState = await page.evaluate(() => ({
+      insideModal: Boolean(
+        document.activeElement?.closest('[data-slot="dialog-content"]'),
+      ),
+      activeElement: document.activeElement?.outerHTML.slice(0, 240),
+    }));
+    assert(
+      focusState.insideModal,
+      `${modalCheck.name} allowed keyboard focus to escape the modal: ${JSON.stringify(focusState)}`,
+    );
+
+    await page.mouse.click(4, 4);
+    await page
+      .getByRole("alertdialog", {
+        name: `Discard ${modalCheck.name === "Create dispatch" ? "dispatch" : "delivery"} details?`,
+      })
+      .waitFor();
+    await page.getByRole("button", { name: "Keep editing" }).click();
+    await modal.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("alertdialog").waitFor();
+    await page
+      .getByRole("button", {
+        name:
+          modalCheck.name === "Create dispatch"
+            ? "Discard details"
+            : "Discard changes",
+      })
+      .click();
+    await modal.waitFor({ state: "detached" });
+    assert(
+      await trigger.evaluate((element) => element === document.activeElement),
+      `${modalCheck.name} did not restore focus to its trigger`,
+    );
+
+    await trigger.click();
+    if (modalCheck.name === "Create dispatch") {
+      assert.match(
+        await modal.getByRole("combobox", { name: "Branch" }).innerText(),
+        /Select a branch/,
+      );
+    } else {
+      assert(
+        await modal
+          .getByRole("button", { name: "Delivery date: Select a date" })
+          .isVisible(),
+      );
+    }
+    await page.keyboard.press("Escape");
+    await modal.waitFor({ state: "detached" });
+  }
+
+  console.log("PASS centered supplier delivery and dispatch creation modals");
   await page.setViewportSize({ width: 390, height: 667 });
   await navigate("/dispatches");
   await page
@@ -565,6 +894,114 @@ let baseUrl;
   );
   await page.setViewportSize({ width: 1440, height: 960 });
 
+  await navigate("/inventory");
+  await page.getByRole("region", { name: "Stock balances table" }).waitFor();
+  const commissaryScope = page.getByRole("button", { name: "Commissary", exact: true });
+  const branchScope = page.getByRole("button", { name: "Branches", exact: true });
+  assert.equal(await commissaryScope.getAttribute("aria-pressed"), "true");
+  assert.equal(await page.getByRole("combobox", { name: "Branch" }).count(), 0);
+  await branchScope.focus();
+  await page.keyboard.press("Enter");
+  await page.waitForURL((url) => url.searchParams.get("scope") === "BRANCH" && url.searchParams.has("branch_id"));
+  const branchSelect = page.getByRole("combobox", { name: "Branch" });
+  await branchSelect.waitFor();
+  assert.match(await branchSelect.innerText(), /Manila North/);
+  await branchSelect.click();
+  const locationList = page.getByRole("listbox");
+  await locationList.getByRole("option", { name: "Manila North" }).waitFor();
+  await page.keyboard.press("Escape");
+  await page.goBack();
+  await page.waitForURL((url) => url.pathname === "/inventory" && !url.search);
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-slot="toggle-group-item"]')].find(button => button.textContent.trim() === "Commissary")?.getAttribute("aria-pressed") === "true");
+  assert.equal(await branchSelect.count(), 0);
+  await page.goForward();
+  await page.waitForURL((url) => url.searchParams.get("scope") === "BRANCH");
+  await branchSelect.waitFor();
+  assert.match(await branchSelect.innerText(), /Manila North/);
+
+  await navigate("/inventory?scope=COMMISSARY");
+  const statusFilter = page.getByRole("combobox", { name: "Status" });
+  await statusFilter.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("option", { name: "Active", exact: true }).waitFor();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await page.waitForURL(
+    (url) =>
+      url.searchParams.get("scope") === "COMMISSARY" &&
+      url.searchParams.get("status") === "active",
+  );
+  const categoryFilter = page.getByRole("combobox", { name: "Category" });
+  await categoryFilter.click();
+  await page.getByRole("option", { name: "Dry goods" }).click();
+  await page.waitForURL(
+    (url) =>
+      url.searchParams.get("status") === "active" &&
+      url.searchParams.get("category") === "Dry goods",
+  );
+  const movementsBeforeSearch = await page
+    .getByRole("region", { name: "Recent inventory movements table" })
+    .getByRole("row")
+    .count();
+  let delayedSearchNavigation = false;
+  await page.route("**/inventory?*", async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.searchParams.get("search") === "Dry goods") {
+      delayedSearchNavigation = true;
+      await new Promise((resolve) => setTimeout(resolve, 900));
+    }
+    await route.continue();
+  });
+  const inventorySearch = page.getByRole("searchbox", {
+    name: "Search stock items",
+  });
+  await inventorySearch.fill("Dry goods");
+  await page
+    .getByRole("status")
+    .filter({ hasText: "Updating inventory" })
+    .waitFor();
+  assert(
+    await page.locator('[aria-busy="true"]').count(),
+    "The balances region should be marked busy during filtered navigation",
+  );
+  await page.waitForURL(
+    (url) =>
+      url.searchParams.get("status") === "active" &&
+      url.searchParams.get("category") === "Dry goods" &&
+      url.searchParams.get("search") === "Dry goods",
+  );
+  assert(
+    delayedSearchNavigation,
+    "The browser check must delay filtered results",
+  );
+  const movementsAfterSearch = await page
+    .getByRole("region", { name: "Recent inventory movements table" })
+    .getByRole("row")
+    .count();
+  assert.equal(movementsAfterSearch, movementsBeforeSearch);
+  await page.unroute("**/inventory?*");
+  await saveScreenshot("inventory-location-filters-desktop.png", "css", false);
+  await page.setViewportSize({ width: 390, height: 667 });
+  await assertPageStructure("/inventory filters at 390 × 667", 390);
+  await saveScreenshot("inventory-location-filters-mobile.png", "css", false);
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.waitForFunction(() =>
+    document.documentElement.classList.contains("dark"),
+  );
+  await assertPageStructure("/inventory filters in dark mode", 390);
+  await saveScreenshot(
+    "inventory-location-filters-dark-mobile.png",
+    "css",
+    false,
+  );
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.waitForFunction(() =>
+    document.documentElement.classList.contains("light"),
+  );
+  console.log(
+    "PASS inventory location, URL filters, pending spinner, and ledger scope",
+  );
+
   for (const retiredRoute of [
     "/replenishment",
     "/replenishment/33000000-0000-4000-8000-000000000001",
@@ -577,8 +1014,7 @@ let baseUrl;
   await posPage.getByRole("heading", { name: "Page not found" }).waitFor();
   assert.equal(await posPage.locator("#pos-cart-panel").count(), 0);
   await posPage.close();
-  await page.getByRole("link", { name: "Dashboard", exact: true }).first().click();
-  await page.waitForURL("**/dashboard");
+  await navigate("/dashboard");
   await page.getByRole("heading", { name: "Dashboard", level: 1 }).waitFor();
   await saveScreenshot("dashboard-desktop.png");
   await page.setViewportSize({ width: 390, height: 844 });
@@ -596,7 +1032,11 @@ let baseUrl;
       "/roles",
       page.getByRole("table", { name: "Roles and their access summary" }),
     ],
-    ["Inventory", "/inventory", page.getByRole("heading", { name: "Stock balances" })],
+    [
+      "Inventory",
+      "/inventory",
+      page.getByRole("heading", { name: "Stock balances" }),
+    ],
   ]) {
     await page.getByRole("link", { name: label, exact: true }).first().click();
     await page.waitForURL(`**${href}**`);
@@ -642,11 +1082,16 @@ let baseUrl;
           "Super Admin cannot enter a branch dispatch receipt",
         );
         assert.equal(
-          await page.getByRole("button", { name: "Report discrepancy" }).count(),
+          await page
+            .getByRole("button", { name: "Report discrepancy" })
+            .count(),
           0,
           "Super Admin cannot report a branch receipt discrepancy",
         );
-        await page.getByText("The delivery count is short", { exact: false }).first().waitFor();
+        await page
+          .getByText("The delivery count is short", { exact: false })
+          .first()
+          .waitFor();
       }
       if (width === 195 && route === "/roles/5") {
         await assertRoleWorkspaceScroll(
@@ -929,6 +1374,7 @@ let baseUrl;
     (url) =>
       url.pathname === "/staff" &&
       url.searchParams.get("status") === "inactive",
+    { waitUntil: "commit" },
   );
   assert.equal(
     await page
@@ -1236,8 +1682,14 @@ let baseUrl;
     0,
     "Super Admin daily report review must keep physical counts read-only",
   );
-  assert.equal(await page.getByRole("button", { name: "Save counts" }).count(), 0);
-  assert.equal(await page.getByRole("button", { name: "Submit for review" }).count(), 0);
+  assert.equal(
+    await page.getByRole("button", { name: "Save counts" }).count(),
+    0,
+  );
+  assert.equal(
+    await page.getByRole("button", { name: "Submit for review" }).count(),
+    0,
+  );
 
   await navigate(
     `/reports?branch_id=${branchId}&report_id=${submittedReport.id}`,

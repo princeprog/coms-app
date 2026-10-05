@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { XIcon } from "lucide-react";
 import { useQuickCreateDialog } from "@/components/layout/use-quick-create-dialog";
 import {
   AlertDialog,
@@ -15,13 +16,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { StockItem } from "@/features/stock-items/types/stock-item.types";
 import type { Supplier } from "@/features/suppliers/types/supplier.types";
 import type { SupplierReceiptCreateAction } from "@/features/supplier-receipts/types/supplier-receipt.types";
@@ -41,6 +42,7 @@ export function SupplierReceiptCreateDialog({
   const [pending, setPending] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [formKey, setFormKey] = useState(0);
 
   function requestClose() {
     if (pending) return;
@@ -53,14 +55,14 @@ export function SupplierReceiptCreateDialog({
 
   return (
     <>
-      <Sheet
+      <Dialog
         open={open}
         onOpenChange={(nextOpen) => {
           if (nextOpen) openDialog();
           else requestClose();
         }}
       >
-        <SheetTrigger
+        <DialogTrigger
           render={
             <Button
               type="button"
@@ -70,20 +72,33 @@ export function SupplierReceiptCreateDialog({
             </Button>
           }
         />
-        <SheetContent
+        <DialogContent
           data-coms-ui="operational"
-          side="right"
-          showCloseButton
-          className="h-full w-full gap-0 overflow-hidden p-0 sm:max-w-2xl"
+          showCloseButton={false}
+          className="flex max-h-[min(90dvh,48rem)] min-h-0 w-full flex-col gap-0 overflow-clip p-0 sm:max-w-2xl"
         >
-          <SheetHeader className="border-b pr-16">
-            <SheetTitle>Record supplier delivery</SheetTitle>
-            <SheetDescription>
+          <DialogHeader className="relative shrink-0 gap-1 border-b p-4 sm:p-6">
+            <DialogTitle className="pr-10 text-xl font-semibold">
+              Record supplier delivery
+            </DialogTitle>
+            <DialogDescription className="pr-10">
               Enter the delivered items. After confirmation, commissary
               inventory updates immediately and the supplier record is final.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="absolute top-4 right-4 sm:top-6 sm:right-6"
+              aria-label="Close Record supplier delivery"
+              disabled={pending}
+              onClick={requestClose}
+            >
+              <XIcon />
+            </Button>
+          </DialogHeader>
           <SupplierReceiptCreateForm
+            key={formKey}
             suppliers={suppliers}
             stockItems={stockItems}
             action={action}
@@ -96,31 +111,32 @@ export function SupplierReceiptCreateDialog({
               router.push("/receipts/" + id);
             }}
           />
-        </SheetContent>
-      </Sheet>
-      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
-        <AlertDialogContent data-coms-ui="operational">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Discard delivery details?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your unsaved supplier and item entries will be discarded.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep editing</AlertDialogCancel>
-            <AlertDialogAction
-              type="button"
-              onClick={() => {
-                setDirty(false);
-                setConfirmDiscard(false);
-                closeDialog();
-              }}
-            >
-              Discard changes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </DialogContent>
+        <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+          <AlertDialogContent data-coms-ui="operational">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Discard delivery details?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Your unsaved supplier and item entries will be discarded.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep editing</AlertDialogCancel>
+              <AlertDialogAction
+                type="button"
+                onClick={() => {
+                  setDirty(false);
+                  setConfirmDiscard(false);
+                  setFormKey((value) => value + 1);
+                  closeDialog();
+                }}
+              >
+                Discard changes
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </Dialog>
     </>
   );
 }

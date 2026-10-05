@@ -30,6 +30,32 @@ describe("inventory page filters", () => {
     });
   });
 
+  it("parses status and category filters while dropping unsupported status values", () => {
+    expect(
+      parseInventoryPageFilters({
+        status: "inactive",
+        category: "  Dry goods  ",
+        search: "  Flour  ",
+      }),
+    ).toEqual({
+      page: 1,
+      search: "Flour",
+      status: "inactive",
+      category: "Dry goods",
+    });
+
+    expect(
+      parseInventoryPageFilters({
+        status: "unknown",
+        category: "x".repeat(90),
+      }),
+    ).toEqual({
+      page: 1,
+      search: "",
+      category: "x".repeat(80),
+    });
+  });
+
   it("drops invalid branch IDs and rejects out-of-scope requests", () => {
     expect(
       parseInventoryPageFilters({
@@ -74,7 +100,11 @@ describe("inventory page filters", () => {
         branchId,
         page: 2,
         search: " Flour ",
+        status: "active",
+        category: "Dry goods",
       }),
-    ).toBe(`/inventory?scope=BRANCH&branch_id=${branchId}&page=2&search=Flour`);
+    ).toBe(
+      `/inventory?scope=BRANCH&branch_id=${branchId}&page=2&search=Flour&status=active&category=Dry+goods`,
+    );
   });
 });

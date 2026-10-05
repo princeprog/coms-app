@@ -1,12 +1,19 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { InventoryManagement } from "./inventory-management";
 
-const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+const { refresh, push, replace } = vi.hoisted(() => ({
+  refresh: vi.fn(),
+  push: vi.fn(),
+  replace: vi.fn(),
+}));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh, push, replace }),
+}));
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const secondBranchId = "540a8340-3556-47a3-9858-10a4f29d2611";
@@ -37,6 +44,7 @@ const inventory = {
   total: 2,
   page: 1,
   page_size: 25,
+  available_categories: ["Dry goods", "Pantry"],
 };
 const movements = {
   items: [
@@ -81,6 +89,13 @@ function renderInventory(
 }
 
 describe("inventory management", () => {
+  beforeEach(() => {
+    refresh.mockClear();
+    push.mockClear();
+    replace.mockClear();
+    vi.useRealTimers();
+  });
+
   it("shows exact on-hand values and recent ledger movements", () => {
     renderInventory();
 
@@ -88,15 +103,22 @@ describe("inventory management", () => {
       screen.getByRole("heading", { name: "Stock balances" }),
     ).toBeTruthy();
     expect(screen.getByText("2.500 kg")).toBeTruthy();
-    expect(screen.getByText("Supplier receipt")).toBeTruthy();
+    expect(screen.getAllByText("Supplier receipt")).toHaveLength(2);
+    expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Status" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Category" })).toBeTruthy();
     expect(
-      screen
-        .getByRole("link", { name: "Branch inventory" })
-        .getAttribute("aria-current"),
-    ).toBe("page");
+      screen.getByRole("combobox", { name: "Branch" }).textContent,
+    ).toContain("Manila North");
+    expect(
+      screen.getByRole("combobox", { name: "Status" }).textContent,
+    ).toContain("All statuses");
+    expect(
+      screen.getByRole("combobox", { name: "Category" }).textContent,
+    ).toContain("All categories");
   });
 
-  it("shows a fixed assigned branch instead of scope and branch filters for branch-only access", () => {
+  it("limits the scope to Branches and shows authorized branch choices for branch-only access", () => {
     renderInventory({
       canViewCommissary: false,
       canViewBranch: true,
@@ -107,27 +129,25 @@ describe("inventory management", () => {
       ],
     });
 
-    expect(
-      screen.queryByRole("navigation", { name: "Inventory scope" }),
-    ).toBeNull();
-    expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
+    expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
     expect(
       screen.getByText("Stock balances and recent movements for Manila North."),
     ).toBeTruthy();
-    expect(screen.getAllByText("Manila North")).toHaveLength(2);
-    expect(screen.getByText("Showing data for")).toBeTruthy();
-    const form = screen.getByRole("form", {
-      name: "Search stock items in assigned branch",
-    });
     expect(
-      form.querySelector('input[name="scope"]')?.getAttribute("value"),
-    ).toBe("BRANCH");
+      screen
+        .getByRole("button", { name: "Commissary" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
     expect(
-      form.querySelector('input[name="branch_id"]')?.getAttribute("value"),
-    ).toBe(branchId);
+      screen
+        .getByRole("button", { name: "Branches" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
     expect(
       screen.getByRole("searchbox", { name: "Search stock items" }),
     ).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Status" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Category" })).toBeTruthy();
     expect(screen.queryByRole("columnheader", { name: "Actions" })).toBeNull();
     expect(screen.getByRole("columnheader", { name: "Unit" })).toBeTruthy();
   });
@@ -139,18 +159,13 @@ describe("inventory management", () => {
       canViewBranch: false,
     });
 
-    expect(
-      screen.getByRole("link", { name: "Commissary inventory" }),
-    ).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "Branch inventory" })).toBeNull();
+    expect(screen.getByText("Commissary")).toBeTruthy();
+    expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
   });
 
   it("keeps scope controls when commissary read is granted without adjustment", () => {
     renderInventory({ canViewCommissary: true, canAdjust: false });
 
-    expect(
-      screen.getByRole("navigation", { name: "Inventory scope" }),
-    ).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
     expect(screen.queryByRole("columnheader", { name: "Actions" })).toBeNull();
   });
@@ -158,7 +173,7 @@ describe("inventory management", () => {
   it("keeps branch adjustment actions when only branch adjustment is granted", () => {
     renderInventory({ canViewCommissary: false, canAdjust: true });
 
-    expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
+    expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
     expect(screen.getByRole("columnheader", { name: "Actions" })).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Actions for Flour" }),
@@ -192,7 +207,7 @@ describe("inventory management", () => {
     expect(
       screen.queryByRole("button", { name: "Actions for Cooking oil" }),
     ).toBeNull();
-    expect(screen.getByText("Inactive")).toBeTruthy();
+    expect(screen.getAllByText("Inactive")).toHaveLength(2);
     expect(screen.queryByRole("columnheader", { name: "Actions" })).toBeNull();
     expect(screen.queryByText("Adjustment unavailable")).toBeNull();
   });
@@ -204,7 +219,9 @@ describe("inventory management", () => {
       ],
     });
 
-    expect(screen.getByText("Manila North")).toBeTruthy();
+    expect(
+      screen.getByRole("combobox", { name: "Branch" }).textContent,
+    ).toContain("Manila North");
     expect(screen.getByText("Inactive · adjustments disabled")).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: "Actions for Flour" }),
@@ -225,19 +242,23 @@ describe("inventory management", () => {
     ).toBeTruthy();
   });
 
-  it("preserves scope and branch selection when moving between inventory pages", () => {
+  it("preserves location and all filters when moving between inventory pages", () => {
     renderInventory({
       inventory: { ...inventory, total: 51 },
       search: "Flour",
+      statusFilter: "active",
+      categoryFilter: "Dry goods",
       page: 1,
     });
 
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
-    ).toBe(`/inventory?scope=BRANCH&branch_id=${branchId}&page=2&search=Flour`);
+    ).toBe(
+      `/inventory?scope=BRANCH&branch_id=${branchId}&page=2&search=Flour&status=active&category=Dry+goods`,
+    );
   });
 
-  it("updates the selected branch when the URL selection changes", () => {
+  it("reflects browser history changes in the location and filter controls", () => {
     const branchOptions = [
       { id: branchId, name: "Manila North" },
       { id: secondBranchId, name: "Manila South" },
@@ -246,6 +267,10 @@ describe("inventory management", () => {
       branchOptions,
       selectedBranchId: branchId,
     });
+    const searchInput = screen.getByRole("searchbox", {
+      name: "Search stock items",
+    });
+    searchInput.focus();
     expect(
       screen.getByRole("combobox", { name: "Branch" }).textContent,
     ).toContain("Manila North");
@@ -257,7 +282,9 @@ describe("inventory management", () => {
         scope="BRANCH"
         branchOptions={branchOptions}
         selectedBranchId={secondBranchId}
-        search="Flour"
+        search="Cooking oil"
+        statusFilter="inactive"
+        categoryFilter="Pantry"
         canAdjust
         canViewCommissary
         canViewBranch
@@ -268,42 +295,249 @@ describe("inventory management", () => {
     expect(
       screen.getByRole("combobox", { name: "Branch" }).textContent,
     ).toContain("Manila South");
+    expect(
+      screen.getByRole("combobox", { name: "Status" }).textContent,
+    ).toContain("Inactive");
+    expect(
+      screen.getByRole("combobox", { name: "Category" }).textContent,
+    ).toContain("Pantry");
+    expect(
+      (
+        screen.getByRole("searchbox", {
+          name: "Search stock items",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("Cooking oil");
+    expect(screen.getByRole("searchbox", { name: "Search stock items" })).toBe(
+      searchInput,
+    );
+    expect(document.activeElement).toBe(searchInput);
   });
 
-  it("uses a client GET form and applies the selected branch with the existing search", async () => {
+  it("applies location changes immediately, resets the page, and shows pending feedback", async () => {
     const user = userEvent.setup();
     renderInventory({
+      scope: "BRANCH",
       branchOptions: [
         { id: branchId, name: "Manila North" },
         { id: secondBranchId, name: "Manila South" },
       ],
       selectedBranchId: branchId,
       search: "Flour",
+      statusFilter: "active",
+      categoryFilter: "Dry goods",
+      page: 3,
     });
-
-    const form = screen.getByRole("form", { name: "Filter inventory" });
-    expect(form.getAttribute("action")).toBe("/inventory");
-    expect(form.getAttribute("method")).toBeNull();
-    expect(
-      screen
-        .getByRole("combobox", { name: "Branch" })
-        .getAttribute("data-slot"),
-    ).toBe("select-trigger");
 
     await user.click(screen.getByRole("combobox", { name: "Branch" }));
     await user.click(
       await screen.findByRole("option", { name: "Manila South" }),
     );
 
-    expect(
-      form.querySelector('input[name="scope"]')?.getAttribute("value"),
-    ).toBe("BRANCH");
-    expect(
-      form.querySelector('input[name="branch_id"]')?.getAttribute("value"),
-    ).toBe(secondBranchId);
-    expect(
-      (screen.getByLabelText("Search stock items") as HTMLInputElement).value,
-    ).toBe("Flour");
+    expect(push).toHaveBeenCalledWith(
+      `/inventory?scope=BRANCH&branch_id=${secondBranchId}&search=Flour&status=active&category=Dry+goods`,
+      { scroll: false },
+    );
+    expect(screen.getByRole("status").textContent).toContain(
+      "Updating inventory",
+    );
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+  });
+
+  it("switches between Commissary and Branches while preserving filters and resetting pagination", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderInventory({
+      scope: "COMMISSARY",
+      page: 3,
+      statusFilter: "active",
+      categoryFilter: "Dry goods",
+    });
+    expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Branches" }));
+    expect(push).toHaveBeenLastCalledWith(
+      `/inventory?scope=BRANCH&branch_id=${branchId}&search=Flour&status=active&category=Dry+goods`,
+      { scroll: false },
+    );
+    rerender(
+      <InventoryManagement
+        inventory={inventory}
+        movements={movements}
+        scope="BRANCH"
+        branchOptions={[{ id: branchId, name: "Manila North" }]}
+        selectedBranchId={branchId}
+        search="Flour"
+        statusFilter="active"
+        categoryFilter="Dry goods"
+        canAdjust
+        canViewCommissary
+        canViewBranch
+        adjustAction={vi.fn()}
+        page={1}
+      />,
+    );
+    expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Branches" }));
+    expect(push).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button", { name: "Commissary" }));
+    expect(push).toHaveBeenLastCalledWith(
+      "/inventory?scope=COMMISSARY&search=Flour&status=active&category=Dry+goods",
+      { scroll: false },
+    );
+  });
+
+  it("applies status and category selections immediately and resets pagination", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderInventory({
+      scope: "COMMISSARY",
+      search: "Flour",
+      page: 4,
+    });
+
+    await user.click(screen.getByRole("combobox", { name: "Status" }));
+    await user.click(await screen.findByRole("option", { name: "Inactive" }));
+    expect(replace).toHaveBeenLastCalledWith(
+      "/inventory?scope=COMMISSARY&search=Flour&status=inactive",
+      { scroll: false },
+    );
+
+    rerender(
+      <InventoryManagement
+        inventory={inventory}
+        movements={movements}
+        scope="COMMISSARY"
+        branchOptions={[]}
+        search="Flour"
+        statusFilter="inactive"
+        canAdjust={false}
+        canViewCommissary
+        canViewBranch={false}
+        adjustAction={vi.fn()}
+        page={1}
+      />,
+    );
+    await user.click(screen.getByRole("combobox", { name: "Category" }));
+    await user.click(await screen.findByRole("option", { name: "Dry goods" }));
+
+    expect(replace).toHaveBeenLastCalledWith(
+      "/inventory?scope=COMMISSARY&search=Flour&status=inactive&category=Dry+goods",
+      { scroll: false },
+    );
+  });
+
+  it("removes status and category parameters when their All options are selected", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderInventory({
+      scope: "COMMISSARY",
+      search: "",
+      statusFilter: "active",
+      categoryFilter: "Dry goods",
+    });
+
+    await user.click(screen.getByRole("combobox", { name: "Status" }));
+    await user.click(
+      await screen.findByRole("option", { name: "All statuses" }),
+    );
+    expect(replace).toHaveBeenLastCalledWith(
+      "/inventory?scope=COMMISSARY&category=Dry+goods",
+      { scroll: false },
+    );
+
+    rerender(
+      <InventoryManagement
+        inventory={inventory}
+        movements={movements}
+        scope="COMMISSARY"
+        branchOptions={[]}
+        search=""
+        categoryFilter="Dry goods"
+        canAdjust={false}
+        canViewCommissary
+        canViewBranch={false}
+        adjustAction={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("combobox", { name: "Category" }));
+    await user.click(
+      await screen.findByRole("option", { name: "All categories" }),
+    );
+    expect(replace).toHaveBeenLastCalledWith("/inventory?scope=COMMISSARY", {
+      scroll: false,
+    });
+  });
+
+  it("debounces search by 350ms and exposes pending state while results load", async () => {
+    vi.useFakeTimers();
+    renderInventory({ scope: "COMMISSARY", search: "Flour", page: 2 });
+    const search = screen.getByRole("searchbox", {
+      name: "Search stock items",
+    });
+
+    fireEvent.change(search, { target: { value: "Cooking oil" } });
+    act(() => vi.advanceTimersByTime(349));
+    expect(replace).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+
+    expect(replace).toHaveBeenCalledWith(
+      "/inventory?scope=COMMISSARY&search=Cooking+oil",
+      { scroll: false },
+    );
+    expect(screen.getByRole("status").textContent).toContain(
+      "Updating inventory",
+    );
+    expect((search as HTMLInputElement).value).toBe("Cooking oil");
+  });
+
+  it("applies search immediately on Enter", async () => {
+    renderInventory({ scope: "COMMISSARY", search: "Flour" });
+
+    const search = screen.getByRole("searchbox", {
+      name: "Search stock items",
+    });
+    fireEvent.change(search, { target: { value: "Rice" } });
+    fireEvent.keyDown(search, { key: "Enter", code: "Enter" });
+
+    expect(replace).toHaveBeenCalledOnce();
+    expect(replace).toHaveBeenCalledWith(
+      "/inventory?scope=COMMISSARY&search=Rice",
+      { scroll: false },
+    );
+    expect((search as HTMLInputElement).value).toBe("Rice");
+  });
+
+  it("clears pending feedback when the same filter resets pagination", () => {
+    const view = renderInventory({
+      scope: "COMMISSARY",
+      search: "Flour",
+      page: 2,
+    });
+    const search = screen.getByRole("searchbox", {
+      name: "Search stock items",
+    });
+    fireEvent.keyDown(search, { key: "Enter", code: "Enter" });
+
+    expect(replace).toHaveBeenCalledWith(
+      "/inventory?scope=COMMISSARY&search=Flour",
+      { scroll: false },
+    );
+    expect(screen.getByRole("status")).toBeTruthy();
+
+    view.rerender(
+      <InventoryManagement
+        inventory={inventory}
+        movements={movements}
+        scope="COMMISSARY"
+        branchOptions={[{ id: branchId, name: "Manila North" }]}
+        selectedBranchId={branchId}
+        search="Flour"
+        canAdjust
+        canViewCommissary
+        canViewBranch={false}
+        adjustAction={vi.fn()}
+        page={1}
+      />,
+    );
+
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("explains when there is no assigned branch", () => {
@@ -334,7 +568,63 @@ describe("inventory management", () => {
       canAdjust: false,
     });
 
-    expect(screen.getByText("No stock items match this search.")).toBeTruthy();
+    expect(
+      screen.getByText("No stock items match these filters."),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeTruthy();
+  });
+
+  it("clears filters while retaining the selected location", async () => {
+    const user = userEvent.setup();
+    renderInventory({
+      inventory: { ...inventory, items: [], total: 0 },
+      scope: "BRANCH",
+      search: "Unknown item",
+      statusFilter: "inactive",
+      categoryFilter: "Dry goods",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(replace).toHaveBeenCalledWith(
+      `/inventory?scope=BRANCH&branch_id=${branchId}`,
+      { scroll: false },
+    );
+    expect(screen.getByRole("status").textContent).toContain(
+      "Updating inventory",
+    );
+  });
+
+  it("removes one applied filter or clears all while preserving the inventory location", async () => {
+    const user = userEvent.setup();
+    renderInventory({
+      search: "Flour",
+      statusFilter: "inactive",
+      categoryFilter: "Dry goods",
+      page: 3,
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Remove Status: Inactive" }),
+    );
+    expect(replace).toHaveBeenLastCalledWith(
+      `/inventory?scope=BRANCH&branch_id=${branchId}&search=Flour&category=Dry+goods`,
+      { scroll: false },
+    );
+    await user.click(screen.getByRole("button", { name: "Clear all" }));
+    expect(replace).toHaveBeenLastCalledWith(
+      `/inventory?scope=BRANCH&branch_id=${branchId}`,
+      { scroll: false },
+    );
+  });
+
+  it("shows a recoverable error when inventory data fails to load", () => {
+    renderInventory({ inventory: null, movements: null });
+
+    expect(
+      screen.getByText(
+        "COMS could not load inventory data. Try again in a moment.",
+      ),
+    ).toBeTruthy();
   });
 
   it("explains when no stock items have been configured", () => {

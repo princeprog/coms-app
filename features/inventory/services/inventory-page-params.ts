@@ -13,6 +13,8 @@ export type InventoryPageFilters = {
   page: number;
   scope?: "COMMISSARY" | "BRANCH";
   search: string;
+  status?: "active" | "inactive";
+  category?: string;
   requestedBranchId?: string;
 };
 
@@ -31,12 +33,18 @@ export function parseInventoryPageFilters(
   const scope =
     rawScope === "COMMISSARY" || rawScope === "BRANCH" ? rawScope : undefined;
   const search = (first(params.search) ?? "").trim().slice(0, searchMaxLength);
+  const rawStatus = first(params.status);
+  const status =
+    rawStatus === "active" || rawStatus === "inactive" ? rawStatus : undefined;
+  const category = (first(params.category) ?? "").trim().slice(0, 80);
   const parsedBranchId = branchIdSchema.safeParse(first(params.branch_id));
 
   return {
     page,
     ...(scope ? { scope } : {}),
     search,
+    ...(status ? { status } : {}),
+    ...(category ? { category } : {}),
     ...(parsedBranchId.success
       ? { requestedBranchId: parsedBranchId.data.toLowerCase() }
       : {}),
@@ -53,17 +61,23 @@ export function createInventoryHref({
   branchId,
   page,
   search,
+  status,
+  category,
 }: {
   scope: "COMMISSARY" | "BRANCH";
   branchId?: string;
   page: number;
   search: string;
+  status?: "active" | "inactive";
+  category?: string;
 }) {
   const params = new URLSearchParams();
   params.set("scope", scope);
   if (scope === "BRANCH" && branchId) params.set("branch_id", branchId);
   if (page > 1) params.set("page", String(page));
   if (search.trim()) params.set("search", search.trim());
+  if (status) params.set("status", status);
+  if (category?.trim()) params.set("category", category.trim());
   return `/inventory?${params}`;
 }
 

@@ -122,6 +122,7 @@ describe("loadInventoryView", () => {
   });
 
   it("uses dedicated commissary permissions and defaults users with both scopes to commissary", async () => {
+    getInventoryBranchOptions.mockResolvedValue([]);
     await expect(
       loadInventoryView(
         user({
@@ -142,11 +143,44 @@ describe("loadInventoryView", () => {
       canViewBranch: true,
       canViewCommissary: true,
     });
-    expect(getInventoryBranchOptions).not.toHaveBeenCalled();
+    expect(getInventoryBranchOptions).toHaveBeenCalledOnce();
     expect(getInventoryPageData).toHaveBeenCalledWith({
       scope: "COMMISSARY",
       page: 1,
       search: "",
+    });
+  });
+
+  it("loads authorized branch choices on the commissary default and forwards filters", async () => {
+    getInventoryBranchOptions.mockResolvedValue([
+      { id: branchId, name: "Manila North", status: "active" },
+    ]);
+
+    await expect(
+      loadInventoryView(
+        user({
+          permissions: [
+            "inventory.read",
+            "inventory.commissary_read",
+            "branches.read",
+          ],
+        }),
+        { status: "inactive", category: "Dry goods", search: "Flour" },
+      ),
+    ).resolves.toMatchObject({
+      status: "ready",
+      scope: "COMMISSARY",
+      branchOptions: [{ id: branchId, name: "Manila North" }],
+      statusFilter: "inactive",
+      categoryFilter: "Dry goods",
+    });
+
+    expect(getInventoryPageData).toHaveBeenCalledWith({
+      scope: "COMMISSARY",
+      page: 1,
+      search: "Flour",
+      status: "inactive",
+      category: "Dry goods",
     });
   });
 
@@ -193,11 +227,13 @@ describe("loadInventoryView", () => {
         {
           page: "10",
           search: "Flour",
+          status: "active",
+          category: "Dry goods",
         },
       ),
     ).resolves.toEqual({
       status: "redirect",
-      href: "/inventory?scope=COMMISSARY&page=3&search=Flour",
+      href: "/inventory?scope=COMMISSARY&page=3&search=Flour&status=active&category=Dry+goods",
     });
   });
 

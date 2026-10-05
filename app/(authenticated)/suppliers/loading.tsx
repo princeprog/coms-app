@@ -1,5 +1,5 @@
-import { CatalogLoading } from "@/features/catalogs/components/catalog-loading";
+import { CatalogDirectoryLoading } from "@/features/catalogs/components/catalog-directory-loading";
 
-export default function SuppliersLoading() {
-  return <CatalogLoading title="Suppliers" />;
+export default function Loading() {
+  return <CatalogDirectoryLoading title="Suppliers" />;
 }

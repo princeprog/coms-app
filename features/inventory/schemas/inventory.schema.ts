@@ -20,6 +20,7 @@ export const inventoryPageSchema = z.object({
   total: z.number().int().nonnegative(),
   page: z.number().int().positive(),
   page_size: z.number().int().positive(),
+  available_categories: z.array(z.string().min(1)).default([]),
 });
 
 export const inventoryMovementSchema = z

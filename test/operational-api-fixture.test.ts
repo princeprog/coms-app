@@ -182,10 +182,14 @@ describe("operational API fixture", () => {
     );
     const branchManager = roles.find((role) => role.code === "BRANCH_MANAGER");
     const cashier = roles.find((role) => role.code === "CASHIER");
-    expect(commissaryManager?.permission_keys).toContain("dispatches.reconcile");
+    expect(commissaryManager?.permission_keys).toContain(
+      "dispatches.reconcile",
+    );
     expect(branchManager?.permission_keys).toContain("dashboard.read");
     expect(
-      roles.every((role) => !role.permission_keys.includes("dashboard.global_read")),
+      roles.every(
+        (role) => !role.permission_keys.includes("dashboard.global_read"),
+      ),
     ).toBe(true);
     expect(cashier?.permission_keys).not.toContain("dashboard.read");
   });
@@ -741,10 +745,17 @@ describe("operational API fixture", () => {
         });
         expect(response.status).toBe(404);
       }
-      const state = await fetch(fixture.baseUrl + "/__fixture/state").then((response) => response.json());
+      const state = await fetch(fixture.baseUrl + "/__fixture/state").then(
+        (response) => response.json(),
+      );
       expect(state).not.toHaveProperty("stockRequests");
       expect(state.dispatches.length).toBeGreaterThan(0);
-      expect(state.dispatches.every((dispatch: Record<string, unknown>) => !("stock_request_id" in dispatch))).toBe(true);
+      expect(
+        state.dispatches.every(
+          (dispatch: Record<string, unknown>) =>
+            !("stock_request_id" in dispatch),
+        ),
+      ).toBe(true);
     } finally {
       await fixture.close();
     }
@@ -854,15 +865,20 @@ describe("operational API fixture", () => {
         fixture.baseUrl + "/stock-items?page=1&page_size=100&is_active=true",
         { headers },
       );
-      const stockItemPage = stockItemPageSchema.parse(await stockItemsResponse.json());
+      const stockItemPage = stockItemPageSchema.parse(
+        await stockItemsResponse.json(),
+      );
       const stockItem = stockItemPage.items[0];
       const insufficientItem = stockItemPage.items[0];
       const branchId = "10000000-0000-4000-8000-000000000001";
-      const initialState = await fetch(fixture.baseUrl + "/__fixture/state").then(
-        (response) => response.json(),
-      ) as {
+      const initialState = (await fetch(
+        fixture.baseUrl + "/__fixture/state",
+      ).then((response) => response.json())) as {
         commissaryBalances: Array<{ id: string; quantity_on_hand: string }>;
-        commissaryMovements: Array<{ stock_item_id: string; movement_type: string }>;
+        commissaryMovements: Array<{
+          stock_item_id: string;
+          movement_type: string;
+        }>;
       };
       const initialQuantity = initialState.commissaryBalances.find(
         (balance) => balance.id === stockItem.id,
@@ -873,7 +889,9 @@ describe("operational API fixture", () => {
 
       const createBody = {
         branch_id: branchId,
-        items: [{ stock_item_id: stockItem.id, quantity_dispatched: "12.5000" }],
+        items: [
+          { stock_item_id: stockItem.id, quantity_dispatched: "12.5000" },
+        ],
       };
       const createKey = "71000000-0000-4000-8000-000000000001";
       await fetch(fixture.baseUrl + "/__fixture/fail-next", {
@@ -917,15 +935,18 @@ describe("operational API fixture", () => {
         events: [{ event_type: "CREATED" }],
       });
       expect(created).not.toHaveProperty("stock_request_id");
-      const afterCreate = await fetch(fixture.baseUrl + "/__fixture/state").then(
-        (response) => response.json(),
-      );
+      const afterCreate = await fetch(
+        fixture.baseUrl + "/__fixture/state",
+      ).then((response) => response.json());
       expect(
-        afterCreate.commissaryBalances.find((balance: { id: string }) => balance.id === stockItem.id).quantity_on_hand,
+        afterCreate.commissaryBalances.find(
+          (balance: { id: string }) => balance.id === stockItem.id,
+        ).quantity_on_hand,
       ).toBe(initialQuantity);
       expect(
         afterCreate.commissaryMovements.filter(
-          (movement: { stock_item_id: string }) => movement.stock_item_id === stockItem.id,
+          (movement: { stock_item_id: string }) =>
+            movement.stock_item_id === stockItem.id,
         ),
       ).toHaveLength(initialMovementCount);
       expect(
@@ -955,27 +976,31 @@ describe("operational API fixture", () => {
       );
       const posted = dispatchDetailSchema.parse(await postedResponse.json());
       expect(posted.status).toBe("IN_TRANSIT");
-      const postedState = await fetch(fixture.baseUrl + "/__fixture/state").then(
-        (response) => response.json(),
-      );
+      const postedState = await fetch(
+        fixture.baseUrl + "/__fixture/state",
+      ).then((response) => response.json());
       expect(
-        postedState.commissaryBalances.find((balance: { id: string }) => balance.id === stockItem.id).quantity_on_hand,
+        postedState.commissaryBalances.find(
+          (balance: { id: string }) => balance.id === stockItem.id,
+        ).quantity_on_hand,
       ).toBe("7.75");
       expect(
         postedState.commissaryMovements.filter(
-          (movement: { stock_item_id: string }) => movement.stock_item_id === stockItem.id,
+          (movement: { stock_item_id: string }) =>
+            movement.stock_item_id === stockItem.id,
         ),
       ).toHaveLength(initialMovementCount + 1);
       await fetch(fixture.baseUrl + "/dispatches/" + created.id + "/dispatch", {
         method: "POST",
         headers: { ...headers, "Idempotency-Key": dispatchKey },
       });
-      const retriedPostState = await fetch(fixture.baseUrl + "/__fixture/state").then(
-        (response) => response.json(),
-      );
+      const retriedPostState = await fetch(
+        fixture.baseUrl + "/__fixture/state",
+      ).then((response) => response.json());
       expect(
         retriedPostState.commissaryMovements.filter(
-          (movement: { stock_item_id: string }) => movement.stock_item_id === stockItem.id,
+          (movement: { stock_item_id: string }) =>
+            movement.stock_item_id === stockItem.id,
         ),
       ).toHaveLength(initialMovementCount + 1);
 
@@ -989,18 +1014,28 @@ describe("operational API fixture", () => {
         },
         body: JSON.stringify({
           branch_id: branchId,
-          items: [{ stock_item_id: insufficientItem.id, quantity_dispatched: "99999" }],
+          items: [
+            {
+              stock_item_id: insufficientItem.id,
+              quantity_dispatched: "99999",
+            },
+          ],
         }),
       });
-      const insufficientDraft = dispatchDetailSchema.parse(await insufficientCreate.json());
+      const insufficientDraft = dispatchDetailSchema.parse(
+        await insufficientCreate.json(),
+      );
       const insufficientPost = await fetch(
         fixture.baseUrl + "/dispatches/" + insufficientDraft.id + "/dispatch",
-        { method: "POST", headers: { ...headers, "Idempotency-Key": insufficientKey } },
+        {
+          method: "POST",
+          headers: { ...headers, "Idempotency-Key": insufficientKey },
+        },
       );
       expect(insufficientPost.status).toBe(409);
-      const afterInsufficientPost = await fetch(fixture.baseUrl + "/__fixture/state").then(
-        (response) => response.json(),
-      );
+      const afterInsufficientPost = await fetch(
+        fixture.baseUrl + "/__fixture/state",
+      ).then((response) => response.json());
       expect(
         afterInsufficientPost.commissaryBalances.find(
           (balance: { id: string }) => balance.id === insufficientItem.id,
@@ -1918,6 +1953,65 @@ describe("operational API fixture", () => {
     }
   });
 
+  it("applies inventory fixture filters before pagination and keeps category options unfiltered", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const headers = await getAuthenticatedHeaders(fixture.baseUrl);
+      const branchId = "10000000-0000-4000-8000-000000000001";
+
+      const inactiveDryGoodsResponse = await fetch(
+        `${fixture.baseUrl}/inventory/commissary?search=Dry+goods&is_active=false&category=Dry+goods&page_size=1`,
+        { headers },
+      );
+      const inactiveDryGoods = inventoryPageSchema.parse(
+        await inactiveDryGoodsResponse.json(),
+      );
+      expect(inactiveDryGoods).toMatchObject({ total: 1, page: 1 });
+      expect(inactiveDryGoods.items[0]).toMatchObject({
+        stock_item_name: "Fixture Stock Item 03",
+        category: "Dry goods",
+        is_active: false,
+        quantity_on_hand: "0",
+      });
+      expect(inactiveDryGoods.available_categories).toEqual([
+        "Dry goods",
+        "Produce",
+      ]);
+
+      const activePage = inventoryPageSchema.parse(
+        await (
+          await fetch(
+            `${fixture.baseUrl}/inventory/commissary?category=Dry+goods&is_active=true&page=2&page_size=5`,
+            { headers },
+          )
+        ).json(),
+      );
+      expect(activePage.total).toBe(12);
+      expect(activePage.items).toHaveLength(5);
+
+      const branchProduceResponse = await fetch(
+        `${fixture.baseUrl}/inventory/branches/${branchId}?search=Produce&is_active=true&category=Produce&page_size=2`,
+        { headers },
+      );
+      const branchProduce = inventoryPageSchema.parse(
+        await branchProduceResponse.json(),
+      );
+      expect(branchProduce.total).toBe(13);
+      expect(branchProduce.items).toHaveLength(2);
+      expect(
+        branchProduce.items.every((item) => item.category === "Produce"),
+      ).toBe(true);
+
+      const invalidStatus = await fetch(
+        `${fixture.baseUrl}/inventory/commissary?is_active=yes`,
+        { headers },
+      );
+      expect(invalidStatus.status).toBe(400);
+    } finally {
+      await fixture.close();
+    }
+  });
+
   it("serves schema-valid global and branch dashboard summaries for a Manila date range", async () => {
     const fixture = await createOperationalApiFixture({ gatewaySecret });
     try {
@@ -1938,9 +2032,9 @@ describe("operational API fixture", () => {
       expect(global.branches).toHaveLength(26);
       expect(global.summary.completed_sales_count).toBeGreaterThan(0);
       expect(global.summary.open_discrepancies_count).toBeGreaterThan(0);
-      expect(global.sales_trend.some((day) => day.completed_sales_count > 0)).toBe(
-        true,
-      );
+      expect(
+        global.sales_trend.some((day) => day.completed_sales_count > 0),
+      ).toBe(true);
 
       const selected = dashboardResponseSchema.parse(
         await (

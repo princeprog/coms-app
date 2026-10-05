@@ -8,12 +8,9 @@ import { useQuery } from "@tanstack/react-query";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { SidebarQuickActions } from "@/components/layout/sidebar-quick-actions";
+import { getAppSidebarNavigationGroups } from "@/components/layout/sidebar-navigation";
 import type { User } from "@/features/auth/types/auth.types";
-import {
-  filterNavigationForUser,
-  getAuthorizedLandingPath,
-  isProtectedSuperAdmin,
-} from "@/features/auth/permissions";
+import { getAuthorizedLandingPath } from "@/features/auth/permissions";
 import { authKeys } from "@/features/auth/query-keys";
 import {
   Sidebar,
@@ -23,117 +20,13 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  LayoutDashboardIcon,
-  BoxesIcon,
-  ClipboardListIcon,
-  SendIcon,
-  PackageIcon,
-  StoreIcon,
-  FileChartColumnIcon,
-  Building2Icon,
-  UsersIcon,
-  ShieldCheckIcon,
-  FactoryIcon,
-  TagsIcon,
-  ChefHatIcon,
-} from "lucide-react";
-
-export const navItems = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    permission: ["dashboard.read", "dashboard.global_read"],
-    icon: <LayoutDashboardIcon />,
-  },
-  {
-    title: "Inventory",
-    url: "/inventory",
-    permission: ["inventory.read", "inventory.commissary_read"],
-    icon: <BoxesIcon />,
-  },
-  {
-    title: "Suppliers",
-    url: "/suppliers",
-    permission: "suppliers.read",
-    icon: <FactoryIcon />,
-  },
-  {
-    title: "Stock Items",
-    url: "/stock-items",
-    permission: "stock_items.read",
-    icon: <TagsIcon />,
-  },
-  {
-    title: "Supplier Receiving",
-    url: "/receipts",
-    permission: "supplier_receipts.read",
-    icon: <ClipboardListIcon />,
-  },
-  {
-    title: "Dispatches",
-    url: "/dispatches",
-    permission: "dispatches.read",
-    icon: <SendIcon />,
-  },
-  {
-    title: "Products",
-    url: "/products",
-    permission: "products.read",
-    icon: <PackageIcon />,
-  },
-  {
-    title: "Recipes",
-    url: "/recipes",
-    permission: "recipes.read",
-    icon: <ChefHatIcon />,
-  },
-  {
-    title: "Branch Products",
-    url: "/branch-products",
-    permission: "branch_products.read",
-    icon: <StoreIcon />,
-  },
-  {
-    title: "Point of Sale",
-    url: "/pos",
-    permission: "sales.create",
-    icon: <StoreIcon />,
-  },
-  {
-    title: "Daily Reports",
-    url: "/reports",
-    permission: "daily_reports.read",
-    icon: <FileChartColumnIcon />,
-  },
-  {
-    title: "Branches",
-    url: "/branches",
-    permission: "branches.read",
-    icon: <Building2Icon />,
-  },
-  {
-    title: "Staff",
-    url: "/staff",
-    permission: "staff.read",
-    icon: <UsersIcon />,
-  },
-  {
-    title: "Roles",
-    url: "/roles",
-    permission: "roles.read",
-    icon: <ShieldCheckIcon />,
-  },
-];
-
-export function getAppSidebarNavigation(user: User) {
-  const contextualItems = isProtectedSuperAdmin(user)
-    ? navItems.filter((item) => item.url !== "/pos")
-    : navItems;
-  return filterNavigationForUser(user, contextualItems);
-}
+export {
+  getAppSidebarNavigation,
+  navItems,
+} from "@/components/layout/sidebar-navigation";
 
 function SidebarBrand({ user }: { user: User }) {
   const { isMobile, setOpenMobile } = useSidebar();
@@ -180,14 +73,24 @@ export const AppSidebar = React.memo(function AppSidebar({
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="gap-2 px-3 pb-3">
         <SidebarBrand user={currentUser} />
         <SidebarQuickActions user={currentUser} />
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={getAppSidebarNavigation(currentUser)} />
+      <SidebarSeparator className="data-horizontal:w-auto" />
+      <SidebarContent className="px-1 py-2">
+        <nav aria-label="Main navigation" className="flex flex-col gap-1">
+          {getAppSidebarNavigationGroups(currentUser).map((group) => (
+            <NavMain
+              key={group.title}
+              title={group.title}
+              items={group.items}
+            />
+          ))}
+        </nav>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarSeparator className="data-horizontal:w-auto" />
+      <SidebarFooter className="p-3">
         <NavUser
           user={{
             name: currentUser.full_name,

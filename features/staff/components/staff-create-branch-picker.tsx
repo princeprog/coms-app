@@ -76,7 +76,7 @@ export function StaffCreateBranchPicker({
             id="staff-create-branches"
             type="button"
             variant="outline"
-            className="h-9 w-full min-w-0 justify-between rounded-md border bg-background px-3 text-left font-normal hover:bg-background aria-expanded:bg-background"
+            className="h-9 w-full min-w-0 justify-between px-3 text-left font-normal hover:bg-background aria-expanded:bg-background"
             disabled={pending || branches.length === 0}
             aria-label="Branches"
           />

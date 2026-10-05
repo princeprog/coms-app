@@ -41,6 +41,8 @@ export type InventoryViewResult =
       branchOptions: InventoryBranchOption[];
       selectedBranchId?: string;
       search: string;
+      statusFilter?: "active" | "inactive";
+      categoryFilter?: string;
       page: number;
       canAdjust: boolean;
       canViewCommissary: boolean;
@@ -101,7 +103,7 @@ export async function loadInventoryView(
   let branchOptions: InventoryBranchOption[] = [];
   let branchOptionsFailed = false;
 
-  if (scope === "BRANCH" && hasPermission(user, "branches.read")) {
+  if (canViewBranch && hasPermission(user, "branches.read")) {
     try {
       const allBranches = await getInventoryBranchOptions();
       const assigned = new Set(assignedBranchIds.map((id) => id.toLowerCase()));
@@ -113,13 +115,13 @@ export async function loadInventoryView(
       if (accessFailure) return accessFailure;
       branchOptionsFailed = true;
     }
-  } else if (scope === "BRANCH") {
+  } else if (canViewBranch) {
     branchOptions = assignedBranchIds.map((id, index) => ({
       id: id.toLowerCase(),
       name:
         assignedBranchIds.length === 1
           ? "Assigned branch"
-          : `Assigned branch ${index + 1} · ${id.slice(0, 8)}`,
+          : `Assigned branch ${index + 1}`,
     }));
   }
 
@@ -136,7 +138,7 @@ export async function loadInventoryView(
       ? (branchSelection.branchId ?? branchOptions[0]?.id)
       : undefined;
 
-  if (scope === "BRANCH" && branchOptionsFailed) {
+  if (branchOptionsFailed) {
     return { status: "branch-options-error" };
   }
 
@@ -173,8 +175,16 @@ export async function loadInventoryView(
           branchId: selectedBranchId!,
           page: filters.page,
           search: filters.search,
+          ...(filters.status ? { status: filters.status } : {}),
+          ...(filters.category ? { category: filters.category } : {}),
         }
-      : { scope: "COMMISSARY", page: filters.page, search: filters.search },
+      : {
+          scope: "COMMISSARY",
+          page: filters.page,
+          search: filters.search,
+          ...(filters.status ? { status: filters.status } : {}),
+          ...(filters.category ? { category: filters.category } : {}),
+        },
   );
   if (dataResult.status === "error") {
     const accessFailure = getAccessFailure(dataResult.error);
@@ -195,6 +205,8 @@ export async function loadInventoryView(
         branchId: selectedBranchId,
         page: pageCount,
         search: filters.search,
+        status: filters.status,
+        category: filters.category,
       }),
     };
   }
@@ -210,6 +222,8 @@ export async function loadInventoryView(
     branchOptions,
     selectedBranchId,
     search: filters.search,
+    statusFilter: filters.status,
+    categoryFilter: filters.category,
     page: filters.page,
     canAdjust:
       scope === "COMMISSARY"

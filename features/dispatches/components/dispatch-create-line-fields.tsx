@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldLabel,
+  FieldGroup,
+  FieldSet,
+  FieldLegend,
+  FieldDescription,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DispatchStockPicker } from "./dispatch-stock-picker";
 import type { DispatchStockOption } from "../types/dispatch.types";
@@ -33,15 +40,15 @@ export function DispatchCreateLineFields({
   onRemove: (key: number) => void;
 }) {
   return (
-    <div className="space-y-4" aria-labelledby="dispatch-lines-heading">
+    <FieldSet className="gap-3" aria-labelledby="dispatch-lines-heading">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 id="dispatch-lines-heading" className="text-sm font-semibold">
+          <FieldLegend id="dispatch-lines-heading" variant="label">
             Stock items
-          </h3>
-          <p className="text-sm text-muted-foreground">
+          </FieldLegend>
+          <FieldDescription>
             Add each stock item once and enter the quantity to send.
-          </p>
+          </FieldDescription>
         </div>
         <span className="shrink-0 text-xs text-muted-foreground">
           {lines.length} / 100
@@ -55,9 +62,9 @@ export function DispatchCreateLineFields({
             .map((other) => other.stock_item_id),
         );
         return (
-          <div
+          <FieldGroup
             key={line.key}
-            className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(9rem,1fr)_auto] sm:items-end"
+            className="grid gap-3 rounded-lg border bg-muted/20 p-4 sm:grid-cols-[minmax(0,1.4fr)_minmax(9rem,1fr)_auto] sm:items-start"
           >
             <Field className="min-w-0">
               <FieldLabel htmlFor={`dispatch-item-${line.key}`}>
@@ -100,17 +107,18 @@ export function DispatchCreateLineFields({
             </Field>
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
+              className="sm:mt-7"
               disabled={disabled || lines.length === 1}
               aria-label={`Remove stock item ${index + 1}`}
               onClick={() => onRemove(line.key)}
             >
               Remove
             </Button>
-          </div>
+          </FieldGroup>
         );
       })}
-    </div>
+    </FieldSet>
   );
 }

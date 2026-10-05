@@ -34,7 +34,7 @@ export function InventoryAssignedBranchSearch({
               <FieldLabel htmlFor="inventory-search">
                 Search stock items
               </FieldLabel>
-              <InputGroup className="h-9 rounded-md border border-input bg-background">
+              <InputGroup className="h-9">
                 <InputGroupAddon>
                   <Search aria-hidden="true" />
                 </InputGroupAddon>

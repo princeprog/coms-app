@@ -17,6 +17,8 @@ import type {
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
 
+import type { SupplierReceiptPageFilters } from "./supplier-receipt-page-params";
+
 const catalogPageSize = 100;
 
 type CatalogPageData<T> = {
@@ -37,12 +39,18 @@ type CatalogPageParser<T> = {
 export async function getSupplierReceiptPageData({
   page,
   search,
-}: {
-  page: number;
-  search: string;
-}): Promise<SupplierReceiptPage> {
+  ...filters
+}: SupplierReceiptPageFilters): Promise<SupplierReceiptPage> {
   const params = new URLSearchParams({ page: String(page), page_size: "25" });
   if (search.trim()) params.set("search", search.trim());
+  for (const key of [
+    "received_from",
+    "received_to",
+    "min_cost",
+    "max_cost",
+    "sort",
+  ] as const)
+    if (filters[key]) params.set(key, filters[key]);
   const payload = await requestComsApi<unknown>(
     `${supplierReceiptsEndpoint}?${params}`,
     { cookieHeader: (await cookies()).toString() },

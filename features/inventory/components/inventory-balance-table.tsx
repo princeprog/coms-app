@@ -1,162 +1,175 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { InventoryAdjustmentDialog } from "@/features/inventory/components/inventory-adjustment-dialog";
-import type { InventoryAdjustmentAction } from "@/features/inventory/components/inventory-adjustment-dialog";
-import type { InventoryItem } from "@/features/inventory/types/inventory.types";
+import { cn } from "@/lib/utils";
+import {
+  InventoryAdjustmentDialog,
+  type InventoryAdjustmentAction,
+} from "./inventory-adjustment-dialog";
+import type { InventoryItem } from "../types/inventory.types";
+
+function ItemStatus({ active }: { active: boolean }) {
+  return (
+    <Badge
+      className={cn(
+        "h-auto min-h-5 text-white",
+        active ? "bg-emerald-700" : "bg-red-700",
+      )}
+    >
+      {active ? "Active" : "Inactive"}
+    </Badge>
+  );
+}
 
 export function InventoryBalanceTable({
   items,
-  total,
   scope,
   branchId,
-  search,
+  hasFilters,
+  onClearFilters,
   canAdjust,
   adjustAction,
   onComplete,
-  compact = false,
 }: {
   items: InventoryItem[];
-  total: number;
   scope: "COMMISSARY" | "BRANCH";
   branchId?: string;
-  search: string;
+  hasFilters: boolean;
+  onClearFilters: () => void;
   canAdjust: boolean;
   adjustAction: InventoryAdjustmentAction;
   onComplete: (message: string) => void;
-  compact?: boolean;
 }) {
   const target =
     scope === "COMMISSARY"
       ? { scope: "COMMISSARY" as const }
       : { scope: "BRANCH" as const, branch_id: branchId ?? "" };
-
-  return (
-    <section
-      aria-labelledby="stock-balances-heading"
-      className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}
-    >
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h2
-            id="stock-balances-heading"
-            className="text-xl font-semibold tracking-tight"
-          >
-            Stock balances
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Quantities are shown in each stock item&apos;s unit.
-          </p>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {compact
-            ? `${total} ${total === 1 ? "item" : "items"}`
-            : `${items.length} shown`}
-        </p>
-      </div>
-
-      {items.length === 0 ? (
+  if (items.length === 0)
+    return (
+      <div className="px-4 py-8 sm:px-5">
         <OperationalEmptyState
           title={
-            search.trim()
-              ? "No stock items match this search."
+            hasFilters
+              ? "No stock items match these filters."
               : "No stock items have been set up yet."
           }
           description={
-            search.trim()
-              ? "Change or clear the search term to see other stock balances."
-              : "A catalog manager can add stock items before inventory is tracked."
+            hasFilters
+              ? "Change or clear the filters to see more stock items."
+              : "Create a stock item to start tracking inventory at this location."
+          }
+          actions={
+            hasFilters && (
+              <Button variant="outline" onClick={onClearFilters}>
+                Clear filters
+              </Button>
+            )
           }
         />
-      ) : (
-        <Table
-          containerProps={{
-            role: "region",
-            "aria-label": "Stock balances table",
-            tabIndex: 0,
-            className:
-              "rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          }}
-        >
-          <TableHeader className="bg-muted/50">
-            <TableRow>
-              <TableHead className={compact ? "h-9" : "h-10"}>
-                Stock item
-              </TableHead>
-              <TableHead className={compact ? "h-9" : "h-10"}>
-                Category
-              </TableHead>
-              <TableHead className={`${compact ? "h-9" : "h-10"} text-right`}>
-                On hand
-              </TableHead>
-              {compact && <TableHead className="h-9">Unit</TableHead>}
-              <TableHead className={compact ? "h-9" : "h-10"}>Status</TableHead>
-              {canAdjust && (
-                <TableHead className={`${compact ? "h-9" : "h-10"} text-right`}>
-                  Actions
-                </TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell
-                  className={`${compact ? "py-1" : "py-2.5"} font-medium`}
-                >
+      </div>
+    );
+  return (
+    <Table
+      aria-label="Stock balances"
+      className="min-w-80"
+      containerProps={{
+        role: "region",
+        "aria-label": "Stock balances table",
+        tabIndex: 0,
+      }}
+    >
+      <TableCaption className="sr-only">
+        Stock balances for the selected location. Quantities retain their exact
+        decimal precision and stock item units.
+      </TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead scope="col" className="pl-4 sm:pl-5">
+            Stock item
+          </TableHead>
+          <TableHead scope="col" className="hidden lg:table-cell">
+            Category
+          </TableHead>
+          <TableHead scope="col" className="text-right">
+            On hand
+          </TableHead>
+          <TableHead scope="col" className="hidden md:table-cell">
+            Unit
+          </TableHead>
+          <TableHead scope="col" className="hidden md:table-cell">
+            Status
+          </TableHead>
+          {canAdjust && (
+            <TableHead scope="col" className="w-12 pr-4 text-right sm:pr-5">
+              <span className="sr-only">Actions</span>
+            </TableHead>
+          )}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow key={item.id}>
+            <TableCell className="max-w-72 py-3 pl-4 whitespace-normal sm:pl-5">
+              <div className="flex flex-col items-start gap-1">
+                <span className="font-medium wrap-anywhere">
                   {item.stock_item_name}
-                </TableCell>
-                <TableCell className={compact ? "py-1" : "py-2.5"}>
+                </span>
+                <span className="text-xs text-muted-foreground lg:hidden">
                   {item.category}
-                </TableCell>
-                <TableCell
-                  className={`${compact ? "py-1" : "py-2.5"} text-right tabular-nums`}
-                >
-                  {item.quantity_on_hand}
-                  {!compact && ` ${item.unit}`}
-                </TableCell>
-                {compact && <TableCell className="py-1">{item.unit}</TableCell>}
-                <TableCell className={compact ? "py-1" : "py-2.5"}>
-                  <Badge
-                    className={
-                      item.is_active
-                        ? "rounded-full bg-green-700 px-3 text-white dark:bg-green-700"
-                        : "rounded-full bg-red-700 px-3 text-white dark:bg-red-700"
-                    }
-                  >
-                    {item.is_active ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                {canAdjust && (
-                  <TableCell
-                    className={`${compact ? "py-1" : "py-2.5"} text-right`}
-                  >
-                    {item.is_active ? (
-                      <InventoryAdjustmentDialog
-                        item={item}
-                        target={target}
-                        action={adjustAction}
-                        onComplete={onComplete}
-                      />
-                    ) : (
-                      <span className="text-sm text-muted-foreground">
-                        Adjustment unavailable
-                      </span>
-                    )}
-                  </TableCell>
+                </span>
+                <span className="md:hidden">
+                  <ItemStatus active={item.is_active} />
+                </span>
+              </div>
+            </TableCell>
+            <TableCell className="hidden py-3 whitespace-normal lg:table-cell">
+              {item.category}
+            </TableCell>
+            <TableCell className="py-3 text-right tabular-nums">
+              <span className="hidden font-medium md:inline">
+                {item.quantity_on_hand}
+              </span>
+              <span className="font-medium md:hidden">
+                {item.quantity_on_hand} {item.unit}
+              </span>
+            </TableCell>
+            <TableCell className="hidden py-3 md:table-cell">
+              {item.unit}
+            </TableCell>
+            <TableCell className="hidden py-3 md:table-cell">
+              <ItemStatus active={item.is_active} />
+            </TableCell>
+            {canAdjust && (
+              <TableCell className="py-3 pr-4 text-right sm:pr-5">
+                {item.is_active ? (
+                  <InventoryAdjustmentDialog
+                    item={item}
+                    target={target}
+                    action={adjustAction}
+                    onComplete={onComplete}
+                  />
+                ) : (
+                  <span className="text-muted-foreground">
+                    <span aria-hidden="true">-</span>
+                    <span className="sr-only">
+                      Adjustment unavailable for inactive stock
+                    </span>
+                  </span>
                 )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </section>
+              </TableCell>
+            )}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }

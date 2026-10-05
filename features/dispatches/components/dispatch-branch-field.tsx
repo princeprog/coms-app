@@ -3,6 +3,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -46,11 +47,13 @@ export function DispatchBranchField({
           className="max-h-56"
           data-coms-ui="operational"
         >
-          {branches.map((branch) => (
-            <SelectItem key={branch.id} value={branch.id}>
-              {branch.branch_name}
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            {branches.map((branch) => (
+              <SelectItem key={branch.id} value={branch.id}>
+                {branch.branch_name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       <FieldDescription>

@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { FieldGroup, FieldSet, FieldLegend } from "@/components/ui/field";
+import { Plus } from "lucide-react";
 import { DialogFooter } from "@/components/ui/dialog";
 import type {
   DispatchCreateAction,
@@ -70,16 +72,19 @@ export function DispatchCreateForm({
         />
       ) : (
         <>
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
-            <DispatchBranchField
-              branches={options.branches}
-              branchId={branchId}
-              disabled={pending}
-              onChange={(value) => {
-                setBranchId(value);
-                onDirtyChange(true);
-              }}
-            />
+          <FieldGroup className="min-h-0 flex-1 gap-5 overflow-y-auto p-4 sm:p-6">
+            <FieldSet className="gap-3">
+              <FieldLegend variant="label">Destination</FieldLegend>
+              <DispatchBranchField
+                branches={options.branches}
+                branchId={branchId}
+                disabled={pending}
+                onChange={(value) => {
+                  setBranchId(value);
+                  onDirtyChange(true);
+                }}
+              />
+            </FieldSet>
             <DispatchCreateLineFields
               lines={lines}
               availabilityVisible={options.availabilityVisible === true}
@@ -122,6 +127,7 @@ export function DispatchCreateForm({
                 onDirtyChange(true);
               }}
             >
+              <Plus data-icon="inline-start" />
               Add stock item
             </Button>
             {error && (
@@ -129,13 +135,17 @@ export function DispatchCreateForm({
                 {error}
               </p>
             )}
-            <p className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {options.availabilityVisible
                 ? "Available quantities are advisory. Stock is checked again when sending."
                 : "Availability is checked when sending. Your account does not have commissary inventory visibility."}
             </p>
-          </div>
+          </FieldGroup>
           <DialogFooter className="mx-0 mb-0 shrink-0 border-t bg-background p-4 sm:p-6">
+            <p className="flex-1 text-sm text-muted-foreground sm:mr-auto">
+              {lines.length} {lines.length === 1 ? "item" : "items"} · Review
+              before sending
+            </p>
             <Button
               type="button"
               variant="outline"

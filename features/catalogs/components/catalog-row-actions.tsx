@@ -16,6 +16,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuGroup,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type {
@@ -87,20 +89,27 @@ export function CatalogRowActions({
           <Ellipsis aria-hidden="true" />
         </DropdownMenuTrigger>
         <DropdownMenuContent data-coms-ui="operational" align="end">
-          <DropdownMenuItem onClick={onView}>View details</DropdownMenuItem>
-          {canUpdate && (
-            <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
-          )}
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={onView}>View details</DropdownMenuItem>
+            {canUpdate && (
+              <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
           {canDeactivateRecord && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => {
-                setError("");
-                setConfirming(true);
-              }}
-            >
-              Deactivate
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => {
+                    setError("");
+                    setConfirming(true);
+                  }}
+                >
+                  Deactivate
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

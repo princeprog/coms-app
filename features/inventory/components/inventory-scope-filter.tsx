@@ -1,173 +1,167 @@
 "use client";
 
-import { useState } from "react";
-import Form from "next/form";
-import Link from "next/link";
-import { Search } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { createInventoryHref } from "@/features/inventory/services/inventory-page-params";
-import type { InventoryBranchOption } from "@/features/inventory/types/inventory.types";
+import { InventoryBalanceFilterControls } from "./inventory-balance-filter-controls";
+import { InventoryBranchSelect } from "./inventory-branch-select";
+import { InventoryScopeToggle } from "./inventory-scope-toggle";
+import { cn } from "@/lib/utils";
+import { useInventoryFilters } from "../hooks/use-inventory-filters";
+import type { InventoryScopeFilterProps } from "../types/inventory-filter.types";
 
-export function InventoryScopeFilter({
-  scope,
-  branchOptions,
-  selectedBranchId,
-  search,
-  canViewCommissary,
-  canViewBranch,
-}: {
-  scope: "COMMISSARY" | "BRANCH";
-  branchOptions: InventoryBranchOption[];
-  selectedBranchId?: string;
-  search: string;
-  canViewCommissary: boolean;
-  canViewBranch: boolean;
-}) {
-  const firstBranchId = selectedBranchId ?? branchOptions[0]?.id ?? "";
-  const [branchChoice, setBranchChoice] = useState(firstBranchId);
-
+export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
+  const {
+    search,
+    statusFilter,
+    categoryFilter,
+    branchOptions,
+    availableCategories,
+    scope,
+    canViewCommissary,
+    canViewBranch,
+  } = props;
+  const {
+    draftSearch,
+    locationValue,
+    locationLabel,
+    applyFilters,
+    handleSearchChange,
+    handleSearchKeyDown,
+    handleLocationChange,
+  } = useInventoryFilters(props);
+  const chips = [
+    ...(search
+      ? [{ label: `Search: ${search}`, options: { nextSearch: "" } }]
+      : []),
+    ...(statusFilter
+      ? [
+          {
+            label: `Status: ${statusFilter === "active" ? "Active" : "Inactive"}`,
+            options: { nextSearch: search, nextStatus: null },
+          },
+        ]
+      : []),
+    ...(categoryFilter
+      ? [
+          {
+            label: `Category: ${categoryFilter}`,
+            options: { nextSearch: search, nextCategory: null },
+          },
+        ]
+      : []),
+  ];
   return (
-    <section aria-label="Inventory scope and filters">
-      <Card size="sm">
-        <CardContent className="flex flex-col gap-4">
-          <nav aria-label="Inventory scope" className="flex flex-wrap gap-2">
-            {canViewCommissary && (
-              <Link
-                className={buttonVariants({
-                  variant: scope === "COMMISSARY" ? "default" : "outline",
-                  className:
-                    scope === "COMMISSARY"
-                      ? "h-10 rounded-md px-5"
-                      : "h-10 rounded-md border-border! px-5",
-                })}
-                href={createInventoryHref({
-                  scope: "COMMISSARY",
-                  page: 1,
-                  search,
-                })}
-                aria-label="Commissary inventory"
-                aria-current={scope === "COMMISSARY" ? "page" : undefined}
-              >
-                Commissary
-              </Link>
-            )}
-            {canViewBranch && (
-              <Link
-                className={buttonVariants({
-                  variant: scope === "BRANCH" ? "default" : "outline",
-                  className:
-                    scope === "BRANCH"
-                      ? "h-10 rounded-md px-5"
-                      : "h-10 rounded-md border-border! px-5",
-                })}
-                href={createInventoryHref({
-                  scope: "BRANCH",
-                  branchId: firstBranchId || undefined,
-                  page: 1,
-                  search,
-                })}
-                aria-label="Branch inventory"
-                aria-current={scope === "BRANCH" ? "page" : undefined}
-              >
-                Branch
-              </Link>
-            )}
-          </nav>
-
-          <Form
-            action="/inventory"
-            className={
-              scope === "BRANCH"
-                ? "grid gap-3 sm:grid-cols-2 sm:items-end lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_auto]"
-                : "grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_auto] sm:items-end"
-            }
-            aria-label="Filter inventory"
-          >
-            <input type="hidden" name="scope" value={scope} />
-            <Field className="min-w-0">
-              <FieldLabel htmlFor="inventory-search">
-                Search stock items
-              </FieldLabel>
-              <InputGroup className="h-10 rounded-md border border-input bg-background">
-                <InputGroupAddon>
-                  <Search aria-hidden="true" />
-                </InputGroupAddon>
-                <InputGroupInput
-                  key={`${scope}-${search}`}
-                  id="inventory-search"
-                  name="search"
-                  type="search"
-                  maxLength={120}
-                  defaultValue={search}
-                  placeholder="Item name or category"
-                />
-              </InputGroup>
-            </Field>
-            {scope === "BRANCH" && (
-              <Field className="min-w-0">
-                <FieldLabel htmlFor="inventory-branch">Branch</FieldLabel>
-                {branchOptions.length > 0 ? (
-                  <>
-                    <Select
-                      value={branchChoice}
-                      onValueChange={(value) => setBranchChoice(value ?? "")}
-                    >
-                      <SelectTrigger id="inventory-branch" className="w-full">
-                        <SelectValue>
-                          {(value: unknown) => {
-                            const branch = branchOptions.find(
-                              (option) => option.id === value,
-                            );
-                            if (!branch) return "Select a branch";
-                            return branch.status === "inactive"
-                              ? branch.name + " (inactive)"
-                              : branch.name;
-                          }}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent data-coms-ui="operational">
-                        {branchOptions.map((branch) => (
-                          <SelectItem key={branch.id} value={branch.id}>
-                            {branch.status === "inactive"
-                              ? `${branch.name} (inactive)`
-                              : branch.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <input
-                      type="hidden"
-                      name="branch_id"
-                      value={branchChoice}
-                    />
-                  </>
-                ) : (
-                  <p className="flex h-9 items-center text-sm text-muted-foreground">
-                    No branch is available to this account.
-                  </p>
-                )}
-              </Field>
-            )}
-            <Button type="submit" className="h-10 w-fit px-5">
-              Apply filters
+    <section
+      aria-label="Inventory location and filters"
+      className="flex min-w-0 flex-col gap-3"
+    >
+      <InventoryScopeToggle
+        scope={scope}
+        canViewCommissary={canViewCommissary}
+        canViewBranch={canViewBranch}
+        hasBranches={branchOptions.length > 0}
+        onValueChange={(nextScope) =>
+          handleLocationChange(
+            nextScope === "COMMISSARY"
+              ? "COMMISSARY"
+              : `BRANCH:${props.selectedBranchId ?? branchOptions[0]?.id ?? ""}`,
+          )
+        }
+      />
+      <FieldGroup
+        className={cn(
+          "grid min-w-0 gap-3",
+          scope === "BRANCH" && "md:grid-cols-3",
+        )}
+      >
+        {scope === "BRANCH" && (
+          <InventoryBranchSelect
+            value={locationValue}
+            label={locationLabel}
+            branchOptions={branchOptions}
+            onValueChange={handleLocationChange}
+          />
+        )}
+        <Field className={cn("min-w-0", scope === "BRANCH" && "md:col-span-2")}>
+          <FieldLabel htmlFor="inventory-search">Search stock items</FieldLabel>
+          <InputGroup>
+            <InputGroupAddon>
+              <Search aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
+              id="inventory-search"
+              type="search"
+              maxLength={120}
+              value={draftSearch}
+              onChange={(event) => handleSearchChange(event.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search by name or category..."
+            />
+          </InputGroup>
+        </Field>
+      </FieldGroup>
+      <InventoryBalanceFilterControls
+        statusFilter={statusFilter}
+        categoryFilter={categoryFilter}
+        availableCategories={availableCategories}
+        onStatusChange={(nextStatus) =>
+          applyFilters({ nextStatus: nextStatus ?? null })
+        }
+        onCategoryChange={(nextCategory) =>
+          applyFilters({ nextCategory: nextCategory ?? null })
+        }
+      />
+      {chips.length > 0 && (
+        <div
+          aria-label="Active stock filters"
+          className="flex flex-wrap items-center gap-2"
+        >
+          {chips.map((chip) => (
+            <Button
+              key={chip.label}
+              variant="outline"
+              size="sm"
+              className="h-auto min-h-7 max-w-full whitespace-normal"
+              aria-label={`Remove ${chip.label}`}
+              onClick={() => {
+                const fieldId = chip.label.startsWith("Status:")
+                  ? "inventory-status"
+                  : chip.label.startsWith("Category:")
+                    ? "inventory-category"
+                    : "inventory-search";
+                document.getElementById(fieldId)?.focus();
+                applyFilters(chip.options);
+              }}
+            >
+              <span className="min-w-0 wrap-anywhere">{chip.label}</span>
+              <X aria-hidden="true" data-icon="inline-end" />
             </Button>
-          </Form>
-        </CardContent>
-      </Card>
+          ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              document.getElementById("inventory-search")?.focus();
+              applyFilters({
+                nextSearch: "",
+                nextStatus: null,
+                nextCategory: null,
+              });
+            }}
+          >
+            Clear all
+          </Button>
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Search updates as you type. Filters apply to stock balances.
+      </p>
     </section>
   );
 }

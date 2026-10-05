@@ -28,7 +28,7 @@ export function DispatchDraftDiscardConfirmation({
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent data-coms-ui="operational" className="rounded-lg">
+      <AlertDialogContent data-coms-ui="operational">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>

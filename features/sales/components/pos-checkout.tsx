@@ -141,7 +141,7 @@ export function PosCheckout({
           href="#pos-cart-panel"
           className={cn(
             buttonVariants({ variant: "outline", size: "sm" }),
-            "w-fit rounded-md lg:hidden",
+            "w-fit lg:hidden",
           )}
         >
           View cart ({cart.length} {cart.length === 1 ? "item" : "items"})

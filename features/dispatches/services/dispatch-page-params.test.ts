@@ -5,6 +5,22 @@ import {
 } from "./dispatch-page-params";
 
 describe("dispatch page parameters", () => {
+  it("retains branch search and sort with status and discrepancy pagination", () => {
+    const filters = parseDispatchPageFilters({
+      page: "2",
+      search: " Downtown ",
+      status: "IN_TRANSIT",
+      discrepancy_status: "OPEN",
+      sort: "branch_asc",
+    });
+    expect(createDispatchHref(filters)).toBe(
+      "/dispatches?page=2&status=IN_TRANSIT&discrepancy_status=OPEN&search=Downtown&sort=branch_asc",
+    );
+    expect(
+      parseDispatchPageFilters({ sort: "unsafe", search: "x".repeat(101) })
+        .search,
+    ).toHaveLength(100);
+  });
   it("accepts a valid page and status and falls back from invalid values", () => {
     expect(
       parseDispatchPageFilters({ page: "3", status: "PARTIALLY_RECEIVED" }),

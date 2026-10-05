@@ -1,149 +1,181 @@
 import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { InventoryMovementPage } from "@/features/inventory/types/inventory.types";
+import type { InventoryMovementPage } from "../types/inventory.types";
+import { cn } from "@/lib/utils";
 
-function displayMovementType(value: string) {
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(" ");
+const date = new Intl.DateTimeFormat("en-PH", {
+  dateStyle: "medium",
+  timeZone: "Asia/Manila",
+});
+const time = new Intl.DateTimeFormat("en-PH", {
+  timeStyle: "short",
+  timeZone: "Asia/Manila",
+});
+function movementLabel(value: string) {
+  const label = value.toLowerCase().replaceAll("_", " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
-
-function displayTimestamp(value: string) {
-  return new Intl.DateTimeFormat("en-PH", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Manila",
-  }).format(new Date(value));
-}
-
-function movementBadgeClass(type: string) {
-  if (type === "RECEIPT" || type === "TRANSFER_IN") {
-    return "rounded-md bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100";
-  }
-  if (type === "SALE" || type === "SALE_VOID") {
-    return "rounded-md bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100";
-  }
-  if (type === "DISPATCH") {
-    return "rounded-md bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100";
-  }
-  return "rounded-md bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100";
+function RecordedAt({ value }: { value: string }) {
+  const instant = new Date(value);
+  return (
+    <time dateTime={value} className="flex flex-wrap gap-x-1 lg:flex-col">
+      <span>{date.format(instant)}</span>
+      <span className="text-xs text-muted-foreground">
+        {time.format(instant)} PHT
+      </span>
+    </time>
+  );
 }
 
 export function InventoryMovementsTable({
   movements,
-  compact = false,
 }: {
   movements: InventoryMovementPage;
-  compact?: boolean;
 }) {
   return (
-    <section
+    <Card
       aria-labelledby="inventory-movements-heading"
-      className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}
+      className="min-w-0 gap-0 overflow-hidden py-0"
     >
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h2
-            id="inventory-movements-heading"
-            className="text-xl font-semibold tracking-tight"
+      <CardHeader className="border-b px-4 py-4 sm:px-5">
+        <CardTitle>
+          <h3 id="inventory-movements-heading">Recent movements</h3>
+        </CardTitle>
+        <CardDescription>
+          Latest stock changes for this location. Balance filters do not apply.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        {movements.items.length > 0 ? (
+          <Table
+            aria-label="Recent movements"
+            className="min-w-80"
+            containerProps={{
+              role: "region",
+              "aria-label": "Recent inventory movements table",
+              tabIndex: 0,
+            }}
           >
-            Recent movements
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Stock changes are recorded in the inventory ledger.
-          </p>
-        </div>
-        {compact && (
-          <p className="text-sm text-muted-foreground">
-            {movements.items.length} recent
-          </p>
-        )}
-      </div>
-      {movements.items.length > 0 ? (
-        <Table
-          containerProps={{
-            role: "region",
-            "aria-label": "Recent inventory movements table",
-            tabIndex: 0,
-            className:
-              "rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          }}
-        >
-          <TableHeader className="bg-muted/50">
-            <TableRow>
-              <TableHead className={compact ? "h-9" : "h-10"}>Date</TableHead>
-              <TableHead className={compact ? "h-9" : "h-10"}>
-                Stock item
-              </TableHead>
-              <TableHead className={compact ? "h-9" : "h-10"}>
-                Movement
-              </TableHead>
-              <TableHead className={`${compact ? "h-9" : "h-10"} text-right`}>
-                Change
-              </TableHead>
-              <TableHead className={compact ? "h-9" : "h-10"}>Reason</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {movements.items.map((movement) => {
-              const quantity = movement.quantity_delta.startsWith("-")
-                ? movement.quantity_delta
-                : "+" + movement.quantity_delta;
-              return (
+            <TableCaption className="sr-only">
+              Recent inventory changes, newest first. Signed quantities show
+              additions and deductions in each item&apos;s unit. Times are in
+              Philippine Standard Time (Asia/Manila).
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col" className="pl-4 sm:pl-5">
+                  Stock item
+                </TableHead>
+                <TableHead scope="col" className="hidden md:table-cell">
+                  Movement
+                </TableHead>
+                <TableHead
+                  scope="col"
+                  className="pr-4 text-right sm:pr-5 lg:pr-2"
+                >
+                  Change
+                </TableHead>
+                <TableHead scope="col" className="hidden lg:table-cell">
+                  Recorded
+                </TableHead>
+                <TableHead
+                  scope="col"
+                  className="hidden pr-4 xl:table-cell sm:pr-5"
+                >
+                  Reason
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {movements.items.map((movement) => (
                 <TableRow key={movement.id}>
-                  <TableCell className={compact ? "py-1" : "py-2.5"}>
-                    <time dateTime={movement.created_at}>
-                      {displayTimestamp(movement.created_at)}
-                    </time>
+                  <TableCell className="max-w-72 py-3 pl-4 whitespace-normal sm:pl-5">
+                    <div className="flex flex-col items-start gap-1">
+                      <span className="font-medium wrap-anywhere">
+                        {movement.stock_item_name}
+                      </span>
+                      <span className="md:hidden">
+                        <Badge
+                          variant="secondary"
+                          className="h-auto min-h-5 whitespace-normal"
+                        >
+                          {movementLabel(movement.movement_type)}
+                        </Badge>
+                      </span>
+                      <div className="text-xs text-muted-foreground lg:hidden">
+                        <RecordedAt value={movement.created_at} />
+                      </div>
+                      {movement.reason && (
+                        <span className="text-xs text-muted-foreground wrap-anywhere xl:hidden">
+                          {movement.reason}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden py-3 md:table-cell">
+                    <Badge
+                      variant="secondary"
+                      className="h-auto min-h-5 whitespace-normal"
+                    >
+                      {movementLabel(movement.movement_type)}
+                    </Badge>
                   </TableCell>
                   <TableCell
-                    className={`${compact ? "py-1" : "py-2.5"} font-medium`}
+                    className={cn(
+                      "py-3 pr-4 text-right font-medium tabular-nums sm:pr-5 lg:pr-2",
+                      movement.quantity_delta.startsWith("-") &&
+                        "text-destructive",
+                    )}
                   >
-                    {movement.stock_item_name}
+                    {movement.quantity_delta.startsWith("-")
+                      ? movement.quantity_delta
+                      : "+" + movement.quantity_delta}{" "}
+                    {movement.unit}
                   </TableCell>
-                  <TableCell className={compact ? "py-1" : "py-2.5"}>
-                    {compact ? (
-                      <Badge
-                        variant="secondary"
-                        className={movementBadgeClass(movement.movement_type)}
-                      >
-                        {displayMovementType(movement.movement_type)}
-                      </Badge>
-                    ) : (
-                      displayMovementType(movement.movement_type)
+                  <TableCell className="hidden py-3 lg:table-cell">
+                    <RecordedAt value={movement.created_at} />
+                  </TableCell>
+                  <TableCell className="hidden max-w-72 py-3 pr-4 whitespace-normal xl:table-cell sm:pr-5">
+                    {movement.reason ?? (
+                      <span className="text-muted-foreground">
+                        Not provided
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell
-                    className={`${compact ? "py-1" : "py-2.5"} text-right tabular-nums ${compact ? (quantity.startsWith("-") ? "text-red-700 dark:text-red-400" : "text-green-700 dark:text-green-400") : ""}`}
-                  >
-                    {quantity} {movement.unit}
-                  </TableCell>
-                  <TableCell
-                    className={`max-w-64 whitespace-normal ${compact ? "py-1" : "py-2.5"}`}
-                  >
-                    {movement.reason ?? "—"}
-                  </TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      ) : (
-        <OperationalEmptyState
-          title="No movement history yet"
-          description="Receipts, transfers, sales, and adjustments will appear here."
-        />
-      )}
-    </section>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="px-4 py-8 sm:px-5">
+            <OperationalEmptyState
+              title="No movement history yet"
+              description="Receipts, transfers, sales, and adjustments will appear here."
+            />
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="border-t px-4 py-3 text-sm text-muted-foreground sm:px-5">
+        Showing {movements.items.length} of {movements.total}{" "}
+        {movements.total === 1 ? "movement" : "movements"}
+      </CardFooter>
+    </Card>
   );
 }

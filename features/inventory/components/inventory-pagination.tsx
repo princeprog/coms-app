@@ -12,6 +12,8 @@ export function InventoryPagination({
   scope,
   branchId,
   search,
+  status,
+  category,
   page,
   pageCount,
   total,
@@ -20,6 +22,8 @@ export function InventoryPagination({
   scope: "COMMISSARY" | "BRANCH";
   branchId?: string;
   search: string;
+  status?: "active" | "inactive";
+  category?: string;
   page: number;
   pageCount: number;
   total: number;
@@ -31,10 +35,17 @@ export function InventoryPagination({
     (value) => value > 0 && value <= pageCount,
   );
   const href = (targetPage: number) =>
-    createInventoryHref({ scope, branchId, page: targetPage, search });
+    createInventoryHref({
+      scope,
+      branchId,
+      page: targetPage,
+      search,
+      status,
+      category,
+    });
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex w-full flex-wrap items-center justify-between gap-3">
       <p className="text-sm text-muted-foreground">
         Showing {start}–{end} of {total} stock {total === 1 ? "item" : "items"}
       </p>
@@ -48,7 +59,7 @@ export function InventoryPagination({
                 className={buttonVariants({
                   variant: "outline",
                   size: "icon-sm",
-                  className: "rounded-md border-border!",
+                  className: "border-border!",
                 })}
               >
                 <ChevronLeft aria-hidden="true" />
@@ -83,7 +94,7 @@ export function InventoryPagination({
                   className={buttonVariants({
                     variant: "outline",
                     size: "icon-sm",
-                    className: "rounded-md border-border!",
+                    className: "border-border!",
                   })}
                 >
                   {value}
@@ -99,7 +110,7 @@ export function InventoryPagination({
                 className={buttonVariants({
                   variant: "outline",
                   size: "icon-sm",
-                  className: "rounded-md border-border!",
+                  className: "border-border!",
                 })}
               >
                 <ChevronRight aria-hidden="true" />

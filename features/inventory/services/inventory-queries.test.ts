@@ -36,6 +36,7 @@ describe("inventory page queries", () => {
         total: 1,
         page: 2,
         page_size: 25,
+        available_categories: ["Dry goods", "Pantry"],
       })
       .mockResolvedValueOnce({
         items: [],
@@ -50,15 +51,17 @@ describe("inventory page queries", () => {
         branchId: id,
         page: 2,
         search: " Flour ",
+        status: "active",
+        category: "Dry goods",
       }),
     ).resolves.toMatchObject({
-      inventory: { total: 1 },
+      inventory: { total: 1, available_categories: ["Dry goods", "Pantry"] },
       movements: { total: 0 },
     });
 
     expect(requestComsApi).toHaveBeenNthCalledWith(
       1,
-      `/inventory/branches/${id}?page=2&page_size=25&search=Flour`,
+      `/inventory/branches/${id}?page=2&page_size=25&search=Flour&is_active=true&category=Dry+goods`,
       { cookieHeader: "coms_access=access-token" },
     );
     expect(requestComsApi).toHaveBeenNthCalledWith(

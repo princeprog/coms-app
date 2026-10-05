@@ -25,6 +25,8 @@ export async function getDispatchPageData(
   if (filters.status !== "all") params.set("status", filters.status);
   if (filters.discrepancyStatus !== "all")
     params.set("discrepancy_status", filters.discrepancyStatus);
+  if (filters.search) params.set("search", filters.search.trim());
+  if (filters.sort) params.set("sort", filters.sort);
 
   const payload = await requestComsApi<unknown>(
     `${dispatchesEndpoint}?${params.toString()}`,

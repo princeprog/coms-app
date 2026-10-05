@@ -18,12 +18,16 @@ type InventoryPageRequest =
   | {
       page: number;
       search: string;
+      status?: "active" | "inactive";
+      category?: string;
       scope: "COMMISSARY";
       pageSize?: number;
     }
   | {
       page: number;
       search: string;
+      status?: "active" | "inactive";
+      category?: string;
       scope: "BRANCH";
       branchId: string;
       pageSize?: number;
@@ -50,6 +54,12 @@ export async function getInventoryPageData(
     page_size: String(pageSize),
   });
   if (search.trim()) balanceParams.set("search", search.trim());
+  if (request.status) {
+    balanceParams.set("is_active", String(request.status === "active"));
+  }
+  if (request.category?.trim()) {
+    balanceParams.set("category", request.category.trim());
+  }
   const movementParams = new URLSearchParams({
     page: "1",
     page_size: String(pageSize),

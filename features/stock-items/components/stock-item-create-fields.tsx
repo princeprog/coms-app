@@ -83,7 +83,7 @@ export function StockItemCreateFields({
               >
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
-              <SelectContent data-coms-ui="operational" className="rounded-lg">
+              <SelectContent data-coms-ui="operational">
                 {stockItemCategories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}

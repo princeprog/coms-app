@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { OperationalLoadError } from "@/components/shared/operational-load-error";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
-import { InventoryBalanceTable } from "@/features/inventory/components/inventory-balance-table";
-import { InventoryAssignedBranchSearch } from "@/features/inventory/components/inventory-assigned-branch-search";
+import { InventoryBalancesSection } from "./inventory-balances-section";
 import { InventoryMovementsTable } from "@/features/inventory/components/inventory-movements-table";
-import { InventoryPagination } from "@/features/inventory/components/inventory-pagination";
+import { InventoryPageHeading } from "@/features/inventory/components/inventory-page-heading";
 import { InventoryScopeFilter } from "@/features/inventory/components/inventory-scope-filter";
+import { createInventoryHref } from "@/features/inventory/services/inventory-page-params";
 import type { InventoryAdjustmentAction } from "@/features/inventory/components/inventory-adjustment-dialog";
 import type {
   InventoryBranchOption,
@@ -25,6 +24,8 @@ export function InventoryManagement({
   branchOptions,
   selectedBranchId,
   search,
+  statusFilter,
+  categoryFilter,
   canAdjust,
   canViewCommissary,
   canViewBranch,
@@ -39,6 +40,8 @@ export function InventoryManagement({
   branchOptions: InventoryBranchOption[];
   selectedBranchId?: string;
   search: string;
+  statusFilter?: "active" | "inactive";
+  categoryFilter?: string;
   canAdjust: boolean;
   canViewCommissary: boolean;
   canViewBranch: boolean;
@@ -47,11 +50,10 @@ export function InventoryManagement({
   branchUnavailableMessage?: string;
   page?: number;
 }) {
-  const [status, setStatus] = useState("");
+  const router = useRouter();
+  const [statusMessage, setStatusMessage] = useState("");
+  const [isFetching, setIsFetching] = useState(false);
   const currentPage = page ?? inventory?.page ?? 1;
-  const pageCount = inventory
-    ? Math.max(1, Math.ceil(inventory.total / inventory.page_size))
-    : 1;
   const branchId = selectedBranchId ?? branchOptions[0]?.id;
   const selectedBranch = branchOptions.find(
     (branch) => branch.id.toLowerCase() === selectedBranchId?.toLowerCase(),
@@ -59,57 +61,27 @@ export function InventoryManagement({
   const isAssignedBranchView = scope === "BRANCH" && !canViewCommissary;
   const branchName = selectedBranch?.name ?? "Assigned branch";
   return (
-    <div
-      data-coms-ui="operational"
-      className={`flex flex-col ${isAssignedBranchView ? "gap-4" : "gap-5"}`}
-    >
-      <section className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="font-heading text-3xl font-semibold tracking-tight">
-              Inventory
-            </h2>
-            {isAssignedBranchView && selectedBranchId && (
-              <Badge
-                variant="secondary"
-                className="gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-primary"
-              >
-                <MapPin aria-hidden="true" className="size-3.5" />
-                {branchName}
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {isAssignedBranchView && selectedBranchId
-              ? `Stock balances and recent movements for ${branchName}.`
-              : "Review stock balances and the ledger of receipts, transfers, sales, and adjustments."}
-          </p>
-        </div>
-        {inventory && !isAssignedBranchView && (
-          <Badge variant="secondary" className="rounded-full px-4 py-2 text-xs">
-            {inventory.total}{" "}
-            {inventory.total === 1 ? "stock item" : "stock items"}
-          </Badge>
-        )}
-      </section>
+    <div data-coms-ui="operational" className="flex min-w-0 flex-col gap-6">
+      <InventoryPageHeading
+        isAssignedBranchView={isAssignedBranchView}
+        selectedBranchId={selectedBranchId}
+        branchName={branchName}
+      />
 
-      {isAssignedBranchView ? (
-        !branchUnavailable && branchId ? (
-          <InventoryAssignedBranchSearch
-            branchId={branchId}
-            branchName={branchName}
-            search={search}
-          />
-        ) : null
-      ) : (
+      {!branchUnavailable && (
         <InventoryScopeFilter
-          key={scope + ":" + (branchId ?? "none") + ":" + search}
           scope={scope}
           branchOptions={branchOptions}
           selectedBranchId={branchId}
           search={search}
+          statusFilter={statusFilter}
+          categoryFilter={categoryFilter}
+          availableCategories={inventory?.available_categories ?? []}
           canViewCommissary={canViewCommissary}
           canViewBranch={canViewBranch}
+          branchName={branchName}
+          page={currentPage}
+          onPendingChange={setIsFetching}
         />
       )}
 
@@ -120,56 +92,39 @@ export function InventoryManagement({
         />
       ) : inventory && movements ? (
         <>
-          {scope === "BRANCH" && selectedBranchId && !isAssignedBranchView && (
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Branch</span>
-              <span className="font-medium">
-                {selectedBranch?.name ?? "Assigned branch"}
-              </span>
-              {selectedBranch?.status === "inactive" && (
-                <Badge variant="outline">Inactive · adjustments disabled</Badge>
-              )}
-            </div>
+          {scope === "BRANCH" && selectedBranch?.status === "inactive" && (
+            <Badge
+              variant="outline"
+              className="h-auto min-h-5 max-w-full whitespace-normal"
+            >
+              Inactive · adjustments disabled
+            </Badge>
           )}
 
-          <Card size="sm" className={isAssignedBranchView ? "py-3" : undefined}>
-            <CardContent
-              className={`flex flex-col ${isAssignedBranchView ? "gap-3" : "gap-4"}`}
-            >
-              <InventoryBalanceTable
-                items={inventory.items}
-                total={inventory.total}
-                scope={scope}
-                branchId={selectedBranchId}
-                search={search}
-                canAdjust={
-                  canAdjust &&
-                  (scope === "COMMISSARY" ||
-                    selectedBranch?.status !== "inactive")
-                }
-                adjustAction={adjustAction}
-                onComplete={setStatus}
-                compact={isAssignedBranchView}
-              />
-              <InventoryPagination
-                scope={scope}
-                branchId={branchId}
-                search={search}
-                page={currentPage}
-                pageCount={pageCount}
-                total={inventory.total}
-                pageSize={inventory.page_size}
-              />
-            </CardContent>
-          </Card>
-          <Card size="sm" className={isAssignedBranchView ? "py-3" : undefined}>
-            <CardContent>
-              <InventoryMovementsTable
-                movements={movements}
-                compact={isAssignedBranchView}
-              />
-            </CardContent>
-          </Card>
+          <InventoryBalancesSection
+            inventory={inventory}
+            scope={scope}
+            branchId={branchId}
+            search={search}
+            status={statusFilter}
+            category={categoryFilter}
+            page={currentPage}
+            isFetching={isFetching}
+            canAdjust={
+              canAdjust &&
+              (scope === "COMMISSARY" || selectedBranch?.status !== "inactive")
+            }
+            adjustAction={adjustAction}
+            onComplete={setStatusMessage}
+            onClearFilters={() => {
+              setIsFetching(true);
+              router.replace(
+                createInventoryHref({ scope, branchId, page: 1, search: "" }),
+                { scroll: false },
+              );
+            }}
+          />
+          <InventoryMovementsTable movements={movements} />
         </>
       ) : (
         <OperationalLoadError
@@ -178,13 +133,13 @@ export function InventoryManagement({
         />
       )}
 
-      {status && (
+      {statusMessage && (
         <p
           role="status"
           aria-live="polite"
           className="text-sm text-muted-foreground"
         >
-          {status}
+          {statusMessage}
         </p>
       )}
     </div>

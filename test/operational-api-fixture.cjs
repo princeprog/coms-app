@@ -1171,11 +1171,44 @@ function createOperationalApiFixture({
         const search = (url.searchParams.get("search") ?? "")
           .trim()
           .toLowerCase();
-        const matches = state.receipts.filter((receipt) => {
-          return (
-            !search || receipt.supplier_name.toLowerCase().includes(search)
-          );
-        });
+        const from = url.searchParams.get("received_from");
+        const to = url.searchParams.get("received_to");
+        const min = url.searchParams.get("min_cost");
+        const max = url.searchParams.get("max_cost");
+        const sort = url.searchParams.get("sort") ?? "newest";
+        const compareCost = (a, b) => {
+          const x = decimalParts(a),
+            y = decimalParts(b);
+          const scale = Math.max(x.scale, y.scale);
+          const left = x.digits * 10n ** BigInt(scale - x.scale),
+            right = y.digits * 10n ** BigInt(scale - y.scale);
+          return left < right ? -1 : left > right ? 1 : 0;
+        };
+        const matches = state.receipts
+          .filter(
+            (receipt) =>
+              (!search ||
+                receipt.supplier_name.toLowerCase().includes(search)) &&
+              (!from || receipt.received_at >= from) &&
+              (!to || receipt.received_at <= to) &&
+              (!min || compareCost(receipt.total_cost, min) >= 0) &&
+              (!max || compareCost(receipt.total_cost, max) <= 0),
+          )
+          .sort((left, right) => {
+            const primary = sort.startsWith("cost_")
+              ? compareCost(left.total_cost, right.total_cost) *
+                (sort === "cost_highest" ? -1 : 1)
+              : sort.startsWith("supplier_")
+                ? left.supplier_name.localeCompare(right.supplier_name) *
+                  (sort === "supplier_desc" ? -1 : 1)
+                : 0;
+            return (
+              primary ||
+              (left.received_at.localeCompare(right.received_at) ||
+                left.created_at.localeCompare(right.created_at) ||
+                left.id.localeCompare(right.id)) * (sort === "oldest" ? 1 : -1)
+            );
+          });
         const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
         const pageSize = Math.min(
           100,
@@ -1224,7 +1257,8 @@ function createOperationalApiFixture({
             typeof line?.unit_cost !== "string" ||
             !/^\d+(?:\.\d+)?$/.test(line.unit_cost) ||
             seenStockItemIds.has(line.stock_item_id)
-          ) return null;
+          )
+            return null;
           seenStockItemIds.add(line.stock_item_id);
           const stockItem = state.stockItems.find(
             (item) => item.id === line.stock_item_id && item.is_active,
@@ -1238,7 +1272,8 @@ function createOperationalApiFixture({
         });
         if (normalizedLines.some((line) => line === null)) {
           return send(response, 400, {
-            message: "Choose unique active stock items and valid quantities/costs.",
+            message:
+              "Choose unique active stock items and valid quantities/costs.",
           });
         }
         const fingerprint = JSON.stringify({
@@ -1250,7 +1285,9 @@ function createOperationalApiFixture({
               quantity_received: line.quantity_received,
               unit_cost: line.unit_cost,
             }))
-            .sort((left, right) => left.stock_item_id.localeCompare(right.stock_item_id)),
+            .sort((left, right) =>
+              left.stock_item_id.localeCompare(right.stock_item_id),
+            ),
         });
         const retry = state.receipts.find(
           (receipt) => receipt.idempotency_key === idempotencyKey,
@@ -1267,10 +1304,7 @@ function createOperationalApiFixture({
           ({ stock_item: stockItem, quantity_received, unit_cost }, index) => ({
             id:
               "51000000-0000-4000-8000-" +
-              String(state.receipts.length * 100 + index + 1).padStart(
-                12,
-                "0",
-              ),
+              String(state.receipts.length * 100 + index + 1).padStart(12, "0"),
             stock_item_id: stockItem.id,
             stock_item_name: stockItem.stock_item_name,
             unit: stockItem.unit,
@@ -1309,7 +1343,8 @@ function createOperationalApiFixture({
             ]);
           }
           state.commissaryMovements.push({
-            id: "73000000-0000-4000-8000-" +
+            id:
+              "73000000-0000-4000-8000-" +
               String(state.commissaryMovements.length + 1).padStart(12, "0"),
             inventory_scope: "COMMISSARY",
             branch_id: null,
@@ -1341,7 +1376,10 @@ function createOperationalApiFixture({
         return send(response, 200, receiptDetail(receipt));
       }
 
-      if (url.pathname === "/stock-requests" || url.pathname.startsWith("/stock-requests/")) {
+      if (
+        url.pathname === "/stock-requests" ||
+        url.pathname.startsWith("/stock-requests/")
+      ) {
         return send(response, 404, { message: "Not found." });
       }
 

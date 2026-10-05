@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { AppPageShell } from "@/components/layout/app-page-shell";
 import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
+import { createCatalogHref } from "@/features/catalogs/services/catalog-page-params";
 import { CatalogManagement } from "@/features/catalogs/components/catalog-management";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
@@ -63,9 +64,20 @@ export default async function SuppliersPage({
     );
   }
 
+  const pageCount = Math.max(1, Math.ceil(pageData.total / pageData.page_size));
+  if (pageData.page > pageCount)
+    redirect(
+      createCatalogHref(suppliersEndpoint, {
+        page: pageCount,
+        search,
+        active: activeFilter,
+      }),
+    );
+
   return (
     <AppPageShell user={session.user}>
       <CatalogManagement
+        directoryLayout
         title="Suppliers"
         resourceName="supplier"
         description="Maintain supplier contact details for commissary receiving."

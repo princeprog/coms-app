@@ -51,7 +51,7 @@ export function StaffCreateAccess({
           >
             <SelectTrigger
               id="staff-create-role"
-              className="h-11 w-full rounded-md border bg-background"
+              className="h-11 w-full"
               disabled={pending}
             >
               <SelectValue>

@@ -1,101 +1,165 @@
 "use client";
-
-import { useState } from "react";
-import Form from "next/form";
-import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import Link from "next/link";
+import { Search, X } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { DirectorySelect } from "@/components/shared/directory-select";
+import { useDirectoryQuery } from "@/hooks/use-directory-query";
+import { dispatchStatuses } from "../constants";
 import {
-  dispatchStatuses,
-  dispatchesRoute,
-} from "@/features/dispatches/constants";
-import type { DispatchPageFilters } from "@/features/dispatches/services/dispatch-page-params";
-
-function statusLabel(status: string) {
-  return status === "all" ? "All statuses" : status.replaceAll("_", " ");
-}
+  createDispatchHref,
+  dispatchSortOptions,
+  type DispatchPageFilters,
+  type DispatchStatusFilter,
+  type DispatchDiscrepancyFilter,
+} from "../services/dispatch-page-params";
+import { dispatchStatusLabel } from "./dispatch-status-badge";
 
 export function DispatchFilter({ filters }: { filters: DispatchPageFilters }) {
-  const [status, setStatus] = useState(filters.status);
-  const [discrepancyStatus, setDiscrepancyStatus] = useState(
-    filters.discrepancyStatus,
+  const { search, pending, changeSearch, flushSearch, apply } =
+    useDirectoryQuery(filters, createDispatchHref);
+  const active = Boolean(
+    filters.search ||
+    filters.status !== "all" ||
+    filters.discrepancyStatus !== "all",
   );
-
   return (
-    <Form
-      action={dispatchesRoute}
+    <form
+      action="/dispatches"
       aria-label="Filter dispatches"
-      className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_auto] lg:items-end"
+      className="flex min-w-0 flex-col gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        flushSearch();
+      }}
     >
-      <Field className="min-w-0">
-        <FieldLabel htmlFor="dispatch-status">Dispatch status</FieldLabel>
-        <Select
-          value={status}
-          onValueChange={(value) =>
-            setStatus((value as typeof filters.status | null) ?? "all")
-          }
-        >
-          <SelectTrigger id="dispatch-status" className="w-full">
-            <SelectValue>
-              {(value: unknown) => statusLabel(String(value))}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent data-coms-ui="operational">
-            <SelectItem value="all">All statuses</SelectItem>
-            {dispatchStatuses.map((dispatchStatus) => (
-              <SelectItem key={dispatchStatus} value={dispatchStatus}>
-                {statusLabel(dispatchStatus)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <input type="hidden" name="status" value={status} />
-      </Field>
-      <Field className="min-w-0">
-        <FieldLabel htmlFor="dispatch-discrepancy-status">Discrepancy</FieldLabel>
-        <Select
-          value={discrepancyStatus}
-          onValueChange={(value) =>
-            setDiscrepancyStatus(
-              (value as typeof filters.discrepancyStatus | null) ?? "all",
-            )
-          }
-        >
-          <SelectTrigger id="dispatch-discrepancy-status" className="w-full">
-            <SelectValue>
-              {(value: unknown) => discrepancyLabel(String(value))}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent data-coms-ui="operational">
-            <SelectItem value="all">All discrepancies</SelectItem>
-            <SelectItem value="NONE">No discrepancy</SelectItem>
-            <SelectItem value="OPEN">Open</SelectItem>
-            <SelectItem value="RECOUNT_REQUESTED">Recount requested</SelectItem>
-            <SelectItem value="RESOLVED">Resolved</SelectItem>
-          </SelectContent>
-        </Select>
-        <input
-          type="hidden"
-          name="discrepancy_status"
-          value={discrepancyStatus}
+      <FieldGroup className="gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <Field className="min-w-0 sm:min-w-48 sm:flex-1">
+          <FieldLabel htmlFor="dispatch-search">Search branch</FieldLabel>
+          <InputGroup>
+            <InputGroupInput
+              id="dispatch-search"
+              type="search"
+              maxLength={100}
+              value={search}
+              placeholder="Search by branch name…"
+              onChange={(event) => changeSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  flushSearch();
+                }
+              }}
+            />
+            <InputGroupAddon>
+              <Search aria-hidden="true" />
+            </InputGroupAddon>
+          </InputGroup>
+        </Field>
+        <DirectorySelect
+          id="dispatch-sort"
+          label="Sort by"
+          value={filters.sort ?? "newest"}
+          options={dispatchSortOptions}
+          onChange={(sort) => apply({ sort })}
         />
-      </Field>
-      <Button type="submit" variant="outline" className="w-fit">
-        Apply filters
-      </Button>
-    </Form>
+      </FieldGroup>
+      <FieldGroup className="gap-3 sm:flex-row sm:flex-wrap">
+        <DirectorySelect
+          id="dispatch-status"
+          label="Dispatch status"
+          value={filters.status}
+          options={[
+            { value: "all", label: "All statuses" },
+            ...dispatchStatuses.map((value) => ({
+              value,
+              label: dispatchStatusLabel(value),
+            })),
+          ]}
+          onChange={(status) =>
+            apply({ status: status as DispatchStatusFilter })
+          }
+        />
+        <DirectorySelect
+          id="dispatch-discrepancy-status"
+          label="Discrepancy"
+          value={filters.discrepancyStatus}
+          options={[
+            { value: "all", label: "All discrepancies" },
+            { value: "NONE", label: "No discrepancy" },
+            ...["OPEN", "RECOUNT_REQUESTED", "RESOLVED"].map((value) => ({
+              value,
+              label: dispatchStatusLabel(value),
+            })),
+          ]}
+          onChange={(discrepancyStatus) =>
+            apply({
+              discrepancyStatus: discrepancyStatus as DispatchDiscrepancyFilter,
+            })
+          }
+        />
+      </FieldGroup>
+      {active && (
+        <div
+          aria-label="Active dispatch filters"
+          className="flex flex-wrap items-center gap-2"
+        >
+          {(["search", "status", "discrepancyStatus"] as const)
+            .filter((key) => filters[key] && filters[key] !== "all")
+            .map((key) => (
+              <Link
+                key={key}
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "sm",
+                  className: "h-auto max-w-full whitespace-normal text-left",
+                })}
+                href={createDispatchHref({
+                  ...filters,
+                  page: 1,
+                  [key]: key === "search" ? "" : "all",
+                })}
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (key === "search") changeSearch("");
+                  apply({ [key]: key === "search" ? "" : "all" });
+                }}
+                aria-label={`Clear ${key === "search" ? "branch search" : key === "status" ? "dispatch status" : "discrepancy filter"}`}
+              >
+                <span className="min-w-0 break-words">
+                  {key === "search"
+                    ? `Branch: ${filters.search}`
+                    : `${key === "status" ? "Status" : "Discrepancy"}: ${filters[key] === "NONE" ? "None" : dispatchStatusLabel(filters[key]!)}`}
+                </span>
+                <X aria-hidden="true" data-icon="inline-end" />
+              </Link>
+            ))}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              changeSearch("");
+              apply({
+                search: "",
+                status: "all",
+                discrepancyStatus: "all",
+                sort: "newest",
+              });
+            }}
+          >
+            Clear all
+          </Button>
+        </div>
+      )}
+      <span role="status" className="text-xs text-muted-foreground">
+        {pending ? "Updating dispatches…" : "Search updates as you type."}
+      </span>
+    </form>
   );
-}
-
-function discrepancyLabel(status: string) {
-  if (status === "all") return "All discrepancies";
-  if (status === "NONE") return "No discrepancy";
-  if (status === "RECOUNT_REQUESTED") return "Recount requested";
-  return status.toLowerCase();
 }

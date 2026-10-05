@@ -83,9 +83,9 @@ export function DispatchCreateDialog({
       <DialogContent
         data-coms-ui="operational"
         showCloseButton={false}
-        className="flex max-h-[min(90dvh,48rem)] min-h-0 w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
+        className="flex max-h-[min(90dvh,48rem)] min-h-0 w-full flex-col gap-0 overflow-clip p-0 sm:max-w-2xl"
       >
-        <DialogHeader className="relative shrink-0 gap-1 border-b px-5 pt-6 pb-4 sm:px-8 sm:pt-7">
+        <DialogHeader className="relative shrink-0 gap-1 border-b p-4 sm:p-6">
           <DialogTitle className="pr-10 text-xl font-semibold">
             Create dispatch
           </DialogTitle>
@@ -96,7 +96,7 @@ export function DispatchCreateDialog({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="absolute top-5 right-5 sm:right-7"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6"
             aria-label="Close Create dispatch"
             disabled={pending}
             onClick={requestClose}

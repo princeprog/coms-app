@@ -12,6 +12,7 @@ import {
   createSupplierReceiptHref,
   parseSupplierReceiptPageFilters,
   type SupplierReceiptPageSearchParams,
+  type SupplierReceiptPageFilters,
 } from "./supplier-receipt-page-params";
 import {
   getSupplierReceiptDetail,
@@ -28,6 +29,7 @@ export type SupplierReceiptIndexViewResult =
       status: "ready";
       page: SupplierReceiptPage;
       search: string;
+      filters: SupplierReceiptPageFilters;
       canCreate: boolean;
       formOptions: SupplierReceiptFormOptions | null;
       formOptionsIssue: "permissions" | "forbidden" | "unavailable" | null;
@@ -60,10 +62,7 @@ export async function loadSupplierReceiptIndexView(
   const filters = parseSupplierReceiptPageFilters(searchParams);
   let page: SupplierReceiptPage;
   try {
-    page = await getSupplierReceiptPageData({
-      page: filters.page,
-      search: filters.search,
-    });
+    page = await getSupplierReceiptPageData(filters);
   } catch (error) {
     const accessFailure = getAccessFailure(error);
     if (accessFailure) return accessFailure;
@@ -104,6 +103,7 @@ export async function loadSupplierReceiptIndexView(
     status: "ready",
     page,
     search: filters.search,
+    filters,
     canCreate,
     formOptions,
     formOptionsIssue,

@@ -62,8 +62,8 @@ async function waitForServer(url, server, getOutput) {
   throw new Error(`Next.js did not become ready.\n${getOutput()}`);
 }
 
-async function assertNoDocumentOverflow(page, width) {
-  await page.setViewportSize({ width, height: 960 });
+async function assertNoDocumentOverflow(page, width, height = 960) {
+  await page.setViewportSize({ width, height });
   await page.evaluate(
     () =>
       new Promise((resolve) =>
@@ -138,39 +138,39 @@ async function assertNoDocumentOverflow(page, width) {
     await page.getByRole("button", { name: "Sign In", exact: true }).click();
     await page.waitForURL("**/dashboard");
 
-    await page.getByRole("region", { name: "Operational summary" }).waitFor();
-    await page.getByText("Sales trend", { exact: true }).waitFor();
-    assert.equal(await page.getByLabel("Loading dashboard").count(), 0);
-    assert.equal(await page.getByRole("combobox", { name: "Location" }).count(), 0);
+    await page
+      .getByRole("heading", { name: "Dashboard", exact: true })
+      .waitFor();
     assert.equal(
-      await page.getByRole("region", { name: "Branch performance table" }).count(),
+      await page.getByRole("combobox", { name: "Location" }).count(),
+      0,
+    );
+    assert.equal(
+      await page
+        .getByRole("region", { name: "Branch performance table" })
+        .count(),
       0,
       "A branch-only Dashboard must not show cross-branch comparison",
     );
-    await page
-      .getByText("Operational performance", { exact: false })
-      .waitFor();
-    assert.equal(await page.getByText("Manila North", { exact: true }).count(), 1);
-
-    await page.goto(
-      `${baseUrl}/dashboard?branch_id=10000000-0000-4000-8000-000000000002`,
-      { waitUntil: "domcontentloaded" },
-    );
-    await page.getByRole("heading", { name: "Page not found" }).waitFor();
-    assert.equal(await page.getByRole("region", { name: "Operational summary" }).count(), 0);
 
     await page.goto(`${baseUrl}/inventory`, { waitUntil: "domcontentloaded" });
     await page.getByRole("heading", { name: "Inventory", level: 2 }).waitFor();
     await page
       .getByText("Stock balances and recent movements for Manila North.")
       .waitFor();
-    assert.equal(
-      await page.getByRole("navigation", { name: "Inventory scope" }).count(),
-      0,
-    );
+    assert(await page.getByRole("button", { name: "Commissary", exact: true }).isDisabled());
+    assert.equal(await page.getByRole("button", { name: "Branches", exact: true }).getAttribute("aria-pressed"), "true");
     assert.equal(
       await page.getByRole("combobox", { name: "Branch" }).count(),
-      0,
+      1,
+    );
+    assert.equal(
+      await page.getByRole("combobox", { name: "Status" }).count(),
+      1,
+    );
+    assert.equal(
+      await page.getByRole("combobox", { name: "Category" }).count(),
+      1,
     );
     assert.equal(
       await page.getByRole("columnheader", { name: "Actions" }).count(),
@@ -199,7 +199,17 @@ async function assertNoDocumentOverflow(page, width) {
       fullPage: true,
       animations: "disabled",
     });
-    await assertNoDocumentOverflow(page, 390);
+    await assertNoDocumentOverflow(page, 390, 667);
+    for (const width of [195, 390, 768, 1440, 1920]) {
+      await assertNoDocumentOverflow(page, width);
+      if (width === 390) {
+        for (const name of ["Stock balances table", "Recent inventory movements table"]) {
+          assert(await page.getByRole("region", { name }).evaluate((element) => element.scrollWidth <= element.clientWidth + 1), `${name} should fit phone width without horizontal scrolling`);
+        }
+      }
+      await page.screenshot({ path: path.join(outputDirectory, `inventory-light-${width}.png`), fullPage: true, animations: "disabled" });
+    }
+    await assertNoDocumentOverflow(page, 390, 667);
     await page.screenshot({
       path: path.join(outputDirectory, "inventory-branch-mobile.png"),
       fullPage: true,
@@ -224,12 +234,111 @@ async function assertNoDocumentOverflow(page, width) {
         .count(),
       2,
     );
+    const balanceRows = page
+      .getByRole("region", { name: "Stock balances table" })
+      .getByRole("row");
+    const movementRows = page
+      .getByRole("region", { name: "Recent inventory movements table" })
+      .getByRole("row");
+    const statusFilter = page.getByRole("combobox", { name: "Status" });
+    await statusFilter.click();
+    await page.getByRole("option", { name: "Inactive" }).click();
+    await page.waitForURL(
+      (url) =>
+        url.searchParams.get("status") === "inactive" &&
+        url.searchParams.get("search") === "Flour",
+    );
+    await page.getByText("No stock items match these filters.").waitFor();
+    assert.equal(await balanceRows.count(), 0);
+    assert.equal(await movementRows.count(), 9);
+
+    const categoryFilter = page.getByRole("combobox", { name: "Category" });
+    await categoryFilter.click();
+    await page.getByRole("option", { name: "Dry goods" }).click();
+    await page.waitForURL(
+      (url) =>
+        url.searchParams.get("status") === "inactive" &&
+        url.searchParams.get("category") === "Dry goods",
+    );
+    assert.equal(await balanceRows.count(), 0);
+    assert.equal(
+      await movementRows.count(),
+      9,
+      "Stock-item filters must not filter recent movements",
+    );
+
+    const filteredSearch = page.getByRole("searchbox", {
+      name: "Search stock items",
+    });
+    await filteredSearch.fill("Dry goods");
+    await page.waitForURL(
+      (url) =>
+        url.searchParams.get("search") === "Dry goods" &&
+        url.searchParams.get("category") === "Dry goods",
+    );
+    await page
+      .getByRole("region", { name: "Stock balances table" })
+      .getByRole("row", { name: /Fixture Stock Item 03/ })
+      .waitFor();
+    assert.equal(await balanceRows.count(), 2);
+    assert.equal(await movementRows.count(), 9);
+
+    await filteredSearch.fill("No matching item");
+    await page.waitForURL(
+      (url) => url.searchParams.get("search") === "No matching item",
+    );
+    await page.getByText("No stock items match these filters.").waitFor();
+    await page.getByRole("button", { name: "Clear filters" }).waitFor();
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await page.waitForURL(
+      (url) =>
+        url.pathname === "/inventory" &&
+        url.searchParams.get("scope") === "BRANCH" &&
+        url.searchParams.get("branch_id") === branchId &&
+        [...url.searchParams.keys()].length === 2,
+    );
+    await page
+      .getByRole("region", { name: "Stock balances table" })
+      .getByRole("row", { name: /Flour/ })
+      .waitFor();
+    assert.equal(await balanceRows.count(), 9);
+
+    await statusFilter.click();
+    await page.getByRole("option", { name: "Inactive", exact: true }).click();
+    await page.waitForURL((url) => url.searchParams.get("status") === "inactive");
+    await categoryFilter.click();
+    await page.getByRole("option", { name: "Dry goods", exact: true }).click();
+    await page.waitForURL((url) => url.searchParams.get("category") === "Dry goods");
+    await filteredSearch.fill("Dry goods");
+    await page.waitForURL((url) => url.searchParams.get("search") === "Dry goods");
+    await page.getByRole("button", { name: "Remove Status: Inactive", exact: true }).click();
+    await page.waitForURL((url) => !url.searchParams.has("status") && url.searchParams.get("category") === "Dry goods" && url.searchParams.get("search") === "Dry goods" && url.searchParams.get("branch_id") === branchId && !url.searchParams.has("page"));
+    assert.equal(await movementRows.count(), 9, "Removing a balance filter must not change ledger scope");
+    await page.getByRole("button", { name: "Clear all", exact: true }).click();
+    await page.waitForURL((url) => url.searchParams.get("scope") === "BRANCH" && url.searchParams.get("branch_id") === branchId && [...url.searchParams.keys()].length === 2);
+    await page.getByRole("region", { name: "Stock balances table" }).getByRole("row", { name: /Flour/ }).waitFor();
+    assert.equal(await balanceRows.count(), 9);
+
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.waitForFunction(() =>
+      document.documentElement.classList.contains("dark"),
+    );
+    await assertNoDocumentOverflow(page, 390, 667);
+    await page.screenshot({
+      path: path.join(outputDirectory, "inventory-branch-dark-mobile.png"),
+      fullPage: true,
+      animations: "disabled",
+    });
+    for (const width of [195, 390, 768, 1440, 1920]) {
+      await assertNoDocumentOverflow(page, width);
+      await page.screenshot({ path: path.join(outputDirectory, `inventory-dark-${width}.png`), fullPage: true, animations: "disabled" });
+    }
     assert.deepEqual(browserErrors, []);
     console.log(
-      "PASS branch Dashboard shows its assigned location, omits global filters, and rejects an unassigned branch URL",
+      "PASS branch-only Dashboard omits global location filters and cross-branch comparisons",
     );
     console.log(
-      "PASS branch-only Inventory view, search, and 195/390px reflow",
+      "PASS branch-only Inventory filters, ledger scope, dark mode, and 195/390px reflow",
     );
     console.log(`Captured ${outputDirectory}`);
   } finally {

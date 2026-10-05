@@ -525,19 +525,33 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
     );
     const status = url.searchParams.get("status");
     const branchId = url.searchParams.get("branch_id");
+    const search = (url.searchParams.get("search") ?? "").trim().toLowerCase();
+    const sort = url.searchParams.get("sort") ?? "newest";
+    const discrepancy = url.searchParams.get("discrepancy_status");
     if (status && !DISPATCH_STATUSES.includes(status))
       return send(response, 400, { message: "Invalid dispatch status." });
     const matches = state.dispatches
       .filter(
         (dispatch) =>
           (!status || dispatch.status === status) &&
-          (!branchId || dispatch.branch_id === branchId),
+          (!branchId || dispatch.branch_id === branchId) &&
+          (!search || dispatch.branch_name.toLowerCase().includes(search)) &&
+          (!discrepancy ||
+            (discrepancy === "NONE"
+              ? !dispatch.discrepancy
+              : dispatch.discrepancy?.status === discrepancy)),
       )
-      .sort(
-        (left, right) =>
-          right.created_at.localeCompare(left.created_at) ||
-          right.id.localeCompare(left.id),
-      );
+      .sort((left, right) => {
+        const branch = sort.startsWith("branch_")
+          ? left.branch_name.localeCompare(right.branch_name) *
+            (sort === "branch_desc" ? -1 : 1)
+          : 0;
+        return (
+          branch ||
+          (left.created_at.localeCompare(right.created_at) ||
+            left.id.localeCompare(right.id)) * (sort === "oldest" ? 1 : -1)
+        );
+      });
     const start = (page - 1) * pageSize;
     return send(response, 200, {
       items: matches.slice(start, start + pageSize).map(dispatchListItem),

@@ -36,3 +36,22 @@ export type CatalogUpdateAction = (
 export type CatalogDeactivateAction = (
   id: string,
 ) => Promise<CatalogMutationResult>;
+
+export type CatalogManagementProps = {
+  title: string;
+  resourceName: string;
+  description: string;
+  routePath: string;
+  displayColumns: CatalogDisplayColumn[];
+  fields: CatalogFieldDefinition[];
+  page: CatalogPage;
+  search: string;
+  activeFilter: "all" | "true" | "false";
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDeactivate: boolean;
+  createAction: CatalogCreateAction;
+  updateAction: CatalogUpdateAction;
+  deactivateAction: CatalogDeactivateAction;
+  directoryLayout?: boolean;
+};

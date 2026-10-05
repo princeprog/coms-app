@@ -148,13 +148,38 @@ function handleInventoryRequest({ request, response, url, body, state, seed }) {
 
   if (resource === "balances" && request.method === "GET") {
     const search = (url.searchParams.get("search") ?? "").trim().toLowerCase();
+    const activeFilter = url.searchParams.get("is_active");
+    const categoryFilter = (url.searchParams.get("category") ?? "").trim();
+    if (
+      (activeFilter !== null &&
+        activeFilter !== "true" &&
+        activeFilter !== "false") ||
+      search.length > 120 ||
+      categoryFilter.length > 80
+    )
+      return send(response, 400, { message: "Invalid inventory filters." });
+
     const all = branchId
       ? state.branchBalances.filter((item) => item.branch_id === branchId)
       : state.commissaryBalances;
-    const filtered = all.filter(
-      (item) => !search || item.stock_item_name.toLowerCase().includes(search),
-    );
-    return send(response, 200, pageItems(filtered, url));
+    const filtered = all.filter((item) => {
+      const matchesSearch =
+        !search ||
+        item.stock_item_name.toLowerCase().includes(search) ||
+        item.category.toLowerCase().includes(search);
+      const matchesStatus =
+        activeFilter === null || item.is_active === (activeFilter === "true");
+      const matchesCategory =
+        !categoryFilter || item.category === categoryFilter;
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+    const availableCategories = [
+      ...new Set(state.stockItems.map((item) => item.category)),
+    ].sort((left, right) => left.localeCompare(right));
+    return send(response, 200, {
+      ...pageItems(filtered, url),
+      available_categories: availableCategories,
+    });
   }
   if (resource === "movements" && request.method === "GET") {
     const all = branchId

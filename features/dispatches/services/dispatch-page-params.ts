@@ -10,17 +10,22 @@ export type DispatchPageSearchParams = Record<
 
 export type DispatchStatusFilter = "all" | (typeof dispatchStatuses)[number];
 export type DispatchDiscrepancyFilter =
-  | "all"
-  | "NONE"
-  | "OPEN"
-  | "RECOUNT_REQUESTED"
-  | "RESOLVED";
+  "all" | "NONE" | "OPEN" | "RECOUNT_REQUESTED" | "RESOLVED";
 
 export type DispatchPageFilters = {
   page: number;
   status: DispatchStatusFilter;
   discrepancyStatus: DispatchDiscrepancyFilter;
+  search?: string;
+  sort?: string;
 };
+
+export const dispatchSortOptions = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "branch_asc", label: "Branch A–Z" },
+  { value: "branch_desc", label: "Branch Z–A" },
+];
 
 export function parseDispatchPageFilters(
   params: DispatchPageSearchParams,
@@ -42,7 +47,19 @@ export function parseDispatchPageFilters(
     ? (rawDiscrepancyStatus as Exclude<DispatchDiscrepancyFilter, "all">)
     : "all";
 
-  return { page, status, discrepancyStatus };
+  const search = (first(params.search) ?? "").trim().slice(0, 100);
+  const sort = first(params.sort);
+  return {
+    page,
+    status,
+    discrepancyStatus,
+    ...(search ? { search } : {}),
+    ...(sort &&
+    sort !== "newest" &&
+    dispatchSortOptions.some((option) => option.value === sort)
+      ? { sort }
+      : {}),
+  };
 }
 
 export function createDispatchHref(filters: DispatchPageFilters) {
@@ -51,6 +68,9 @@ export function createDispatchHref(filters: DispatchPageFilters) {
   if (filters.status !== "all") params.set("status", filters.status);
   if (filters.discrepancyStatus !== "all")
     params.set("discrepancy_status", filters.discrepancyStatus);
+  if (filters.search) params.set("search", filters.search.trim());
+  if (filters.sort && filters.sort !== "newest")
+    params.set("sort", filters.sort);
   const query = params.toString();
   return query ? `${dispatchesRoute}?${query}` : dispatchesRoute;
 }

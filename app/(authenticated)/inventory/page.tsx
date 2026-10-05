@@ -71,6 +71,8 @@ export default async function InventoryPage({
         branchOptions={view.branchOptions}
         selectedBranchId={view.selectedBranchId}
         search={view.search}
+        statusFilter={view.statusFilter}
+        categoryFilter={view.categoryFilter}
         canAdjust={view.canAdjust}
         canViewCommissary={view.canViewCommissary}
         canViewBranch={view.canViewBranch}

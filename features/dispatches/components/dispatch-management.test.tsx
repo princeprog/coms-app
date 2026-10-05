@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import { DispatchManagement } from "./dispatch-management";
@@ -60,7 +61,8 @@ describe("dispatch management", () => {
     expect(screen.queryByRole("link", { name: /request/i })).toBeNull();
   });
 
-  it("renders direct branch dispatch rows and filter-preserving pagination", () => {
+  it("renders direct branch dispatch rows and filter-preserving pagination", async () => {
+    const user = userEvent.setup();
     const dispatchPage: DispatchPage = {
       ...page,
       total: 26,
@@ -90,15 +92,22 @@ describe("dispatch management", () => {
     );
 
     expect(screen.getByText("Downtown")).toBeTruthy();
-    expect(screen.getAllByText("IN TRANSIT")).toHaveLength(2);
+    expect(screen.getAllByText("In transit")).toHaveLength(2);
     expect(
       screen
         .getByRole("region", { name: "Dispatches table" })
         .getAttribute("data-slot"),
     ).toBe("table-container");
+    screen
+      .getByRole("button", { name: "Actions for Downtown dispatch" })
+      .focus();
+    await user.keyboard("{Enter}");
     expect(
-      screen.getByRole("link", { name: "View dispatch" }).getAttribute("href"),
+      screen
+        .getByRole("menuitem", { name: "View dispatch" })
+        .getAttribute("href"),
     ).toBe(`/dispatches/${id}`);
+    await user.keyboard("{Escape}");
     expect(screen.queryByText("Stock request")).toBeNull();
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
@@ -112,6 +121,6 @@ describe("dispatch management", () => {
         filters={{ page: 1, status: "RECEIVED", discrepancyStatus: "all" }}
       />,
     );
-    expect(screen.getByText("No dispatches match this status.")).toBeTruthy();
+    expect(screen.getByText("No dispatches match these filters.")).toBeTruthy();
   });
 });
