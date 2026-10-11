@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, Eye, Power, SquarePen } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -90,9 +90,21 @@ export function CatalogRowActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent data-coms-ui="operational" align="end">
           <DropdownMenuGroup>
-            <DropdownMenuItem onClick={onView}>View details</DropdownMenuItem>
+            <DropdownMenuItem onClick={onView}>
+              <Eye
+                aria-hidden="true"
+                className="stroke-blue-600 dark:stroke-blue-400"
+              />
+              View details
+            </DropdownMenuItem>
             {canUpdate && (
-              <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={onEdit}>
+                <SquarePen
+                  aria-hidden="true"
+                  className="stroke-amber-600 dark:stroke-amber-400"
+                />
+                Edit
+              </DropdownMenuItem>
             )}
           </DropdownMenuGroup>
           {canDeactivateRecord && (
@@ -106,6 +118,7 @@ export function CatalogRowActions({
                     setConfirming(true);
                   }}
                 >
+                  <Power aria-hidden="true" className="stroke-destructive" />
                   Deactivate
                 </DropdownMenuItem>
               </DropdownMenuGroup>

@@ -1,7 +1,7 @@
-import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
+import { MenuRowActions } from "@/features/menus/components/menu-row-actions";
+import { MenuStatusBadge } from "@/features/menus/components/menu-status-badge";
+import { ShoppingBag, Utensils } from "lucide-react";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { BranchProductAvailabilityForm } from "@/features/branch-products/components/branch-product-availability-form";
-import { BranchProductPriceForm } from "@/features/branch-products/components/branch-product-price-form";
 import type {
   BranchProduct,
   BranchProductOperationAction,
@@ -9,66 +9,90 @@ import type {
 
 export function BranchProductRow({
   offer,
-  canUpdatePrice,
-  canUpdateAvailability,
-  priceAction,
+  canManage,
   availabilityAction,
 }: {
   offer: BranchProduct;
-  canUpdatePrice: boolean;
-  canUpdateAvailability: boolean;
-  priceAction: BranchProductOperationAction;
+  canManage: boolean;
   availabilityAction: BranchProductOperationAction;
 }) {
+  const services = offer.available_service_types ??
+    offer.service_types ?? ["DINE_IN", "TAKEAWAY"];
+  const [whole, fraction = ""] = offer.price.split(".");
+  const price = `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fraction.replace(/0+$/, "").padEnd(2, "0")}`;
+  const blockedReason =
+    offer.blocked_reason ??
+    (services.length === 0 ? "Unsupported service" : null);
+
   return (
     <TableRow>
-      <TableCell className="min-w-56 whitespace-normal">
-        <p className="font-medium">{offer.product_name}</p>
+      <TableCell className="w-2/5 min-w-64 whitespace-normal">
+        <p className="font-semibold">{offer.product_name}</p>
         {offer.description && (
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-0.5 text-sm text-muted-foreground">
             {offer.description}
           </p>
         )}
+        {blockedReason && blockedReason !== "Inactive product" && (
+          <p className="mt-1 text-sm text-destructive">{blockedReason}</p>
+        )}
       </TableCell>
       <TableCell className="min-w-32 text-right font-medium tabular-nums">
-        {offer.price}
+        ₱{price}
       </TableCell>
-      <TableCell className="min-w-36">
-        <OperationalStatusBadge
-          variant={offer.is_available ? "secondary" : "outline"}
-        >
-          {offer.is_available ? "Available" : "Not available"}
-        </OperationalStatusBadge>
-      </TableCell>
-      <TableCell className="min-w-36">
-        <OperationalStatusBadge
-          variant={offer.product_is_active ? "secondary" : "outline"}
-        >
-          {offer.product_is_active ? "Active product" : "Inactive product"}
-        </OperationalStatusBadge>
-      </TableCell>
-      <TableCell className="min-w-48 text-right">
-        <div className="flex flex-wrap justify-end gap-2">
-          <BranchProductPriceForm
-            branchId={offer.branch_id}
-            productId={offer.product_id}
-            productName={offer.product_name}
-            currentPrice={offer.price}
-            productIsActive={offer.product_is_active}
-            canUpdate={canUpdatePrice}
-            action={priceAction}
-          />
-          <BranchProductAvailabilityForm
-            branchId={offer.branch_id}
-            productId={offer.product_id}
-            productName={offer.product_name}
-            isAvailable={offer.is_available}
-            productIsActive={offer.product_is_active}
-            canUpdate={canUpdateAvailability}
-            action={availabilityAction}
-          />
+      <TableCell className="min-w-56">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {services.map((service, index) => {
+            const Icon = service === "DINE_IN" ? Utensils : ShoppingBag;
+            return (
+              <span key={service} className="inline-flex items-center gap-2">
+                {index > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="mr-1 text-muted-foreground"
+                  >
+                    ·
+                  </span>
+                )}
+                <Icon aria-hidden="true" className="size-4 shrink-0" />
+                {service === "DINE_IN" ? "Dine-in" : "Takeout"}
+              </span>
+            );
+          })}
+          {!services.length && (
+            <span className="text-sm text-muted-foreground">
+              No eligible services
+            </span>
+          )}
         </div>
       </TableCell>
+      <TableCell className="min-w-28">
+        <MenuStatusBadge
+          status={offer.product_is_active ? "active" : "inactive"}
+          className="rounded-md py-1 text-sm"
+        >
+          {offer.product_is_active ? "Active" : "Inactive"}
+        </MenuStatusBadge>
+      </TableCell>
+      <TableCell className="min-w-36">
+        <MenuStatusBadge
+          status={offer.is_available ? "active" : "unavailable"}
+          className="rounded-md py-1 text-sm"
+        >
+          {offer.is_available ? "Available" : "Unavailable"}
+        </MenuStatusBadge>
+      </TableCell>
+      {canManage && (
+        <TableCell className="w-16 text-right">
+          <MenuRowActions
+            offer={offer}
+            canEditProduct={canManage}
+            canAvailability={canManage}
+            canServices={canManage}
+            availabilityAction={availabilityAction}
+          />
+        </TableCell>
+      )}
     </TableRow>
   );
 }

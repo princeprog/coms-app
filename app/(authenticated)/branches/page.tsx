@@ -9,6 +9,10 @@ import { getBranchPageData } from "@/features/branches/services/branch-queries";
 import type { BranchPage } from "@/features/branches/types/branch.types";
 import { ApiRequestError } from "@/services/api-services";
 import { OperationalLoadError } from "@/components/shared/operational-load-error";
+import {
+  readBranchDirectoryFilters,
+  branchDirectoryHref,
+} from "@/features/branches/services/branch-directory-params";
 
 export default async function BranchesPage({
   searchParams,
@@ -22,18 +26,11 @@ export default async function BranchesPage({
   if (!hasPermission(session.user, "branches.read")) notFound();
 
   const params = await searchParams;
-  const rawPage = Array.isArray(params.page) ? params.page[0] : params.page;
-  const requestedPage = Number(rawPage);
-  const page =
-    Number.isInteger(requestedPage) &&
-    requestedPage >= 1 &&
-    requestedPage <= 1_000_000
-      ? requestedPage
-      : 1;
+  const filters = readBranchDirectoryFilters(params);
 
   let branches: BranchPage | null = null;
   try {
-    branches = await getBranchPageData(page);
+    branches = await getBranchPageData(filters.page, filters.search, filters);
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) redirect("/");
     if (error instanceof ApiRequestError && error.status === 403) notFound();
@@ -49,6 +46,10 @@ export default async function BranchesPage({
       </AppPageShell>
     );
   }
+
+  const lastPage = Math.max(1, Math.ceil(branches.total / branches.page_size));
+  if (branches.page > lastPage)
+    redirect(branchDirectoryHref({ ...filters, page: lastPage }));
 
   const branchAccess = Object.fromEntries(
     branches.items.map((branch) => [
@@ -69,6 +70,7 @@ export default async function BranchesPage({
         branches={branches}
         branchAccess={branchAccess}
         canCreateBranch={hasPermission(session.user, "branches.create")}
+        filters={filters}
       />
     </AppPageShell>
   );

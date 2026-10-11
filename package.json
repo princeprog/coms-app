@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack --port 3005",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "lint": "eslint",
     "test": "vitest run",
@@ -13,7 +13,7 @@
     "test:operational-browser": "node test/operational-browser.cjs",
     "test:inventory-branch-browser": "node test/inventory-branch-browser.cjs",
     "test:operational-fixture": "vitest run test/operational-api-fixture.test.ts",
-    "start": "next start",
+    "start": "next start --port 3005",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

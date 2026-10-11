@@ -7,6 +7,7 @@ export const branchSchema = z.object({
   address: z.string().nullable(),
   date_opened: z.string().nullable(),
   has_dine_in: z.boolean(),
+  has_takeaway: z.boolean().optional(),
   status: z.enum(["active", "inactive"]),
 });
 
@@ -25,6 +26,7 @@ export const createBranchSchema = z
     address: z.string().trim().max(1000).nullable(),
     date_opened: branchDateSchema,
     has_dine_in: z.boolean(),
+    has_takeaway: z.boolean().optional(),
   })
   .strict();
 
@@ -34,5 +36,6 @@ export const updateBranchSchema = z
     address: z.string().trim().max(1000).nullable(),
     date_opened: branchDateSchema,
     has_dine_in: z.boolean(),
+    has_takeaway: z.boolean().optional(),
   })
   .strict();

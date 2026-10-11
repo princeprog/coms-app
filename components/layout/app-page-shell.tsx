@@ -10,6 +10,7 @@ export function AppPageShell({
   user: User;
   children: ReactNode;
   fillViewport?: boolean;
+  showMenuNavigation?: boolean;
 }) {
   return (
     <>

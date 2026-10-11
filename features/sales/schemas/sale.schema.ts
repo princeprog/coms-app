@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { serviceTypeSchema } from "@/features/menus/schemas/menu.schema";
 
 const decimalStringSchema = z
   .string()
@@ -9,10 +10,13 @@ const positiveDecimalStringSchema = decimalStringSchema.refine((value) =>
 );
 
 const saleHeaderSchema = z.object({
+  inventory_deducted: z.boolean().optional(),
+  service_type: serviceTypeSchema.nullable().optional(),
   id: z.uuid(),
   branch_id: z.uuid(),
   cashier_user_id: z.uuid(),
   status: z.enum(["COMPLETED", "VOIDED"]),
+  payment_method_id: z.uuid().nullable().optional(),
   tender_method: z.string().min(1).max(40),
   total_amount: decimalStringSchema,
   idempotency_key: z.uuid(),
@@ -27,6 +31,7 @@ export const salePageSchema = z.object({
 });
 
 export const saleItemSchema = z.object({
+  price_revision: z.number().int().positive().nullable().optional(),
   id: z.uuid(),
   product_id: z.uuid(),
   product_name_snapshot: z.string().min(1).max(160),
@@ -51,12 +56,15 @@ export const saleDetailSchema = saleHeaderSchema.extend({
 
 export const createSaleSchema = z
   .object({
+    service_type: serviceTypeSchema,
+    payment_method_id: z.uuid().optional(),
     tender_method: z.string().trim().min(1).max(40),
     items: z
       .array(
         z.object({
           product_id: z.uuid(),
           quantity: positiveDecimalStringSchema,
+          price_revision: z.number().int().positive(),
         }),
       )
       .min(1)

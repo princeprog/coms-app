@@ -50,6 +50,9 @@
 }
 
 :root {
+  --dispatch-warning-surface: #fffbeb;
+  --dispatch-warning-border: #fde68a;
+  --dispatch-warning-foreground: #92400e;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -85,6 +88,9 @@
 }
 
 .dark {
+  --dispatch-warning-surface: #302517;
+  --dispatch-warning-border: #705118;
+  --dispatch-warning-foreground: #fcd34d;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

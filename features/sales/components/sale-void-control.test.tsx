@@ -32,10 +32,16 @@ describe("sale void control", () => {
       .mockResolvedValueOnce({ ok: false, error: "Try again." })
       .mockResolvedValueOnce({ ok: true });
     render(
-      <SaleVoidControl branchId={branchId} saleId={saleId} action={action} />,
+      <SaleVoidControl
+        branchId={branchId}
+        saleId={saleId}
+        inventoryDeducted={false}
+        action={action}
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Void sale" }));
+    expect(screen.getByText(/Inventory will remain unchanged/)).toBeTruthy();
     const confirm = screen.getByRole("button", { name: "Confirm void" });
     expect((confirm as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(screen.getByLabelText("Void reason"), {

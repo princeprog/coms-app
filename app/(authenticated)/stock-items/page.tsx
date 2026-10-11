@@ -80,7 +80,7 @@ export default async function StockItemsPage({
         directoryLayout
         title="Stock Items"
         resourceName="stock item"
-        description="Maintain stock-item names, categories, and units for receiving and inventory."
+        description="Manage stock items, categories, and inventory units."
         routePath={stockItemsEndpoint}
         displayColumns={stockItemDisplayColumns}
         fields={stockItemFields}

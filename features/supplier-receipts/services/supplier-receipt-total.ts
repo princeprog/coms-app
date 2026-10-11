@@ -16,7 +16,8 @@ function multiplyDigits(left: string, right: string) {
     for (let rightIndex = right.length - 1; rightIndex >= 0; rightIndex--) {
       const resultIndex = leftIndex + rightIndex + 1;
       const product =
-        Number(left[leftIndex]) * Number(right[rightIndex]) + result[resultIndex];
+        Number(left[leftIndex]) * Number(right[rightIndex]) +
+        result[resultIndex];
       result[resultIndex] = product % 10;
       result[resultIndex - 1] += Math.floor(product / 10);
     }
@@ -48,17 +49,10 @@ function formatDecimal({ digits: rawDigits, scale }: DecimalParts) {
   return `${normalizedWhole}${fraction ? `.${fraction}` : ""}`;
 }
 
-export function calculateSupplierReceiptTotal(
-  input: CreateSupplierReceipt,
-) {
-  const products = input.items.map((item) => {
-    const quantity = parseDecimal(item.quantity_received);
-    const cost = parseDecimal(item.unit_cost);
-    return {
-      digits: multiplyDigits(quantity.digits, cost.digits),
-      scale: quantity.scale + cost.scale,
-    };
-  });
+export function calculateSupplierReceiptTotal(input: CreateSupplierReceipt) {
+  const products = input.items.map((item) =>
+    multiplyDecimalParts(item.quantity_received, item.unit_cost),
+  );
   const scale = Math.max(0, ...products.map((product) => product.scale));
   const total = products.reduce(
     (sum, product) =>
@@ -66,4 +60,26 @@ export function calculateSupplierReceiptTotal(
     "0",
   );
   return formatDecimal({ digits: total, scale });
+}
+
+export function calculateSupplierReceiptLineTotal(
+  quantity: string,
+  unitCost: string,
+) {
+  return formatDecimal(multiplyDecimalParts(quantity, unitCost));
+}
+
+export function formatSupplierReceiptCost(value: string) {
+  const [whole, fraction = ""] = value.split(".");
+  const groupedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${groupedWhole}.${fraction.padEnd(2, "0")}`;
+}
+
+function multiplyDecimalParts(leftValue: string, rightValue: string) {
+  const left = parseDecimal(leftValue);
+  const right = parseDecimal(rightValue);
+  return {
+    digits: multiplyDigits(left.digits, right.digits),
+    scale: left.scale + right.scale,
+  };
 }

@@ -15,7 +15,12 @@ export type VoidSale = z.infer<typeof voidSaleSchema>;
 export type SalesMenuPage = BranchProductPage;
 
 export type SaleMutationResult =
-  { ok: true; sale: Sale } | { ok: false; error: string };
+  | { ok: true; sale: Sale }
+  | {
+      ok: false;
+      error: string;
+      code?: "PRICE_CHANGED" | "PAYMENT_METHOD_UNAVAILABLE";
+    };
 export type SaleVoidResult = { ok: true } | { ok: false; error: string };
 export type SaleCreateAction = (
   branchId: string,

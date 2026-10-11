@@ -11,3 +11,15 @@ export type BranchPage = {
   page: number;
   page_size: number;
 };
+
+export type BranchDirectoryFilters = {
+  page: number;
+  search: string;
+  status: "" | "active" | "inactive";
+  service_type: "" | "DINE_IN" | "TAKEAWAY";
+  sort: "name_asc" | "name_desc" | "opened_desc" | "opened_asc";
+};
+export type BranchAccess = Record<
+  string,
+  { canUpdate: boolean; canDeactivate: boolean }
+>;

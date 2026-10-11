@@ -5,7 +5,6 @@ import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
 import { SupplierReceiptManagement } from "@/features/supplier-receipts/components/supplier-receipt-management";
-import { createSupplierReceiptAction } from "@/features/supplier-receipts/services/supplier-receipt-actions";
 import { loadSupplierReceiptIndexView } from "@/features/supplier-receipts/services/supplier-receipt-page-loader";
 import type { SupplierReceiptPageSearchParams } from "@/features/supplier-receipts/services/supplier-receipt-page-params";
 
@@ -21,10 +20,8 @@ export default async function SupplierReceiptsPage({
     return <AuthServiceError context="dashboard" />;
   }
 
-  const view = await loadSupplierReceiptIndexView(
-    session.user,
-    await searchParams,
-  );
+  const params = await searchParams;
+  const view = await loadSupplierReceiptIndexView(session.user, params);
   if (view.status === "forbidden") notFound();
   if (view.status === "session-expired") redirect("/");
   if (view.status === "redirect") redirect(view.href);
@@ -35,6 +32,7 @@ export default async function SupplierReceiptsPage({
       </AppPageShell>
     );
   }
+  if (params.create === "1" && view.canCreate) redirect("/receipts/new");
 
   return (
     <AppPageShell user={session.user}>
@@ -43,9 +41,7 @@ export default async function SupplierReceiptsPage({
         search={view.search}
         filters={view.filters}
         canCreate={view.canCreate}
-        formOptions={view.formOptions}
-        formOptionsIssue={view.formOptionsIssue}
-        createAction={createSupplierReceiptAction}
+        createIssue={view.createIssue}
       />
     </AppPageShell>
   );

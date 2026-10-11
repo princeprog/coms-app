@@ -9,6 +9,10 @@ const product = {
   id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   product_name: "Chicken sandwich",
   description: "Grilled chicken with lettuce.",
+  price: "125.0001",
+  price_revision: 1,
+  setup_revision: 1,
+  service_types: ["DINE_IN", "TAKEAWAY"],
   is_active: true,
   created_at: "2026-09-24T00:00:00.000Z",
   updated_at: "2026-09-24T00:00:00.000Z",
@@ -20,13 +24,27 @@ describe("product schemas", () => {
       createProductSchema.parse({
         product_name: " Chicken sandwich ",
         description: "   ",
+        price: "125.0001",
+        service_types: ["DINE_IN", "TAKEAWAY"],
       }),
-    ).toEqual({ product_name: "Chicken sandwich", description: null });
+    ).toEqual({
+      product_name: "Chicken sandwich",
+      description: null,
+      price: "125.0001",
+      service_types: ["DINE_IN", "TAKEAWAY"],
+      branch_ids: [],
+    });
   });
 
   it("allows clearing a description but rejects an empty update", () => {
-    expect(updateProductSchema.parse({ description: null })).toEqual({
+    expect(
+      updateProductSchema.parse({
+        description: null,
+        expected_product_revision: 1,
+      }),
+    ).toEqual({
       description: null,
+      expected_product_revision: 1,
     });
     expect(updateProductSchema.safeParse({}).success).toBe(false);
   });

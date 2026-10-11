@@ -14,6 +14,8 @@ export type BranchProductPageFilters = {
   page: number;
   search: string;
   isAvailable?: boolean;
+  serviceType?: "DINE_IN" | "TAKEAWAY";
+  sort?: string;
   requestedBranchId?: string;
 };
 
@@ -30,6 +32,19 @@ export function parseBranchProductFilters(
 
   return {
     page,
+    ...(["DINE_IN", "TAKEAWAY"].includes(first(params.service_type) ?? "")
+      ? { serviceType: first(params.service_type) as "DINE_IN" | "TAKEAWAY" }
+      : {}),
+    ...([
+      "product_name:asc",
+      "product_name:desc",
+      "price:asc",
+      "price:desc",
+      "created_at:asc",
+      "created_at:desc",
+    ].includes(first(params.sort) ?? "")
+      ? { sort: first(params.sort) }
+      : {}),
     search: (first(params.search) ?? "").trim().slice(0, maxSearchLength),
     ...(rawAvailability === "true"
       ? { isAvailable: true }
@@ -47,14 +62,20 @@ export function createBranchProductsHref({
   page,
   search,
   isAvailable,
+  serviceType,
+  sort,
 }: {
   branchId?: string;
   page: number;
   search: string;
   isAvailable?: boolean;
+  serviceType?: "DINE_IN" | "TAKEAWAY";
+  sort?: string;
 }) {
   const params = new URLSearchParams();
   if (branchId) params.set("branch_id", branchId);
+  if (serviceType) params.set("service_type", serviceType);
+  if (sort) params.set("sort", sort);
   if (page > 1) params.set("page", String(page));
   if (search.trim()) params.set("search", search.trim());
   if (isAvailable !== undefined)

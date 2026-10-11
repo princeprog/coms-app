@@ -10,8 +10,16 @@ import type {
   CatalogRecord,
 } from "@/features/catalogs/types/catalog.types";
 
-function recordValue(record: CatalogRecord, key: string) {
+function recordValue(
+  record: CatalogRecord,
+  key: string,
+  options?: { value: string; label: string }[],
+) {
   const value = record[key];
+  if (Array.isArray(value))
+    return value
+      .map((v) => options?.find((o) => o.value === v)?.label ?? v)
+      .join(", ");
   return typeof value === "string" && value.trim() ? value : "—";
 }
 
@@ -43,16 +51,18 @@ export function CatalogDetailsDialog({
         </DialogHeader>
         {record && (
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-            {fields.map((field) => (
-              <div key={field.key} className="min-w-0">
-                <dt className="text-xs font-medium text-muted-foreground">
-                  {field.label}
-                </dt>
-                <dd className="mt-1 break-words text-sm">
-                  {recordValue(record, field.key)}
-                </dd>
-              </div>
-            ))}
+            {fields
+              .filter((field) => field.key !== "status")
+              .map((field) => (
+                <div key={field.key} className="min-w-0">
+                  <dt className="text-xs font-medium text-muted-foreground">
+                    {field.label}
+                  </dt>
+                  <dd className="mt-1 break-words text-sm">
+                    {recordValue(record, field.key, field.options)}
+                  </dd>
+                </div>
+              ))}
             <div>
               <dt className="text-xs font-medium text-muted-foreground">
                 Status

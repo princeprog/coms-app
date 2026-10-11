@@ -1,6 +1,7 @@
 "use client";
+import { dialogDescription } from "./catalog-dialog-description";
 
-import { useState, type FormEvent } from "react";
+import { useCatalogEditor } from "./use-catalog-editor";
 import {
   Dialog,
   DialogContent,
@@ -12,73 +13,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { CatalogDiscardConfirmation } from "@/features/catalogs/components/catalog-discard-confirmation";
 import { CatalogEditorFields } from "@/features/catalogs/components/catalog-editor-fields";
-import { SupplierCreateFields } from "@/features/catalogs/components/supplier-create-fields";
-import { StockItemCreateFields } from "@/features/stock-items/components/stock-item-create-fields";
+import { CatalogCreateFields } from "./catalog-create-fields";
 import type {
   CatalogCreateAction,
   CatalogFieldDefinition,
   CatalogRecord,
   CatalogUpdateAction,
 } from "@/features/catalogs/types/catalog.types";
-
-function initialValues(
-  fields: CatalogFieldDefinition[],
-  record: CatalogRecord | null,
-) {
-  return Object.fromEntries(
-    fields.map((field) => {
-      const value = record?.[field.key];
-      return [field.key, typeof value === "string" ? value : ""];
-    }),
-  );
-}
-
-function CatalogCreateFields({
-  layout,
-  fields,
-  values,
-  pending,
-  onChange,
-}: {
-  layout: "supplier" | "stock-item";
-  fields: CatalogFieldDefinition[];
-  values: Record<string, string>;
-  pending: boolean;
-  onChange: (key: string, value: string) => void;
-}) {
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
-      {layout === "supplier" ? (
-        <SupplierCreateFields
-          fields={fields}
-          values={values}
-          pending={pending}
-          onChange={onChange}
-        />
-      ) : (
-        <StockItemCreateFields
-          fields={fields}
-          values={values}
-          pending={pending}
-          onChange={onChange}
-        />
-      )}
-    </div>
-  );
-}
-
-function dialogDescription(
-  resourceName: string,
-  record: CatalogRecord | null,
-  createLayout: "supplier" | "stock-item" | null,
-) {
-  if (record) return `Update the saved ${resourceName} details.`;
-  if (createLayout === "supplier")
-    return "Add a supplier for commissary receiving. Contact details can be added now or later.";
-  if (createLayout === "stock-item")
-    return "Define an item and the unit used to track its stock across COMS.";
-  return `Add a new ${resourceName} to the catalog.`;
-}
 
 export function CatalogEditorDialog({
   open,
@@ -99,68 +40,27 @@ export function CatalogEditorDialog({
   onOpenChange: (open: boolean) => void;
   onComplete: (message: string) => void;
 }) {
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    initialValues(fields, record),
-  );
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
-  const [discardOpen, setDiscardOpen] = useState(false);
-  const resourceLabel = resourceName[0]?.toUpperCase() + resourceName.slice(1);
-  const createLayout = record
-    ? null
-    : resourceName === "supplier"
-      ? "supplier"
-      : resourceName === "stock item"
-        ? "stock-item"
-        : null;
-  const isDesignedCreate = createLayout !== null;
-  const idPrefix = resourceName.replaceAll(" ", "-");
-  const originalValues = initialValues(fields, record);
-  const isDirty = fields.some(
-    (field) => values[field.key] !== originalValues[field.key],
-  );
-
-  function requestClose() {
-    if (pending) return;
-    if (isDirty) {
-      setDiscardOpen(true);
-      return;
-    }
-    onOpenChange(false);
-  }
-
-  function changeValue(key: string, value: string) {
-    setValues((current) => ({ ...current, [key]: value }));
-  }
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    const payload = Object.fromEntries(
-      fields.map((field) => {
-        const value = values[field.key]?.trim() ?? "";
-        return [field.key, value || (field.required ? "" : null)];
-      }),
-    );
-    setPending(true);
-    let result;
-    try {
-      result = record
-        ? await updateAction(record.id, payload)
-        : await createAction(payload);
-    } catch {
-      setPending(false);
-      setError("COMS could not complete this change. Try again.");
-      return;
-    }
-    setPending(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    onOpenChange(false);
-    onComplete(`${resourceLabel} ${record ? "updated" : "created"}.`);
-  }
+  const {
+    values,
+    error,
+    pending,
+    discardOpen,
+    setDiscardOpen,
+    createLayout,
+    isDesignedCreate,
+    idPrefix,
+    requestClose,
+    changeValue,
+    submit,
+  } = useCatalogEditor({
+    record,
+    resourceName,
+    fields,
+    createAction,
+    updateAction,
+    onOpenChange,
+    onComplete,
+  });
 
   return (
     <Dialog
@@ -174,7 +74,7 @@ export function CatalogEditorDialog({
         data-coms-ui="operational"
         className={
           isDesignedCreate
-            ? `flex max-h-[90dvh] min-h-0 flex-col gap-0 overflow-hidden p-0 ${createLayout === "supplier" ? "sm:max-w-[40rem]" : "sm:max-w-xl"}`
+            ? `flex max-h-[90dvh] min-h-0 flex-col gap-0 overflow-hidden p-0 ${createLayout === "supplier" ? "sm:max-w-[40rem]" : createLayout === "payment-method" ? "sm:max-w-2xl" : "sm:max-w-xl"}`
             : "max-h-[85vh] overflow-y-auto sm:max-w-lg"
         }
       >

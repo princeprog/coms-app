@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,12 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
-import type {
-  SupplierReceiptCreateAction,
-  SupplierReceiptFormOptions,
-  SupplierReceiptPage,
-} from "@/features/supplier-receipts/types/supplier-receipt.types";
-import { SupplierReceiptCreateDialog } from "./supplier-receipt-create-dialog";
+import type { SupplierReceiptPage } from "@/features/supplier-receipts/types/supplier-receipt.types";
 import { SupplierReceiptPagination } from "./supplier-receipt-pagination";
 import { SupplierReceiptTable } from "./supplier-receipt-table";
 import { SupplierReceiptFilter } from "./supplier-receipt-filter";
@@ -25,17 +22,13 @@ export function SupplierReceiptManagement({
   search,
   filters,
   canCreate,
-  formOptions,
-  formOptionsIssue,
-  createAction,
+  createIssue,
 }: {
   page: SupplierReceiptPage;
   search: string;
   filters?: SupplierReceiptPageFilters;
   canCreate: boolean;
-  formOptions: SupplierReceiptFormOptions | null;
-  formOptionsIssue: "permissions" | "forbidden" | "unavailable" | null;
-  createAction: SupplierReceiptCreateAction;
+  createIssue?: "permissions" | null;
 }) {
   const appliedFilters = filters ?? { page: page.page, search };
   const hasFilters = Boolean(
@@ -46,9 +39,6 @@ export function SupplierReceiptManagement({
     appliedFilters.max_cost,
   );
   const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));
-  const canCreateWithOptions = Boolean(
-    canCreate && formOptions?.suppliers.length && formOptions.stockItems.length,
-  );
   return (
     <div data-coms-ui="operational" className="flex min-w-0 flex-col gap-6">
       <section
@@ -67,22 +57,17 @@ export function SupplierReceiptManagement({
             commissary inventory.
           </p>
         </div>
-        {canCreateWithOptions && (
-          <SupplierReceiptCreateDialog
-            suppliers={formOptions!.suppliers}
-            stockItems={formOptions!.stockItems}
-            action={createAction}
-          />
+        {canCreate && (
+          <Button nativeButton={false} render={<Link href="/receipts/new" />}>
+            Record supplier delivery
+          </Button>
         )}
       </section>
-      {canCreate && !canCreateWithOptions && (
-        <Alert role={formOptionsIssue ? "alert" : "status"}>
+      {createIssue && (
+        <Alert>
           <AlertDescription>
-            {formOptionsIssue === "permissions"
-              ? "Supplier and stock-item read permissions are required to prepare a receipt."
-              : formOptionsIssue
-                ? "Receipt catalog options could not be loaded. Refresh this page to try again."
-                : "Add an active supplier and stock item before creating a receipt."}
+            Supplier and stock-item read permissions are required to prepare a
+            delivery.
           </AlertDescription>
         </Alert>
       )}

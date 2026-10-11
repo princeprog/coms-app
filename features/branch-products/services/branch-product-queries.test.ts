@@ -182,8 +182,18 @@ describe("branch product queries", () => {
       );
 
     await expect(getBranchOptions()).resolves.toEqual([
-      { id: branchId, name: "Downtown", status: "active" },
-      { id: productId, name: "Airport", status: "inactive" },
+      {
+        id: branchId,
+        name: "Downtown",
+        status: "active",
+        serviceTypes: ["DINE_IN", "TAKEAWAY"],
+      },
+      {
+        id: productId,
+        name: "Airport",
+        status: "inactive",
+        serviceTypes: ["TAKEAWAY"],
+      },
     ]);
     await expect(getActiveProductOptions()).resolves.toEqual([
       { id: branchId, product_name: "Chicken sandwich" },

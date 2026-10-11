@@ -38,6 +38,7 @@ export function BranchEditorForm({
   const [dateOpened, setDateOpened] = useState(
     dateInputValue(branch.date_opened),
   );
+  const [hasTakeout, setHasTakeout] = useState(branch.has_takeaway !== false);
   const [hasDineIn, setHasDineIn] = useState(branch.has_dine_in);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -46,7 +47,8 @@ export function BranchEditorForm({
     branchName !== branch.branch_name ||
     address !== (branch.address ?? "") ||
     dateOpened !== dateInputValue(branch.date_opened) ||
-    hasDineIn !== branch.has_dine_in;
+    hasDineIn !== branch.has_dine_in ||
+    hasTakeout !== (branch.has_takeaway !== false);
 
   function requestClose() {
     if (pending) return;
@@ -59,6 +61,11 @@ export function BranchEditorForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
+    if (branch.status === "active" && !hasDineIn && !hasTakeout) {
+      setError("An active branch must support dine-in or takeout.");
+      return;
+    }
     setError("");
     setPending(true);
     let result: BranchMutationResult;
@@ -68,6 +75,7 @@ export function BranchEditorForm({
         address: address.trim() || null,
         date_opened: dateOpened || null,
         has_dine_in: hasDineIn,
+        has_takeaway: hasTakeout,
       });
     } catch {
       setPending(false);
@@ -108,7 +116,10 @@ export function BranchEditorForm({
             address={address}
             dateOpened={dateOpened}
             hasDineIn={hasDineIn}
+            hasTakeout={hasTakeout}
+            onHasTakeoutChange={setHasTakeout}
             disabled={pending}
+            useDatePicker
             onBranchNameChange={setBranchName}
             onAddressChange={setAddress}
             onDateOpenedChange={setDateOpened}

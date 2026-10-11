@@ -21,10 +21,12 @@ export function SaleVoidControl({
   branchId,
   saleId,
   action,
+  inventoryDeducted = true,
 }: {
   branchId: string;
   saleId: string;
   action: SaleVoidAction;
+  inventoryDeducted?: boolean;
 }) {
   const router = useRouter();
   const retry = useRef<{ reason: string; key: string } | null>(null);
@@ -94,8 +96,10 @@ export function SaleVoidControl({
         <AlertDialogHeader>
           <AlertDialogTitle>Void this sale?</AlertDialogTitle>
           <AlertDialogDescription>
-            COMS will reverse this sale&apos;s stock consumption and record your
-            reason. Payment and refunds are handled outside COMS.
+            {inventoryDeducted
+              ? "COMS will reverse this historical sale's saved stock deductions and record your reason."
+              : "COMS will void this sale and record your reason. Inventory will remain unchanged."}{" "}
+            Payment and refunds are handled outside COMS.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex flex-col gap-2">

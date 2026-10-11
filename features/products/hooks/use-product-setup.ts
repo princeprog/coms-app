@@ -1,0 +1,104 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import type { ServiceType } from "@/features/menus/schemas/menu.schema";
+import {
+  productSetupInputSchema,
+  type ProductSetup,
+} from "../schemas/product-setup.schema";
+import { saveProductSetupAction } from "../services/product-setup-actions";
+export function useProductSetup(initial: ProductSetup | null) {
+  const router = useRouter();
+  const [name, setName] = useState(initial?.product.product_name ?? "");
+  const [price, setPrice] = useState(initial?.product.price ?? "");
+  const [description, setDescription] = useState(
+    initial?.product.description ?? "",
+  );
+  const [services, setServices] = useState<ServiceType[]>(
+    initial?.product.service_types ?? ["DINE_IN", "TAKEAWAY"],
+  );
+  const [branchIds, setBranchIds] = useState(initial?.branch_ids ?? []);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const state = JSON.stringify({
+    name,
+    price,
+    description,
+    services,
+    branchIds: [...branchIds].sort(),
+  });
+  const [baseline, setBaseline] = useState(state);
+  const retry = useRef<{ body: string; key: string } | null>(null);
+  const dirty = state !== baseline;
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const parsed = productSetupInputSchema.safeParse({
+        expected_product_revision: initial?.product.setup_revision ?? 0,
+        product: {
+          product_name: name,
+          price: price.trim(),
+          description,
+          service_types: services,
+          branch_ids: [...branchIds].sort(),
+        },
+      });
+      if (!parsed.success) {
+        setFieldErrors(
+          Object.fromEntries(
+            parsed.error.issues.map((issue) => [
+              String(issue.path[1] ?? issue.path[0]),
+              issue.message,
+            ]),
+          ),
+        );
+        throw Error("Check the highlighted product fields.");
+      }
+      const body = JSON.stringify(parsed.data);
+      if (!retry.current || retry.current.body !== body)
+        retry.current = { body, key: crypto.randomUUID() };
+      const result = await saveProductSetupAction(
+        initial?.product.id,
+        parsed.data,
+        retry.current.key,
+      );
+      if (!result.ok) throw Error(result.error);
+      return result.data;
+    },
+    onMutate: () => {
+      setError("");
+      setFieldErrors({});
+    },
+    onError: (e) => setError(e.message),
+    onSuccess: () => {
+      setBaseline(state);
+      toast.success(initial ? "Product saved." : "Product created.");
+      if (initial) router.refresh();
+      else router.replace("/products");
+    },
+  });
+  return {
+    name,
+    setName,
+    price,
+    setPrice,
+    description,
+    setDescription,
+    services,
+    setServices,
+    branchIds,
+    setBranchIds,
+    error,
+    fieldErrors,
+    dirty,
+    pending: mutation.isPending,
+    save: () => mutation.mutate(),
+  };
+}

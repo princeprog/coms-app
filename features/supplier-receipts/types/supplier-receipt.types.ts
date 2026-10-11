@@ -16,6 +16,13 @@ export type SupplierReceiptFormOptions = {
   stockItems: StockItem[];
 };
 
+export type SupplierReceiptLineValue = {
+  key: number;
+  stock_item_id: string;
+  quantity_received: string;
+  unit_cost: string;
+};
+
 export type SupplierReceiptMutationResult =
   { ok: true; receipt_id: string } | { ok: false; error: string };
 

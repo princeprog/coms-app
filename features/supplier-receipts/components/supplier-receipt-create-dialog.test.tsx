@@ -25,6 +25,7 @@ const supplier = {
 };
 const stockItem = {
   id: otherId,
+  usage_types: ["INGREDIENT" as const],
   stock_item_name: "Flour",
   category: "Dry goods",
   unit: "kg",

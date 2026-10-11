@@ -211,7 +211,7 @@ describe("catalog management", () => {
     );
     expect(createStockItem).not.toHaveBeenCalled();
     await user.click(category);
-    await user.click(screen.getByRole("option", { name: "Dry goods" }));
+    await user.click(await screen.findByRole("option", { name: "Dry goods" }));
     await user.click(
       within(dialog).getByRole("button", { name: "Create stock item" }),
     );

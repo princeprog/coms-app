@@ -14,6 +14,8 @@ export function BranchLocationFields({
   address,
   dateOpened,
   hasDineIn,
+  hasTakeout = true,
+  onHasTakeoutChange,
   disabled,
   useDatePicker = false,
   onBranchNameChange,
@@ -26,6 +28,8 @@ export function BranchLocationFields({
   address: string;
   dateOpened: string;
   hasDineIn: boolean;
+  hasTakeout?: boolean;
+  onHasTakeoutChange?: (value: boolean) => void;
   disabled: boolean;
   useDatePicker?: boolean;
   onBranchNameChange: (value: string) => void;
@@ -100,6 +104,27 @@ export function BranchLocationFields({
           onCheckedChange={onHasDineInChange}
         />
       </Field>
+      {onHasTakeoutChange && (
+        <Field
+          orientation="horizontal"
+          className="items-center justify-between"
+        >
+          <div className="flex flex-col gap-1">
+            <FieldLabel htmlFor={`${idPrefix}-takeout`}>
+              Takeout available
+            </FieldLabel>
+            <FieldDescription>
+              An active branch must support at least one service type.
+            </FieldDescription>
+          </div>
+          <Switch
+            id={`${idPrefix}-takeout`}
+            checked={hasTakeout}
+            disabled={disabled}
+            onCheckedChange={onHasTakeoutChange}
+          />
+        </Field>
+      )}
     </FieldGroup>
   );
 }

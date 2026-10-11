@@ -4,10 +4,12 @@ import type {
 } from "@/features/catalogs/types/catalog.types";
 
 export const productsEndpoint = "/products";
+export const productSetupEndpoint = (id?: string) =>
+  id ? `/products/${id}/setup` : "/products/setup";
 
 export const productDisplayColumns: CatalogDisplayColumn[] = [
   { key: "product_name", label: "Product" },
-  { key: "description", label: "Description" },
+  { key: "price", label: "Selling price", format: "currency" },
 ];
 
 export const productFields: CatalogFieldDefinition[] = [
@@ -22,5 +24,16 @@ export const productFields: CatalogFieldDefinition[] = [
     label: "Description",
     type: "textarea",
     maxLength: 1000,
+  },
+  {
+    key: "service_types",
+    label: "Permitted service types",
+    type: "choices",
+    required: true,
+    defaultValue: "DINE_IN,TAKEAWAY",
+    options: [
+      { value: "DINE_IN", label: "Dine-in" },
+      { value: "TAKEAWAY", label: "Takeout" },
+    ],
   },
 ];

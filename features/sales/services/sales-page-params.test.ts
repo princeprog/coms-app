@@ -5,6 +5,30 @@ const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const saleId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
 
 describe("POS page parameters", () => {
+  it("preserves the active section through history pagination and detail navigation", () => {
+    const filters = parseSalesPageFilters({
+      view: "history",
+      history_page: "2",
+    });
+    expect(filters.view).toBe("history");
+    expect(createSalesHref({ ...filters, saleId })).toContain("view=history");
+    expect(parseSalesPageFilters({ view: "invalid" })).not.toHaveProperty(
+      "view",
+    );
+  });
+  it("preserves an applied service type through menu and sale navigation", () => {
+    const filters = parseSalesPageFilters({
+      service_type: "TAKEAWAY",
+      page: "2",
+    });
+    expect(filters).toMatchObject({ serviceType: "TAKEAWAY", page: 2 });
+    expect(createSalesHref({ ...filters, saleId })).toContain(
+      "service_type=TAKEAWAY",
+    );
+    expect(
+      parseSalesPageFilters({ service_type: "DELIVERY" }),
+    ).not.toHaveProperty("serviceType");
+  });
   it("normalizes pagination, search, and valid selected IDs", () => {
     expect(
       parseSalesPageFilters({

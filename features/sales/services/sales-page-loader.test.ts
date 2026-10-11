@@ -76,6 +76,15 @@ const salesPage = {
 };
 
 describe("POS page loader", () => {
+  it("applies service eligibility on the backend before pagination", async () => {
+    await loadSalesView(
+      user(["sales.create", "branch_products.read", "branches.read"]),
+      { service_type: "TAKEAWAY" },
+    );
+    expect(getBranchProductPageData).toHaveBeenCalledWith(
+      expect.objectContaining({ serviceType: "TAKEAWAY", eligibleOnly: true }),
+    );
+  });
   beforeEach(() => {
     getBranchOptions.mockReset().mockResolvedValue(branches);
     getBranchProductPageData.mockReset().mockResolvedValue(menuPage);
@@ -138,6 +147,7 @@ describe("POS page loader", () => {
       page: 1,
       search: "chicken",
       isAvailable: true,
+      eligibleOnly: true,
     });
     expect(getSalePageData).toHaveBeenCalledWith({ branchId, page: 1 });
   });

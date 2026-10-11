@@ -1,184 +1,194 @@
 "use client";
+import { usePosPaymentMethods } from "@/features/payment-methods/hooks/use-pos-payment-methods";
+import { PosPaymentMethodPicker } from "./pos-payment-method-picker";
+import { useState, type ReactNode } from "react";
+import { calculateCashChange } from "../services/pos-cash";
+import { PosServicePicker } from "./pos-service-picker";
+import { PosPriceReview } from "./pos-price-review";
+import { usePosCheckout } from "../hooks/use-pos-checkout";
+import type { ServiceType } from "@/features/menus/schemas/menu.schema";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "cn";
-import { createSaleSchema } from "@/features/sales/schemas/sale.schema";
-import {
-  addSaleDecimals,
-  calculateSaleTotal,
-} from "@/features/sales/services/sale-decimal";
+
 import type {
-  Sale,
   SaleCreateAction,
   SalesMenuPage,
 } from "@/features/sales/types/sale.types";
-import { PosCartPanel, type PosCartLine } from "./pos-cart-panel";
+import { PosCartPanel } from "./pos-cart-panel";
 import { PosProductMenu } from "./pos-product-menu";
 
 export function PosCheckout({
   branchId,
   branchActive,
+  serviceTypes = ["DINE_IN", "TAKEAWAY"],
+  appliedService,
   menuPage,
   action,
+  menuControls,
+  menuPagination,
 }: {
   branchId: string;
   branchActive: boolean;
+  serviceTypes?: ServiceType[];
+  appliedService?: ServiceType;
   menuPage: SalesMenuPage;
   action: SaleCreateAction;
+  menuControls?: ReactNode;
+  menuPagination?: ReactNode;
 }) {
-  const router = useRouter();
-  const [cart, setCart] = useState<PosCartLine[]>([]);
-  const [tenderMethod, setTenderMethod] = useState("cash");
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
-  const [lastSale, setLastSale] = useState<Sale | null>(null);
-  const retry = useRef<{ fingerprint: string; key: string } | null>(null);
-
-  function updateCart(update: (current: PosCartLine[]) => PosCartLine[]) {
-    setCart(update);
-    setError("");
-    setLastSale(null);
-  }
-
-  function addProduct(product: SalesMenuPage["items"][number]) {
-    updateCart((current) => {
-      const existing = current.find(
-        (line) => line.product.product_id === product.product_id,
-      );
-      if (existing)
-        return current.map((line) =>
-          line.product.product_id === product.product_id
-            ? { ...line, quantity: addOne(line.quantity) }
-            : line,
-        );
-      if (current.length >= 40) return current;
-      return [...current, { product, quantity: "1" }];
-    });
-  }
-
-  function updateQuantity(productId: string, quantity: string) {
-    updateCart((current) =>
-      current.map((line) =>
-        line.product.product_id === productId ? { ...line, quantity } : line,
-      ),
-    );
-  }
-
-  function removeProduct(productId: string) {
-    updateCart((current) =>
-      current.filter((line) => line.product.product_id !== productId),
-    );
-  }
-
-  const payload = createSaleSchema.safeParse({
-    tender_method: tenderMethod,
-    items: cart.map(({ product, quantity }) => ({
-      product_id: product.product_id,
-      quantity,
-    })),
+  const payment = usePosPaymentMethods();
+  const [amountReceived, setAmountReceived] = useState("");
+  const {
+    service,
+    setService,
+    needsPriceReview,
+    updatedPrices,
+    refreshing,
+    cart,
+    cash,
+    pending,
+    error,
+    setError,
+    lastSale,
+    setLastSale,
+    addProduct,
+    updateQuantity,
+    removeProduct,
+    clearCart,
+    estimatedTotal,
+    incompatible,
+    refreshPrices,
+    recordSale,
+    acceptPrices,
+  } = usePosCheckout({
+    branchId,
+    branchActive,
+    serviceTypes,
+    appliedService,
+    action,
+    paymentMethod: payment.selected,
+    paymentUnavailable: payment.unavailable,
+    refreshPaymentMethods: payment.refresh,
   });
-  const estimatedTotal =
-    cart.length === 0
-      ? "0"
-      : payload.success
-        ? calculateSaleTotal(
-            cart.map(({ product, quantity }) => ({
-              quantity,
-              unitPrice: product.price,
-            })),
-          )
-        : null;
-
-  async function recordSale(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    if (!payload.success) {
-      setError("Enter a tender method and valid positive quantities.");
-      return;
-    }
-
-    const items = [...payload.data.items].sort((left, right) =>
-      left.product_id.localeCompare(right.product_id),
-    );
-    const fingerprint = JSON.stringify({
-      branchId,
-      tender_method: payload.data.tender_method,
-      items,
-    });
-    const key =
-      retry.current?.fingerprint === fingerprint
-        ? retry.current.key
-        : crypto.randomUUID();
-    retry.current = { fingerprint, key };
-
-    setPending(true);
-    try {
-      const result = await action(branchId, payload.data, key);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setLastSale(result.sale);
-      setCart([]);
-      retry.current = null;
-      router.refresh();
-    } catch {
-      setError(
-        "COMS could not complete this sale. Your cart is still available to retry.",
-      );
-    } finally {
-      setPending(false);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-4">
-      {cart.length > 0 && (
+      {incompatible.length > 0 && (
+        <p role="alert" className="rounded-lg border p-4 text-sm">
+          Remove incompatible items or change the service type:{" "}
+          {incompatible.map((line) => line.product.product_name).join(", ")}.
+        </p>
+      )}
+      {needsPriceReview && (
+        <PosPriceReview
+          cart={cart}
+          updated={updatedPrices}
+          pending={refreshing}
+          onRefresh={refreshPrices}
+          onAccept={acceptPrices}
+        />
+      )}
+      {(!service || cart.length > 0) && (
         <Link
           href="#pos-cart-panel"
           className={cn(
             buttonVariants({ variant: "outline", size: "sm" }),
-            "w-fit lg:hidden",
+            "w-fit xl:hidden",
           )}
         >
-          View cart ({cart.length} {cart.length === 1 ? "item" : "items"})
+          {!service
+            ? "Choose service"
+            : `View cart (${cart.length} ${cart.length === 1 ? "item" : "items"})`}
         </Link>
       )}
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(20rem,0.8fr)]">
-        <PosProductMenu
-          products={menuPage.items}
-          total={menuPage.total}
-          branchActive={branchActive}
-          pending={pending}
-          cartIsFull={cart.length >= 40}
-          onAdd={addProduct}
-        />
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,0.7fr)]">
+        <div className="flex min-w-0 flex-col gap-6">
+          {menuControls}
+          <PosProductMenu
+            products={menuPage.items}
+            total={menuPage.total}
+            branchActive={branchActive}
+            pending={pending || needsPriceReview}
+            serviceType={service}
+            cartIsFull={cart.length >= 40}
+            cart={cart}
+            onAdd={(product) => {
+              if (lastSale) setAmountReceived("");
+              addProduct(product);
+            }}
+          />
+          {menuPagination}
+        </div>
         <PosCartPanel
           cart={cart}
-          tenderMethod={tenderMethod}
+          cash={cash}
+          paymentPicker={
+            <PosPaymentMethodPicker
+              methods={payment.methods}
+              selected={payment.selected}
+              loading={payment.loading}
+              failed={payment.failed}
+              disabled={pending || Boolean(lastSale && !cart.length)}
+              onSelect={(id) => {
+                payment.select(id);
+                setError("");
+                setLastSale(null);
+                setAmountReceived("");
+              }}
+              onRefresh={() => void payment.refresh()}
+            />
+          }
           branchActive={branchActive}
+          blocked={
+            !service ||
+            needsPriceReview ||
+            incompatible.length > 0 ||
+            payment.unavailable
+          }
           pending={pending}
           error={error}
           lastSale={lastSale}
           estimatedTotal={estimatedTotal}
-          onTenderMethodChange={(value) => {
-            setTenderMethod(value);
+          amountReceived={amountReceived}
+          onAmountChange={(value) => {
+            setAmountReceived(value);
             setError("");
-            setLastSale(null);
+          }}
+          servicePicker={
+            <PosServicePicker
+              value={service}
+              options={serviceTypes}
+              disabled={pending}
+              onChange={(value) => {
+                setService(value);
+                setError("");
+              }}
+            />
+          }
+          onClear={() => {
+            clearCart();
+            setAmountReceived("");
           }}
           onQuantityChange={updateQuantity}
-          onRemove={removeProduct}
-          onSubmit={recordSale}
+          onRemove={(id) => {
+            removeProduct(id);
+            if (cart.length === 1) setAmountReceived("");
+          }}
+          onSubmit={(event) => {
+            if (
+              cash &&
+              calculateCashChange(amountReceived, estimatedTotal).change ===
+                null
+            ) {
+              event.preventDefault();
+              setError("Enter enough cash to cover the order total.");
+              return;
+            }
+            return recordSale(event);
+          }}
         />
       </div>
     </div>
   );
-}
-
-function addOne(value: string): string {
-  if (!/^(?:[1-9]\d*(?:\.\d+)?|0\.\d*[1-9]\d*)$/.test(value)) return "1";
-  return addSaleDecimals([value, "1"]);
 }

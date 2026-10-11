@@ -11,7 +11,7 @@ const { cookieStore, cookiesMock, headersMock } = vi.hoisted(() => {
     cookieStore,
     cookiesMock: vi.fn(async () => cookieStore),
     headersMock: vi.fn(
-      async () => new Headers({ origin: "http://localhost:3000" }),
+      async () => new Headers({ origin: "http://localhost:3005" }),
     ),
   };
 });
@@ -54,12 +54,12 @@ describe("auth-actions", () => {
     ).resolves.toEqual({ ok: true, data: { user: authTestUser } });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/auth/login",
+      "http://localhost:3006/auth/login",
       expect.objectContaining({ method: "POST", cache: "no-store" }),
     );
     expect(
       (fetchMock.mock.calls[0]?.[1].headers as Headers).get("origin"),
-    ).toBe("http://localhost:3000");
+    ).toBe("http://localhost:3005");
     expect(cookieStore.set).toHaveBeenCalledWith(
       "coms_access",
       "access",
@@ -95,7 +95,7 @@ describe("auth-actions", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/auth/logout",
+      "http://localhost:3006/auth/logout",
       expect.objectContaining({ method: "POST", cache: "no-store" }),
     );
     expect(

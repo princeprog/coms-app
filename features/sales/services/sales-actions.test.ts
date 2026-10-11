@@ -27,6 +27,7 @@ const sale = {
   branch_id: branchId,
   cashier_user_id: branchId,
   status: "COMPLETED",
+  service_type: "TAKEAWAY",
   tender_method: "cash",
   total_amount: "12.50",
   idempotency_key: idempotencyKey,
@@ -88,8 +89,9 @@ describe("sales actions", () => {
 
   it("posts validated sale data with branch authorization and an idempotency key", async () => {
     const input = {
+      service_type: "TAKEAWAY",
       tender_method: "cash",
-      items: [{ product_id: productId, quantity: "1.00" }],
+      items: [{ product_id: productId, quantity: "1.00", price_revision: 1 }],
     };
     await expect(
       createSaleAction(branchId, input, idempotencyKey),
@@ -120,8 +122,9 @@ describe("sales actions", () => {
       createSaleAction(
         branchId,
         {
+          service_type: "TAKEAWAY",
           tender_method: "cash",
-          items: [{ product_id: productId, quantity: "1" }],
+          items: [{ product_id: productId, quantity: "1", price_revision: 1 }],
         },
         idempotencyKey,
       ),
@@ -137,8 +140,9 @@ describe("sales actions", () => {
       createSaleAction(
         branchId,
         {
+          service_type: "TAKEAWAY",
           tender_method: "cash",
-          items: [{ product_id: productId, quantity: "1" }],
+          items: [{ product_id: productId, quantity: "1", price_revision: 1 }],
         },
         idempotencyKey,
       ),
@@ -184,22 +188,23 @@ describe("sales actions", () => {
     expect(requestComsApi).toHaveBeenCalledTimes(1);
   });
 
-  it("returns a safe conflict message for changed stock or a retried sale", async () => {
+  it("returns a safe conflict message for changed product availability or a retried sale", async () => {
     requestComsApi.mockRejectedValueOnce(
-      new ApiRequestError("Insufficient branch inventory", 409),
+      new ApiRequestError("Unavailable product", 409),
     );
     await expect(
       createSaleAction(
         branchId,
         {
+          service_type: "TAKEAWAY",
           tender_method: "cash",
-          items: [{ product_id: productId, quantity: "1" }],
+          items: [{ product_id: productId, quantity: "1", price_revision: 1 }],
         },
         idempotencyKey,
       ),
     ).resolves.toMatchObject({
       ok: false,
-      error: expect.stringContaining("Stock or product availability"),
+      error: expect.stringContaining("Product availability"),
     });
   });
 });

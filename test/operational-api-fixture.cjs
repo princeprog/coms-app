@@ -244,20 +244,6 @@ function dashboardResponse(state, from, to, selectedBranchId) {
   };
 }
 
-function normalizePositiveDecimal(value) {
-  if (
-    typeof value !== "string" ||
-    value.length > 80 ||
-    !/^\d+(?:\.\d+)?$/.test(value)
-  ) {
-    return null;
-  }
-  const [wholePart, fractionPart = ""] = value.split(".");
-  const whole = wholePart.replace(/^0+(?=\d)/, "");
-  const fraction = fractionPart.replace(/0+$/, "");
-  if (whole === "0" && fraction.length === 0) return null;
-  return whole + (fraction ? "." + fraction : "");
-}
 
 function send(response, status, payload, headers = {}) {
   response.writeHead(status, {
@@ -347,6 +333,7 @@ function createState({ stockItemCount = 26 } = {}) {
   const stockItems = Array.from({ length: stockItemCount }, (_, index) => {
     const sequence = String(index + 1).padStart(12, "0");
     return {
+      usage_types:["INGREDIENT"],
       id: "31000000-0000-4000-8000-" + sequence,
       stock_item_name:
         index === 0
@@ -372,6 +359,7 @@ function createState({ stockItemCount = 26 } = {}) {
             ? "Fixture product with a deliberately long name for responsive table truncation across every viewport"
             : "Fixture Product " + String(index + 1).padStart(2, "0"),
       description: index === 0 ? "Grilled chicken on sourdough" : null,
+      price: String(100 + index)+".0000",price_revision:1,setup_revision:1,service_types:["DINE_IN","TAKEAWAY"],
       is_active: index !== 2,
       created_at: "2026-01-01T00:00:00.000Z",
       updated_at: "2026-01-01T00:00:00.000Z",
@@ -566,35 +554,6 @@ function isNonnegativeDecimal(value) {
   );
 }
 
-function recipeDetails(state, product) {
-  const savedRecipe = state.recipes.find(
-    (recipe) => recipe.product_id === product.id,
-  );
-  const timestamp = "2026-09-25T03:00:00.000Z";
-  return {
-    product: {
-      id: product.id,
-      product_name: product.product_name,
-      description: product.description,
-      is_active: product.is_active,
-    },
-    items: (savedRecipe?.items ?? []).map((item) => {
-      const stockItem = state.stockItems.find(
-        (candidate) => candidate.id === item.stock_item_id,
-      );
-      return {
-        product_id: product.id,
-        stock_item_id: item.stock_item_id,
-        stock_item_name: stockItem.stock_item_name,
-        unit: stockItem.unit,
-        stock_item_is_active: stockItem.is_active,
-        quantity_required: item.quantity_required,
-        created_at: item.created_at ?? timestamp,
-        updated_at: item.updated_at ?? timestamp,
-      };
-    }),
-  };
-}
 
 function branchProductRecord(branch, product, price, isAvailable, timestamp) {
   return {
@@ -889,6 +848,7 @@ function createOperationalApiFixture({
           id: "35000000-0000-4000-8000-" + sequence,
           product_name: body.product_name.trim(),
           description: body.description?.trim() || null,
+          price:body.price,price_revision:1,setup_revision:1,service_types:body.service_types ?? ["DINE_IN","TAKEAWAY"],
           is_active: true,
           created_at: now,
           updated_at: now,
@@ -897,84 +857,7 @@ function createOperationalApiFixture({
         return send(response, 201, product);
       }
 
-      const recipeRoute = url.pathname.match(
-        /^\/products\/([0-9a-f-]{36})\/recipe$/i,
-      );
-      if (recipeRoute) {
-        const product = state.products.find(
-          (item) => item.id === recipeRoute[1],
-        );
-        if (!product)
-          return send(response, 404, { message: "Product not found." });
-        if (request.method === "GET") {
-          return send(response, 200, recipeDetails(state, product));
-        }
-        if (request.method === "POST" || request.method === "PUT") {
-          if (!product.is_active) {
-            return send(response, 409, {
-              message: "Inactive products cannot have recipes.",
-            });
-          }
-          if (
-            !Array.isArray(body?.items) ||
-            body.items.length < 1 ||
-            body.items.length > 100
-          ) {
-            return send(response, 400, { message: "Invalid fixture recipe." });
-          }
-          const ids = new Set();
-          const items = [];
-          for (const item of body.items) {
-            if (
-              !item ||
-              typeof item.stock_item_id !== "string" ||
-              normalizePositiveDecimal(item.quantity_required) === null ||
-              ids.has(item.stock_item_id)
-            ) {
-              return send(response, 400, {
-                message: "Invalid or duplicate recipe ingredient.",
-              });
-            }
-            ids.add(item.stock_item_id);
-            const stockItem = state.stockItems.find(
-              (candidate) => candidate.id === item.stock_item_id,
-            );
-            if (!stockItem || !stockItem.is_active) {
-              return send(response, 404, {
-                message: "Active stock item not found.",
-              });
-            }
-            items.push({
-              stock_item_id: item.stock_item_id,
-              quantity_required: item.quantity_required,
-              created_at: "2026-09-25T03:00:00.000Z",
-              updated_at: "2026-09-25T03:00:00.000Z",
-            });
-          }
-          const recipeIndex = state.recipes.findIndex(
-            (recipe) => recipe.product_id === product.id,
-          );
-          if (request.method === "POST" && recipeIndex >= 0) {
-            return send(response, 409, {
-              message: "A recipe already exists for this product.",
-            });
-          }
-          if (request.method === "PUT" && recipeIndex < 0) {
-            return send(response, 409, {
-              message: "A recipe must exist before it can be updated.",
-            });
-          }
-          const recipe = { product_id: product.id, items };
-          if (recipeIndex >= 0) state.recipes[recipeIndex] = recipe;
-          else state.recipes.push(recipe);
-          return send(
-            response,
-            request.method === "POST" ? 201 : 200,
-            recipeDetails(state, product),
-          );
-        }
-      }
-
+      if (/^\/products\/[0-9a-f-]{36}\/recipe$/i.test(url.pathname)) return send(response,404,{message:"Recipe setup is retired."});
       const productRoute = url.pathname.match(
         /^\/products\/([0-9a-f-]{36})(?:\/(deactivate))?$/i,
       );

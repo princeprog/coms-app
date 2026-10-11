@@ -1,11 +1,13 @@
-import { notFound, redirect } from "next/navigation";
 import { AppPageShell } from "@/components/layout/app-page-shell";
-import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
-import { CatalogManagement } from "@/features/catalogs/components/catalog-management";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
-import { hasPermission } from "@/features/auth/permissions";
+import {
+  hasPermission,
+  isProtectedSuperAdmin,
+} from "@/features/auth/permissions";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
+import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
+import { CatalogManagement } from "@/features/catalogs/components/catalog-management";
 import {
   productDisplayColumns,
   productFields,
@@ -18,6 +20,7 @@ import {
 } from "@/features/products/services/product-actions";
 import { getProductPageData } from "@/features/products/services/product-queries";
 import { ApiRequestError } from "@/services/api-services";
+import { notFound, redirect } from "next/navigation";
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -67,17 +70,20 @@ export default async function ProductsPage({
     <AppPageShell user={session.user}>
       <CatalogManagement
         title="Products"
+        directoryLayout
+        detailsPath="/products"
+        setupEnabled
         resourceName="product"
-        description="Maintain product definitions. Branch prices and recipes are managed separately."
+        description="Create products, set one selling price, and choose available branches."
         routePath={productsEndpoint}
         displayColumns={productDisplayColumns}
         fields={productFields}
         page={pageData}
         search={search}
         activeFilter={activeFilter}
-        canCreate={hasPermission(session.user, "products.create")}
-        canUpdate={hasPermission(session.user, "products.update")}
-        canDeactivate={hasPermission(session.user, "products.deactivate")}
+        canCreate={isProtectedSuperAdmin(session.user)}
+        canUpdate={isProtectedSuperAdmin(session.user)}
+        canDeactivate={isProtectedSuperAdmin(session.user)}
         createAction={createProductAction}
         updateAction={updateProductAction}
         deactivateAction={deactivateProductAction}

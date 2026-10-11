@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { SalesHistoryTable } from "./sales-history-table";
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const saleId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
 
 describe("sales history table", () => {
-  it("shows server snapshots and preserves branch/menu filters in links", () => {
+  it("shows server snapshots and preserves branch/menu filters in keyboard row actions", async () => {
+    const user = userEvent.setup();
     render(
       <SalesHistoryTable
         page={{
@@ -39,9 +41,15 @@ describe("sales history table", () => {
 
     expect(screen.getByRole("table", { name: "Sales history" })).toBeTruthy();
     expect(screen.getByText("Mina Cashier")).toBeTruthy();
-    expect(screen.getByText("12.5000")).toBeTruthy();
+    expect(screen.getByText("₱12.5000")).toBeTruthy();
+    expect(screen.getByText("Not recorded")).toBeTruthy();
+    expect(screen.getByText("Completed")).toBeTruthy();
+    screen
+      .getByRole("button", { name: "Actions for sale by Mina Cashier" })
+      .focus();
+    await user.keyboard("{Enter}");
     expect(
-      screen.getByRole("link", { name: "View sale" }).getAttribute("href"),
+      screen.getByRole("menuitem", { name: "View sale" }).getAttribute("href"),
     ).toBe(
       `/pos?branch_id=${branchId}&page=3&history_page=2&search=chicken&sale_id=${saleId}`,
     );

@@ -26,7 +26,7 @@ import type { User } from "@/features/auth/types/auth.types";
 const quickActions = [
   {
     title: "Record supplier delivery",
-    href: "/receipts?create=1",
+    href: "/receipts/new",
     icon: ClipboardListIcon,
     permissions: [
       "supplier_receipts.read",

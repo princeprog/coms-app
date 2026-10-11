@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
 import { navItems } from "@/components/app-sidebar";
 import { authTestSessionUser, authTestUser } from "@/test/auth-fixtures";
+import { describe, expect, it } from "vitest";
 import {
   filterNavigationForUser,
   getAuthorizedLandingPath,
@@ -102,7 +102,7 @@ describe("permission aware navigation", () => {
       (item) => item.url === "/branch-products",
     );
     expect(branchProducts).toMatchObject({
-      title: "Branch Products",
+      title: "Branch Menu",
       permission: "branch_products.read",
     });
     if (!branchProducts) throw new Error("Branch product nav item is missing");

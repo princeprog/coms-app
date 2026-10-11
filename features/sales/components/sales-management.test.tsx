@@ -1,13 +1,18 @@
+import { render } from "@/test/pos-render";
 // @vitest-environment jsdom
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+vi.mock("@/features/sales/services/sales-price-actions", () => ({
+  refreshCartPricesAction: vi.fn(),
+}));
 import { SalesManagement } from "./sales-management";
 import type { SalesViewResult } from "@/features/sales/services/sales-page-loader";
 
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), replace }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("next/form", () => ({
   default: ({ children, ...props }: React.ComponentProps<"form">) => (
@@ -28,8 +33,20 @@ afterEach(() => replace.mockReset());
 const baseView: Extract<SalesViewResult, { status: "ready" }> = {
   status: "ready",
   filters: { branchId, page: 1, historyPage: 1, search: "" },
-  branchOptions: [{ id: branchId, name: "Downtown", status: "active" }],
-  selectedBranch: { id: branchId, name: "Downtown", status: "active" },
+  branchOptions: [
+    {
+      id: branchId,
+      name: "Downtown",
+      status: "active",
+      serviceTypes: ["TAKEAWAY"],
+    },
+  ],
+  selectedBranch: {
+    id: branchId,
+    name: "Downtown",
+    status: "active",
+    serviceTypes: ["TAKEAWAY"],
+  },
   menuPage: {
     items: [
       {
@@ -39,6 +56,7 @@ const baseView: Extract<SalesViewResult, { status: "ready" }> = {
         product_name: "Chicken sandwich",
         description: null,
         product_is_active: true,
+        price_revision: 1,
         price: "12.50",
         is_available: true,
         created_at: timestamp,
@@ -58,6 +76,7 @@ const baseView: Extract<SalesViewResult, { status: "ready" }> = {
         cashier_user_id: saleId,
         cashier_name: "Mina Cashier",
         status: "COMPLETED",
+        service_type: "TAKEAWAY",
         tender_method: "cash",
         total_amount: "12.50",
         idempotency_key: saleId,
@@ -77,7 +96,8 @@ const baseView: Extract<SalesViewResult, { status: "ready" }> = {
 };
 
 describe("POS management", () => {
-  it("connects branch choice, menu search, checkout, and sales history", () => {
+  it("separates checkout and history without discarding the cart", async () => {
+    const user = userEvent.setup();
     render(
       <SalesManagement
         view={baseView}
@@ -86,15 +106,34 @@ describe("POS management", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Branch")).toBeTruthy();
+    expect(screen.queryByLabelText("Branch")).toBeNull();
+    expect(screen.getByText("Downtown")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Add Chicken sandwich" }),
     ).toBeTruthy();
-    const searchForm = screen.getByRole("form", { name: "Search products" });
-    expect(searchForm.hasAttribute("method")).toBe(false);
-    expect(searchForm.querySelector('input[name="page"]')).toBeNull();
+    expect(screen.getByLabelText("Search products")).toBeTruthy();
+    expect(screen.queryByRole("table", { name: "Sales history" })).toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    await user.click(screen.getByRole("tab", { name: "Sales history" }));
+    expect(
+      screen.queryByRole("button", { name: "Add Chicken sandwich" }),
+    ).toBeNull();
     expect(screen.getByRole("table", { name: "Sales history" })).toBeTruthy();
     expect(screen.getByText("Mina Cashier")).toBeTruthy();
+    expect(replace).toHaveBeenCalledWith(
+      expect.stringContaining("view=history"),
+      { scroll: false },
+    );
+    await user.click(screen.getByRole("tab", { name: "Checkout" }));
+    expect(
+      (
+        screen.getByLabelText(
+          "Quantity for Chicken sandwich",
+        ) as HTMLInputElement
+      ).value,
+    ).toBe("1");
   });
 
   it("keeps history visible and explains when menu read permission is missing", () => {
@@ -111,9 +150,7 @@ describe("POS management", () => {
         voidAction={voidAction}
       />,
     );
-    expect(screen.getByRole("alert").textContent).toContain(
-      "branch_products.read",
-    );
+    expect(screen.getByRole("alert").textContent).toContain("Menu access");
     expect(screen.getByRole("table", { name: "Sales history" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Record sale" })).toBeNull();
   });
@@ -139,7 +176,12 @@ describe("POS management", () => {
           ...baseView,
           branchOptions: [
             ...baseView.branchOptions,
-            { id: nextBranchId, name: "Airport", status: "active" },
+            {
+              id: nextBranchId,
+              name: "Airport",
+              status: "active",
+              serviceTypes: ["TAKEAWAY"],
+            },
           ],
           selectedBranch: {
             id: nextBranchId,
@@ -154,7 +196,7 @@ describe("POS management", () => {
     );
 
     expect(screen.queryByLabelText("Quantity for Chicken sandwich")).toBeNull();
-    expect(screen.getByLabelText("Estimated total").textContent).toBe("0");
+    expect(screen.getByLabelText("Estimated total").textContent).toBe("₱0.00");
   });
 
   it("opens selected sale details in a sheet and closes only that query selection", async () => {
@@ -173,6 +215,7 @@ describe("POS management", () => {
         branch_id: branchId,
         cashier_user_id: saleId,
         status: "COMPLETED",
+        service_type: "TAKEAWAY",
         tender_method: "cash",
         total_amount: "12.50",
         idempotency_key: saleId,

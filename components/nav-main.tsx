@@ -23,6 +23,7 @@ export function NavMain({
     title: string;
     url: string;
     icon?: ReactNode;
+    activeUrls?: string[];
   }[];
 }) {
   const pathname = usePathname();
@@ -41,8 +42,9 @@ export function NavMain({
       <SidebarGroupContent>
         <SidebarMenu className="gap-1">
           {items.map((item) => {
-            const isActive =
-              pathname === item.url || pathname.startsWith(`${item.url}/`);
+            const isActive = (item.activeUrls ?? [item.url]).some(
+              (url) => pathname === url || pathname.startsWith(`${url}/`),
+            );
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton

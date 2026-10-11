@@ -1,12 +1,24 @@
+import { render } from "@/test/pos-render";
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { BranchProductCreateAction } from "@/features/branch-products/components/branch-product-create-form";
 import type { BranchProductOperationAction } from "@/features/branch-products/types/branch-product.types";
 import { BranchProductsManagement } from "./branch-products-management";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+vi.mock("@/features/menus/services/menu-actions", () => ({
+  submitMenuRequestAction: vi.fn(),
+  updateMenuServicesAction: vi.fn(),
+}));
+vi.mock("@/features/menus/hooks/use-menu-lookup", () => ({
+  useMenuLookup: () => ({
+    data: { ok: true, options: [], total: 0, page: 1, page_size: 20 },
+  }),
+}));
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const productId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
@@ -33,9 +45,6 @@ const page = {
   page_size: 25,
 };
 
-const createAction = vi.fn<BranchProductCreateAction>().mockResolvedValue({
-  ok: true,
-});
 const operationAction = vi
   .fn<BranchProductOperationAction>()
   .mockResolvedValue({
@@ -50,24 +59,19 @@ describe("branch products management", () => {
         selectedBranch={branchOptions[0]}
         filters={{ page: 1, search: "", requestedBranchId: branchId }}
         page={page}
-        productOptions={[{ id: productId, product_name: "Chicken sandwich" }]}
-        productOptionsUnavailable={false}
-        canCreate
-        canUpdatePrice={false}
-        canUpdateAvailability={false}
-        createAction={createAction}
-        priceAction={operationAction}
+        canManage={true}
         availabilityAction={operationAction}
       />,
     );
 
     expect(document.querySelector('[data-coms-ui="operational"]')).toBeTruthy();
-    expect(screen.getByText(/configure branch-specific prices/i)).toBeTruthy();
-    expect(screen.getByLabelText("Branch")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add offering" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Branch Menu" })).toBeTruthy();
+    expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
+    expect(screen.getByText("Downtown")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Manage products" })).toBeTruthy();
     expect(screen.queryByLabelText("Offer price")).toBeNull();
     expect(
-      screen.getByRole("table", { name: "Products offered at Downtown" }),
+      screen.getByRole("table", { name: "Branch menu for Downtown" }),
     ).toBeTruthy();
     expect(screen.getAllByText("Chicken sandwich")).toHaveLength(1);
   });
@@ -78,14 +82,8 @@ describe("branch products management", () => {
         branchOptions={branchOptions}
         filters={{ page: 1, search: "", requestedBranchId: branchId }}
         page={null}
-        productOptions={[]}
-        productOptionsUnavailable={false}
-        canCreate={false}
-        canUpdatePrice={false}
-        canUpdateAvailability={false}
+        canManage={false}
         errorMessage="This branch is no longer available. Choose another branch."
-        createAction={createAction}
-        priceAction={operationAction}
         availabilityAction={operationAction}
       />,
     );
@@ -93,8 +91,9 @@ describe("branch products management", () => {
     expect(screen.getByRole("alert").textContent).toMatch(
       /choose another branch/i,
     );
-    expect(screen.getByLabelText("Branch")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Add offering" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
+    expect(screen.getByText("Downtown")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add to menu" })).toBeNull();
   });
 
   it("keeps inactive branch offers readable and disables configuration", () => {
@@ -104,21 +103,15 @@ describe("branch products management", () => {
         selectedBranch={{ ...branchOptions[0], status: "inactive" }}
         filters={{ page: 1, search: "", requestedBranchId: branchId }}
         page={page}
-        productOptions={[{ id: productId, product_name: "Chicken sandwich" }]}
-        productOptionsUnavailable={false}
-        canCreate={false}
-        canUpdatePrice={false}
-        canUpdateAvailability={false}
-        createAction={createAction}
-        priceAction={operationAction}
+        canManage={false}
         availabilityAction={operationAction}
       />,
     );
 
     expect(screen.getByText(/branch is inactive/i)).toBeTruthy();
     expect(screen.getByText("Chicken sandwich")).toBeTruthy();
-    expect(screen.getByText("125.00")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Add offering" })).toBeNull();
+    expect(screen.getByText("₱125.00")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add to menu" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change price" })).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Change availability" }),

@@ -1,11 +1,17 @@
+import { render } from "@/test/pos-render";
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+vi.mock("@/features/sales/services/sales-price-actions", () => ({
+  refreshCartPricesAction: vi.fn(),
+}));
 import { PosCheckout } from "./pos-checkout";
+import { refreshCartPricesAction } from "../services/sales-price-actions";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh }),
+  useRouter: () => ({ refresh, replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
@@ -22,6 +28,7 @@ const menuPage = {
       product_name: "Chicken sandwich",
       description: "Grilled chicken and greens",
       product_is_active: true,
+      price_revision: 1,
       price: "9.2500",
       is_available: true,
       created_at: timestamp,
@@ -34,6 +41,7 @@ const menuPage = {
       product_name: "Iced tea",
       description: null,
       product_is_active: true,
+      price_revision: 1,
       price: "3.00",
       is_available: true,
       created_at: timestamp,
@@ -48,6 +56,92 @@ const menuPage = {
 const createAction = vi.fn();
 
 describe("POS checkout", () => {
+  it("requires a service choice and preserves quantities when a changed service makes an item incompatible", () => {
+    const singleMenu = {
+      ...menuPage,
+      items: [
+        {
+          ...menuPage.items[0],
+          available_service_types: ["TAKEAWAY" as const],
+        },
+      ],
+    };
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        menuPage={singleMenu}
+        action={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    ).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "Takeout" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    fireEvent.change(screen.getByLabelText("Quantity for Chicken sandwich"), {
+      target: { value: "2.5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Dine-in" }));
+    expect(
+      screen.getByLabelText("Quantity for Chicken sandwich"),
+    ).toHaveProperty("value", "2.5");
+    expect(screen.getByRole("alert").textContent).toContain("incompatible");
+    expect(
+      screen.getByRole("button", { name: "Complete sale" }),
+    ).toHaveProperty("disabled", true);
+  });
+  it("requires explicit price review after a revision conflict and sends the new revision with a new retry key", async () => {
+    const action = vi.fn().mockResolvedValue({
+      ok: false,
+      error: "Prices changed",
+      code: "PRICE_CHANGED",
+    });
+    vi.mocked(refreshCartPricesAction).mockResolvedValue({
+      ok: true,
+      items: menuPage.items.map((item) => ({
+        ...item,
+        price: "10.5",
+        price_revision: 2,
+      })),
+    });
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        serviceTypes={["TAKEAWAY"]}
+        menuPage={menuPage}
+        action={action}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    fireEvent.change(screen.getByLabelText("Amount received"), {
+      target: { value: "100" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Complete sale" }));
+    await screen.findByText("Review updated prices");
+    const accept = await screen.findByRole("button", {
+      name: "Accept updated prices",
+    });
+    await waitFor(() => expect(accept).toHaveProperty("disabled", false));
+    expect(
+      screen.getByRole("button", { name: "Complete sale" }),
+    ).toHaveProperty("disabled", true);
+    expect(action).toHaveBeenCalledTimes(1);
+    fireEvent.click(accept);
+    fireEvent.change(screen.getByLabelText("Amount received"), {
+      target: { value: "100" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Complete sale" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    expect(action.mock.calls[0][1].items[0].price_revision).toBe(1);
+    expect(action.mock.calls[1][1].items[0].price_revision).toBe(2);
+    expect(action.mock.calls[0][2]).not.toBe(action.mock.calls[1][2]);
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     refresh.mockReset();
@@ -58,12 +152,13 @@ describe("POS checkout", () => {
       <PosCheckout
         branchId={branchId}
         branchActive
+        serviceTypes={["TAKEAWAY"]}
         menuPage={menuPage}
         action={createAction}
       />,
     );
 
-    expect(screen.getByLabelText("Estimated total").textContent).toBe("0");
+    expect(screen.getByLabelText("Estimated total").textContent).toBe("₱0.00");
   });
 
   it("offers a direct cart anchor after adding the first item", () => {
@@ -71,6 +166,7 @@ describe("POS checkout", () => {
       <PosCheckout
         branchId={branchId}
         branchActive
+        serviceTypes={["TAKEAWAY"]}
         menuPage={menuPage}
         action={createAction}
       />,
@@ -81,7 +177,9 @@ describe("POS checkout", () => {
     );
 
     expect(
-      screen.getByRole("link", { name: "View cart (1 item)" }).getAttribute("href"),
+      screen
+        .getByRole("link", { name: "View cart (1 item)" })
+        .getAttribute("href"),
     ).toBe("#pos-cart-panel");
   });
 
@@ -90,6 +188,7 @@ describe("POS checkout", () => {
       <PosCheckout
         branchId={branchId}
         branchActive
+        serviceTypes={["TAKEAWAY"]}
         menuPage={menuPage}
         action={createAction}
       />,
@@ -111,6 +210,7 @@ describe("POS checkout", () => {
       <PosCheckout
         branchId={branchId}
         branchActive
+        serviceTypes={["TAKEAWAY"]}
         menuPage={menuPage}
         action={createAction}
       />,
@@ -124,18 +224,14 @@ describe("POS checkout", () => {
       target: { value: "0.5" },
     });
 
-    expect(screen.getByLabelText("Estimated total").textContent).toBe("7.625");
-    expect(
-      screen.getByText("Final price and stock are confirmed by COMS."),
-    ).toBeTruthy();
+    expect(screen.getByLabelText("Estimated total").textContent).toBe("₱7.625");
   });
 
   it("submits an idempotent sale and keeps the cart when the server rejects it", async () => {
     vi.stubGlobal("crypto", { randomUUID: vi.fn().mockReturnValue(key) });
     createAction.mockReset().mockResolvedValueOnce({
       ok: false,
-      error:
-        "Stock or product availability changed. Review the cart and try again.",
+      error: "Product availability changed. Review the cart and try again.",
     });
     createAction.mockResolvedValueOnce({
       ok: true,
@@ -144,6 +240,7 @@ describe("POS checkout", () => {
         branch_id: branchId,
         cashier_user_id: branchId,
         status: "COMPLETED",
+        service_type: "TAKEAWAY",
         tender_method: "cash",
         total_amount: "9.25",
         idempotency_key: key,
@@ -156,6 +253,7 @@ describe("POS checkout", () => {
       <PosCheckout
         branchId={branchId}
         branchActive
+        serviceTypes={["TAKEAWAY"]}
         menuPage={menuPage}
         action={createAction}
       />,
@@ -164,19 +262,22 @@ describe("POS checkout", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Add Chicken sandwich" }),
     );
-    fireEvent.change(screen.getByLabelText("Tender method"), {
-      target: { value: "cash" },
+
+    fireEvent.change(screen.getByLabelText("Amount received"), {
+      target: { value: "100" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Record sale" }));
+    fireEvent.click(screen.getByRole("button", { name: "Complete sale" }));
     await waitFor(() =>
       expect(screen.getByRole("alert").textContent).toContain(
-        "Stock or product",
+        "Product availability",
       ),
     );
 
     const input = {
-      tender_method: "cash",
-      items: [{ product_id: chickenId, quantity: "1" }],
+      service_type: "TAKEAWAY",
+      tender_method: "Cash",
+      payment_method_id: "a34b9dc6-135f-4bd0-9f25-43a9617c9e0a",
+      items: [{ product_id: chickenId, price_revision: 1, quantity: "1" }],
     };
     expect(createAction).toHaveBeenLastCalledWith(branchId, input, key);
     expect(
@@ -187,7 +288,10 @@ describe("POS checkout", () => {
       ).value,
     ).toBe("1");
 
-    fireEvent.click(screen.getByRole("button", { name: "Record sale" }));
+    fireEvent.change(screen.getByLabelText("Amount received"), {
+      target: { value: "100" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Complete sale" }));
     await waitFor(() =>
       expect(
         screen.getByText("Sale recorded. Confirmed total: 9.25"),
@@ -208,8 +312,110 @@ describe("POS checkout", () => {
     );
     expect(
       screen
-        .getByRole("button", { name: "Record sale" })
+        .getByRole("button", { name: "Complete sale" })
         .hasAttribute("disabled"),
     ).toBe(true);
+  });
+
+  it("blocks underpayment including direct form submission and recalculates cash as quantities change", () => {
+    const action = vi.fn();
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        serviceTypes={["TAKEAWAY"]}
+        menuPage={menuPage}
+        action={action}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    const pay = screen.getByRole("button", { name: "Complete sale" });
+    expect(pay).toHaveProperty("disabled", true);
+    fireEvent.change(screen.getByLabelText("Amount received"), {
+      target: { value: "5" },
+    });
+    expect(screen.getByText("Amount received is short by ₱4.25.")).toBeTruthy();
+    fireEvent.submit(screen.getByRole("form", { name: "POS checkout" }));
+    expect(action).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Exact amount" }));
+    expect(screen.getByLabelText("Change due").textContent).toBe("₱0.00");
+    expect(pay).toHaveProperty("disabled", false);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Increase Chicken sandwich" }),
+    );
+    expect(pay).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "₱1,000.00" }));
+    expect(screen.getByLabelText("Change due").textContent).toBe("₱981.50");
+  });
+
+  it("retains confirmed change after success and clears cash for the next order", async () => {
+    const action = vi.fn().mockResolvedValue({
+      ok: true,
+      sale: { id: teaId, status: "COMPLETED", total_amount: "9.25" },
+    });
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        serviceTypes={["TAKEAWAY"]}
+        menuPage={menuPage}
+        action={action}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    fireEvent.change(screen.getByLabelText("Amount received"), {
+      target: { value: "10" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Complete sale" }));
+    await screen.findByText("Sale recorded. Confirmed total: 9.25");
+    expect(screen.getByLabelText("Change due").textContent).toBe("₱0.75");
+    expect(screen.getByLabelText("Amount received")).toHaveProperty(
+      "value",
+      "10",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add Iced tea" }));
+    expect(screen.getByLabelText("Amount received")).toHaveProperty(
+      "value",
+      "",
+    );
+    expect(screen.getByLabelText("Change due").textContent).toBe("—");
+    expect(
+      screen.getByRole("button", { name: "Complete sale" }),
+    ).toHaveProperty("disabled", true);
+  });
+
+  it("requires confirmation to clear an order and resets its payment", async () => {
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        serviceTypes={["TAKEAWAY"]}
+        menuPage={menuPage}
+        action={vi.fn()}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add Iced tea" }));
+    fireEvent.click(screen.getByRole("button", { name: "Exact amount" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(await screen.findByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Keep order" }));
+    expect(screen.getByLabelText("Amount received")).toHaveProperty(
+      "value",
+      "12.25",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Clear order" }));
+    expect(screen.queryByLabelText("Quantity for Chicken sandwich")).toBeNull();
+    expect(screen.getByLabelText("Amount received")).toHaveProperty(
+      "value",
+      "",
+    );
   });
 });

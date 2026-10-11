@@ -35,6 +35,9 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
     handleSearchKeyDown,
     handleLocationChange,
   } = useInventoryFilters(props);
+  const isFixedBranch =
+    scope === "BRANCH" && !canViewCommissary && branchOptions.length === 1;
+  const showBranchSelect = scope === "BRANCH" && !isFixedBranch;
   const chips = [
     ...(search
       ? [{ label: `Search: ${search}`, options: { nextSearch: "" } }]
@@ -61,26 +64,28 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
       aria-label="Inventory location and filters"
       className="flex min-w-0 flex-col gap-3"
     >
-      <InventoryScopeToggle
-        scope={scope}
-        canViewCommissary={canViewCommissary}
-        canViewBranch={canViewBranch}
-        hasBranches={branchOptions.length > 0}
-        onValueChange={(nextScope) =>
-          handleLocationChange(
-            nextScope === "COMMISSARY"
-              ? "COMMISSARY"
-              : `BRANCH:${props.selectedBranchId ?? branchOptions[0]?.id ?? ""}`,
-          )
-        }
-      />
+      {!isFixedBranch && (
+        <InventoryScopeToggle
+          scope={scope}
+          canViewCommissary={canViewCommissary}
+          canViewBranch={canViewBranch}
+          hasBranches={branchOptions.length > 0}
+          onValueChange={(nextScope) =>
+            handleLocationChange(
+              nextScope === "COMMISSARY"
+                ? "COMMISSARY"
+                : `BRANCH:${props.selectedBranchId ?? branchOptions[0]?.id ?? ""}`,
+            )
+          }
+        />
+      )}
       <FieldGroup
         className={cn(
           "grid min-w-0 gap-3",
-          scope === "BRANCH" && "md:grid-cols-3",
+          showBranchSelect && "md:grid-cols-3",
         )}
       >
-        {scope === "BRANCH" && (
+        {showBranchSelect && (
           <InventoryBranchSelect
             value={locationValue}
             label={locationLabel}
@@ -88,7 +93,7 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
             onValueChange={handleLocationChange}
           />
         )}
-        <Field className={cn("min-w-0", scope === "BRANCH" && "md:col-span-2")}>
+        <Field className={cn("min-w-0", showBranchSelect && "md:col-span-2")}>
           <FieldLabel htmlFor="inventory-search">Search stock items</FieldLabel>
           <InputGroup>
             <InputGroupAddon>

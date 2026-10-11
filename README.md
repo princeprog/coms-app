@@ -1,13 +1,15 @@
 # COMS frontend
 
+Current product workflow: [Products and Branch Menu](docs/simple-products.md). Super Admin sets one price and branch availability in one product form. Earlier recipe, usage, pricing, template and request workflows are retired.
+
 ## Local authentication setup
 
-Run the NestJS API on port `3001` and the Next.js app on port `3000`:
+Run the NestJS API on port `3006` and the Next.js app on port `3005`:
 
 ```powershell
 # Terminal 1: coms-api
-$env:PORT = "3001"
-$env:WEB_ORIGIN = "http://localhost:3000"
+$env:PORT = "3006"
+$env:WEB_ORIGIN = "http://localhost:3005"
 pnpm start:dev
 
 # Terminal 2: coms-app

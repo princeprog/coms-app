@@ -1,5 +1,5 @@
 export function getComsApiBaseUrl() {
-  return (process.env.COMS_API_BASE_URL ?? "http://localhost:3001").replace(
+  return (process.env.COMS_API_BASE_URL ?? "http://localhost:3006").replace(
     /\/$/,
     "",
   );

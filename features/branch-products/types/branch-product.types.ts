@@ -3,7 +3,6 @@ import type {
   branchProductAvailabilitySchema,
   branchProductCreateSchema,
   branchProductPageSchema,
-  branchProductPriceSchema,
   branchProductSchema,
 } from "@/features/branch-products/schemas/branch-product.schema";
 
@@ -12,13 +11,13 @@ export type BranchProductPage = z.infer<typeof branchProductPageSchema>;
 export type BranchProductCreateInput = z.infer<
   typeof branchProductCreateSchema
 >;
-export type BranchProductPriceInput = z.infer<typeof branchProductPriceSchema>;
 export type BranchProductAvailabilityInput = z.infer<
   typeof branchProductAvailabilitySchema
 >;
 export type BranchProductBranchOption = {
   id: string;
   name: string;
+  serviceTypes?: ("DINE_IN" | "TAKEAWAY")[];
   status: "active" | "inactive" | "unknown";
 };
 export type BranchProductProductOption = {

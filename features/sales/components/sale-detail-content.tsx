@@ -30,12 +30,23 @@ export function SaleDetailContent({
           <SaleVoidControl
             branchId={branchId}
             saleId={sale.id}
+            inventoryDeducted={sale.inventory_deducted ?? true}
             action={voidAction}
           />
         )}
       </div>
 
       <dl className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2">
+        <div>
+          <dt className="text-xs text-muted-foreground">Service type</dt>
+          <dd className="text-sm">
+            {sale.service_type === "DINE_IN"
+              ? "Dine-in"
+              : sale.service_type === "TAKEAWAY"
+                ? "Takeout"
+                : "Not recorded"}
+          </dd>
+        </div>
         <div>
           <dt className="text-xs text-muted-foreground">Sale ID</dt>
           <dd className="break-all font-mono text-sm">{sale.id}</dd>

@@ -14,12 +14,16 @@ export type CatalogPage<T extends CatalogRecord = CatalogRecord> = {
 export type CatalogFieldDefinition = {
   key: string;
   label: string;
-  type?: "text" | "email" | "textarea";
+  type?: "text" | "email" | "textarea" | "choices" | "select";
+  options?: { value: string; label: string }[];
+  defaultValue?: string;
   required?: boolean;
   maxLength?: number;
 };
 
 export type CatalogDisplayColumn = {
+  format?: "currency";
+  valueLabels?: Record<string, string>;
   key: string;
   label: string;
 };
@@ -38,6 +42,7 @@ export type CatalogDeactivateAction = (
 ) => Promise<CatalogMutationResult>;
 
 export type CatalogManagementProps = {
+  setupEnabled?: boolean;
   title: string;
   resourceName: string;
   description: string;
@@ -54,4 +59,8 @@ export type CatalogManagementProps = {
   updateAction: CatalogUpdateAction;
   deactivateAction: CatalogDeactivateAction;
   directoryLayout?: boolean;
+  directoryTitle?: string;
+  directoryDescription?: string;
+  secondaryActions?: React.ReactNode;
+  detailsPath?: string;
 };

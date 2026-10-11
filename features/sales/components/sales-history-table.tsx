@@ -1,7 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { MoreHorizontal } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { MenuStatusBadge } from "@/features/menus/components/menu-status-badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -58,9 +68,12 @@ export function SalesHistoryTable({
                 <TableHead>Time</TableHead>
                 <TableHead>Cashier</TableHead>
                 <TableHead>Tender</TableHead>
-                <TableHead>Total</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead className="text-right">Total</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Details</TableHead>
+                <TableHead className="text-right">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -73,22 +86,55 @@ export function SalesHistoryTable({
                     {sale.cashier_name}
                   </TableCell>
                   <TableCell>{sale.tender_method}</TableCell>
-                  <TableCell className="tabular-nums">
-                    {sale.total_amount}
+                  <TableCell>
+                    {sale.service_type === "DINE_IN"
+                      ? "Dine-in"
+                      : sale.service_type === "TAKEAWAY"
+                        ? "Takeout"
+                        : "Not recorded"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    ₱{sale.total_amount}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{sale.status}</Badge>
+                    <MenuStatusBadge
+                      status={
+                        sale.status === "COMPLETED" ? "active" : "inactive"
+                      }
+                    >
+                      {sale.status === "COMPLETED" ? "Completed" : "Voided"}
+                    </MenuStatusBadge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Link
-                      className={buttonVariants({
-                        variant: "outline",
-                        size: "sm",
-                      })}
-                      href={createSalesHref({ ...filters, saleId: sale.id })}
-                    >
-                      View sale
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Actions for sale by ${sale.cashier_name}`}
+                          />
+                        }
+                      >
+                        <MoreHorizontal aria-hidden="true" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem
+                            render={
+                              <Link
+                                href={createSalesHref({
+                                  ...filters,
+                                  saleId: sale.id,
+                                })}
+                              />
+                            }
+                          >
+                            View sale
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

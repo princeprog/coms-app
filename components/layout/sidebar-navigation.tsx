@@ -1,26 +1,31 @@
-import type { User } from "@/features/auth/types/auth.types";
 import {
   filterNavigationForUser,
   isProtectedSuperAdmin,
 } from "@/features/auth/permissions";
+import type { User } from "@/features/auth/types/auth.types";
 
 import {
-  LayoutDashboardIcon,
   BoxesIcon,
-  ClipboardListIcon,
-  SendIcon,
-  PackageIcon,
-  StoreIcon,
-  FileChartColumnIcon,
+  CreditCardIcon,
   Building2Icon,
-  UsersIcon,
-  ShieldCheckIcon,
+  ClipboardListIcon,
   FactoryIcon,
+  FileChartColumnIcon,
+  LayoutDashboardIcon,
+  PackageIcon,
+  SendIcon,
+  ShieldCheckIcon,
+  StoreIcon,
   TagsIcon,
-  ChefHatIcon,
+  UsersIcon,
 } from "lucide-react";
 
 export const navItems = [
+  {
+    title: "Payment methods",
+    url: "/payment-methods",
+    icon: <CreditCardIcon />,
+  },
   {
     title: "Dashboard",
     url: "/dashboard",
@@ -64,13 +69,7 @@ export const navItems = [
     icon: <PackageIcon />,
   },
   {
-    title: "Recipes",
-    url: "/recipes",
-    permission: "recipes.read",
-    icon: <ChefHatIcon />,
-  },
-  {
-    title: "Branch Products",
+    title: "Branch Menu",
     url: "/branch-products",
     permission: "branch_products.read",
     icon: <StoreIcon />,
@@ -78,7 +77,7 @@ export const navItems = [
   {
     title: "Point of Sale",
     url: "/pos",
-    permission: "sales.create",
+    permission: ["sales.create", "sales.read"],
     icon: <StoreIcon />,
   },
   {
@@ -110,8 +109,23 @@ export const navItems = [
 export function getAppSidebarNavigation(user: User) {
   const contextualItems = isProtectedSuperAdmin(user)
     ? navItems.filter((item) => item.url !== "/pos")
-    : navItems;
-  return filterNavigationForUser(user, contextualItems);
+    : navItems.filter((item) => item.url !== "/payment-methods");
+  const allowed = filterNavigationForUser(user, contextualItems);
+  const productRoutes = ["/products"];
+  const menuRoutes = ["/branch-products"];
+  const productEntry = allowed.find((item) => productRoutes.includes(item.url));
+  const menuEntry = allowed.find((item) => menuRoutes.includes(item.url));
+  return allowed.flatMap((item) => {
+    if (productRoutes.includes(item.url))
+      return item === productEntry
+        ? [{ ...item, title: "Products", activeUrls: productRoutes }]
+        : [];
+    if (menuRoutes.includes(item.url))
+      return item === menuEntry
+        ? [{ ...item, title: "Branch Menu", activeUrls: menuRoutes }]
+        : [];
+    return [item];
+  });
 }
 
 export const sidebarNavigationGroups = [
@@ -128,9 +142,12 @@ export const sidebarNavigationGroups = [
   },
   {
     title: "Products & Sales",
-    urls: ["/products", "/recipes", "/branch-products", "/pos", "/reports"],
+    urls: ["/products", "/branch-products", "/pos", "/reports"],
   },
-  { title: "Administration", urls: ["/branches", "/staff", "/roles"] },
+  {
+    title: "Administration",
+    urls: ["/branches", "/staff", "/roles", "/payment-methods"],
+  },
 ];
 
 export function getAppSidebarNavigationGroups(user: User) {

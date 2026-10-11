@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  OperationalEmptyState,
-  OperationalPagination,
-} from "@/components/shared/operational-page-ui";
+import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
+import { BranchMenuPagination } from "./branch-menu-pagination";
 import {
   Table,
   TableBody,
@@ -24,9 +22,9 @@ export function BranchProductList({
   branchName,
   search,
   isAvailable,
-  canUpdatePrice,
-  canUpdateAvailability,
-  priceAction,
+  serviceType,
+  sort,
+  canManage,
   availabilityAction,
 }: {
   page: BranchProductPage;
@@ -34,108 +32,105 @@ export function BranchProductList({
   branchName: string;
   search: string;
   isAvailable?: boolean;
-  canUpdatePrice: boolean;
-  canUpdateAvailability: boolean;
-  priceAction: BranchProductOperationAction;
+  serviceType?: "DINE_IN" | "TAKEAWAY";
+  sort?: string;
+  canManage: boolean;
   availabilityAction: BranchProductOperationAction;
 }) {
-  const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));
   const pageHref = (requestedPage: number) =>
     createBranchProductsHref({
       branchId,
       page: requestedPage,
       search,
       isAvailable,
+      serviceType,
+      sort,
     });
-  const hasFilters = Boolean(search) || isAvailable !== undefined;
+  const hasFilters =
+    Boolean(search || serviceType) || isAvailable !== undefined;
 
   return (
-    <section
-      aria-labelledby="branch-products-heading"
-      className="overflow-hidden rounded-lg border bg-card"
-    >
-      <header className="border-b bg-muted/30 px-4 py-4 sm:px-6">
-        <h2 id="branch-products-heading" className="text-lg font-semibold">
-          Products offered at {branchName}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {page.total} {page.total === 1 ? "offer" : "offers"} · Page{" "}
-          {page.page} of {pageCount}
-        </p>
-      </header>
-      {page.items.length > 0 ? (
-        <Table
-          aria-label={`Products offered at ${branchName}`}
-          containerProps={{
-            role: "region",
-            "aria-label": "Branch product offers",
-            tabIndex: 0,
-          }}
-        >
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead>Availability</TableHead>
-              <TableHead>Product status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {page.items.map((offer) => (
-              <BranchProductRow
-                key={offer.product_id}
-                offer={offer}
-                canUpdatePrice={canUpdatePrice}
-                canUpdateAvailability={canUpdateAvailability}
-                priceAction={priceAction}
-                availabilityAction={availabilityAction}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="p-4 sm:p-6">
-          <OperationalEmptyState
-            title={
-              search
-                ? `No offers at ${branchName} match this search.`
-                : isAvailable !== undefined
-                  ? `No offers at ${branchName} match the selected availability filter.`
-                  : `No products are offered at ${branchName} yet.`
-            }
-            description={
-              hasFilters
-                ? "Clear the search and availability filters to see all offers."
-                : "Offers will appear here after an active product is configured for this branch."
-            }
-            actions={
-              hasFilters ? (
-                <Link
-                  className={buttonVariants({ variant: "outline" })}
-                  href={createBranchProductsHref({
-                    branchId,
-                    page: 1,
-                    search: "",
-                  })}
-                >
-                  Clear filters
-                </Link>
-              ) : undefined
-            }
-          />
+    <section aria-labelledby="branch-products-heading" className="min-w-0">
+      <div className="overflow-hidden rounded-lg border bg-card">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1.5 border-b px-5 py-4">
+          <h3 id="branch-products-heading" className="text-lg font-semibold">
+            Menu items
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Selling prices are the same across all branches.
+          </p>
         </div>
-      )}
-      <div className="border-t px-4 py-3 sm:px-6">
-        <OperationalPagination
-          ariaLabel={`${branchName} product offer pages`}
-          page={page.page}
-          pageCount={pageCount}
-          previousHref={page.page > 1 ? pageHref(page.page - 1) : undefined}
-          nextHref={page.page < pageCount ? pageHref(page.page + 1) : undefined}
-          resultSummary={`Page ${page.page} of ${pageCount}`}
-        />
+        {page.items.length > 0 ? (
+          <Table
+            className="[&_th]:h-12 [&_th]:px-5 [&_td]:px-5 [&_td]:py-2"
+            aria-label={`Branch menu for ${branchName}`}
+            containerProps={{
+              role: "region",
+              "aria-label": "Branch menu items",
+              tabIndex: 0,
+              className:
+                "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            }}
+          >
+            <TableHeader className="bg-muted/30">
+              <TableRow>
+                <TableHead>Product</TableHead>
+                <TableHead className="text-right">Selling price</TableHead>
+                <TableHead>Services</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Availability</TableHead>
+                {canManage && (
+                  <TableHead className="text-right">Actions</TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {page.items.map((offer) => (
+                <BranchProductRow
+                  key={offer.product_id}
+                  offer={offer}
+                  canManage={canManage}
+                  availabilityAction={availabilityAction}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="p-4 sm:p-6">
+            <OperationalEmptyState
+              title={
+                hasFilters
+                  ? `No menu items at ${branchName} match these filters.`
+                  : `No products are on the menu at ${branchName} yet.`
+              }
+              description={
+                hasFilters
+                  ? "Clear the search and menu filters to see all menu items."
+                  : "Super Admin can select this branch when creating or editing a product."
+              }
+              actions={
+                hasFilters ? (
+                  <Link
+                    className={buttonVariants({ variant: "outline" })}
+                    href={createBranchProductsHref({
+                      branchId,
+                      page: 1,
+                      search: "",
+                    })}
+                  >
+                    Clear filters
+                  </Link>
+                ) : undefined
+              }
+            />
+          </div>
+        )}
       </div>
+      <BranchMenuPagination
+        page={page}
+        branchName={branchName}
+        href={pageHref}
+      />
     </section>
   );
 }

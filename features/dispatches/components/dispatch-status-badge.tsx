@@ -14,15 +14,24 @@ const styles: Record<string, string> = {
   RECOUNT_REQUESTED: "bg-amber-800",
   RESOLVED: "bg-emerald-700",
 };
-export function DispatchStatusBadge({ status }: { status: string }) {
+export function DispatchStatusBadge({
+  status,
+  label,
+  size = "default",
+}: {
+  status: string;
+  label?: string;
+  size?: "default" | "lg";
+}) {
   return (
     <Badge
       className={cn(
         "h-auto min-h-5 max-w-full text-center whitespace-normal text-white",
         styles[status] ?? "bg-slate-600",
+        size === "lg" && "min-h-8 px-3 text-sm",
       )}
     >
-      {dispatchStatusLabel(status)}
+      {label ?? dispatchStatusLabel(status)}
     </Badge>
   );
 }

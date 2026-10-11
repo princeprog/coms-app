@@ -12,6 +12,8 @@ export type SalesPageFilters = {
   historyPage: number;
   search: string;
   saleId?: string;
+  serviceType?: "DINE_IN" | "TAKEAWAY";
+  view?: "checkout" | "history";
 };
 
 export function parseSalesPageFilters(
@@ -23,8 +25,14 @@ export function parseSalesPageFilters(
     page: parsePage(first(params.page)),
     historyPage: parsePage(first(params.history_page)),
     search: (first(params.search) ?? "").trim().slice(0, 100),
+    ...(["checkout", "history"].includes(first(params.view) ?? "")
+      ? { view: first(params.view) as "checkout" | "history" }
+      : {}),
     ...(branchId.success ? { branchId: branchId.data.toLowerCase() } : {}),
     ...(saleId.success ? { saleId: saleId.data.toLowerCase() } : {}),
+    ...(["DINE_IN", "TAKEAWAY"].includes(first(params.service_type) ?? "")
+      ? { serviceType: first(params.service_type) as "DINE_IN" | "TAKEAWAY" }
+      : {}),
   };
 }
 
@@ -36,6 +44,8 @@ export function createSalesHref(filters: SalesPageFilters): string {
     params.set("history_page", String(filters.historyPage));
   if (filters.search.trim()) params.set("search", filters.search.trim());
   if (filters.saleId) params.set("sale_id", filters.saleId);
+  if (filters.serviceType) params.set("service_type", filters.serviceType);
+  if (filters.view) params.set("view", filters.view);
   const query = params.toString();
   return query ? `${salesRoute}?${query}` : salesRoute;
 }

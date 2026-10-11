@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Dispatch } from "@/features/dispatches/types/dispatch.types";
 import type {
@@ -136,14 +136,23 @@ describe("dispatch detail view", () => {
     expect(
       screen.getByRole("region", { name: "Dispatch quantities table" }),
     ).toBeTruthy();
-    expect(screen.getByText("PARTIALLY RECEIVED")).toBeTruthy();
-    expect(screen.getByText("4.5 kg")).toBeTruthy();
-    expect(screen.getByText("Branch Manager")).toBeTruthy();
+    expect(screen.getAllByText("Partially received").length).toBeGreaterThan(0);
+    expect(within(screen.getByRole("table")).getByText("4.5")).toBeTruthy();
+    const activity = screen.getByRole("list", { name: "Delivery activity" });
+    expect(
+      within(activity).getByRole("heading", {
+        name: "Partial receipt recorded",
+      }),
+    ).toBeTruthy();
+    expect(within(activity).getAllByText(/Branch Manager/)).toHaveLength(1);
     expect(screen.getByText("One bag was damaged during transit")).toBeTruthy();
     expect(screen.getByText("2.5000 kg")).toBeTruthy();
-    expect(screen.getByText("SHORTAGE CLOSED")).toBeTruthy();
-    expect(screen.getByText(/Branch receipts \(1\)/)).toBeTruthy();
-    expect(screen.getByText(/Shortage closures \(1\)/)).toBeTruthy();
+    expect(within(activity).getByText("Shortage closed")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("progressbar", { name: "Flour received" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("31.2");
   });
 
   it("explains when a dispatch has no receipt or shortage history", () => {
@@ -233,5 +242,140 @@ describe("dispatch detail view", () => {
     );
 
     expect(screen.getByRole("button", { name: "Close shortage" })).toBeTruthy();
+  });
+
+  it("keeps a closed shortage distinct from fully received stock and hides terminal actions", () => {
+    render(
+      <DispatchDetailView
+        dispatch={{
+          ...dispatch,
+          status: "CLOSED_WITH_SHORTAGE",
+          items: [
+            {
+              ...dispatch.items[0],
+              quantity_received: "2.5000",
+              quantity_shortage_closed: "5.5",
+              quantity_in_transit: "0",
+            },
+          ],
+        }}
+        canDispatch
+        postAction={vi.fn()}
+        canReceive
+        receiveAction={vi.fn()}
+        canCloseShortage
+        shortageAction={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "Delivery closed with shortage" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Receive stock" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close shortage" })).toBeNull();
+    expect(
+      screen
+        .getByRole("progressbar", { name: "Flour received" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("31.2");
+  });
+
+  it("does not round nearly received decimal stock to fully received", () => {
+    render(
+      <DispatchDetailView
+        dispatch={{
+          ...dispatch,
+          items: [
+            {
+              ...dispatch.items[0],
+              quantity_dispatched: "100000000000000000000.0001",
+              quantity_received: "100000000000000000000",
+              quantity_shortage_closed: "0",
+              quantity_in_transit: "0.0001",
+            },
+          ],
+        }}
+        canDispatch={false}
+        postAction={vi.fn()}
+        canReceive={false}
+        receiveAction={vi.fn()}
+        canCloseShortage={false}
+        shortageAction={vi.fn()}
+      />,
+    );
+    expect(
+      screen
+        .getByRole("progressbar", { name: "Flour received" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("99.9");
+    expect(within(screen.getByRole("table")).getByText("0.0001")).toBeTruthy();
+  });
+
+  it("does not leave a receipt pending after all stock was closed as missing", () => {
+    render(
+      <DispatchDetailView
+        dispatch={{
+          ...dispatch,
+          status: "CLOSED_WITH_SHORTAGE",
+          receipts: [],
+          items: [
+            {
+              ...dispatch.items[0],
+              quantity_received: "0",
+              quantity_shortage_closed: "8",
+              quantity_in_transit: "0",
+            },
+          ],
+        }}
+        canDispatch={false}
+        postAction={vi.fn()}
+        canReceive={false}
+        receiveAction={vi.fn()}
+        canCloseShortage={false}
+        shortageAction={vi.fn()}
+      />,
+    );
+    const milestones = screen.getByRole("list", {
+      name: "Delivery milestones",
+    });
+    expect(within(milestones).getByText("No receipt recorded")).toBeTruthy();
+    expect(within(milestones).queryByText("Pending")).toBeNull();
+  });
+
+  it("merges notes and linked receipts once in chronological order", () => {
+    render(
+      <DispatchDetailView
+        dispatch={{
+          ...dispatch,
+          events: [...dispatch.events].reverse(),
+          discrepancy_events: [
+            {
+              id: "note",
+              event_type: "REPORTED",
+              actor_user_id: id,
+              actor_name: "Alex",
+              note: "Please verify the missing bags.",
+              created_at: "2026-09-24T02:00:00.000Z",
+            },
+          ],
+        }}
+        canDispatch={false}
+        postAction={vi.fn()}
+        canReceive={false}
+        receiveAction={vi.fn()}
+        canCloseShortage={false}
+        shortageAction={vi.fn()}
+      />,
+    );
+    const activity = screen.getByRole("list", { name: "Delivery activity" });
+    const entries = within(activity)
+      .getAllByRole("listitem")
+      .filter((entry) => entry.parentElement === activity);
+    expect(entries).toHaveLength(5);
+    expect(entries[0].textContent).toContain("Dispatch created");
+    expect(entries.at(-1)?.textContent).toContain(
+      "Please verify the missing bags.",
+    );
+    expect(within(activity).getAllByText("2.5000 kg")).toHaveLength(1);
+    expect(entries.at(-1)?.textContent).toContain("10:00 AM");
   });
 });

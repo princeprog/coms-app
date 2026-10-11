@@ -158,11 +158,19 @@ async function assertNoDocumentOverflow(page, width, height = 960) {
     await page
       .getByText("Stock balances and recent movements for Manila North.")
       .waitFor();
-    assert(await page.getByRole("button", { name: "Commissary", exact: true }).isDisabled());
-    assert.equal(await page.getByRole("button", { name: "Branches", exact: true }).getAttribute("aria-pressed"), "true");
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Commissary", exact: true })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page.getByRole("button", { name: "Branches", exact: true }).count(),
+      0,
+    );
     assert.equal(
       await page.getByRole("combobox", { name: "Branch" }).count(),
-      1,
+      0,
     );
     assert.equal(
       await page.getByRole("combobox", { name: "Status" }).count(),
@@ -203,11 +211,25 @@ async function assertNoDocumentOverflow(page, width, height = 960) {
     for (const width of [195, 390, 768, 1440, 1920]) {
       await assertNoDocumentOverflow(page, width);
       if (width === 390) {
-        for (const name of ["Stock balances table", "Recent inventory movements table"]) {
-          assert(await page.getByRole("region", { name }).evaluate((element) => element.scrollWidth <= element.clientWidth + 1), `${name} should fit phone width without horizontal scrolling`);
+        for (const name of [
+          "Stock balances table",
+          "Recent inventory movements table",
+        ]) {
+          assert(
+            await page
+              .getByRole("region", { name })
+              .evaluate(
+                (element) => element.scrollWidth <= element.clientWidth + 1,
+              ),
+            `${name} should fit phone width without horizontal scrolling`,
+          );
         }
       }
-      await page.screenshot({ path: path.join(outputDirectory, `inventory-light-${width}.png`), fullPage: true, animations: "disabled" });
+      await page.screenshot({
+        path: path.join(outputDirectory, `inventory-light-${width}.png`),
+        fullPage: true,
+        animations: "disabled",
+      });
     }
     await assertNoDocumentOverflow(page, 390, 667);
     await page.screenshot({
@@ -305,18 +327,45 @@ async function assertNoDocumentOverflow(page, width, height = 960) {
 
     await statusFilter.click();
     await page.getByRole("option", { name: "Inactive", exact: true }).click();
-    await page.waitForURL((url) => url.searchParams.get("status") === "inactive");
+    await page.waitForURL(
+      (url) => url.searchParams.get("status") === "inactive",
+    );
     await categoryFilter.click();
     await page.getByRole("option", { name: "Dry goods", exact: true }).click();
-    await page.waitForURL((url) => url.searchParams.get("category") === "Dry goods");
+    await page.waitForURL(
+      (url) => url.searchParams.get("category") === "Dry goods",
+    );
     await filteredSearch.fill("Dry goods");
-    await page.waitForURL((url) => url.searchParams.get("search") === "Dry goods");
-    await page.getByRole("button", { name: "Remove Status: Inactive", exact: true }).click();
-    await page.waitForURL((url) => !url.searchParams.has("status") && url.searchParams.get("category") === "Dry goods" && url.searchParams.get("search") === "Dry goods" && url.searchParams.get("branch_id") === branchId && !url.searchParams.has("page"));
-    assert.equal(await movementRows.count(), 9, "Removing a balance filter must not change ledger scope");
+    await page.waitForURL(
+      (url) => url.searchParams.get("search") === "Dry goods",
+    );
+    await page
+      .getByRole("button", { name: "Remove Status: Inactive", exact: true })
+      .click();
+    await page.waitForURL(
+      (url) =>
+        !url.searchParams.has("status") &&
+        url.searchParams.get("category") === "Dry goods" &&
+        url.searchParams.get("search") === "Dry goods" &&
+        url.searchParams.get("branch_id") === branchId &&
+        !url.searchParams.has("page"),
+    );
+    assert.equal(
+      await movementRows.count(),
+      9,
+      "Removing a balance filter must not change ledger scope",
+    );
     await page.getByRole("button", { name: "Clear all", exact: true }).click();
-    await page.waitForURL((url) => url.searchParams.get("scope") === "BRANCH" && url.searchParams.get("branch_id") === branchId && [...url.searchParams.keys()].length === 2);
-    await page.getByRole("region", { name: "Stock balances table" }).getByRole("row", { name: /Flour/ }).waitFor();
+    await page.waitForURL(
+      (url) =>
+        url.searchParams.get("scope") === "BRANCH" &&
+        url.searchParams.get("branch_id") === branchId &&
+        [...url.searchParams.keys()].length === 2,
+    );
+    await page
+      .getByRole("region", { name: "Stock balances table" })
+      .getByRole("row", { name: /Flour/ })
+      .waitFor();
     assert.equal(await balanceRows.count(), 9);
 
     await page.emulateMedia({ colorScheme: "dark" });
@@ -331,7 +380,11 @@ async function assertNoDocumentOverflow(page, width, height = 960) {
     });
     for (const width of [195, 390, 768, 1440, 1920]) {
       await assertNoDocumentOverflow(page, width);
-      await page.screenshot({ path: path.join(outputDirectory, `inventory-dark-${width}.png`), fullPage: true, animations: "disabled" });
+      await page.screenshot({
+        path: path.join(outputDirectory, `inventory-dark-${width}.png`),
+        fullPage: true,
+        animations: "disabled",
+      });
     }
     assert.deepEqual(browserErrors, []);
     console.log(

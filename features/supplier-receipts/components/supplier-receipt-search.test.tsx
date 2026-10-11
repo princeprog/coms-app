@@ -11,9 +11,6 @@ const props = {
   page: { items: [], total: 0, page: 3, page_size: 25 },
   search: "",
   canCreate: false,
-  formOptions: null,
-  formOptionsIssue: null,
-  createAction: vi.fn(),
 };
 afterEach(() => {
   vi.useRealTimers();

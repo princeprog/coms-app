@@ -96,10 +96,7 @@ describe("branch product page loader", () => {
         status: "unknown",
       },
       filters: { page: 1, search: "chicken", isAvailable: false },
-      canCreate: true,
-      canUpdatePrice: true,
-      canUpdateAvailability: true,
-      productOptions: [{ id: productId, product_name: "Chicken sandwich" }],
+      canManage: false,
     });
     expect(getBranchProductPageData).toHaveBeenCalledWith({
       branchId,
@@ -107,7 +104,7 @@ describe("branch product page loader", () => {
       search: "chicken",
       isAvailable: false,
     });
-    expect(getActiveProductOptions).toHaveBeenCalledOnce();
+    expect(getActiveProductOptions).not.toHaveBeenCalled();
     expect(getBranchOptions).not.toHaveBeenCalled();
   });
 
@@ -137,9 +134,6 @@ describe("branch product page loader", () => {
         name: "Airport",
         status: "inactive",
       },
-      canCreate: false,
-      canUpdatePrice: false,
-      canUpdateAvailability: false,
     });
     expect(getBranchOptions).toHaveBeenCalledOnce();
     expect(getBranchProductPageData).toHaveBeenCalledWith(
@@ -169,9 +163,6 @@ describe("branch product page loader", () => {
       ),
     ).resolves.toMatchObject({
       status: "ready",
-      canCreate: false,
-      canUpdatePrice: false,
-      canUpdateAvailability: false,
     });
     expect(getBranchProductPageData).toHaveBeenCalledOnce();
   });
@@ -224,6 +215,22 @@ describe("branch product page loader", () => {
       status: "branch-products-error",
       selectedBranch: { id: branchId },
       filters: { page: 1, search: "chicken" },
+    });
+  });
+
+  it("preserves service and sort when recovering an out-of-range page", async () => {
+    getBranchProductPageData.mockResolvedValueOnce({ ...page, page: 9 });
+    await expect(
+      loadBranchProductsView(user(["branch_products.read"]), {
+        page: "9",
+        search: "chicken",
+        is_available: "false",
+        service_type: "TAKEAWAY",
+        sort: "price:desc",
+      }),
+    ).resolves.toEqual({
+      status: "redirect",
+      href: `/branch-products?branch_id=${branchId}&service_type=TAKEAWAY&sort=price%3Adesc&search=chicken&is_available=false`,
     });
   });
 });

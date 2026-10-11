@@ -1,4 +1,9 @@
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { DatePicker } from "@/components/shared/date-picker";
 import {
   Select,
@@ -28,7 +33,12 @@ export function SupplierReceiptDeliveryFields({
   return (
     <FieldGroup className="grid gap-4 sm:grid-cols-2">
       <Field>
-        <FieldLabel htmlFor="receipt-supplier">Supplier</FieldLabel>
+        <FieldLabel htmlFor="receipt-supplier">
+          Supplier{" "}
+          <span aria-hidden="true" className="text-destructive">
+            *
+          </span>
+        </FieldLabel>
         <Select
           value={supplierId}
           disabled={disabled}
@@ -62,9 +72,15 @@ export function SupplierReceiptDeliveryFields({
             </SelectGroup>
           </SelectContent>
         </Select>
+        <FieldDescription>Choose an active supplier.</FieldDescription>
       </Field>
       <Field>
-        <FieldLabel htmlFor="receipt-date">Delivery date</FieldLabel>
+        <FieldLabel htmlFor="receipt-date">
+          Delivery date{" "}
+          <span aria-hidden="true" className="text-destructive">
+            *
+          </span>
+        </FieldLabel>
         <DatePicker
           id="receipt-date"
           label="Delivery date"
@@ -72,6 +88,9 @@ export function SupplierReceiptDeliveryFields({
           disabled={disabled}
           onChange={onReceivedAtChange}
         />
+        <FieldDescription>
+          Select the date the delivery arrived.
+        </FieldDescription>
       </Field>
     </FieldGroup>
   );

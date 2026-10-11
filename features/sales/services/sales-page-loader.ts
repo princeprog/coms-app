@@ -126,6 +126,10 @@ export async function loadSalesView(
             page: filters.page,
             search: filters.search,
             isAvailable: true,
+            eligibleOnly: true,
+            ...(filters.serviceType
+              ? { serviceType: filters.serviceType }
+              : {}),
           }),
         )
       : Promise.resolve({ data: null } as Captured<SalesMenuPage | null>),

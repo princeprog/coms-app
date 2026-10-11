@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  serviceTypesSchema,
+  serviceTypeSchema,
+} from "@/features/menus/schemas/menu.schema";
 
 const nonnegativeDecimalString = z
   .string()
@@ -13,6 +17,13 @@ export const branchProductSchema = z.object({
   description: z.string().nullable(),
   product_is_active: z.boolean(),
   price: nonnegativeDecimalString,
+  price_revision: z.number().int().nonnegative().optional(),
+  service_types: z.array(serviceTypeSchema).optional(),
+  available_service_types: z.array(serviceTypeSchema).optional(),
+  eligible_service_types: z.array(serviceTypeSchema).optional(),
+  blocked_reason: z.string().nullable().optional(),
+  has_dine_in: z.boolean().optional(),
+  has_takeaway: z.boolean().optional(),
   is_available: z.boolean(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
@@ -28,14 +39,13 @@ export const branchProductPageSchema = z.object({
 export const branchProductCreateSchema = z
   .object({
     product_id: z.uuid(),
-    price: nonnegativeDecimalString,
+    service_types: serviceTypesSchema,
   })
-  .strict();
-
-export const branchProductPriceSchema = z
-  .object({ price: nonnegativeDecimalString })
   .strict();
 
 export const branchProductAvailabilitySchema = z
   .object({ is_available: z.boolean() })
+  .strict();
+export const branchProductServicesSchema = z
+  .object({ service_types: serviceTypesSchema })
   .strict();

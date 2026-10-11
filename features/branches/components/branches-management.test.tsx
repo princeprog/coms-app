@@ -27,7 +27,7 @@ vi.mock("../services/branch-actions", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn() }),
+  useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
 }));
 
 vi.mock("sonner", () => ({
@@ -87,22 +87,22 @@ describe("branch management", () => {
       within(table).getByRole("columnheader", { name: "Branch" }),
     ).toBeTruthy();
     expect(
-      within(table).getByRole("columnheader", { name: "Code" }),
+      within(table).getByRole("columnheader", { name: "Opened" }),
     ).toBeTruthy();
     expect(
-      within(table).getByRole("columnheader", { name: "Address" }),
-    ).toBeTruthy();
-    expect(
-      within(table).getByRole("columnheader", { name: "Date opened" }),
-    ).toBeTruthy();
-    expect(
-      within(table).getByRole("columnheader", { name: "Dine-in" }),
+      within(table).getByRole("columnheader", { name: "Services" }),
     ).toBeTruthy();
     expect(within(table).getByText("North Avenue")).toBeTruthy();
-    expect(within(table).getByText("Available")).toBeTruthy();
+    expect(within(table).getAllByText("Dine-in").length).toBeGreaterThan(0);
+    expect(within(table).getAllByText("Takeout").length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("Branch code")).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Edit Manila North" }));
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Manila North" }),
+    );
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Edit branch" }),
+    );
     const dialog = screen.getByRole("dialog", { name: "Edit branch" });
     expect(within(dialog).getByLabelText("Branch name")).toHaveProperty(
       "value",
@@ -133,6 +133,7 @@ describe("branch management", () => {
       address: null,
       date_opened: null,
       has_dine_in: true,
+      has_takeaway: true,
     });
     expect(toast.success).toHaveBeenCalledWith("Branch created.", {
       description: "Code: BR-0123456789ABCDEF",
@@ -174,6 +175,7 @@ describe("branch management", () => {
       address: null,
       date_opened: format(today, "yyyy-MM-dd"),
       has_dine_in: false,
+      has_takeaway: true,
     });
   });
 
@@ -270,7 +272,12 @@ describe("branch management", () => {
     vi.mocked(updateBranchAction).mockResolvedValue({ ok: true });
     renderBranches();
 
-    await user.click(screen.getByRole("button", { name: "Edit Manila North" }));
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Manila North" }),
+    );
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Edit branch" }),
+    );
     const dialog = screen.getByRole("dialog", { name: "Edit branch" });
     await user.clear(within(dialog).getByLabelText("Branch name"));
     await user.type(
@@ -286,6 +293,7 @@ describe("branch management", () => {
       address: "North Avenue",
       date_opened: "2024-05-01",
       has_dine_in: true,
+      has_takeaway: true,
     });
   });
 
@@ -295,10 +303,13 @@ describe("branch management", () => {
     renderBranches();
 
     const trigger = screen.getByRole("button", {
-      name: "Deactivate Manila North",
+      name: "Actions for Manila North",
     });
     trigger.focus();
     await user.keyboard("{Enter}");
+    await user.click(
+      screen.getByRole("menuitem", { name: "Deactivate branch" }),
+    );
     const confirmation = screen.getByRole("alertdialog", {
       name: "Deactivate Manila North?",
     });
@@ -310,6 +321,89 @@ describe("branch management", () => {
     );
     await waitFor(() =>
       expect(deactivateBranchAction).toHaveBeenCalledWith(branches.items[0].id),
+    );
+  });
+
+  it("keeps edited branch details after a failed save and allows retry", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateBranchAction)
+      .mockResolvedValueOnce({ ok: false, error: "Unable to save. Try again." })
+      .mockResolvedValueOnce({ ok: true });
+    renderBranches();
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Manila North" }),
+    );
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Edit branch" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Edit branch" });
+    await user.clear(within(dialog).getByLabelText("Branch name"));
+    await user.type(
+      within(dialog).getByLabelText("Branch name"),
+      "Edited branch",
+    );
+    await user.click(
+      within(dialog).getByRole("switch", { name: "Takeout available" }),
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: "Save branch details" }),
+    );
+    expect(within(dialog).getByRole("alert").textContent).toContain(
+      "Unable to save",
+    );
+    expect(within(dialog).getByLabelText("Branch name")).toHaveProperty(
+      "value",
+      "Edited branch",
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: "Save branch details" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Edit branch" })).toBeNull(),
+    );
+    expect(updateBranchAction).toHaveBeenLastCalledWith(
+      branches.items[0].id,
+      expect.objectContaining({
+        branch_name: "Edited branch",
+        has_takeaway: false,
+      }),
+    );
+  });
+
+  it("allows authorized edits to inactive branch details without offering deactivation", async () => {
+    const user = userEvent.setup();
+    renderBranches({
+      branches: {
+        ...branches,
+        items: [{ ...branches.items[0], status: "inactive" }],
+      },
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Manila North" }),
+    );
+    expect(
+      await screen.findByRole("menuitem", { name: "Edit branch" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("menuitem", { name: "Deactivate branch" }),
+    ).toBeNull();
+  });
+
+  it("preserves applied filters and sorting in pagination links", () => {
+    renderBranches({
+      branches: { ...branches, total: 51 },
+      filters: {
+        page: 1,
+        search: "North",
+        status: "active",
+        service_type: "TAKEAWAY",
+        sort: "opened_desc",
+      },
+    });
+    expect(
+      screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
+    ).toBe(
+      "/branches?search=North&status=active&service_type=TAKEAWAY&sort=opened_desc&page=2",
     );
   });
 });

@@ -33,7 +33,8 @@ describe("SiteHeader route titles", () => {
     ["/dashboard", "Dashboard"],
     ["/receipts", "Supplier Receiving"],
     ["/receipts/receipt-1", "Supplier Receiving"],
-    ["/recipes/product-1", "Recipe"],
+    ["/recipes/product-1", "Products"],
+    ["/menu-requests/request-1", "Branch Menu"],
   ])("shows the title for %s", (pathname, title) => {
     navigationState.pathname = pathname;
     render(<SiteHeader />);

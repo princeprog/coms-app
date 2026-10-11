@@ -14,6 +14,7 @@ import {
 
 export function DispatchTransitionSheet({
   triggerLabel,
+  primary = false,
   title,
   description,
   formLabel,
@@ -29,6 +30,7 @@ export function DispatchTransitionSheet({
   children,
 }: {
   triggerLabel: string;
+  primary?: boolean;
   title: string;
   description: string;
   formLabel: string;
@@ -47,7 +49,12 @@ export function DispatchTransitionSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger
         render={
-          <Button type="button" variant="outline">
+          <Button
+            type="button"
+            size="lg"
+            className="min-h-11"
+            variant={primary ? "default" : "outline"}
+          >
             {triggerLabel}
           </Button>
         }

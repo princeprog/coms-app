@@ -15,6 +15,7 @@ const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const stock = {
   id,
   stock_item_name: "Flour",
+  usage_types: ["INGREDIENT"],
   unit: "kg",
   category: "Dry goods",
   is_active: true,

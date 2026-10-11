@@ -17,13 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { StockItem } from "@/features/stock-items/types/stock-item.types";
-
-export type SupplierReceiptLineValue = {
-  key: number;
-  stock_item_id: string;
-  quantity_received: string;
-  unit_cost: string;
-};
+import type { SupplierReceiptLineValue } from "../types/supplier-receipt.types";
 
 export function SupplierReceiptLineFields({
   lines,

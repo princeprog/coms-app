@@ -1,34 +1,26 @@
-import Link from "next/link";
-import { format, parseISO } from "date-fns";
-import { OperationalStatusBadge } from "@/components/shared/operational-page-ui";
-import { buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import type {
   Dispatch,
   DispatchPostAction,
   DispatchReceiveAction,
   DispatchShortageAction,
   DispatchDiscrepancyAction,
-} from "@/features/dispatches/types/dispatch.types";
-import { DispatchHistory } from "./dispatch-history";
+} from "../types/dispatch.types";
+import { DispatchActivity } from "./dispatch-activity";
+import { DispatchDetailHeader } from "./dispatch-detail-header";
 import { DispatchItemTable } from "./dispatch-item-table";
-import { DispatchPostControl } from "./dispatch-post-control";
-import { DispatchReceiveControl } from "./dispatch-receive-control";
-import { DispatchShortageControl } from "./dispatch-shortage-control";
-import { DispatchDiscrepancyControl } from "./dispatch-discrepancy-control";
+import { DispatchMilestones } from "./dispatch-milestones";
+import { DispatchNextActions } from "./dispatch-next-actions";
+import { DispatchStatusBadge } from "./dispatch-status-badge";
 
-export function DispatchDetailView({
-  dispatch,
-  canDispatch,
-  postAction,
-  canReceive,
-  receiveAction,
-  canCloseShortage,
-  shortageAction,
-  canReportDiscrepancy = false,
-  discrepancyAction,
-  canRequestRecount = false,
-  recountAction,
-}: {
+export type DispatchDetailViewProps = {
   dispatch: Dispatch;
   canDispatch: boolean;
   postAction: DispatchPostAction;
@@ -40,118 +32,52 @@ export function DispatchDetailView({
   discrepancyAction?: DispatchDiscrepancyAction;
   canRequestRecount?: boolean;
   recountAction?: DispatchDiscrepancyAction;
-}) {
-  const showPostControl = dispatch.status === "DRAFT" && canDispatch;
-  const showReceiveControl =
-    (dispatch.status === "IN_TRANSIT" ||
-      dispatch.status === "PARTIALLY_RECEIVED") &&
-    canReceive;
-  const showShortageControl =
-    (dispatch.status === "IN_TRANSIT" ||
-      dispatch.status === "PARTIALLY_RECEIVED") &&
-    canCloseShortage;
+};
 
+export function DispatchDetailView(props: DispatchDetailViewProps) {
+  const { dispatch } = props;
   return (
-    <div data-coms-ui="operational" className="flex flex-col gap-6 p-4 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-          href="/dispatches"
-        >
-          Back to dispatches
-        </Link>
-        {showPostControl && (
-          <DispatchPostControl dispatchId={dispatch.id} action={postAction} />
-        )}
-        {showReceiveControl && (
-          <DispatchReceiveControl dispatch={dispatch} action={receiveAction} />
-        )}
-        {showShortageControl && (
-          <DispatchShortageControl
-            dispatch={dispatch}
-            action={shortageAction}
-          />
-        )}
-        {canReportDiscrepancy && discrepancyAction && (
-          <DispatchDiscrepancyControl
-            dispatch={dispatch}
-            mode="report"
-            action={discrepancyAction}
-          />
-        )}
-        {canRequestRecount && recountAction && (
-          <DispatchDiscrepancyControl
-            dispatch={dispatch}
-            mode="recount"
-            action={recountAction}
-          />
-        )}
+    <div data-coms-ui="operational" className="flex min-w-0 flex-col gap-6">
+      <DispatchDetailHeader dispatch={dispatch} />
+      <DispatchMilestones dispatch={dispatch} />
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <DispatchActivity dispatch={dispatch} />
+        <Card className="min-w-0 [--card-spacing:--spacing(5)]">
+          <CardHeader>
+            <CardTitle>
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-lg font-semibold">
+                  {dispatch.status === "DRAFT"
+                    ? "Planned stock items"
+                    : "Current item balances"}
+                </h2>
+                {dispatch.discrepancy && (
+                  <DispatchStatusBadge
+                    status={dispatch.discrepancy.status}
+                    label={
+                      dispatch.discrepancy.status === "OPEN"
+                        ? "Open discrepancy"
+                        : dispatch.discrepancy.status === "RESOLVED"
+                          ? "Discrepancy resolved"
+                          : "Recount requested"
+                    }
+                  />
+                )}
+              </div>
+            </CardTitle>
+            <CardDescription>
+              {dispatch.status === "DRAFT"
+                ? "Stock is deducted from the commissary only when this dispatch is sent."
+                : "In transit = dispatched − received − shortage closed. Receipt progress is shown for each item."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex min-w-0 flex-col gap-5">
+            <DispatchItemTable dispatch={dispatch} />
+            <Separator />
+            <DispatchNextActions {...props} />
+          </CardContent>
+        </Card>
       </div>
-      <section
-        aria-labelledby="dispatch-summary-heading"
-        className="rounded-lg border bg-card"
-      >
-        <header className="flex flex-wrap items-start justify-between gap-3 border-b p-4 md:p-5">
-          <div className="flex flex-col gap-1">
-            <h2 id="dispatch-summary-heading" className="text-lg font-semibold">
-              Dispatch to {dispatch.branch_name}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Commissary shipment prepared for this branch.
-            </p>
-          </div>
-          <OperationalStatusBadge variant="outline">
-            {dispatch.status.replaceAll("_", " ")}
-          </OperationalStatusBadge>
-        </header>
-        <dl className="grid gap-x-6 gap-y-4 p-4 sm:grid-cols-2 lg:grid-cols-4 md:p-5">
-          <DetailField label="Created by" value={dispatch.created_by_name} />
-          <DetailField
-            label="Created"
-            value={format(parseISO(dispatch.created_at), "PPp")}
-          />
-          <DetailField
-            label="Dispatched by"
-            value={dispatch.dispatched_by_name ?? "Not dispatched"}
-          />
-          <DetailField
-            label="Dispatched at"
-            value={
-              dispatch.dispatched_at
-                ? format(parseISO(dispatch.dispatched_at), "PPp")
-                : "Not dispatched"
-            }
-          />
-        </dl>
-      </section>
-      <section
-        aria-labelledby="dispatch-quantities-heading"
-        className="flex flex-col gap-3"
-      >
-        <div>
-          <h2
-            id="dispatch-quantities-heading"
-            className="text-lg font-semibold"
-          >
-            Dispatch quantities
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            In-transit quantity is the dispatched amount less receipts and
-            explicitly closed shortages.
-          </p>
-        </div>
-        <DispatchItemTable dispatch={dispatch} />
-      </section>
-      <DispatchHistory dispatch={dispatch} />
-    </div>
-  );
-}
-
-function DetailField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="font-medium tabular-nums">{value}</dd>
     </div>
   );
 }

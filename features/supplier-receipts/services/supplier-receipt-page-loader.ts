@@ -31,9 +31,14 @@ export type SupplierReceiptIndexViewResult =
       search: string;
       filters: SupplierReceiptPageFilters;
       canCreate: boolean;
-      formOptions: SupplierReceiptFormOptions | null;
-      formOptionsIssue: "permissions" | "forbidden" | "unavailable" | null;
+      createIssue: "permissions" | null;
     };
+
+export type SupplierReceiptCreateViewResult =
+  | { status: "forbidden" }
+  | { status: "session-expired" }
+  | { status: "unavailable" }
+  | { status: "ready"; formOptions: SupplierReceiptFormOptions };
 
 export type SupplierReceiptDetailViewResult =
   | { status: "forbidden" }
@@ -77,27 +82,11 @@ export async function loadSupplierReceiptIndexView(
     };
   }
 
-  const canCreate = hasPermission(user, "supplier_receipts.create");
-  let formOptions: SupplierReceiptFormOptions | null = null;
-  let formOptionsIssue: "permissions" | "forbidden" | "unavailable" | null =
-    null;
-
-  if (canCreate) {
-    const canReadSuppliers = hasPermission(user, "suppliers.read");
-    const canReadStockItems = hasPermission(user, "stock_items.read");
-    if (!canReadSuppliers || !canReadStockItems) {
-      formOptionsIssue = "permissions";
-    } else {
-      try {
-        formOptions = await getSupplierReceiptFormOptions();
-      } catch (error) {
-        const accessFailure = getAccessFailure(error);
-        if (accessFailure?.status === "session-expired") return accessFailure;
-        formOptionsIssue =
-          accessFailure?.status === "forbidden" ? "forbidden" : "unavailable";
-      }
-    }
-  }
+  const hasCreatePermission = hasPermission(user, "supplier_receipts.create");
+  const hasCatalogPermissions =
+    hasPermission(user, "suppliers.read") &&
+    hasPermission(user, "stock_items.read");
+  const canCreate = hasCreatePermission && hasCatalogPermissions;
 
   return {
     status: "ready",
@@ -105,9 +94,33 @@ export async function loadSupplierReceiptIndexView(
     search: filters.search,
     filters,
     canCreate,
-    formOptions,
-    formOptionsIssue,
+    createIssue:
+      hasCreatePermission && !hasCatalogPermissions ? "permissions" : null,
   };
+}
+
+export async function loadSupplierReceiptCreateView(
+  user: User,
+): Promise<SupplierReceiptCreateViewResult> {
+  if (
+    !hasPermission(user, "supplier_receipts.read") ||
+    !hasPermission(user, "supplier_receipts.create") ||
+    !hasPermission(user, "suppliers.read") ||
+    !hasPermission(user, "stock_items.read")
+  ) {
+    return { status: "forbidden" };
+  }
+
+  try {
+    return {
+      status: "ready",
+      formOptions: await getSupplierReceiptFormOptions(),
+    };
+  } catch (error) {
+    const accessFailure = getAccessFailure(error);
+    if (accessFailure) return accessFailure;
+    return { status: "unavailable" };
+  }
 }
 
 export async function loadSupplierReceiptDetailView(

@@ -1,11 +1,23 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const routeTitles: Record<string, string> = {
-  "/branch-products": "Branch Products",
+  "/branch-products": "Branch Menu",
+  "/branch-prices": "Branch Menu",
+  "/menu-requests": "Branch Menu",
+  "/menu-templates": "Branch Menu",
   "/branches": "Branches",
   "/dashboard": "Dashboard",
   "/dispatches": "Dispatches",
@@ -13,16 +25,17 @@ const routeTitles: Record<string, string> = {
   "/pos": "Point of Sale",
   "/products": "Products",
   "/receipts": "Supplier Receiving",
-  "/recipes": "Recipes",
+  "/recipes": "Products",
   "/reports": "Daily Reports",
   "/roles": "Roles and permissions",
   "/staff": "Staff",
   "/stock-items": "Stock Items",
   "/suppliers": "Suppliers",
+  "/payment-methods": "Payment methods",
 };
 
 function getPageTitle(pathname: string): string {
-  if (pathname.startsWith("/recipes/")) return "Recipe";
+  if (pathname.startsWith("/recipes/")) return "Products";
 
   const route = Object.keys(routeTitles).find(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -32,6 +45,12 @@ function getPageTitle(pathname: string): string {
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const productFormTitle =
+    pathname === "/products/new"
+      ? "Create product"
+      : pathname.startsWith("/products/") && pathname.endsWith("/setup")
+        ? "Edit product"
+        : null;
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -41,7 +60,23 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 h-4 data-vertical:self-auto"
         />
-        <h1 className="text-base font-medium">{getPageTitle(pathname)}</h1>
+        {productFormTitle ? (
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink render={<Link href="/products" />}>
+                  Products
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{productFormTitle}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        ) : (
+          <h1 className="text-base font-medium">{getPageTitle(pathname)}</h1>
+        )}
       </div>
     </header>
   );

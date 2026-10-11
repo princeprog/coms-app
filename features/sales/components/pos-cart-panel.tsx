@@ -1,163 +1,165 @@
-import type { FormEventHandler } from "react";
+import type { FormEventHandler, ReactNode } from "react";
+import { ArrowRight, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { multiplySaleDecimals } from "@/features/sales/services/sale-decimal";
-import type { Sale, SalesMenuPage } from "@/features/sales/types/sale.types";
+import { formatProductPrice } from "@/lib/format-currency";
+import { addSaleDecimals } from "../services/sale-decimal";
+import { calculateCashChange } from "../services/pos-cash";
+import type { Sale, SalesMenuPage } from "../types/sale.types";
+import { PosCashPayment } from "./pos-cash-payment";
+import { PosClearOrder } from "./pos-clear-order";
+import { PosCartItem } from "./pos-cart-item";
 
 export type PosCartLine = {
   product: SalesMenuPage["items"][number];
   quantity: string;
 };
 
-const positiveQuantityPattern = /^(?:[1-9]\d*(?:\.\d+)?|0\.\d*[1-9]\d*)$/;
-
 export function PosCartPanel({
   cart,
-  tenderMethod,
+  cash,
+  paymentPicker,
   branchActive,
+  blocked = false,
   pending,
   error,
   lastSale,
   estimatedTotal,
-  onTenderMethodChange,
+  amountReceived,
+  onAmountChange,
   onQuantityChange,
   onRemove,
+  onClear,
   onSubmit,
+  servicePicker,
 }: {
   cart: PosCartLine[];
-  tenderMethod: string;
+  cash: boolean;
+  paymentPicker: ReactNode;
   branchActive: boolean;
+  blocked?: boolean;
   pending: boolean;
   error: string;
   lastSale: Sale | null;
   estimatedTotal: string | null;
-  onTenderMethodChange: (value: string) => void;
+  amountReceived: string;
+  onAmountChange: (value: string) => void;
   onQuantityChange: (productId: string, quantity: string) => void;
   onRemove: (productId: string) => void;
+  onClear: () => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
+  servicePicker: ReactNode;
 }) {
+  const completed = cart.length === 0 && lastSale?.status === "COMPLETED";
+  const total = completed ? lastSale.total_amount : estimatedTotal;
+  const cashValid =
+    !cash || calculateCashChange(amountReceived, total).change !== null;
+  const validQuantities = cart.every(({ quantity }) =>
+    /^(?:[1-9]\d*(?:\.\d+)?|0\.\d*[1-9]\d*)$/.test(quantity),
+  );
+  const count = validQuantities
+    ? addSaleDecimals(cart.map(({ quantity }) => quantity))
+    : "—";
   return (
-    <Card id="pos-cart-panel" className="h-fit scroll-mt-4 lg:sticky lg:top-4">
-      <CardHeader className="border-b">
-        <CardTitle>
-          <h2>Current order</h2>
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          COMS records the tender method only; it does not process payment.
-        </p>
-      </CardHeader>
-      <CardContent>
-        <form
-          className="flex flex-col gap-4"
-          aria-label="POS checkout"
-          onSubmit={onSubmit}
-        >
-          <div className="flex flex-col gap-2">
-            <label htmlFor="pos-tender-method" className="text-sm font-medium">
-              Tender method
-            </label>
-            <Input
-              id="pos-tender-method"
-              value={tenderMethod}
-              onChange={(event) => onTenderMethodChange(event.target.value)}
-              maxLength={40}
-              disabled={pending}
-              required
-            />
-          </div>
-          {cart.length === 0 ? (
-            <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-              Add products to begin a sale.
-            </p>
-          ) : (
-            <ul className="flex flex-col gap-3" aria-label="Cart items">
-              {cart.map(({ product, quantity }) => {
-                const validQuantity = positiveQuantityPattern.test(quantity);
-                return (
-                  <li
-                    key={product.product_id}
-                    className="grid gap-2 rounded-md border p-3 sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:items-end"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {product.product_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground tabular-nums">
-                        {validQuantity
-                          ? `Line estimate: ${multiplySaleDecimals(quantity, product.price)}`
-                          : "Enter a positive decimal quantity."}
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label
-                        htmlFor={`pos-quantity-${product.product_id}`}
-                        className="text-xs font-medium"
-                      >
-                        Quantity
-                      </label>
-                      <Input
-                        id={`pos-quantity-${product.product_id}`}
-                        inputMode="decimal"
-                        value={quantity}
-                        onChange={(event) =>
-                          onQuantityChange(
-                            product.product_id,
-                            event.target.value,
-                          )
-                        }
-                        aria-label={`Quantity for ${product.product_name}`}
-                        maxLength={60}
-                        disabled={pending}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      aria-label={`Remove ${product.product_name}`}
-                      disabled={pending}
-                      onClick={() => onRemove(product.product_id)}
-                    >
-                      Remove
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <div className="flex items-center justify-between border-t pt-3">
-            <span className="font-medium">Estimated total</span>
-            <output
-              aria-label="Estimated total"
-              className="font-semibold tabular-nums"
-            >
-              {estimatedTotal ?? "Check the order details"}
-            </output>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Final price and stock are confirmed by COMS.
-          </p>
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          {lastSale && (
-            <p role="status" className="text-sm">
-              {lastSale.status === "VOIDED"
-                ? "This retry matched a sale that has already been voided."
-                : `Sale recorded. Confirmed total: ${lastSale.total_amount}`}
-            </p>
-          )}
-          <Button
-            type="submit"
-            disabled={!branchActive || pending || cart.length === 0}
+    <section
+      id="pos-cart-panel"
+      aria-labelledby="pos-order-heading"
+      className="flex min-w-0 scroll-mt-4 flex-col gap-4 rounded-xl border bg-card p-4 sm:p-6 xl:sticky xl:top-4 xl:h-fit xl:rounded-none xl:border-0 xl:border-l xl:py-0 xl:pr-0"
+    >
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-baseline gap-3">
+          <h2
+            id="pos-order-heading"
+            className="text-2xl font-semibold tracking-tight"
           >
-            {pending ? "Recording sale…" : "Record sale"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            Current order
+          </h2>
+          <span className="text-sm text-muted-foreground">
+            {count} {count === "1" ? "item" : "items"}
+          </span>
+        </div>
+        <PosClearOrder disabled={pending || !cart.length} onClear={onClear} />
+      </header>
+      {servicePicker}
+      <form
+        className="flex flex-col gap-4"
+        aria-label="POS checkout"
+        onSubmit={onSubmit}
+      >
+        {cart.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-6 text-center text-muted-foreground">
+            <ShoppingBag aria-hidden="true" className="size-7" />
+            <p className="text-sm">
+              {completed
+                ? "Ready for the next order."
+                : "Add products to begin a sale."}
+            </p>
+          </div>
+        ) : (
+          <ul
+            aria-label="Cart items"
+            className="flex max-h-80 flex-col overflow-y-auto"
+          >
+            {cart.map((line) => (
+              <PosCartItem
+                key={line.product.product_id}
+                line={line}
+                pending={pending}
+                onQuantityChange={onQuantityChange}
+                onRemove={onRemove}
+              />
+            ))}
+          </ul>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+          <span className="text-lg font-semibold">
+            {completed ? "Sale total" : "Total to pay"}
+          </span>
+          <output
+            aria-label="Estimated total"
+            className="break-all text-3xl font-semibold tracking-tight tabular-nums"
+          >
+            {total !== null
+              ? formatProductPrice(total)
+              : "Check the order details"}
+          </output>
+        </div>
+        {paymentPicker}
+        {cash && (
+          <PosCashPayment
+            amount={lastSale?.status === "VOIDED" ? "" : amountReceived}
+            total={total}
+            disabled={pending || Boolean(completed) || !cart.length}
+            onChange={onAmountChange}
+          />
+        )}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        {lastSale && (
+          <p role="status" className="text-sm font-medium">
+            {lastSale.status === "VOIDED"
+              ? "This retry matched a sale that has already been voided."
+              : `Sale recorded. Confirmed total: ${lastSale.total_amount}`}
+          </p>
+        )}
+        <Button
+          type="submit"
+          className="h-12 w-full text-base"
+          disabled={
+            !branchActive ||
+            blocked ||
+            pending ||
+            !cart.length ||
+            estimatedTotal === null ||
+            !cashValid
+          }
+        >
+          {pending ? "Recording sale…" : "Complete sale"}
+          <ArrowRight aria-hidden="true" data-icon="inline-end" />
+        </Button>
+      </form>
+    </section>
   );
 }

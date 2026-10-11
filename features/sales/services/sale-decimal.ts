@@ -22,6 +22,20 @@ export function multiplySaleDecimals(left: string, right: string): string {
   );
 }
 
+/** Exact nonnegative difference; null means the amount is insufficient. */
+export function subtractSaleDecimals(
+  left: string,
+  right: string,
+): string | null {
+  const a = parseDecimal(left);
+  const b = parseDecimal(right);
+  const scale = Math.max(a.scale, b.scale);
+  const difference =
+    a.coefficient * powerOfTen(scale - a.scale) -
+    b.coefficient * powerOfTen(scale - b.scale);
+  return difference < BigInt(0) ? null : formatDecimal(difference, scale);
+}
+
 export function calculateSaleTotal(
   items: { quantity: string; unitPrice: string }[],
 ): string {

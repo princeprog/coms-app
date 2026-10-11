@@ -21,10 +21,12 @@ export function DispatchDiscrepancyControl({
   dispatch,
   mode,
   action,
+  primary = false,
 }: {
   dispatch: Dispatch;
   mode: Mode;
   action: DispatchDiscrepancyAction;
+  primary?: boolean;
 }) {
   const router = useRouter();
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
@@ -91,6 +93,7 @@ export function DispatchDiscrepancyControl({
     <>
       <DispatchTransitionSheet
         triggerLabel={triggerLabel}
+        primary={primary}
         title={
           isReport ? "Report a receipt discrepancy" : "Request a branch recount"
         }

@@ -5,7 +5,6 @@ import type { User } from "@/features/auth/types/auth.types";
 import type {
   BranchProductBranchOption,
   BranchProductPage,
-  BranchProductProductOption,
 } from "@/features/branch-products/types/branch-product.types";
 import { ApiRequestError } from "@/services/api-services";
 import {
@@ -14,7 +13,6 @@ import {
   type BranchProductsSearchParams,
 } from "./branch-product-page-params";
 import {
-  getActiveProductOptions,
   getBranchOptions,
   getBranchProductPageData,
 } from "./branch-product-queries";
@@ -42,11 +40,7 @@ export type BranchProductsViewResult =
       filters: ReturnType<typeof parseBranchProductFilters>;
       branchOptions: BranchProductBranchOption[];
       selectedBranch: BranchProductBranchOption;
-      productOptions: BranchProductProductOption[];
-      productOptionsUnavailable: boolean;
-      canCreate: boolean;
-      canUpdatePrice: boolean;
-      canUpdateAvailability: boolean;
+      canManage: boolean;
     };
 
 function isProtectedSuperAdmin(user: User) {
@@ -129,6 +123,8 @@ export async function loadBranchProductsView(
       page: filters.page,
       search: filters.search,
       isAvailable: filters.isAvailable,
+      ...(filters.serviceType ? { serviceType: filters.serviceType } : {}),
+      ...(filters.sort ? { sort: filters.sort } : {}),
     });
   } catch (error) {
     const accessFailure = getAccessFailure(error);
@@ -158,44 +154,19 @@ export async function loadBranchProductsView(
         page: pageCount,
         search: filters.search,
         isAvailable: filters.isAvailable,
+        serviceType: filters.serviceType,
+        sort: filters.sort,
       }),
     };
   }
 
   const branchIsActive = selectedBranch.status !== "inactive";
-  const canCreate =
-    branchIsActive && hasPermission(user, "branch_products.create");
-  const canUpdatePrice =
-    branchIsActive && hasPermission(user, "branch_products.update");
-  const canUpdateAvailability =
-    branchIsActive &&
-    hasPermission(user, "branch_products.availability_update");
-  const productOptions: BranchProductProductOption[] = [];
-  let productOptionsUnavailable = false;
-  if (canCreate) {
-    if (!hasPermission(user, "products.read")) {
-      productOptionsUnavailable = true;
-    } else {
-      try {
-        productOptions.push(...(await getActiveProductOptions()));
-      } catch (error) {
-        const accessFailure = getAccessFailure(error);
-        if (accessFailure?.status === "session-expired") return accessFailure;
-        productOptionsUnavailable = true;
-      }
-    }
-  }
-
   return {
     status: "ready",
     page,
     filters,
     branchOptions,
     selectedBranch,
-    productOptions,
-    productOptionsUnavailable,
-    canCreate,
-    canUpdatePrice,
-    canUpdateAvailability,
+    canManage: isSuperAdmin && branchIsActive,
   };
 }

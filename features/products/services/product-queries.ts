@@ -2,7 +2,10 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { productsEndpoint } from "@/features/products/constants";
-import { productPageSchema } from "@/features/products/schemas/product.schema";
+import {
+  productPageSchema,
+  productSchema,
+} from "@/features/products/schemas/product.schema";
 import type { ProductPage } from "@/features/products/types/product.types";
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
@@ -27,5 +30,15 @@ export async function getProductPageData({
   if (!parsed.success) {
     throw new ApiRequestError("Invalid product catalog response.", 502);
   }
+  return parsed.data;
+}
+
+export async function getProductDetailData(id: string) {
+  const payload = await requestComsApi<unknown>(`${productsEndpoint}/${id}`, {
+    cookieHeader: (await cookies()).toString(),
+  });
+  const parsed = productSchema.safeParse(payload);
+  if (!parsed.success)
+    throw new ApiRequestError("Invalid product response.", 502);
   return parsed.data;
 }

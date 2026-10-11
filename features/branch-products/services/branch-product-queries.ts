@@ -18,14 +18,27 @@ export async function getBranchProductPageData({
   page,
   search,
   isAvailable,
+  serviceType,
+  eligibleOnly,
+  sort,
 }: {
   branchId: string;
   page: number;
   search: string;
   isAvailable?: boolean;
+  serviceType?: "DINE_IN" | "TAKEAWAY";
+  eligibleOnly?: boolean;
+  sort?: string;
 }): Promise<BranchProductPage> {
   const params = new URLSearchParams({ page: String(page), page_size: "25" });
   if (search) params.set("search", search);
+  if (serviceType) params.set("service_type", serviceType);
+  if (eligibleOnly) params.set("eligible_only", "true");
+  if (sort) {
+    const [by, order] = sort.split(":");
+    params.set("sort_by", by);
+    params.set("sort_order", order);
+  }
   if (isAvailable !== undefined)
     params.set("is_available", String(isAvailable));
   const payload = await requestComsApi<unknown>(
@@ -44,6 +57,10 @@ export async function getBranchOptions(): Promise<BranchProductBranchOption[]> {
     id: branch.id,
     name: branch.branch_name,
     status: branch.status,
+    serviceTypes: [
+      ...(branch.has_dine_in ? ["DINE_IN" as const] : []),
+      ...(branch.has_takeaway !== false ? ["TAKEAWAY" as const] : []),
+    ],
   }));
 }
 

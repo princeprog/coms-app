@@ -25,7 +25,6 @@ import {
   productPageSchema,
   productSchema,
 } from "@/features/products/schemas/product.schema";
-import { recipeResponseSchema } from "@/features/recipes/schemas/recipe.schema";
 import {
   branchProductPageSchema,
   branchProductSchema,
@@ -1182,86 +1181,6 @@ describe("operational API fixture", () => {
         ).json(),
       );
       expect(stockItems.items).toHaveLength(25);
-      const flour = stockItems.items[0];
-      const oil = stockItems.items[1];
-      const allStockItems = stockItemPageSchema.parse(
-        await (
-          await fetch(fixture.baseUrl + "/stock-items?page=1&page_size=100", {
-            headers,
-          })
-        ).json(),
-      );
-
-      const existingRecipe = recipeResponseSchema.parse(
-        await (
-          await fetch(
-            fixture.baseUrl + "/products/" + fixtureProductId(0) + "/recipe",
-            { headers },
-          )
-        ).json(),
-      );
-      expect(existingRecipe.items[0]).toMatchObject({
-        stock_item_id: flour.id,
-        quantity_required: "0.0250",
-        stock_item_is_active: true,
-      });
-      expect(existingRecipe.items[1]).toMatchObject({
-        stock_item_id: allStockItems.items[2].id,
-        stock_item_is_active: false,
-        quantity_required: "0.500",
-      });
-
-      const emptyRecipeResponse = await fetch(
-        fixture.baseUrl + "/products/" + fixtureProductId(1) + "/recipe",
-        { headers },
-      );
-      expect(
-        recipeResponseSchema.parse(await emptyRecipeResponse.json()).items,
-      ).toEqual([]);
-
-      const recipeCreateBody = {
-        items: [{ stock_item_id: flour.id, quantity_required: "0.00750" }],
-      };
-      const recipeCreateResponse = await fetch(
-        fixture.baseUrl + "/products/" + fixtureProductId(1) + "/recipe",
-        {
-          method: "POST",
-          headers: { ...headers, "content-type": "application/json" },
-          body: JSON.stringify(recipeCreateBody),
-        },
-      );
-      expect(recipeCreateResponse.status).toBe(201);
-      expect(
-        recipeResponseSchema.parse(await recipeCreateResponse.json()).items[0],
-      ).toMatchObject({
-        stock_item_id: flour.id,
-        quantity_required: "0.00750",
-        stock_item_is_active: true,
-      });
-      const duplicateRecipe = await fetch(
-        fixture.baseUrl + "/products/" + fixtureProductId(1) + "/recipe",
-        {
-          method: "POST",
-          headers: { ...headers, "content-type": "application/json" },
-          body: JSON.stringify(recipeCreateBody),
-        },
-      );
-      expect(duplicateRecipe.status).toBe(409);
-
-      const recipeUpdateResponse = await fetch(
-        fixture.baseUrl + "/products/" + fixtureProductId(0) + "/recipe",
-        {
-          method: "PUT",
-          headers: { ...headers, "content-type": "application/json" },
-          body: JSON.stringify({
-            items: [{ stock_item_id: oil.id, quantity_required: "1.2000" }],
-          }),
-        },
-      );
-      expect(
-        recipeResponseSchema.parse(await recipeUpdateResponse.json()).items,
-      ).toMatchObject([{ stock_item_id: oil.id, quantity_required: "1.2000" }]);
-
       const branchId = "10000000-0000-4000-8000-000000000001";
       const branchProductsResponse = await fetch(
         fixture.baseUrl + `/branches/${branchId}/products?page=1&page_size=25`,
@@ -1443,6 +1362,8 @@ describe("operational API fixture", () => {
         headers: { ...headers, "content-type": "application/json" },
         body: JSON.stringify({
           product_name: "Fixture added product",
+          price: "125.001",
+          service_types: ["DINE_IN", "TAKEAWAY"],
           description: "Created through the operational fixture.",
         }),
       });
@@ -1454,6 +1375,8 @@ describe("operational API fixture", () => {
           headers: { ...headers, "content-type": "application/json" },
           body: JSON.stringify({
             product_name: "Fixture added product",
+            price: "125.001",
+            service_types: ["DINE_IN", "TAKEAWAY"],
             description: "Created through the operational fixture.",
           }),
         },

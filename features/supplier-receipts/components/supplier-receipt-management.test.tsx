@@ -41,9 +41,6 @@ describe("supplier receipt management", () => {
         page={page}
         search="North Farm"
         canCreate={false}
-        formOptions={null}
-        formOptionsIssue={null}
-        createAction={vi.fn()}
       />,
     );
 
@@ -106,9 +103,6 @@ describe("supplier receipt management", () => {
         }}
         search=""
         canCreate={false}
-        formOptions={null}
-        formOptionsIssue={null}
-        createAction={vi.fn()}
       />,
     );
     expect(screen.getByText("9,007,199,254,740,993.1234")).toBeTruthy();
@@ -122,9 +116,6 @@ describe("supplier receipt management", () => {
         page={{ ...page, page: 1, total: 1 }}
         search=""
         canCreate={false}
-        formOptions={null}
-        formOptionsIssue={null}
-        createAction={vi.fn()}
       />,
     );
     expect(screen.getByText("Showing 1–1 of 1 delivery")).toBeTruthy();
@@ -147,14 +138,21 @@ describe("supplier receipt management", () => {
         page={{ items: [], total: 0, page: 1, page_size: 25 }}
         search="Unknown supplier"
         canCreate={false}
-        formOptions={null}
-        formOptionsIssue={null}
-        createAction={vi.fn()}
       />,
     );
 
     expect(
       screen.getByText("No supplier receipts match these filters."),
     ).toBeTruthy();
+  });
+
+  it("links creators to the dedicated delivery page", () => {
+    render(<SupplierReceiptManagement page={page} search="" canCreate />);
+
+    expect(
+      screen
+        .getByRole("button", { name: "Record supplier delivery" })
+        .getAttribute("href"),
+    ).toBe("/receipts/new");
   });
 });

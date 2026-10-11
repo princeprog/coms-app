@@ -8,7 +8,7 @@ import type {
 } from "../types/supplier-receipt.types";
 import type { StockItem } from "@/features/stock-items/types/stock-item.types";
 import type { Supplier } from "@/features/suppliers/types/supplier.types";
-import type { SupplierReceiptLineValue } from "../components/supplier-receipt-line-fields";
+import type { SupplierReceiptLineValue } from "../types/supplier-receipt.types";
 export function useSupplierReceiptCreateForm({
   suppliers,
   stockItems,

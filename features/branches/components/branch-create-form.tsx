@@ -27,11 +27,14 @@ export function BranchCreateForm({
   const [branchName, setBranchName] = useState("");
   const [address, setAddress] = useState("");
   const [dateOpened, setDateOpened] = useState("");
+  const [hasTakeout, setHasTakeout] = useState(true);
   const [hasDineIn, setHasDineIn] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
-  const dirty = Boolean(branchName || address || dateOpened || hasDineIn);
+  const dirty = Boolean(
+    branchName || address || dateOpened || hasDineIn || !hasTakeout,
+  );
 
   function requestClose() {
     if (pending) return;
@@ -44,6 +47,11 @@ export function BranchCreateForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
+    if (!hasDineIn && !hasTakeout) {
+      setError("An active branch must support dine-in or takeout.");
+      return;
+    }
     setError("");
     setPending(true);
     let result: BranchCreateResult;
@@ -53,6 +61,7 @@ export function BranchCreateForm({
         address: address.trim() || null,
         date_opened: dateOpened || null,
         has_dine_in: hasDineIn,
+        has_takeaway: hasTakeout,
       });
     } catch {
       setPending(false);
@@ -68,6 +77,7 @@ export function BranchCreateForm({
     setAddress("");
     setDateOpened("");
     setHasDineIn(false);
+    setHasTakeout(true);
     onOpenChange(false);
     onComplete(result.code);
   }
@@ -98,6 +108,8 @@ export function BranchCreateForm({
             address={address}
             dateOpened={dateOpened}
             hasDineIn={hasDineIn}
+            hasTakeout={hasTakeout}
+            onHasTakeoutChange={setHasTakeout}
             disabled={pending}
             useDatePicker
             onBranchNameChange={setBranchName}
@@ -133,6 +145,7 @@ export function BranchCreateForm({
             setAddress("");
             setDateOpened("");
             setHasDineIn(false);
+            setHasTakeout(true);
             onOpenChange(false);
           }}
         />

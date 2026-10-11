@@ -18,9 +18,11 @@ import { DispatchTransitionSheet } from "./dispatch-transition-sheet";
 export function DispatchReceiveControl({
   dispatch,
   action,
+  primary = false,
 }: {
   dispatch: Dispatch;
   action: DispatchReceiveAction;
+  primary?: boolean;
 }) {
   const router = useRouter();
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
@@ -141,6 +143,7 @@ export function DispatchReceiveControl({
     <>
       <DispatchTransitionSheet
         triggerLabel="Receive stock"
+        primary={primary}
         title="Record branch receipt"
         description="Enter what arrived now. You can record another partial receipt for the remaining quantities later."
         formLabel="Record branch receipt"

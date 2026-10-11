@@ -26,6 +26,8 @@ type Props = Omit<
   search: string;
   activeFilter: "all" | "true" | "false";
   directoryLayout: boolean;
+  directoryTitle?: string;
+  directoryDescription?: string;
   pending: boolean;
   canCreate: boolean;
   onCreate: () => void;
@@ -38,6 +40,8 @@ export function CatalogCollection({
   search,
   activeFilter,
   directoryLayout,
+  directoryTitle,
+  directoryDescription,
   pending,
   canCreate,
   onCreate,
@@ -130,15 +134,21 @@ export function CatalogCollection({
           <div className="flex flex-col gap-1">
             <CardTitle>
               <h3 id="catalog-directory-heading">
-                {resourceName === "supplier"
-                  ? "Supplier directory"
-                  : "Stock item directory"}
+                {directoryTitle ??
+                  (resourceName === "supplier"
+                    ? "Supplier directory"
+                    : resourceName === "product"
+                      ? "Product catalog"
+                      : "Stock item directory")}
               </h3>
             </CardTitle>
             <CardDescription>
-              {resourceName === "supplier"
-                ? "Supplier contacts for receiving, listed A–Z."
-                : "Stock item categories and units, listed A–Z."}
+              {directoryDescription ??
+                (resourceName === "supplier"
+                  ? "Supplier contacts for receiving, listed A–Z."
+                  : resourceName === "product"
+                    ? "One selling price per product. Open details to view branch availability."
+                    : "Stock item categories and units, listed A–Z.")}
             </CardDescription>
           </div>
           {pending && (
@@ -156,7 +166,11 @@ export function CatalogCollection({
       <CardFooter className="border-t px-4 py-3 sm:px-5">
         <CatalogDirectoryPagination
           page={page}
-          filters={{ page: page.page, search, active: activeFilter }}
+          filters={{
+            page: page.page,
+            search,
+            active: activeFilter,
+          }}
           routePath={routePath}
           title={title}
           resourceName={resourceName}

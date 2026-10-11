@@ -8,6 +8,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectGroup,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -17,9 +18,11 @@ import type { BranchProductBranchOption } from "@/features/branch-products/types
 export function PosBranchSelector({
   branches,
   selectedBranchId,
+  view,
 }: {
   branches: BranchProductBranchOption[];
   selectedBranchId: string;
+  view?: "checkout" | "history";
 }) {
   const [branchChoice, setBranchChoice] = useState(selectedBranchId);
 
@@ -27,7 +30,7 @@ export function PosBranchSelector({
     <Form
       action={salesRoute}
       aria-label="Choose sales branch"
-      className="rounded-lg border bg-card p-4"
+      className="max-w-xl"
     >
       <FieldGroup className="grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_auto] sm:items-end">
         <Field className="min-w-0">
@@ -48,15 +51,18 @@ export function PosBranchSelector({
               </SelectValue>
             </SelectTrigger>
             <SelectContent data-coms-ui="operational">
-              {branches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.name}
-                  {branch.status === "inactive" ? " (inactive)" : ""}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id}>
+                    {branch.name}
+                    {branch.status === "inactive" ? " (inactive)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
           <input type="hidden" name="branch_id" value={branchChoice} />
+          {view && <input type="hidden" name="view" value={view} />}
         </Field>
         <Button type="submit" variant="outline" className="w-fit">
           Open branch

@@ -5,13 +5,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BranchRow } from "@/features/branches/components/branch-row";
-import type { BranchPage } from "@/features/branches/types/branch.types";
-
-type BranchAccess = Record<
-  string,
-  { canUpdate: boolean; canDeactivate: boolean }
->;
+import { BranchRow } from "./branch-row";
+import type { BranchAccess, BranchPage } from "../types/branch.types";
 
 export function BranchTable({
   branches,
@@ -23,31 +18,46 @@ export function BranchTable({
   onComplete: (message: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <Table aria-label="Branches">
-        <TableHeader className="bg-muted/40">
-          <TableRow>
-            <TableHead>Branch</TableHead>
-            <TableHead>Code</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Date opened</TableHead>
-            <TableHead>Dine-in</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {branches.items.map((branch) => (
-            <BranchRow
-              key={branch.id}
-              branch={branch}
-              canUpdate={branchAccess[branch.id]?.canUpdate ?? false}
-              canDeactivate={branchAccess[branch.id]?.canDeactivate ?? false}
-              onComplete={onComplete}
-            />
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <Table
+      aria-label="Branches"
+      containerProps={{
+        role: "region",
+        "aria-label": "Branch directory",
+        tabIndex: 0,
+        className:
+          "rounded-lg focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
+      }}
+    >
+      <TableHeader className="bg-muted/40">
+        <TableRow>
+          <TableHead scope="col" className="h-11 px-3 sm:px-4">
+            Branch
+          </TableHead>
+          <TableHead scope="col" className="hidden h-11 px-4 md:table-cell">
+            Services
+          </TableHead>
+          <TableHead scope="col" className="hidden h-11 px-4 lg:table-cell">
+            Opened
+          </TableHead>
+          <TableHead scope="col" className="h-11 px-2 sm:px-4">
+            Status
+          </TableHead>
+          <TableHead scope="col" className="h-11 px-2 text-right sm:px-4">
+            Actions
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {branches.items.map((branch) => (
+          <BranchRow
+            key={branch.id}
+            branch={branch}
+            canUpdate={branchAccess[branch.id]?.canUpdate ?? false}
+            canDeactivate={branchAccess[branch.id]?.canDeactivate ?? false}
+            onComplete={onComplete}
+          />
+        ))}
+      </TableBody>
+    </Table>
   );
 }

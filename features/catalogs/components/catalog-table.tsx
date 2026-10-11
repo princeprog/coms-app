@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { CatalogCellContent, displayValue } from "./catalog-cell-content";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -16,11 +17,6 @@ import type {
   CatalogDisplayColumn,
   CatalogRecord,
 } from "@/features/catalogs/types/catalog.types";
-
-function displayValue(record: CatalogRecord, key: string, missing = "—") {
-  const value = record[key];
-  return typeof value === "string" && value.trim() ? value : missing;
-}
 
 export function CatalogTable({
   title,
@@ -109,59 +105,13 @@ export function CatalogTable({
                     responsive && index === 0 && "pl-4 sm:pl-5",
                   )}
                 >
-                  <span
-                    className={
-                      responsive
-                        ? column.key === "unit"
-                          ? "block"
-                          : "block wrap-anywhere"
-                        : "block truncate"
-                    }
-                    title={
-                      responsive ? undefined : displayValue(record, column.key)
-                    }
-                  >
-                    {displayValue(
-                      record,
-                      column.key,
-                      responsive ? "Not provided" : "—",
-                    )}
-                  </span>
-                  {responsive && index === 0 && (
-                    <div className="flex flex-col items-start gap-1">
-                      {columns
-                        .slice(1)
-                        .filter(
-                          (detail) =>
-                            detail.key !== "unit" &&
-                            displayValue(record, detail.key, ""),
-                        )
-                        .map((detail) => (
-                          <span
-                            key={detail.key}
-                            className="text-xs font-normal text-muted-foreground wrap-anywhere lg:hidden"
-                          >
-                            {detail.key === "category"
-                              ? ""
-                              : `${detail.label}: `}
-                            {displayValue(record, detail.key)}
-                          </span>
-                        ))}
-                      {columns[0]?.key === "supplier_name" &&
-                        columns
-                          .slice(1)
-                          .every(
-                            (detail) => !displayValue(record, detail.key, ""),
-                          ) && (
-                          <span className="text-xs font-normal text-muted-foreground lg:hidden">
-                            No contact details
-                          </span>
-                        )}
-                      <span className="md:hidden">
-                        <CatalogRecordStatus active={record.is_active} />
-                      </span>
-                    </div>
-                  )}
+                  <CatalogCellContent
+                    record={record}
+                    column={column}
+                    columns={columns}
+                    index={index}
+                    responsive={responsive}
+                  />
                 </TableCell>
               ))}
               <TableCell

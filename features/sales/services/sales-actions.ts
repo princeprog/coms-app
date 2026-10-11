@@ -26,7 +26,7 @@ function getActionError(error: unknown) {
     if (error.status === 404)
       return "The selected branch or sale is no longer available.";
     if (error.status === 409)
-      return "Stock or product availability changed. Review the cart and try again.";
+      return "Product availability changed. Review the cart and try again.";
     if (error.status === 400)
       return "Check the tender method and sale quantities.";
   }
@@ -105,6 +105,34 @@ export async function createSaleAction(
     revalidatePath(salesRoute);
     return { ok: true, sale: parsedSale.data };
   } catch (error) {
+    if (
+      error instanceof ApiRequestError &&
+      error.status === 409 &&
+      typeof error.payload === "object" &&
+      error.payload !== null &&
+      "code" in error.payload &&
+      error.payload.code === "PAYMENT_METHOD_UNAVAILABLE"
+    )
+      return {
+        ok: false,
+        code: "PAYMENT_METHOD_UNAVAILABLE",
+        error:
+          "This payment method is no longer accepted. Choose an enabled method and try again.",
+      };
+    if (
+      error instanceof ApiRequestError &&
+      error.status === 409 &&
+      typeof error.payload === "object" &&
+      error.payload !== null &&
+      "code" in error.payload &&
+      error.payload.code === "PRICE_CHANGED"
+    )
+      return {
+        ok: false,
+        error:
+          "Prices changed. Review the updated prices before completing this sale.",
+        code: "PRICE_CHANGED",
+      };
     return { ok: false, error: getActionError(error) };
   }
 }

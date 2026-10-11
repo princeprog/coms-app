@@ -25,7 +25,7 @@ describe("sidebar quick actions", () => {
     expect(
       getSidebarQuickActions(user).map(({ title, href }) => [title, href]),
     ).toEqual([
-      ["Record supplier delivery", "/receipts?create=1"],
+      ["Record supplier delivery", "/receipts/new"],
       ["New dispatch", "/dispatches?create=1"],
       ["New sale", "/pos"],
       ["New daily report", "/reports?create=1"],

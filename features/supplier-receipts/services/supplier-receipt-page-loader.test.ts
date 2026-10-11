@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "@/features/auth/types/auth.types";
 import { ApiRequestError } from "@/services/api-services";
 import {
+  loadSupplierReceiptCreateView,
   loadSupplierReceiptDetailView,
   loadSupplierReceiptIndexView,
 } from "./supplier-receipt-page-loader";
@@ -107,29 +108,25 @@ describe("supplier receipt page loader", () => {
       ),
     ).resolves.toMatchObject({
       status: "ready",
-      canCreate: true,
-      formOptions: null,
-      formOptionsIssue: "permissions",
+      canCreate: false,
+      createIssue: "permissions",
     });
     expect(getSupplierReceiptFormOptions).not.toHaveBeenCalled();
   });
 
   it("loads active supplier and stock item options only with both read grants", async () => {
     await expect(
-      loadSupplierReceiptIndexView(
+      loadSupplierReceiptCreateView(
         user([
           "supplier_receipts.read",
           "supplier_receipts.create",
           "suppliers.read",
           "stock_items.read",
         ]),
-        {},
       ),
     ).resolves.toMatchObject({
       status: "ready",
       formOptions: options,
-      canCreate: true,
-      formOptionsIssue: null,
     });
     expect(getSupplierReceiptFormOptions).toHaveBeenCalledTimes(1);
   });
@@ -169,26 +166,21 @@ describe("supplier receipt page loader", () => {
     });
   });
 
-  it("keeps the receipt list available when optional form options are forbidden", async () => {
+  it("protects the dedicated create page when catalog options are forbidden", async () => {
     getSupplierReceiptFormOptions.mockRejectedValue(
       new ApiRequestError("Catalog access denied.", 403),
     );
 
     await expect(
-      loadSupplierReceiptIndexView(
+      loadSupplierReceiptCreateView(
         user([
           "supplier_receipts.read",
           "supplier_receipts.create",
           "suppliers.read",
           "stock_items.read",
         ]),
-        {},
       ),
-    ).resolves.toMatchObject({
-      status: "ready",
-      formOptions: null,
-      formOptionsIssue: "forbidden",
-    });
+    ).resolves.toEqual({ status: "forbidden" });
   });
 
   it("protects final supplier delivery detail reads", async () => {

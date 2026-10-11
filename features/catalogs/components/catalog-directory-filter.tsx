@@ -61,7 +61,7 @@ export function CatalogDirectoryFilter({
               placeholder={
                 resourceName === "supplier"
                   ? "Search by supplier name..."
-                  : "Search by stock item name..."
+                  : `Search by ${resourceName} name...`
               }
               onChange={(event) => changeSearch(event.target.value)}
             />
@@ -122,7 +122,15 @@ export function CatalogDirectoryFilter({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => clear({ search: "", active: "all" }, "search")}
+            onClick={() =>
+              clear(
+                {
+                  search: "",
+                  active: "all",
+                },
+                "search",
+              )
+            }
           >
             Clear all
           </Button>

@@ -3,7 +3,7 @@ import {
   branchProductAvailabilitySchema,
   branchProductCreateSchema,
   branchProductPageSchema,
-  branchProductPriceSchema,
+  branchProductSchema,
 } from "./branch-product.schema";
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
@@ -38,14 +38,18 @@ describe("branch product schemas", () => {
   it.each(["0", "000.25", "125.0000"])(
     "accepts nonnegative decimal price %s without numeric coercion",
     (price) => {
-      expect(branchProductPriceSchema.safeParse({ price }).success).toBe(true);
+      expect(branchProductSchema.safeParse({ ...offer, price }).success).toBe(
+        true,
+      );
     },
   );
 
   it.each(["-1", "1e2", "1.2.3", 125])(
     "rejects malformed price %s",
     (price) => {
-      expect(branchProductPriceSchema.safeParse({ price }).success).toBe(false);
+      expect(branchProductSchema.safeParse({ ...offer, price }).success).toBe(
+        false,
+      );
     },
   );
 
@@ -53,7 +57,7 @@ describe("branch product schemas", () => {
     expect(
       branchProductCreateSchema.safeParse({
         product_id: productId,
-        price: "99.50",
+        service_types: ["TAKEAWAY"],
       }).success,
     ).toBe(true);
     expect(

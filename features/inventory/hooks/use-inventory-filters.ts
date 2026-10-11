@@ -31,6 +31,9 @@ export function useInventoryFilters({
     key: filterStateKey,
     value: search,
   });
+  if (searchDraft.key !== filterStateKey) {
+    setSearchDraft({ key: filterStateKey, value: search });
+  }
   const draftSearch =
     searchDraft.key === filterStateKey ? searchDraft.value : search;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

@@ -1,9 +1,10 @@
-import nextVitals from "eslint-config-next/core-web-vitals"
-import nextTypescript from "eslint-config-next/typescript"
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
-const config = [...nextVitals, ...nextTypescript]
+const config = [...nextVitals, ...nextTypescript];
 
 config.push(
+  { ignores: ["test-results/**"] },
   {
     files: [
       "components/chart-area-interactive.tsx",
@@ -16,6 +17,6 @@ config.push(
     files: ["test/**/*.cjs"],
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
-)
+);
 
-export default config
+export default config;
