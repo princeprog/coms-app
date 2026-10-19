@@ -1,191 +1,157 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import Form from "next/form";
-import Link from "next/link";
-import { ListFilter, Search, X } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
-import { FieldLabel } from "@/components/ui/field";
+import { useEffect } from "react";
+import { Search, Store, Building2 } from "lucide-react";
+import { StaffFilterChips } from "./staff-filter-chips";
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DirectorySelect } from "@/components/shared/directory-select";
+import { useDirectoryQuery } from "@/hooks/use-directory-query";
 import {
   createStaffPageHref,
   type StaffStatusFilter,
-} from "@/features/staff/services/staff-page-params";
-import type { StaffBranchOption } from "@/features/staff/types/staff.types";
+} from "../services/staff-page-params";
+import type { StaffBranchOption } from "../types/staff.types";
+import { staffStatusOptions } from "./staff-filter-options";
 
 const ALL_BRANCHES = "__all_branches__";
-const statusOptions: { value: StaffStatusFilter; label: string }[] = [
-  { value: "all", label: "All staff" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-  { value: "unassigned", label: "Unassigned" },
-];
-
 export function StaffDirectoryFilters({
   branchOptions,
   selectedBranchId,
   search,
   status,
+  page,
   isSuperAdmin,
-  toolbarActions,
+  onPendingChange,
 }: {
   branchOptions: StaffBranchOption[];
   selectedBranchId?: string;
   search: string;
   status: StaffStatusFilter;
+  page: number;
   isSuperAdmin: boolean;
-  toolbarActions?: ReactNode;
+  onPendingChange: (pending: boolean) => void;
 }) {
-  const [branchChoice, setBranchChoice] = useState(
-    selectedBranchId ?? ALL_BRANCHES,
+  const query = useDirectoryQuery(
+    { page, search, status, branchId: selectedBranchId },
+    (next) =>
+      createStaffPageHref(next.page, next.branchId, next.search, next.status),
   );
-  const selectedBranchExists = branchOptions.some(
-    (branch) => branch.id === selectedBranchId,
+  useEffect(
+    () => onPendingChange(query.pending),
+    [query.pending, onPendingChange],
   );
-  const branchChoiceId =
-    branchChoice === ALL_BRANCHES ? undefined : branchChoice;
-  const unavailableBranchName = selectedBranchId
-    ? `Selected branch ${selectedBranchId.slice(0, 8)}`
-    : "Select a branch";
-
+  const branches = branchOptions.map((branch) => ({
+    value: branch.id,
+    label: branch.name,
+    icon: <Store className="text-blue-600! dark:text-blue-400!" />,
+  }));
+  if (
+    selectedBranchId &&
+    !branchOptions.some((branch) => branch.id === selectedBranchId)
+  )
+    branches.unshift({
+      value: selectedBranchId,
+      label: "Selected branch",
+      icon: <Store className="text-blue-600! dark:text-blue-400!" />,
+    });
+  if (isSuperAdmin)
+    branches.unshift({
+      value: ALL_BRANCHES,
+      label: "All branches",
+      icon: <Building2 className="text-blue-600! dark:text-blue-400!" />,
+    });
+  const fixedBranch = !isSuperAdmin && branches.length === 1;
   return (
-    <section aria-label="Staff filters" className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <Form
-          action="/staff"
-          aria-label="Search staff"
-          className="min-w-0 flex-1"
-        >
-          <InputGroup>
-            <InputGroupAddon>
+    <section aria-label="Staff filters" className="flex min-w-0 flex-col gap-3">
+      <form
+        action="/staff"
+        aria-label="Search staff"
+        className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_12rem_16rem] xl:items-end [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:px-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          query.flushSearch();
+        }}
+      >
+        <Field className="min-w-0 sm:col-span-2 xl:col-span-1">
+          <FieldLabel htmlFor="staff-search">Search staff</FieldLabel>
+          <InputGroup className="h-10">
+            <InputGroupAddon className="pl-3">
               <Search aria-hidden="true" />
             </InputGroupAddon>
             <InputGroupInput
               id="staff-search"
-              aria-label="Search staff"
-              type="search"
               name="search"
-              defaultValue={search}
+              type="search"
               maxLength={120}
-              placeholder="Search staff by name, email, or contact number"
+              value={query.search}
+              onChange={(event) => query.changeSearch(event.target.value)}
+              placeholder="Search by name, email, or contact number…"
+              className="h-full text-base md:text-sm"
             />
-            {search && (
-              <InputGroupAddon align="inline-end">
-                <Link
-                  href={createStaffPageHref(1, selectedBranchId, "", status)}
-                  aria-label="Clear search"
-                  className="rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                  <X aria-hidden="true" className="size-4" />
-                </Link>
-              </InputGroupAddon>
-            )}
           </InputGroup>
-          {selectedBranchId && (
-            <input type="hidden" name="branch_id" value={selectedBranchId} />
-          )}
-          {status !== "all" && (
-            <input type="hidden" name="status" value={status} />
-          )}
-          <button type="submit" className="sr-only">
-            Search staff
-          </button>
-        </Form>
-        {toolbarActions && (
-          <div className="flex max-w-full flex-wrap items-center gap-3">
-            {toolbarActions}
-          </div>
+        </Field>
+        <DirectorySelect
+          id="staff-status"
+          label="Status"
+          value={status}
+          options={staffStatusOptions}
+          alignItemWithTrigger={false}
+          className="sm:w-full"
+          onChange={(value) =>
+            query.apply({ status: value as StaffStatusFilter })
+          }
+        />
+        {fixedBranch ? (
+          <Field className="min-w-0">
+            <FieldLabel>Branch</FieldLabel>
+            <p className="flex h-10 min-w-0 items-center gap-2 rounded-lg border bg-muted/30 px-3 text-sm">
+              <Store
+                aria-hidden="true"
+                className="size-4 shrink-0 text-blue-600 dark:text-blue-400"
+              />
+              <span className="truncate">{branches[0].label}</span>
+            </p>
+          </Field>
+        ) : (
+          <DirectorySelect
+            id="staff-branch-scope"
+            label="Branch scope"
+            value={selectedBranchId ?? ALL_BRANCHES}
+            options={branches}
+            alignItemWithTrigger={false}
+            className="sm:w-full"
+            onChange={(value) =>
+              query.apply({
+                branchId: value === ALL_BRANCHES ? undefined : value,
+              })
+            }
+          />
         )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <nav aria-label="Staff status" className="max-w-full overflow-x-auto">
-          <ButtonGroup className="min-w-max">
-            {statusOptions.map(({ value, label }) => (
-              <Link
-                key={value}
-                data-slot="button"
-                href={createStaffPageHref(1, selectedBranchId, search, value)}
-                aria-current={status === value ? "page" : undefined}
-                className={buttonVariants({
-                  variant: status === value ? "default" : "outline",
-                })}
-              >
-                {label}
-              </Link>
-            ))}
-          </ButtonGroup>
-        </nav>
-
-        <Form
-          action="/staff"
-          aria-label="Filter staff by branch"
-          className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:w-auto"
-        >
-          <FieldLabel htmlFor="staff-branch-scope" className="sr-only">
-            Branch scope
-          </FieldLabel>
-          <Select
-            value={branchChoice}
-            onValueChange={(value) => setBranchChoice(value ?? ALL_BRANCHES)}
-          >
-            <SelectTrigger
-              id="staff-branch-scope"
-              className="w-full min-w-0 sm:w-auto sm:min-w-44 sm:max-w-64"
-            >
-              <SelectValue>
-                {(value: unknown) => {
-                  if (value === ALL_BRANCHES) return "All branches";
-                  return (
-                    branchOptions.find((branch) => branch.id === value)?.name ??
-                    (value === selectedBranchId && !selectedBranchExists
-                      ? unavailableBranchName
-                      : "Select a branch")
-                  );
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent data-coms-ui="operational">
-              {isSuperAdmin && (
-                <SelectItem value={ALL_BRANCHES}>All branches</SelectItem>
-              )}
-              {selectedBranchId && !selectedBranchExists && (
-                <SelectItem value={selectedBranchId}>
-                  Selected branch {selectedBranchId.slice(0, 8)}
-                </SelectItem>
-              )}
-              {branchOptions.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {branchChoiceId && (
-            <input type="hidden" name="branch_id" value={branchChoiceId} />
-          )}
-          {search && <input type="hidden" name="search" value={search} />}
-          {status !== "all" && (
-            <input type="hidden" name="status" value={status} />
-          )}
-          <Button type="submit" variant="outline">
-            <ListFilter aria-hidden="true" />
-            Filter
-          </Button>
-        </Form>
-      </div>
+      </form>
+      <StaffFilterChips
+        search={search}
+        status={status}
+        selectedBranchId={selectedBranchId}
+        isSuperAdmin={isSuperAdmin}
+        branchLabel={
+          branches.find((branch) => branch.value === selectedBranchId)?.label
+        }
+        onApply={(change) => {
+          if (change.search !== undefined) query.changeSearch(change.search);
+          query.apply(change);
+        }}
+      />
+      <span
+        role="status"
+        className={query.pending ? "text-xs text-muted-foreground" : "sr-only"}
+      >
+        {query.pending ? "Updating staff…" : "Search updates as you type."}
+      </span>
     </section>
   );
 }

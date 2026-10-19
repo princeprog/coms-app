@@ -20,7 +20,7 @@ export async function getDispatchPageData(
 ): Promise<DispatchPage> {
   const params = new URLSearchParams({
     page: String(filters.page),
-    page_size: "25",
+    page_size: String(filters.pageSize ?? 10),
   });
   if (filters.status !== "all") params.set("status", filters.status);
   if (filters.discrepancyStatus !== "all")
@@ -33,7 +33,11 @@ export async function getDispatchPageData(
     { cookieHeader: (await cookies()).toString() },
   );
   const parsed = dispatchPageSchema.safeParse(payload);
-  if (!parsed.success || parsed.data.page !== filters.page)
+  if (
+    !parsed.success ||
+    parsed.data.page !== filters.page ||
+    parsed.data.page_size !== (filters.pageSize ?? 10)
+  )
     throw new ApiRequestError("Invalid dispatch list response.", 502);
   return parsed.data;
 }

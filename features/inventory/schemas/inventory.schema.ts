@@ -35,6 +35,7 @@ export const inventoryMovementSchema = z
       "RECEIPT",
       "ADJUSTMENT",
       "DISPATCH",
+      "DISPATCH_RETURN",
       "TRANSFER_IN",
       "SALE",
       "SALE_VOID",

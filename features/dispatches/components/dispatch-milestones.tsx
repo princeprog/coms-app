@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import { Check, Circle, CircleDot } from "lucide-react";
-import { dispatchTimestamp } from "../services/dispatch-detail-presentation";
 import type { Dispatch } from "../types/dispatch.types";
 
 export function DispatchMilestones({ dispatch }: { dispatch: Dispatch }) {
@@ -14,28 +13,25 @@ export function DispatchMilestones({ dispatch }: { dispatch: Dispatch }) {
     {
       label: "Created",
       timestamp: dispatch.created_at,
-      actor: dispatch.created_by_name,
     },
     {
       label: "Dispatched",
       timestamp: dispatch.dispatched_at,
-      actor: dispatch.dispatched_by_name,
     },
     {
-      label:
-        dispatch.status === "PARTIALLY_RECEIVED"
+      label: dispatch.counted_at
+        ? "Branch count"
+        : firstReceipt
           ? "Partially received"
-          : "Branch receipt",
-      timestamp: firstReceipt?.created_at,
-      actor: firstReceipt?.receiver_name,
+          : "Branch count",
+      timestamp: dispatch.counted_at ?? firstReceipt?.created_at,
     },
     {
       label:
         dispatch.status === "CLOSED_WITH_SHORTAGE"
-          ? "Closed with shortage"
+          ? "Resolved with variance"
           : "Completed",
       timestamp: finished ? dispatch.updated_at : null,
-      actor: null,
     },
   ];
   const current = finished
@@ -48,7 +44,7 @@ export function DispatchMilestones({ dispatch }: { dispatch: Dispatch }) {
   return (
     <ol
       aria-label="Delivery milestones"
-      className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-4 sm:gap-0"
+      className="grid gap-y-4 border-b border-border/60 px-6 py-5 sm:grid-cols-4 sm:gap-x-3 sm:px-7"
     >
       {stages.map((stage, index) => {
         const Icon = stage.timestamp
@@ -60,48 +56,33 @@ export function DispatchMilestones({ dispatch }: { dispatch: Dispatch }) {
           <li
             key={index}
             aria-current={index === current ? "step" : undefined}
-            className="relative flex min-w-0 items-start gap-3 sm:flex-col sm:items-center sm:px-3 sm:text-center"
+            className="relative flex min-w-0 items-center gap-2"
           >
-            {index < 3 && (
-              <div
-                aria-hidden="true"
-                className={cn(
-                  "absolute top-4 left-1/2 hidden w-full border-t-2 sm:block",
-                  current > index
-                    ? "border-primary"
-                    : "border-dashed border-border",
-                )}
-              />
-            )}
             <span
               className={cn(
-                "relative flex size-8 shrink-0 items-center justify-center rounded-full",
+                "relative flex size-7 shrink-0 items-center justify-center rounded-full",
                 stage.timestamp
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground",
               )}
             >
-              <Icon className="size-4" aria-hidden="true" />
+              <Icon className="size-3.5" aria-hidden="true" />
             </span>
             <div className="relative flex min-w-0 flex-col gap-1">
               <span className="text-sm font-medium">{stage.label}</span>
-              <span className="text-xs text-muted-foreground wrap-anywhere">
-                {stage.timestamp ? (
-                  <time dateTime={stage.timestamp}>
-                    {dispatchTimestamp(stage.timestamp)}
-                  </time>
-                ) : finished && index === 2 ? (
-                  "No receipt recorded"
-                ) : (
-                  "Pending"
-                )}
+              <span className="sr-only">
+                {stage.timestamp ? "Done" : "Pending"}
               </span>
-              {stage.actor && (
-                <span className="text-xs text-muted-foreground wrap-anywhere">
-                  by {stage.actor}
-                </span>
-              )}
             </div>
+            {index < stages.length - 1 && (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute top-8 left-3.5 h-2.5 w-0.5 -translate-x-1/2 rounded-full sm:static sm:mr-3 sm:ml-1 sm:h-0.5 sm:min-w-3 sm:flex-1 sm:translate-x-0",
+                  index < current ? "bg-primary" : "bg-border",
+                )}
+              />
+            )}
           </li>
         );
       })}

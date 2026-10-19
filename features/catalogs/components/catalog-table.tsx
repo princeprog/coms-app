@@ -61,7 +61,15 @@ export function CatalogTable({
           details or permitted changes.
         </TableCaption>
       )}
-      <TableHeader className={responsive ? undefined : "bg-muted/40"}>
+      <TableHeader
+        className={
+          columns[0]?.key === "product_name"
+            ? "bg-muted"
+            : responsive
+              ? undefined
+              : "bg-muted/40"
+        }
+      >
         <TableRow>
           {columns.map((column) => (
             <TableHead

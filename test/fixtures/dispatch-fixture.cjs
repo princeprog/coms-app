@@ -6,6 +6,7 @@ const DISPATCH_STATUSES = [
   "RECEIVED",
   "CLOSED_WITH_SHORTAGE",
 ];
+const FIXTURE_COUNTER_ID = "11000000-0000-4000-8000-000000000099";
 
 function decimalParts(value) {
   const [whole, fraction = ""] = String(value).split(".");
@@ -93,39 +94,44 @@ function itemReceived(dispatch, dispatchItemId) {
   );
 }
 
-function itemShortageClosed(dispatch, dispatchItemId) {
+function itemShortageClosed(dispatch, dispatchItemId, surplus = false) {
   return decimalSum(
-    dispatch.shortage_closures.flatMap((closure) =>
-      closure.items
-        .filter((item) => item.dispatch_item_id === dispatchItemId)
-        .map((item) => item.quantity_closed),
-    ),
+    dispatch.shortage_closures
+      .filter((closure) => (closure.outcome === "SURPLUS") === surplus)
+      .flatMap((closure) =>
+        closure.items
+          .filter((item) => item.dispatch_item_id === dispatchItemId)
+          .map((item) => item.quantity_closed),
+      ),
   );
 }
 
 function refreshItem(dispatch, item) {
   item.quantity_received = itemReceived(dispatch, item.id);
   item.quantity_shortage_closed = itemShortageClosed(dispatch, item.id);
-  item.quantity_in_transit = decimalSubtract(
-    decimalSubtract(item.quantity_dispatched, item.quantity_received),
-    item.quantity_shortage_closed,
-  );
+  item.quantity_surplus_closed = itemShortageClosed(dispatch, item.id, true);
+  item.quantity_outstanding = decimalSum([
+    decimalSubtract(
+      decimalSubtract(item.quantity_dispatched, item.quantity_received),
+      item.quantity_shortage_closed,
+    ),
+    item.quantity_surplus_closed,
+  ]);
 }
 
 function refreshStatus(dispatch) {
-  const hasRemaining = dispatch.items.some(
-    (item) => decimalCompare(item.quantity_in_transit, "0") > 0,
+  const unsettled = dispatch.items.some(
+    (item) => decimalCompare(item.quantity_outstanding, "0") !== 0,
   );
   const hasReceipts = dispatch.items.some(
     (item) => decimalCompare(item.quantity_received, "0") > 0,
   );
-  const hasShortages = dispatch.items.some(
-    (item) => decimalCompare(item.quantity_shortage_closed, "0") > 0,
-  );
-  if (hasRemaining) {
-    dispatch.status = hasReceipts ? "PARTIALLY_RECEIVED" : "IN_TRANSIT";
+  const hasClosures = dispatch.shortage_closures.length > 0;
+  if (unsettled) {
+    dispatch.status =
+      dispatch.counted_at || hasReceipts ? "PARTIALLY_RECEIVED" : "IN_TRANSIT";
   } else {
-    dispatch.status = hasShortages ? "CLOSED_WITH_SHORTAGE" : "RECEIVED";
+    dispatch.status = hasClosures ? "CLOSED_WITH_SHORTAGE" : "RECEIVED";
   }
 }
 
@@ -136,18 +142,35 @@ function withoutInternalKeys(value) {
 }
 
 function dispatchDetail(dispatch) {
+  const draft = dispatch.status === "DRAFT";
+  const counted = Boolean(dispatch.counted_at);
   return {
     ...withoutInternalKeys(dispatch),
-    items: dispatch.items.map((item) => ({
-      ...withoutInternalKeys(item),
-      quantity_in_transit:
-        dispatch.status === "DRAFT" ? "0" : item.quantity_in_transit,
-    })),
+    delivered_by_name: dispatch.delivered_by_name ?? null,
+    counted_at: dispatch.counted_at ?? null,
+    counted_by_user_id: dispatch.counted_by_user_id ?? null,
+    counted_by_name: dispatch.counted_by_name ?? null,
+    items: dispatch.items.map((item) => {
+      refreshItem(dispatch, item);
+      const outstanding = draft ? "0" : item.quantity_outstanding;
+      return {
+        ...withoutInternalKeys(item),
+        quantity_outstanding: outstanding,
+        quantity_in_transit: draft || counted ? "0" : outstanding,
+        quantity_variance: counted
+          ? decimalSubtract(item.quantity_received, item.quantity_dispatched)
+          : null,
+        awaiting_count:
+          !draft && !counted && decimalCompare(outstanding, "0") > 0,
+      };
+    }),
     receipts: dispatch.receipts.map((receipt) => ({
+      note: null,
       ...withoutInternalKeys(receipt),
       items: receipt.items.map(withoutInternalKeys),
     })),
     shortage_closures: dispatch.shortage_closures.map((closure) => ({
+      outcome: "LOST",
       ...withoutInternalKeys(closure),
       items: closure.items.map(withoutInternalKeys),
     })),
@@ -196,12 +219,14 @@ function makeShortageClosure(
   idempotencyKey,
   reason,
   createdAt,
+  outcome = "LOST",
 ) {
   return {
     id,
     idempotency_key: idempotencyKey,
     closed_by_user_id: seed.user.id,
     closer_name: "Fixture Operations Lead",
+    outcome,
     reason,
     created_at: createdAt,
     items: lines.map(({ item, quantity }, index) => ({
@@ -250,6 +275,10 @@ function createDispatchSeed(stockRequests, seed) {
         dispatched_by_name:
           status === "DRAFT" ? null : "Fixture Operations Lead",
         dispatched_at: dispatchedAt,
+        delivered_by_name: status === "DRAFT" ? null : "Fixture Courier",
+        counted_at: null,
+        counted_by_user_id: null,
+        counted_by_name: null,
         created_at: createdAt,
         updated_at: dispatchedAt ?? createdAt,
         items: sortedRequestItems.map((requestItem, itemIndex) => {
@@ -370,6 +399,9 @@ function createDispatchSeed(stockRequests, seed) {
         dispatch.updated_at = timestamp(dispatchIndex + 3);
       if (status === "PARTIALLY_RECEIVED" && dispatchIndex === 2) {
         const reportedAt = timestamp(dispatchIndex + 4);
+        dispatch.counted_at = timestamp(dispatchIndex + 2);
+        dispatch.counted_by_user_id = FIXTURE_COUNTER_ID;
+        dispatch.counted_by_name = "Fixture Branch Manager";
         dispatch.discrepancy = {
           id: uuid("62000000", dispatchIndex + 1),
           status: "OPEN",
@@ -390,6 +422,12 @@ function createDispatchSeed(stockRequests, seed) {
           created_at: reportedAt,
         });
       }
+      if (status === "RECEIVED" || status === "CLOSED_WITH_SHORTAGE") {
+        dispatch.counted_at = timestamp(dispatchIndex + 2);
+        dispatch.counted_by_user_id = FIXTURE_COUNTER_ID;
+        dispatch.counted_by_name = "Fixture Branch Manager";
+      }
+      for (const item of dispatch.items) refreshItem(dispatch, item);
       return dispatch;
     });
 }
@@ -403,7 +441,7 @@ function validIdempotencyKey(key) {
   );
 }
 
-function actionLines(bodyItems, quantityField) {
+function actionLines(bodyItems, quantityField, allowZero = false) {
   if (
     !Array.isArray(bodyItems) ||
     bodyItems.length < 1 ||
@@ -413,7 +451,11 @@ function actionLines(bodyItems, quantityField) {
   const seen = new Set();
   const lines = [];
   for (const line of bodyItems) {
-    const quantity = normalizePositiveDecimal(line?.[quantityField]);
+    const value = line?.[quantityField];
+    const quantity =
+      allowZero && typeof value === "string" && /^0+(?:\.0+)?$/.test(value)
+        ? "0"
+        : normalizePositiveDecimal(value);
     if (
       typeof line?.dispatch_item_id !== "string" ||
       quantity === null ||
@@ -574,6 +616,14 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       body.items.length > 100
     )
       return send(response, 400, { message: "Check the dispatch request." });
+    const deliveredBy =
+      typeof body.delivered_by_name === "string"
+        ? body.delivered_by_name.trim()
+        : "";
+    if (sending && (!deliveredBy || deliveredBy.length > 120))
+      return send(response, 400, {
+        message: "Enter who is delivering this dispatch.",
+      });
     const branch = state.branches.find(
       (item) => item.id === body.branch_id && item.status === "active",
     );
@@ -594,7 +644,7 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       return send(response, 400, {
         message: "Choose unique active stock items and positive quantities.",
       });
-    const fingerprint = `${branch.id}|${lines
+    const fingerprint = `${branch.id}|${deliveredBy}|${lines
       .map((line) => `${line.stockItem.id}:${line.quantity}`)
       .sort()
       .join("|")}`;
@@ -638,6 +688,10 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       dispatched_by_user_id: sending ? actorId : null,
       dispatched_by_name: sending ? "Fixture Operations Lead" : null,
       dispatched_at: sending ? createdAt : null,
+      delivered_by_name: sending ? deliveredBy : null,
+      counted_at: null,
+      counted_by_user_id: null,
+      counted_by_name: null,
       created_at: createdAt,
       updated_at: createdAt,
       items: lines.map(({ stockItem, quantity }, itemIndex) => ({
@@ -648,6 +702,8 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
         quantity_dispatched: quantity,
         quantity_received: "0",
         quantity_shortage_closed: "0",
+        quantity_surplus_closed: "0",
+        quantity_outstanding: quantity,
         quantity_in_transit: quantity,
       })),
       receipts: [],
@@ -709,7 +765,21 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
     return send(response, 400, { message: "Missing idempotency key." });
 
   if (action === "dispatch") {
-    const retry = resolveIdempotency(state, key, "dispatch", dispatch.id, "");
+    const deliveredBy =
+      typeof body?.delivered_by_name === "string"
+        ? body.delivered_by_name.trim()
+        : "";
+    if (!deliveredBy || deliveredBy.length > 120)
+      return send(response, 400, {
+        message: "Enter who is delivering this dispatch.",
+      });
+    const retry = resolveIdempotency(
+      state,
+      key,
+      "dispatch",
+      dispatch.id,
+      deliveredBy,
+    );
     if (retry) {
       if (retry.conflict)
         return conflict(response, "Idempotency key was already used.");
@@ -766,22 +836,34 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
     dispatch.dispatched_by_user_id = actorId;
     dispatch.dispatched_by_name = "Fixture Operations Lead";
     dispatch.dispatched_at = dispatchedAt;
+    dispatch.delivered_by_name = deliveredBy;
     dispatch.updated_at = dispatchedAt;
     addEvent(dispatch, seed, "DISPATCHED", key, dispatchedAt);
-    recordIdempotency(state, key, "dispatch", dispatch.id, "");
+    recordIdempotency(state, key, "dispatch", dispatch.id, deliveredBy);
     return send(response, 200, dispatchDetail(dispatch));
   }
 
   if (action === "receive" || action === "shortage-closures") {
     const isShortage = action === "shortage-closures";
+    const outcome = isShortage ? body?.outcome : null;
+    if (isShortage && !["LOST", "NOT_LOADED", "SURPLUS"].includes(outcome))
+      return send(response, 400, { message: "Choose a resolution outcome." });
     const lines = actionLines(
       body?.items,
       isShortage ? "quantity_closed" : "quantity_received",
+      !isShortage,
     );
     const reason = isShortage ? body?.reason?.trim() : "";
+    const note =
+      !isShortage && typeof body?.note === "string" && body.note.trim()
+        ? body.note.trim()
+        : null;
     if (!lines || (isShortage && (!reason || reason.length > 500)))
       return send(response, 400, { message: "Invalid dispatch quantities." });
-    const fingerprint = actionFingerprint(lines, reason);
+    const fingerprint = actionFingerprint(
+      lines,
+      isShortage ? `${outcome}|${reason}` : (note ?? ""),
+    );
     const kind = isShortage ? "shortage" : "receive";
     const retry = resolveIdempotency(
       state,
@@ -796,19 +878,20 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       return send(response, 200, dispatchDetail(dispatch));
     }
     if (dispatch.status === "DRAFT")
-      return conflict(response, "Dispatch must be posted before this action.");
+      return conflict(response, "Dispatch must be sent before this action.");
     if (
       dispatch.status === "RECEIVED" ||
       dispatch.status === "CLOSED_WITH_SHORTAGE"
     )
-      return conflict(response, "Dispatch has no remaining in-transit items.");
-    if (!isShortage) {
-      const branch = state.branches.find(
-        (item) => item.id === dispatch.branch_id && item.status === "active",
+      return conflict(response, "This dispatch has no unresolved quantities.");
+    if (!isShortage && dispatch.counted_at)
+      return conflict(response, "This delivery has already been counted");
+    if (isShortage && !dispatch.counted_at)
+      return conflict(
+        response,
+        "The branch must count this delivery before a variance can be resolved",
       );
-      if (!branch)
-        return send(response, 404, { message: "Active branch not found." });
-    }
+    for (const item of dispatch.items) refreshItem(dispatch, item);
     const resolvedLines = [];
     for (const line of lines) {
       const item = dispatch.items.find(
@@ -816,28 +899,91 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
       );
       if (!item)
         return send(response, 404, { message: "Dispatch item not found." });
-      refreshItem(dispatch, item);
-      if (decimalCompare(line.quantity, item.quantity_in_transit) > 0)
-        return send(response, 400, {
-          message: "Quantity exceeds the remaining in-transit amount.",
-        });
+      const outstanding = item.quantity_outstanding;
+      if (isShortage) {
+        const surplus = outcome === "SURPLUS";
+        const unresolved = surplus
+          ? decimalSubtract("0", outstanding)
+          : outstanding;
+        if (
+          decimalCompare(unresolved, "0") <= 0 ||
+          decimalCompare(line.quantity, unresolved) > 0
+        )
+          return send(response, 400, {
+            message: `Resolved quantity for ${item.stock_item_name} exceeds the unresolved variance.`,
+          });
+      }
       resolvedLines.push({ item, quantity: line.quantity });
+    }
+    if (!isShortage) {
+      const awaiting = dispatch.items.filter(
+        (item) => decimalCompare(item.quantity_outstanding, "0") > 0,
+      );
+      if (
+        resolvedLines.length !== awaiting.length ||
+        resolvedLines.some(({ item }) => !awaiting.includes(item))
+      )
+        return send(response, 400, {
+          message: "Count every item in this delivery exactly once",
+        });
     }
 
     const createdAt = timestamp(state.dispatchActionKeys.length + 300);
     const recordSequence = state.dispatchActionKeys.length + 1001;
     if (isShortage) {
       const closureId = uuid("60000000", recordSequence);
-      dispatch.shortage_closures.push(
-        makeShortageClosure(
-          resolvedLines,
-          seed,
-          closureId,
-          key,
-          reason,
-          createdAt,
-        ),
+      const closure = makeShortageClosure(
+        resolvedLines,
+        seed,
+        closureId,
+        key,
+        reason,
+        createdAt,
+        outcome,
       );
+      if (outcome !== "LOST") {
+        for (const { item, quantity } of resolvedLines) {
+          const balance = state.commissaryBalances.find(
+            (candidate) => candidate.id === item.stock_item_id,
+          );
+          if (
+            outcome === "SURPLUS" &&
+            (!balance || decimalCompare(balance.quantity_on_hand, quantity) < 0)
+          )
+            return conflict(
+              response,
+              `Commissary stock for ${item.stock_item_name} is lower than the confirmed surplus. Correct the commissary count first.`,
+            );
+        }
+        for (const { item, quantity } of resolvedLines) {
+          const balance = state.commissaryBalances.find(
+            (candidate) => candidate.id === item.stock_item_id,
+          );
+          if (balance)
+            balance.quantity_on_hand =
+              outcome === "SURPLUS"
+                ? decimalSubtract(balance.quantity_on_hand, quantity)
+                : decimalSum([balance.quantity_on_hand, quantity]);
+          state.commissaryMovements.push({
+            id: uuid("74000000", state.commissaryMovements.length + 1),
+            inventory_scope: "COMMISSARY",
+            branch_id: null,
+            stock_item_id: item.stock_item_id,
+            stock_item_name: item.stock_item_name,
+            unit: item.unit,
+            movement_type: outcome === "SURPLUS" ? "DISPATCH" : "DISPATCH_RETURN",
+            quantity_delta:
+              outcome === "SURPLUS"
+                ? decimalSubtract("0", quantity)
+                : quantity,
+            reason: `Dispatch ${dispatch.id} variance: ${reason}`,
+            actor_user_id: actorId,
+            idempotency_key: key,
+            created_at: createdAt,
+          });
+        }
+      }
+      dispatch.shortage_closures.push(closure);
       for (const item of dispatch.items) refreshItem(dispatch, item);
       refreshStatus(dispatch);
       dispatch.updated_at = createdAt;
@@ -850,20 +996,81 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
         null,
         closureId,
       );
+      resolveSettledDiscrepancy(dispatch, seed, reason, createdAt, recordSequence);
     } else {
       const receiptId = uuid("58000000", recordSequence);
-      dispatch.receipts.push(
-        makeReceipt(resolvedLines, seed, receiptId, key, createdAt),
-      );
+      const receipt = makeReceipt(resolvedLines, seed, receiptId, key, createdAt);
+      receipt.note = note;
+      dispatch.receipts.push(receipt);
+      dispatch.counted_at = createdAt;
+      dispatch.counted_by_user_id = actorId;
+      dispatch.counted_by_name = "Fixture Branch Manager";
       for (const item of dispatch.items) refreshItem(dispatch, item);
       refreshStatus(dispatch);
       dispatch.updated_at = createdAt;
       addEvent(dispatch, seed, "RECEIPT_RECORDED", key, createdAt, receiptId);
+      if (dispatch.status === "PARTIALLY_RECEIVED" && !activeDiscrepancy(dispatch)) {
+        dispatch.discrepancy = {
+          id: uuid("62000000", recordSequence),
+          status: "OPEN",
+          reported_by_user_id: actorId,
+          reported_by_name: "Fixture Branch Manager",
+          reported_at: createdAt,
+          recount_requested_by_user_id: null,
+          recount_requested_by_name: null,
+          recount_requested_at: null,
+          resolved_at: null,
+        };
+        dispatch.discrepancy_events = [
+          ...(dispatch.discrepancy_events ?? []),
+          {
+            id: uuid("63000000", recordSequence),
+            event_type: "REPORTED",
+            actor_user_id: actorId,
+            actor_name: "Fixture Branch Manager",
+            note: note ?? "The branch count differs from the dispatched quantities.",
+            created_at: createdAt,
+          },
+        ];
+      } else
+        resolveSettledDiscrepancy(
+          dispatch,
+          seed,
+          "All dispatched quantities were received.",
+          createdAt,
+          recordSequence,
+        );
     }
     recordIdempotency(state, key, kind, dispatch.id, fingerprint);
     return send(response, 200, dispatchDetail(dispatch));
   }
   return false;
+}
+
+function activeDiscrepancy(dispatch) {
+  return dispatch.discrepancy && dispatch.discrepancy.status !== "RESOLVED";
+}
+
+function resolveSettledDiscrepancy(dispatch, seed, note, createdAt, sequence) {
+  if (dispatch.status === "PARTIALLY_RECEIVED" || !activeDiscrepancy(dispatch))
+    return;
+  dispatch.discrepancy = {
+    ...dispatch.discrepancy,
+    status: "RESOLVED",
+    resolved_at: createdAt,
+  };
+  dispatch.discrepancy_events = [
+    ...(dispatch.discrepancy_events ?? []),
+    {
+      id: uuid("63000000", sequence + 500),
+      event_type:
+        dispatch.status === "RECEIVED" ? "RESOLVED_RECEIVED" : "RESOLVED_SHORTAGE",
+      actor_user_id: seed.user.id,
+      actor_name: "Fixture Operations Lead",
+      note,
+      created_at: createdAt,
+    },
+  ];
 }
 
 module.exports = {

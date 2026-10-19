@@ -17,26 +17,34 @@ import type {
   SalesMenuPage,
 } from "@/features/sales/types/sale.types";
 import { PosCartPanel } from "./pos-cart-panel";
-import { PosProductMenu } from "./pos-product-menu";
+import { PosMenuPanel } from "./pos-menu-panel";
 
 export function PosCheckout({
   branchId,
   branchActive,
   serviceTypes = ["DINE_IN", "TAKEAWAY"],
   appliedService,
+  onServiceChange,
   menuPage,
   action,
   menuControls,
   menuPagination,
+  menuRefreshing = false,
+  menuFiltered = false,
+  menuUnavailable = false,
 }: {
   branchId: string;
   branchActive: boolean;
   serviceTypes?: ServiceType[];
   appliedService?: ServiceType;
+  onServiceChange?: (service: ServiceType) => void;
   menuPage: SalesMenuPage;
   action: SaleCreateAction;
   menuControls?: ReactNode;
   menuPagination?: ReactNode;
+  menuRefreshing?: boolean;
+  menuFiltered?: boolean;
+  menuUnavailable?: boolean;
 }) {
   const payment = usePosPaymentMethods();
   const [amountReceived, setAmountReceived] = useState("");
@@ -67,6 +75,7 @@ export function PosCheckout({
     branchActive,
     serviceTypes,
     appliedService,
+    onServiceChange,
     action,
     paymentMethod: payment.selected,
     paymentUnavailable: payment.unavailable,
@@ -103,23 +112,22 @@ export function PosCheckout({
         </Link>
       )}
       <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,0.7fr)]">
-        <div className="flex min-w-0 flex-col gap-6">
-          {menuControls}
-          <PosProductMenu
-            products={menuPage.items}
-            total={menuPage.total}
-            branchActive={branchActive}
-            pending={pending || needsPriceReview}
-            serviceType={service}
-            cartIsFull={cart.length >= 40}
-            cart={cart}
-            onAdd={(product) => {
-              if (lastSale) setAmountReceived("");
-              addProduct(product);
-            }}
-          />
-          {menuPagination}
-        </div>
+        <PosMenuPanel
+          menuPage={menuPage}
+          menuControls={menuControls}
+          menuPagination={menuPagination}
+          refreshing={menuRefreshing}
+          filtered={menuFiltered}
+          unavailable={menuUnavailable}
+          branchActive={branchActive}
+          pending={pending || needsPriceReview}
+          service={service}
+          cart={cart}
+          onAdd={(product) => {
+            if (lastSale) setAmountReceived("");
+            addProduct(product);
+          }}
+        />
         <PosCartPanel
           cart={cart}
           cash={cash}
@@ -142,6 +150,7 @@ export function PosCheckout({
           branchActive={branchActive}
           blocked={
             !service ||
+            menuUnavailable ||
             needsPriceReview ||
             incompatible.length > 0 ||
             payment.unavailable

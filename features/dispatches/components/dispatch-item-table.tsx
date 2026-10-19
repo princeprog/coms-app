@@ -1,5 +1,3 @@
-import { Fragment } from "react";
-import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -10,144 +8,153 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import type { Dispatch } from "../types/dispatch.types";
-import { receivedPercentage } from "../services/dispatch-detail-presentation";
+import type { Dispatch, DispatchItem } from "../types/dispatch.types";
+
+type Column = {
+  label: string;
+  value: (item: DispatchItem) => string;
+  emphasis?: boolean;
+  wideOnly?: boolean;
+};
+
+function signed(value: string | null | undefined) {
+  if (!value) return "—";
+  if (!/[1-9]/.test(value)) return "0";
+  return value.startsWith("-") ? `−${value.slice(1)}` : `+${value}`;
+}
+
+function columnsFor(dispatch: Dispatch): {
+  columns: Column[];
+  caption?: string;
+} {
+  if (dispatch.status === "DRAFT")
+    return {
+      columns: [
+        {
+          label: "Planned quantity",
+          value: (item) => item.quantity_dispatched ?? "—",
+        },
+      ],
+    };
+  if (dispatch.items.some((item) => item.quantity_dispatched === null))
+    return {
+      columns: [{ label: "Sent", value: () => "Hidden until counted" }],
+    };
+  if (dispatch.counted_at)
+    return {
+      caption: "Difference = counted − sent.",
+      columns: [
+        {
+          label: "Sent",
+          value: (item) => item.quantity_dispatched ?? "—",
+          wideOnly: true,
+        },
+        { label: "Counted", value: (item) => item.quantity_received },
+        {
+          label: "Difference",
+          value: (item) => signed(item.quantity_variance),
+          emphasis: true,
+        },
+        {
+          label: "Unresolved",
+          value: (item) => item.quantity_outstanding?.replace(/^-/, "") ?? "—",
+          wideOnly: true,
+        },
+      ],
+    };
+  return {
+    columns: [
+      { label: "Sent", value: (item) => item.quantity_dispatched ?? "—" },
+      {
+        label: "Received",
+        value: (item) => item.quantity_received,
+        wideOnly: true,
+      },
+      {
+        label: "Awaiting count",
+        value: (item) => item.quantity_in_transit ?? "—",
+        emphasis: true,
+      },
+    ],
+  };
+}
 
 export function DispatchItemTable({ dispatch }: { dispatch: Dispatch }) {
-  const draft = dispatch.status === "DRAFT";
+  const { columns, caption } = columnsFor(dispatch);
   return (
     <Table
       aria-label="Dispatch items"
+      className="text-base"
       containerProps={{
         role: "region",
         "aria-label": "Dispatch quantities table",
         tabIndex: 0,
         className:
-          "rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
       }}
     >
-      <TableCaption className="sr-only">
-        Exact stock quantities by unit. Receipt progress excludes closed
-        shortages.
-      </TableCaption>
-      <TableHeader>
+      {caption && (
+        <TableCaption className="mt-0 px-6 pt-2 pb-4 text-left text-sm sm:px-7">
+          {caption}
+        </TableCaption>
+      )}
+      <TableHeader className="bg-muted/40 [&_th]:h-12 [&_th]:text-sm [&_th]:font-medium [&_th]:text-muted-foreground">
         <TableRow>
-          <TableHead scope="col">Stock item</TableHead>
+          <TableHead scope="col" className="pl-6 sm:pl-7">
+            Stock item
+          </TableHead>
           <TableHead scope="col" className="hidden sm:table-cell">
             Unit
           </TableHead>
-          <TableHead
-            scope="col"
-            className={cn("text-right", !draft && "hidden sm:table-cell")}
-          >
-            {draft ? "Planned quantity" : "Dispatched"}
-          </TableHead>
-          {!draft && (
-            <>
-              <TableHead scope="col" className="text-right">
-                Received
-              </TableHead>
-              <TableHead
-                scope="col"
-                className="hidden text-right whitespace-normal sm:table-cell"
-              >
-                Shortage closed
-              </TableHead>
-              <TableHead scope="col" className="text-right">
-                In transit
-              </TableHead>
-            </>
-          )}
+          {columns.map((column) => (
+            <TableHead
+              key={column.label}
+              scope="col"
+              className={cn(
+                "pr-6 text-right sm:pr-7",
+                column.wideOnly && "hidden sm:table-cell",
+              )}
+            >
+              {column.label}
+            </TableHead>
+          ))}
         </TableRow>
       </TableHeader>
       <TableBody>
-        {dispatch.items.map((item) => {
-          const percent = receivedPercentage(
-            item.quantity_received,
-            item.quantity_dispatched,
-          );
-          return (
-            <Fragment key={item.id}>
-              <TableRow className={cn(!draft && "border-0")}>
-                <TableCell className="min-w-28 max-w-40 py-3 align-top whitespace-normal">
-                  <span className="font-medium wrap-anywhere">
-                    {item.stock_item_name}
-                  </span>
-                  <span className="mt-1 block text-xs text-muted-foreground sm:hidden">
-                    {item.unit}
-                  </span>
-                  {!draft && (
-                    <dl className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground sm:hidden">
-                      <div>
-                        <dt className="inline">Dispatched: </dt>
-                        <dd className="inline tabular-nums">
-                          {item.quantity_dispatched}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="inline">Shortage closed: </dt>
-                        <dd className="inline tabular-nums">
-                          {item.quantity_shortage_closed}
-                        </dd>
-                      </div>
-                    </dl>
-                  )}
-                </TableCell>
-                <TableCell className="hidden py-3 align-top text-muted-foreground sm:table-cell">
-                  {item.unit}
-                </TableCell>
-                <TableCell
-                  className={cn(
-                    "py-3 text-right align-top tabular-nums",
-                    !draft && "hidden sm:table-cell",
-                  )}
-                >
-                  {item.quantity_dispatched}
-                </TableCell>
-                {!draft && (
-                  <>
-                    <TableCell className="py-3 text-right align-top tabular-nums">
-                      {item.quantity_received}
-                    </TableCell>
-                    <TableCell className="hidden py-3 text-right align-top tabular-nums sm:table-cell">
-                      {item.quantity_shortage_closed}
-                    </TableCell>
-                    <TableCell className="py-3 text-right align-top font-medium tabular-nums">
-                      {item.quantity_in_transit}
-                    </TableCell>
-                  </>
+        {dispatch.items.map((item) => (
+          <TableRow key={item.id} className="hover:bg-transparent">
+            <TableCell className="min-w-28 max-w-48 py-6 pl-6 align-top whitespace-normal sm:pl-7">
+              <span className="font-medium wrap-anywhere">
+                {item.stock_item_name}
+              </span>
+              <span className="mt-1 block text-sm text-muted-foreground sm:hidden">
+                {item.unit}
+              </span>
+            </TableCell>
+            <TableCell className="hidden py-6 align-top text-muted-foreground sm:table-cell">
+              {item.unit}
+            </TableCell>
+            {columns.map((column) => (
+              <TableCell
+                key={column.label}
+                className={cn(
+                  "py-6 pr-6 text-right align-top tabular-nums sm:pr-7",
+                  column.emphasis && "font-medium",
+                  column.wideOnly && "hidden sm:table-cell",
                 )}
-              </TableRow>
-              {!draft && (
-                <TableRow>
-                  <TableCell colSpan={6} className="pt-0 pb-4">
-                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-                      <Progress
-                        value={percent}
-                        aria-label={`${item.stock_item_name} received`}
-                        className={cn(
-                          "min-w-16 flex-1 [&_[data-slot=progress-track]]:h-2",
-                          percent === 100 &&
-                            "[&_[data-slot=progress-indicator]]:bg-emerald-700",
-                        )}
-                      />
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {percent}% received
-                      </span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </Fragment>
-          );
-        })}
+              >
+                {column.value(item)}
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
         {dispatch.items.length === 0 && (
           <TableRow>
             <TableCell
-              colSpan={draft ? 3 : 6}
+              colSpan={columns.length + 2}
               className="py-6 text-center text-muted-foreground"
             >
-              This dispatch has no item lines.
+              No stock items.
             </TableCell>
           </TableRow>
         )}

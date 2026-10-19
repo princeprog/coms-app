@@ -11,12 +11,17 @@ export async function getStockItemPageData({
   page,
   search,
   active,
+  pageSize = 10,
 }: {
   page: number;
   search: string;
   active?: boolean;
+  pageSize?: number;
 }): Promise<StockItemPage> {
-  const params = new URLSearchParams({ page: String(page), page_size: "25" });
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
   if (search) params.set("search", search);
   if (active !== undefined) params.set("is_active", String(active));
   const payload = await requestComsApi<unknown>(

@@ -174,6 +174,7 @@ export async function loadInventoryView(
           scope: "BRANCH",
           branchId: selectedBranchId!,
           page: filters.page,
+          pageSize: filters.pageSize,
           search: filters.search,
           ...(filters.status ? { status: filters.status } : {}),
           ...(filters.category ? { category: filters.category } : {}),
@@ -181,6 +182,7 @@ export async function loadInventoryView(
       : {
           scope: "COMMISSARY",
           page: filters.page,
+          pageSize: filters.pageSize,
           search: filters.search,
           ...(filters.status ? { status: filters.status } : {}),
           ...(filters.category ? { category: filters.category } : {}),
@@ -204,6 +206,7 @@ export async function loadInventoryView(
         scope,
         branchId: selectedBranchId,
         page: pageCount,
+        pageSize: filters.pageSize,
         search: filters.search,
         status: filters.status,
         category: filters.category,

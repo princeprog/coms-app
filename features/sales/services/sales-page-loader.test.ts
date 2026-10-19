@@ -4,11 +4,13 @@ import { loadSalesView } from "./sales-page-loader";
 
 const {
   getBranchOptions,
+  getBranchMenuCategories,
   getBranchProductPageData,
   getSaleDetailData,
   getSalePageData,
 } = vi.hoisted(() => ({
   getBranchOptions: vi.fn(),
+  getBranchMenuCategories: vi.fn(),
   getBranchProductPageData: vi.fn(),
   getSaleDetailData: vi.fn(),
   getSalePageData: vi.fn(),
@@ -17,6 +19,7 @@ const {
 vi.mock("server-only", () => ({}));
 vi.mock("@/features/branch-products/services/branch-product-queries", () => ({
   getBranchOptions,
+  getBranchMenuCategories,
   getBranchProductPageData,
 }));
 vi.mock("./sales-queries", () => ({ getSaleDetailData, getSalePageData }));
@@ -57,6 +60,9 @@ const menuPage = {
       product_id: productId,
       product_name: "Chicken sandwich",
       description: null,
+      category_id: "aa000000-0000-4000-8000-000000000001",
+      category_name: "Rice meals",
+      category_is_active: true,
       product_is_active: true,
       price: "125.00",
       is_available: true,
@@ -86,6 +92,11 @@ describe("POS page loader", () => {
     );
   });
   beforeEach(() => {
+    getBranchMenuCategories
+      .mockReset()
+      .mockResolvedValue([
+        { id: "aa000000-0000-4000-8000-000000000001", name: "Rice meals" },
+      ]);
     getBranchOptions.mockReset().mockResolvedValue(branches);
     getBranchProductPageData.mockReset().mockResolvedValue(menuPage);
     getSalePageData.mockReset().mockResolvedValue(salesPage);
@@ -100,6 +111,61 @@ describe("POS page loader", () => {
       created_at: timestamp,
       items: [],
       events: [],
+    });
+  });
+
+  it("passes category to the server and loads options independently of search", async () => {
+    const categoryId = "aa000000-0000-4000-8000-000000000001";
+    const result = await loadSalesView(
+      user(["sales.create", "branch_products.read", "branches.read"]),
+      { category_id: categoryId, search: "adobo", service_type: "DINE_IN" },
+    );
+    expect(result).toMatchObject({
+      status: "ready",
+      categories: [{ id: categoryId, name: "Rice meals" }],
+    });
+    expect(getBranchProductPageData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categoryId,
+        search: "adobo",
+        eligibleOnly: true,
+      }),
+    );
+    expect(getBranchMenuCategories).toHaveBeenCalledWith(branchId, "DINE_IN");
+  });
+  it("resets a stale category without losing the branch, service or search", async () => {
+    const result = await loadSalesView(
+      user(["sales.create", "branch_products.read", "branches.read"]),
+      {
+        branch_id: branchId,
+        category_id: productId,
+        search: "adobo",
+        service_type: "DINE_IN",
+        page: "3",
+      },
+    );
+    expect(result).toMatchObject({ status: "redirect" });
+    if (result.status !== "redirect") throw Error("Expected redirect");
+    const query = new URL(result.href, "http://localhost").searchParams;
+    expect(query.has("category_id")).toBe(false);
+    expect(query.has("page")).toBe(false);
+    expect(query.get("search")).toBe("adobo");
+    expect(query.get("service_type")).toBe("DINE_IN");
+  });
+  it("preserves the menu when category loading fails without clearing the filter", async () => {
+    getBranchMenuCategories.mockRejectedValue(
+      new ApiRequestError("Unavailable", 503),
+    );
+    const result = await loadSalesView(
+      user(["sales.create", "branch_products.read", "branches.read"]),
+      { category_id: productId },
+    );
+    expect(result).toMatchObject({
+      status: "ready",
+      canCreate: true,
+      menuPage,
+      categoriesUnavailable: true,
+      filters: { categoryId: productId },
     });
   });
 
@@ -143,6 +209,7 @@ describe("POS page loader", () => {
       salesPage,
     });
     expect(getBranchProductPageData).toHaveBeenCalledWith({
+      pageSize: 25,
       branchId,
       page: 1,
       search: "chicken",

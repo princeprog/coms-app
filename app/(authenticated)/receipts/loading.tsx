@@ -14,7 +14,11 @@ export default function SupplierReceiptsLoading() {
         </div>
         <Skeleton className="h-9 w-44 max-w-full" />
       </div>
-      <Skeleton className="h-16 w-full" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <Skeleton className="h-16 w-full sm:min-w-48 sm:flex-1" />
+        <Skeleton className="h-16 w-full sm:w-56" />
+        <Skeleton className="h-10 w-full sm:w-24" />
+      </div>
       <div className="flex flex-col gap-2 rounded-lg border p-4">
         <Skeleton className="h-8 w-44 max-w-full" />
         {Array.from({ length: 6 }, (_, index) => (

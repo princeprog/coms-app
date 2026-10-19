@@ -84,6 +84,9 @@ export function CatalogManagement({
           routePath={routePath}
           filters={{
             page: page.page,
+            ...(["/products", "/stock-items"].includes(routePath)
+              ? { pageSize: page.page_size }
+              : {}),
             search,
             active: activeFilter,
           }}

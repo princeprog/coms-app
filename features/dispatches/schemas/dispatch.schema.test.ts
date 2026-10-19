@@ -5,6 +5,7 @@ import {
   dispatchPageSchema,
   createDispatchSchema,
   receiveDispatchSchema,
+  sendDispatchSchema,
 } from "./dispatch.schema";
 
 const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
@@ -41,18 +42,35 @@ describe("dispatch schemas", () => {
     ).toBe(false);
   });
 
-  it("accepts positive decimal quantities for partial receipt lines", () => {
+  it("requires who is delivering a sent dispatch", () => {
+    const draft = {
+      branch_id: id,
+      items: [{ stock_item_id: id, quantity_dispatched: "1" }],
+    };
+    expect(
+      sendDispatchSchema.safeParse({ ...draft, delivered_by_name: " Juan " })
+        .data?.delivered_by_name,
+    ).toBe("Juan");
+    expect(
+      sendDispatchSchema.safeParse({ ...draft, delivered_by_name: "  " })
+        .success,
+    ).toBe(false);
+    expect(sendDispatchSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it("accepts zero and decimal counts with an optional note", () => {
     expect(
       receiveDispatchSchema.safeParse({
-        items: [{ dispatch_item_id: id, quantity_received: "2.5000" }],
+        items: [{ dispatch_item_id: id, quantity_received: "0" }],
+        note: "Box missing",
       }).success,
     ).toBe(true);
   });
 
-  it("rejects zero, malformed, or duplicate receipt lines", () => {
+  it("rejects negative, malformed, or duplicate count lines", () => {
     expect(
       receiveDispatchSchema.safeParse({
-        items: [{ dispatch_item_id: id, quantity_received: "0.000" }],
+        items: [{ dispatch_item_id: id, quantity_received: "-1" }],
       }).success,
     ).toBe(false);
     expect(
@@ -65,15 +83,23 @@ describe("dispatch schemas", () => {
     ).toBe(false);
   });
 
-  it("requires a trimmed reason and positive unique shortage lines", () => {
+  it("requires an outcome, a trimmed reason, and positive unique resolution lines", () => {
     expect(
       closeDispatchShortageSchema.safeParse({
+        outcome: "LOST",
         reason: "   ",
         items: [{ dispatch_item_id: id, quantity_closed: "1" }],
       }).success,
     ).toBe(false);
     expect(
       closeDispatchShortageSchema.safeParse({
+        reason: "Missing outcome",
+        items: [{ dispatch_item_id: id, quantity_closed: "1" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      closeDispatchShortageSchema.safeParse({
+        outcome: "NOT_LOADED",
         reason: "Damaged during transit",
         items: [
           { dispatch_item_id: id, quantity_closed: "1.25" },
@@ -150,6 +176,33 @@ describe("dispatch schemas", () => {
         items: [{ ...detail.items[0], quantity_in_transit: "-2" }],
       }).success,
     ).toBe(false);
+    expect(
+      dispatchDetailSchema.safeParse({
+        ...detail,
+        counted_at: timestamp,
+        items: [
+          {
+            ...detail.items[0],
+            quantity_in_transit: "0",
+            quantity_outstanding: "-1.5",
+            quantity_variance: "-1.5",
+          },
+        ],
+      }).success,
+    ).toBe(true);
+    expect(
+      dispatchDetailSchema.safeParse({
+        ...detail,
+        items: [
+          {
+            ...detail.items[0],
+            quantity_dispatched: null,
+            quantity_in_transit: null,
+            awaiting_count: true,
+          },
+        ],
+      }).success,
+    ).toBe(true);
     expect(
       dispatchPageSchema.safeParse({
         items: [],

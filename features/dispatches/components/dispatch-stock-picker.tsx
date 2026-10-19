@@ -47,7 +47,7 @@ export function DispatchStockPicker({
       <ComboboxInput
         id={id}
         placeholder="Search stock items"
-        className="w-full"
+        className="h-10 w-full [&_input]:h-full [&_input]:px-3"
       />
       <ComboboxContent data-coms-ui="operational">
         {lookup.isPending ? (

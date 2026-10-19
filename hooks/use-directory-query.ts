@@ -49,11 +49,20 @@ export function useDirectoryQuery<T extends { page: number; search?: string }>(
     };
   }, []);
 
-  function apply(change: Partial<T>) {
+  function apply(
+    change: Partial<T>,
+    { resetPage = true }: { resetPage?: boolean } = {},
+  ) {
     if (timer.current) clearTimeout(timer.current);
-    desired.current = { ...desired.current, ...change, page: 1 };
+    desired.current = {
+      ...desired.current,
+      ...change,
+      ...(resetPage ? { page: 1 } : {}),
+    };
     const nextHref = href(desired.current);
-    if (nextHref === appliedHref) return;
+    // A return to the rendered URL must supersede any older in-flight search.
+    if (nextHref === appliedHref && !pending && draft.issued.length === 0)
+      return;
     setDraft((current) => ({
       ...current,
       issued: [...current.issued.slice(-9), nextHref],

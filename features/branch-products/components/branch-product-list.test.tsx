@@ -35,6 +35,9 @@ const page: BranchProductPage = {
       product_id: productId,
       product_name: "Chicken sandwich",
       description: "Grilled chicken on sourdough",
+      category_id: "aa000000-0000-4000-8000-000000000001",
+      category_name: "Rice meals",
+      category_is_active: true,
       product_is_active: true,
       price: "125.0000",
       is_available: false,
@@ -80,7 +83,7 @@ describe("branch product list", () => {
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
     ).toBe(
-      `/branch-products?branch_id=${branchId}&page=2&search=chicken&is_available=false`,
+      `/branch-products?page_size=25&branch_id=${branchId}&page=2&search=chicken&is_available=false`,
     );
   });
 
@@ -117,7 +120,7 @@ describe("branch product list", () => {
 
     expect(
       screen.getByRole("link", { name: "Clear filters" }).getAttribute("href"),
-    ).toBe(`/branch-products?branch_id=${branchId}`);
+    ).toBe(`/branch-products?page_size=25&branch_id=${branchId}`);
   });
 
   it("keeps price and availability changes in separate dialogs", async () => {
@@ -168,6 +171,9 @@ describe("branch product list", () => {
               ...page.items[0],
               product_id: "3fa85f64-5717-4562-b3fc-2c963f66afa8",
               product_name: "Retired meal",
+              category_id: "aa000000-0000-4000-8000-000000000001",
+              category_name: "Rice meals",
+              category_is_active: true,
               product_is_active: false,
               service_types: ["DINE_IN", "TAKEAWAY"],
               available_service_types: [],
@@ -215,6 +221,7 @@ describe("branch product list", () => {
       "http://localhost",
     ).searchParams;
     expect(Object.fromEntries(params)).toEqual({
+      page_size: "25",
       branch_id: branchId,
       service_type: "TAKEAWAY",
       sort: "price:desc",

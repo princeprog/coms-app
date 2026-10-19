@@ -12,5 +12,6 @@ export type InventoryScopeFilterProps = {
   canViewBranch: boolean;
   branchName: string;
   page: number;
+  pageSize?: number;
   onPendingChange: (pending: boolean) => void;
 };

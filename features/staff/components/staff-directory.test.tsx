@@ -1,15 +1,18 @@
 // @vitest-environment jsdom
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { StaffDirectory } from "@/features/staff/components/staff-directory";
 
 vi.mock("@/features/staff/services/staff-actions", () => ({
   createStaffAction: vi.fn(),
 }));
+const replace = vi.hoisted(() => vi.fn());
+beforeEach(() => replace.mockClear());
+afterEach(() => vi.useRealTimers());
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn() }),
+  useRouter: () => ({ refresh: vi.fn(), replace }),
 }));
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
@@ -246,13 +249,14 @@ describe("staff directory", () => {
     ).toBe(`/staff?page=2&branch_id=${branchId}&search=Alex`);
   });
 
-  it("shows a useful empty state and lets operators clear the search", () => {
+  it("clears an empty search while preserving branch scope", async () => {
+    const user = userEvent.setup();
     renderDirectory({ staff: { ...staffPage, items: [], total: 0 } });
-
     expect(screen.getByText("No staff match this search")).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Clear search" }).getAttribute("href"),
-    ).toBe(`/staff?branch_id=${branchId}`);
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(replace).toHaveBeenLastCalledWith(`/staff?branch_id=${branchId}`, {
+      scroll: false,
+    });
   });
 
   it("offers all-branch filtering only to the protected Super Admin", async () => {
@@ -264,48 +268,52 @@ describe("staff directory", () => {
     expect(screen.getByRole("option", { name: "Manila North" })).toBeTruthy();
   });
 
-  it("keeps GET search submission on the current branch and resets pagination", () => {
-    renderDirectory();
-
-    const searchForm = screen.getByRole("form", { name: "Search staff" });
-    expect(searchForm.getAttribute("action")).toBe("/staff");
-    expect(searchForm.getAttribute("method")).toBeNull();
-    expect(within(searchForm).getByDisplayValue("Alex")).toBeTruthy();
-    expect(within(searchForm).getByDisplayValue(branchId)).toBeTruthy();
+  it("debounces search and resets pagination while preserving branch scope", () => {
+    vi.useFakeTimers();
+    renderDirectory({ staff: { ...staffPage, page: 2 } });
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "Maria" },
+    });
+    act(() => vi.advanceTimersByTime(349));
+    expect(replace).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(replace).toHaveBeenCalledExactlyOnceWith(
+      `/staff?branch_id=${branchId}&search=Maria`,
+      { scroll: false },
+    );
   });
 
-  it("applies a changed branch while preserving search and resetting the page", async () => {
+  it("preserves a pending search when changing branches", async () => {
     const user = userEvent.setup();
     renderDirectory({ staff: { ...staffPage, page: 2 } });
-
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "Maria" },
+    });
     await user.click(screen.getByRole("combobox", { name: "Branch scope" }));
     await user.click(
       await screen.findByRole("option", { name: "Manila South" }),
     );
-
-    const branchForm = screen.getByRole("form", {
-      name: "Filter staff by branch",
-    });
-    expect(
-      branchForm.querySelector<HTMLInputElement>('input[name="branch_id"]')
-        ?.value,
-    ).toBe(branchOptions[1].id);
-    expect(within(branchForm).getByDisplayValue("Alex")).toBeTruthy();
-    expect(branchForm.querySelector('[name="page"]')).toBeNull();
-    expect(branchForm.getAttribute("action")).toBe("/staff");
-    expect(branchForm.getAttribute("method")).toBeNull();
+    expect(replace).toHaveBeenLastCalledWith(
+      `/staff?branch_id=${branchOptions[1].id}&search=Maria`,
+      { scroll: false },
+    );
   });
 
-  it("shows status tabs and preserves branch and search when changing status", () => {
+  it("preserves branch and search when changing status", async () => {
+    const user = userEvent.setup();
     renderDirectory({ status: "inactive" });
-    const inactive = screen.getByRole("link", { name: "Inactive" });
-    expect(inactive.getAttribute("aria-current")).toBe("page");
     expect(
-      screen.getByRole("link", { name: "Unassigned" }).getAttribute("href"),
-    ).toBe(`/staff?branch_id=${branchId}&search=Alex&status=unassigned`);
+      screen.getByRole("combobox", { name: "Status" }).textContent,
+    ).toContain("Inactive");
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
     ).toBe(`/staff?page=2&branch_id=${branchId}&search=Alex&status=inactive`);
+    await user.click(screen.getByRole("combobox", { name: "Status" }));
+    await user.click(await screen.findByRole("option", { name: "Unassigned" }));
+    expect(replace).toHaveBeenLastCalledWith(
+      `/staff?branch_id=${branchId}&search=Alex&status=unassigned`,
+      { scroll: false },
+    );
   });
 
   it("opens the staff sheet from a three-dot row menu", async () => {

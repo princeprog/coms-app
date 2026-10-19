@@ -108,6 +108,9 @@ describe("catalog directories", () => {
       screen.getByRole("combobox", { name: "Status" }),
     );
     await user.click(screen.getByRole("button", { name: "Clear all" }));
+    expect(
+      screen.getByRole("searchbox", { name: "Search suppliers" }),
+    ).toHaveProperty("value", "");
     expect(replace).toHaveBeenLastCalledWith("/suppliers", { scroll: false });
     expect(document.activeElement).toBe(
       screen.getByRole("searchbox", { name: "Search suppliers" }),

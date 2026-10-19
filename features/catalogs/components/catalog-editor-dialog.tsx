@@ -11,6 +11,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 import { CatalogDiscardConfirmation } from "@/features/catalogs/components/catalog-discard-confirmation";
 import { CatalogEditorFields } from "@/features/catalogs/components/catalog-editor-fields";
 import { CatalogCreateFields } from "./catalog-create-fields";
@@ -20,6 +23,7 @@ import type {
   CatalogRecord,
   CatalogUpdateAction,
 } from "@/features/catalogs/types/catalog.types";
+import { CircleAlert } from "lucide-react";
 
 export function CatalogEditorDialog({
   open,
@@ -74,13 +78,13 @@ export function CatalogEditorDialog({
         data-coms-ui="operational"
         className={
           isDesignedCreate
-            ? `flex max-h-[90dvh] min-h-0 flex-col gap-0 overflow-hidden p-0 ${createLayout === "supplier" ? "sm:max-w-[40rem]" : createLayout === "payment-method" ? "sm:max-w-2xl" : "sm:max-w-xl"}`
+            ? `flex max-h-[90dvh] min-h-0 flex-col gap-0 overflow-hidden p-0 ${createLayout === "supplier" ? "sm:max-w-[40rem]" : createLayout === "stock-item" ? "sm:max-w-xl" : "sm:max-w-2xl"}`
             : "max-h-[85vh] overflow-y-auto sm:max-w-lg"
         }
       >
         <DialogHeader
           className={
-            isDesignedCreate ? "shrink-0 px-5 pt-6 pb-1 sm:px-7" : undefined
+            isDesignedCreate ? "shrink-0 px-5 py-5 sm:px-7 sm:py-6" : undefined
           }
         >
           <DialogTitle>
@@ -90,6 +94,7 @@ export function CatalogEditorDialog({
             {dialogDescription(resourceName, record, createLayout)}
           </DialogDescription>
         </DialogHeader>
+        {isDesignedCreate && <Separator />}
         <form
           className={
             isDesignedCreate
@@ -115,22 +120,30 @@ export function CatalogEditorDialog({
               onChange={changeValue}
             />
           )}
-          {error && (
-            <p
-              role="alert"
-              className={
-                isDesignedCreate
-                  ? "shrink-0 px-5 pb-2 text-sm text-destructive sm:px-7"
-                  : "text-sm text-destructive"
-              }
-            >
-              {error}
-            </p>
-          )}
+          {error &&
+            (isDesignedCreate ? (
+              <Alert
+                variant="destructive"
+                className="mx-5 mb-3 w-auto shrink-0 sm:mx-7"
+              >
+                <CircleAlert />
+                <AlertTitle>
+                  {record
+                    ? `Could not update ${resourceName}`
+                    : `Could not create ${resourceName}`}
+                </AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            ))}
+          {isDesignedCreate && <Separator />}
           <DialogFooter
             className={
               isDesignedCreate
-                ? "shrink-0 flex-row border-t bg-muted/30 px-5 py-4 sm:px-7"
+                ? "shrink-0 flex-row bg-muted/30 px-5 py-4 sm:px-7"
                 : undefined
             }
           >
@@ -150,17 +163,31 @@ export function CatalogEditorDialog({
             <Button
               type="submit"
               disabled={pending}
+              aria-label={
+                pending
+                  ? record
+                    ? `Saving ${resourceName}…`
+                    : `Creating ${resourceName}…`
+                  : undefined
+              }
               className={
                 isDesignedCreate
                   ? "h-10 flex-1 sm:min-w-36 sm:flex-none"
                   : undefined
               }
             >
-              {pending
-                ? "Saving…"
-                : record
-                  ? `Save ${resourceName}`
-                  : `Create ${resourceName}`}
+              {pending ? (
+                <>
+                  <Spinner data-icon="inline-start" />
+                  {record
+                    ? `Saving ${resourceName}…`
+                    : `Creating ${resourceName}…`}
+                </>
+              ) : record ? (
+                `Save ${resourceName}`
+              ) : (
+                `Create ${resourceName}`
+              )}
             </Button>
           </DialogFooter>
         </form>

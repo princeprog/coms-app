@@ -1,3 +1,4 @@
+import { stockUnitLabel } from "../stock-unit-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
@@ -10,23 +11,50 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import {
   InventoryAdjustmentDialog,
   type InventoryAdjustmentAction,
 } from "./inventory-adjustment-dialog";
 import type { InventoryItem } from "../types/inventory.types";
 
-function ItemStatus({ active }: { active: boolean }) {
+const updatedAt = new Intl.DateTimeFormat("en-PH", {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "Asia/Manila",
+});
+const ZERO_QUANTITY_PATTERN = /^0(?:\.0+)?$/;
+
+function isZeroQuantity(value: string) {
+  return ZERO_QUANTITY_PATTERN.test(value);
+}
+
+function StockHealth({ item }: { item: InventoryItem }) {
+  if (!item.is_active) {
+    return (
+      <Badge className="h-auto min-h-6 bg-red-700 text-white">Inactive</Badge>
+    );
+  }
+  if (isZeroQuantity(item.quantity_on_hand)) {
+    return (
+      <Badge className="h-auto min-h-6 bg-red-700 text-white">
+        Out of stock
+      </Badge>
+    );
+  }
   return (
-    <Badge
-      className={cn(
-        "h-auto min-h-5 text-white",
-        active ? "bg-emerald-700" : "bg-red-700",
-      )}
-    >
-      {active ? "Active" : "Inactive"}
-    </Badge>
+    <Badge className="h-auto min-h-6 bg-emerald-700 text-white">In stock</Badge>
+  );
+}
+
+function UpdatedAt({ value }: { value: string }) {
+  const instant = new Date(value);
+  const label = updatedAt.format(instant);
+  return (
+    <time dateTime={value} title={`${label} PHT`}>
+      {label}
+    </time>
   );
 }
 
@@ -80,7 +108,7 @@ export function InventoryBalanceTable({
   return (
     <Table
       aria-label="Stock balances"
-      className="min-w-80"
+      className="min-w-2xl"
       containerProps={{
         role: "region",
         "aria-label": "Stock balances table",
@@ -89,7 +117,8 @@ export function InventoryBalanceTable({
     >
       <TableCaption className="sr-only">
         Stock balances for the selected location. Quantities retain their exact
-        decimal precision and stock item units.
+        decimal precision and stock item units. Updated times are shown in
+        Philippine Standard Time.
       </TableCaption>
       <TableHeader>
         <TableRow>
@@ -100,13 +129,16 @@ export function InventoryBalanceTable({
             Category
           </TableHead>
           <TableHead scope="col" className="text-right">
-            On hand
+            Available stock
           </TableHead>
-          <TableHead scope="col" className="hidden md:table-cell">
-            Unit
+          <TableHead scope="col" className="pl-6 sm:pl-8">
+            Units
           </TableHead>
-          <TableHead scope="col" className="hidden md:table-cell">
+          <TableHead scope="col" className="pl-6 whitespace-nowrap sm:pl-8">
             Status
+          </TableHead>
+          <TableHead scope="col" className="hidden xl:table-cell">
+            Updated
           </TableHead>
           {canAdjust && (
             <TableHead scope="col" className="w-12 pr-4 text-right sm:pr-5">
@@ -118,7 +150,7 @@ export function InventoryBalanceTable({
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.id}>
-            <TableCell className="max-w-72 py-3 pl-4 whitespace-normal sm:pl-5">
+            <TableCell className="min-w-48 max-w-72 py-3 pl-4 whitespace-normal sm:pl-5">
               <div className="flex flex-col items-start gap-1">
                 <span className="font-medium wrap-anywhere">
                   {item.stock_item_name}
@@ -126,27 +158,22 @@ export function InventoryBalanceTable({
                 <span className="text-xs text-muted-foreground lg:hidden">
                   {item.category}
                 </span>
-                <span className="md:hidden">
-                  <ItemStatus active={item.is_active} />
-                </span>
               </div>
             </TableCell>
             <TableCell className="hidden py-3 whitespace-normal lg:table-cell">
               {item.category}
             </TableCell>
             <TableCell className="py-3 text-right tabular-nums">
-              <span className="hidden font-medium md:inline">
-                {item.quantity_on_hand}
-              </span>
-              <span className="font-medium md:hidden">
-                {item.quantity_on_hand} {item.unit}
-              </span>
+              <span className="font-medium">{item.quantity_on_hand}</span>
             </TableCell>
-            <TableCell className="hidden py-3 md:table-cell">
-              {item.unit}
+            <TableCell className="py-3 pl-6 sm:pl-8">
+              {stockUnitLabel(item.unit)}
             </TableCell>
-            <TableCell className="hidden py-3 md:table-cell">
-              <ItemStatus active={item.is_active} />
+            <TableCell className="py-3 pl-6 sm:pl-8">
+              <StockHealth item={item} />
+            </TableCell>
+            <TableCell className="hidden py-3 text-muted-foreground xl:table-cell">
+              <UpdatedAt value={item.updated_at} />
             </TableCell>
             {canAdjust && (
               <TableCell className="py-3 pr-4 text-right sm:pr-5">

@@ -33,39 +33,40 @@ export function StaffTable({
   permissions: StaffManagementPermissions;
 }) {
   return (
-    <div
-      className="overflow-x-auto"
-      role="region"
-      aria-label="Staff table"
-      tabIndex={0}
+    <Table
+      aria-label="Staff directory"
+      className="min-w-4xl [&_th]:px-5 [&_td]:px-5 [&_td]:py-4"
+      containerProps={{
+        role: "region",
+        "aria-label": "Staff table",
+        tabIndex: 0,
+      }}
     >
-      <Table aria-label="Staff directory" className="min-w-[54rem]">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Staff member</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Branch assignments</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {staff.items.map((member) => (
-            <StaffDirectoryRow
-              key={member.id}
-              staff={member}
-              branchOptions={branchOptions}
-              roles={roles}
-              rolesFailed={rolesFailed}
-              branchId={branchId}
-              currentUserId={currentUserId}
-              isSuperAdmin={isSuperAdmin}
-              permissions={permissions}
-            />
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+      <TableHeader className="bg-muted">
+        <TableRow>
+          <TableHead>Staff member</TableHead>
+          <TableHead>Role</TableHead>
+          <TableHead>Branch assignments</TableHead>
+          <TableHead>Contact</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {staff.items.map((member) => (
+          <StaffDirectoryRow
+            key={member.id}
+            staff={member}
+            branchOptions={branchOptions}
+            roles={roles}
+            rolesFailed={rolesFailed}
+            branchId={branchId}
+            currentUserId={currentUserId}
+            isSuperAdmin={isSuperAdmin}
+            permissions={permissions}
+          />
+        ))}
+      </TableBody>
+    </Table>
   );
 }

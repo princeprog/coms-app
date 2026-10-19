@@ -33,15 +33,15 @@ export function StaffBranchAssignments({
   }
 
   return (
-    <FieldSet className="gap-3 rounded-lg border p-4">
+    <FieldSet className="min-w-0 gap-3">
       <FieldLegend variant="label">Branch assignments</FieldLegend>
       {branches.length > 0 ? (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid max-h-72 gap-2 overflow-y-auto p-1 sm:grid-cols-2">
           {branches.map((branch) => (
             <Field
               key={branch.id}
               orientation="horizontal"
-              className="min-h-10 items-center gap-3 rounded-md px-2"
+              className="min-h-12 items-center gap-3 rounded-lg border px-3 py-2 has-[[data-state=checked]]:border-primary/40 has-[[data-state=checked]]:bg-primary/5"
             >
               <Checkbox
                 id={`staff-branch-${branch.id}`}

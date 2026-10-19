@@ -1,110 +1,57 @@
-import { isPositiveDecimalQuantity } from "../services/decimal-quantity";
+import { varianceLines } from "../services/dispatch-detail-presentation";
 import type { DispatchDetailViewProps } from "./dispatch-detail-view";
-import { DispatchDiscrepancyControl } from "./dispatch-discrepancy-control";
 import { DispatchPostControl } from "./dispatch-post-control";
 import { DispatchReceiveControl } from "./dispatch-receive-control";
-import { DispatchShortageControl } from "./dispatch-shortage-control";
+import { DispatchResolveControl } from "./dispatch-resolve-control";
 
-export function DispatchNextActions({
-  dispatch,
-  canDispatch,
-  postAction,
-  canReceive,
-  receiveAction,
-  canCloseShortage,
-  shortageAction,
-  canReportDiscrepancy,
-  discrepancyAction,
-  canRequestRecount,
-  recountAction,
-}: DispatchDetailViewProps) {
-  const draft = dispatch.status === "DRAFT";
-  const finished =
-    dispatch.status === "RECEIVED" ||
-    dispatch.status === "CLOSED_WITH_SHORTAGE";
-  const remaining = dispatch.items.filter((item) =>
-    isPositiveDecimalQuantity(item.quantity_in_transit),
-  );
-  const active = !draft && !finished && remaining.length > 0;
-  const showRecount = active && canRequestRecount && recountAction;
-  const description = draft
-    ? "Review the planned quantities before sending this stock from the commissary."
-    : dispatch.status === "RECEIVED"
-      ? "All dispatched stock has been received by the branch."
-      : dispatch.status === "CLOSED_WITH_SHORTAGE"
-        ? "All stock is accounted for through branch receipts and reasoned shortage closures. Closed shortages were not added to branch inventory."
-        : dispatch.discrepancy?.status === "RECOUNT_REQUESTED"
-          ? "A recount has been requested. Record any stock found as another receipt, or close confirmed missing stock with a reason."
-          : showRecount
-            ? `Ask ${dispatch.branch_name} to verify the remaining stock before closing a confirmed shortage.`
-            : "Record the quantities that arrived at the branch. Unreceived stock remains in transit until received or closed with a reason.";
+export function DispatchNextActions(props: DispatchDetailViewProps) {
+  const { dispatch, canDispatch, postAction, canReceive, receiveAction } =
+    props;
+  const { canResolve, resolveAction } = props;
+  const variance = varianceLines(dispatch);
+  const canSend = dispatch.status === "DRAFT" && canDispatch;
+  const canCount =
+    canReceive && dispatch.items.some((item) => item.awaiting_count);
+  const canResolveVariance = canResolve && variance.length > 0;
+  if (!canSend && !canCount && variance.length === 0) return null;
   return (
     <section
       aria-labelledby="dispatch-next-action-heading"
-      className="flex min-w-0 flex-col gap-3"
+      className="flex min-w-0 flex-col gap-4 border-t border-border/60 bg-muted/15 px-6 py-5 sm:px-7"
     >
-      <h2 id="dispatch-next-action-heading" className="text-lg font-semibold">
-        {dispatch.status === "RECEIVED"
-          ? "Delivery complete"
-          : dispatch.status === "CLOSED_WITH_SHORTAGE"
-            ? "Delivery closed with shortage"
-            : "Next action"}
+      <h2 id="dispatch-next-action-heading" className="sr-only">
+        Dispatch actions
       </h2>
-      <p className="text-sm text-muted-foreground">{description}</p>
-      {active && (
+      {variance.length > 0 && (
         <ul
-          aria-label="Stock remaining in transit"
-          className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground"
+          aria-label="Unresolved count differences"
+          className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground"
         >
-          {remaining.map((item) => (
+          {variance.map(({ item, amount, direction }) => (
             <li key={item.id} className="min-w-0 wrap-anywhere">
               <strong className="font-medium text-foreground tabular-nums">
-                {item.quantity_in_transit} {item.unit}
+                {amount} {item.unit} {direction === "short" ? "short" : "over"}
               </strong>{" "}
               {item.stock_item_name}
             </li>
           ))}
         </ul>
       )}
-      <div className="flex flex-wrap gap-2 [&_button]:max-w-full [&_button]:whitespace-normal">
-        {draft && canDispatch && (
+      <div className="flex flex-wrap justify-end gap-2 [&_button]:min-h-11 [&_button]:max-w-full [&_button]:whitespace-normal">
+        {canSend && (
           <DispatchPostControl dispatchId={dispatch.id} action={postAction} />
         )}
-        {showRecount && (
-          <DispatchDiscrepancyControl
-            dispatch={dispatch}
-            mode="recount"
-            action={recountAction}
-            primary
-          />
-        )}
-        {active && canReceive && (
+        {canCount && (
           <DispatchReceiveControl
             dispatch={dispatch}
             action={receiveAction}
-            primary={!showRecount}
+            primary
           />
         )}
-        {active && canCloseShortage && (
-          <DispatchShortageControl
-            dispatch={dispatch}
-            action={shortageAction}
-          />
-        )}
-        {active && canReportDiscrepancy && discrepancyAction && (
-          <DispatchDiscrepancyControl
-            dispatch={dispatch}
-            mode="report"
-            action={discrepancyAction}
-          />
+        {canResolveVariance && (
+          <DispatchResolveControl dispatch={dispatch} action={resolveAction} />
         )}
       </div>
-      {showRecount && (
-        <p className="text-xs text-muted-foreground">
-          A reason is required. The recount request is saved in the dispatch
-          history.
-        </p>
-      )}
     </section>
   );
 }

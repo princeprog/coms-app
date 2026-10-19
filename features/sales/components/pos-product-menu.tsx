@@ -16,9 +16,11 @@ export function PosProductMenu({
   cartIsFull,
   cart = [],
   onAdd,
+  filtered = false,
 }: {
   products: SalesMenuPage["items"];
   total: number;
+  filtered?: boolean;
   branchActive: boolean;
   pending: boolean;
   serviceType?: "DINE_IN" | "TAKEAWAY" | null;
@@ -46,8 +48,16 @@ export function PosProductMenu({
       )}
       {products.length === 0 ? (
         <OperationalEmptyState
-          title="No available products on this page."
-          description="Search for another product or ask Super Admin to update this branch's menu."
+          title={
+            filtered
+              ? "No products match your filters"
+              : "No available products"
+          }
+          description={
+            filtered
+              ? "Clear the filters or choose another category."
+              : "Ask Super Admin to update this branch’s menu."
+          }
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">

@@ -20,8 +20,8 @@ export function InventoryPageHeading({
       </h2>
       <p className="text-sm text-muted-foreground">
         {isAssignedBranchView && selectedBranchId
-          ? `Stock balances and recent movements for ${branchName}.`
-          : "Review stock balances and the ledger of receipts, transfers, sales, and adjustments."}
+          ? `Monitor stock levels and recent changes for ${branchName}.`
+          : "Monitor stock levels and review recent changes across your locations."}
       </p>
     </section>
   );

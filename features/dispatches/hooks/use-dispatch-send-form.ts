@@ -1,19 +1,28 @@
 "use client";
 import { useRef, useState, type FormEvent } from "react";
-import { createDispatchSchema } from "../schemas/dispatch.schema";
+import {
+  createDispatchSchema,
+  sendDispatchSchema,
+} from "../schemas/dispatch.schema";
 import type {
   DispatchCreateAction,
   DispatchMutationResult,
   CreateDispatchInput,
 } from "../types/dispatch.types";
 import type { DispatchCreateLine } from "../components/dispatch-create-line-fields";
+import {
+  isDecimalQuantityWithinLimit,
+  isPositiveDecimalQuantity,
+} from "../services/decimal-quantity";
 export type DispatchSendFormCallbacks = {
+  availabilityVisible?: boolean;
   action: DispatchCreateAction;
   onPendingChange: (value: boolean) => void;
   onDirtyChange: (value: boolean) => void;
   onCreated: (id: string) => void;
 };
 export function useDispatchSendForm({
+  availabilityVisible = false,
   action,
   onPendingChange,
   onDirtyChange,
@@ -26,9 +35,26 @@ export function useDispatchSendForm({
     { key: 1, stock_item_id: "", quantity_dispatched: "" },
   ]);
   const [review, setReview] = useState<CreateDispatchInput | null>(null);
+  const [deliveredBy, setDeliveredBy] = useState("");
   const submitting = useRef(false);
   const nextLineKey = useRef(2);
   const keyForRetry = useRef<{ fingerprint: string; key: string } | null>(null);
+  const quantityErrors: Record<number, string> = {};
+  if (availabilityVisible) {
+    for (const line of lines) {
+      const stock = line.stock;
+      const quantity = line.quantity_dispatched.trim();
+      if (
+        stock?.id === line.stock_item_id &&
+        stock?.quantity_on_hand != null &&
+        isPositiveDecimalQuantity(quantity) &&
+        !isDecimalQuantityWithinLimit(quantity, stock.quantity_on_hand)
+      ) {
+        quantityErrors[line.key] =
+          `Exceeds commissary stock (${stock.quantity_on_hand} ${stock.unit} available).`;
+      }
+    }
+  }
 
   function updateLine(
     key: number,
@@ -62,12 +88,30 @@ export function useDispatchSendForm({
     }
 
     if (!review) {
+      const invalidLine = lines.find((line) => quantityErrors[line.key]);
+      if (invalidLine) {
+        event.currentTarget
+          ?.querySelector<HTMLInputElement>(
+            `#dispatch-quantity-${invalidLine.key}`,
+          )
+          ?.focus();
+        return;
+      }
       setReview(parsed.data);
+      return;
+    }
+    const sendInput = sendDispatchSchema.safeParse({
+      ...parsed.data,
+      delivered_by_name: deliveredBy,
+    });
+    if (!sendInput.success) {
+      setError("Enter who is delivering this dispatch.");
       return;
     }
     // Compare the submitted meaning, not intermediate edits or decimal formatting.
     const fingerprint = JSON.stringify({
       branch_id: parsed.data.branch_id,
+      delivered_by_name: sendInput.data.delivered_by_name,
       items: parsed.data.items
         .map(({ stock_item_id, quantity_dispatched }) => ({
           stock_item_id,
@@ -95,7 +139,7 @@ export function useDispatchSendForm({
     onPendingChange(true);
     let result: DispatchMutationResult;
     try {
-      result = await action(parsed.data, keyForRetry.current.key);
+      result = await action(sendInput.data, keyForRetry.current.key);
     } catch {
       result = {
         ok: false,
@@ -118,12 +162,15 @@ export function useDispatchSendForm({
   return {
     pending,
     error,
+    quantityErrors,
     branchId,
     setBranchId,
     lines,
     setLines,
     review,
     setReview,
+    deliveredBy,
+    setDeliveredBy,
     setError,
     updateLine,
     submit,

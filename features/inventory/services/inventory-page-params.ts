@@ -1,3 +1,4 @@
+import { parseTablePageSize } from "@/lib/table-pagination";
 import { z } from "zod";
 
 const branchIdSchema = z.uuid();
@@ -11,6 +12,7 @@ export type InventoryPageSearchParams = Record<
 
 export type InventoryPageFilters = {
   page: number;
+  pageSize?: number;
   scope?: "COMMISSARY" | "BRANCH";
   search: string;
   status?: "active" | "inactive";
@@ -41,6 +43,7 @@ export function parseInventoryPageFilters(
 
   return {
     page,
+    pageSize: parseTablePageSize(params.page_size),
     ...(scope ? { scope } : {}),
     search,
     ...(status ? { status } : {}),
@@ -60,6 +63,7 @@ export function createInventoryHref({
   scope,
   branchId,
   page,
+  pageSize,
   search,
   status,
   category,
@@ -67,11 +71,13 @@ export function createInventoryHref({
   scope: "COMMISSARY" | "BRANCH";
   branchId?: string;
   page: number;
+  pageSize?: number;
   search: string;
   status?: "active" | "inactive";
   category?: string;
 }) {
   const params = new URLSearchParams();
+  if (pageSize && pageSize !== 10) params.set("page_size", String(pageSize));
   params.set("scope", scope);
   if (scope === "BRANCH" && branchId) params.set("branch_id", branchId);
   if (page > 1) params.set("page", String(page));

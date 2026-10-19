@@ -25,6 +25,9 @@ import {
   productPageSchema,
   productSchema,
 } from "@/features/products/schemas/product.schema";
+import { productSetupSchema } from "@/features/products/schemas/product-setup.schema";
+import { productCategoryPageSchema } from "@/features/product-categories/schemas/product-category.schema";
+import { paymentMethodChoiceSchema } from "@/features/payment-methods/schemas/payment-method.schema";
 import {
   branchProductPageSchema,
   branchProductSchema,
@@ -48,6 +51,7 @@ const { createOperationalApiFixture } =
   require("./operational-api-fixture.cjs") as {
     createOperationalApiFixture: (options: {
       gatewaySecret: string;
+      authUser?: typeof seed.user;
     }) => Promise<{
       baseUrl: string;
       close: () => Promise<void>;
@@ -55,6 +59,531 @@ const { createOperationalApiFixture } =
   };
 
 const gatewaySecret = "a".repeat(64);
+
+describe("product category fixture", () => {
+  const branchId = "10000000-0000-4000-8000-000000000001";
+  const categoryPath = "/product-categories";
+  const productInput = {
+    product_name: "Fresh mango float",
+    category_id: seed.product_categories[5].id,
+    price: "65.0000",
+    service_types: ["DINE_IN", "TAKEAWAY"],
+    branch_ids: [branchId],
+  };
+
+  async function start() {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    const headers = {
+      ...(await getAuthenticatedHeaders(fixture.baseUrl)),
+      "content-type": "application/json",
+    };
+    return {
+      ...fixture,
+      request: (path: string, method = "GET", body?: unknown) =>
+        fetch(fixture.baseUrl + path, {
+          method,
+          headers,
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        }),
+    };
+  }
+
+  it("seeds valid category references and paginates searched active categories over the full dataset", async () => {
+    const fixture = await start();
+    try {
+      const state = await (await fixture.request("/__fixture/state")).json();
+      expect(state.productCategories).toEqual(seed.product_categories);
+      expect(state.product_categories).toEqual(seed.product_categories);
+      const categoryPage = productCategoryPageSchema.parse(
+        await (await fixture.request(categoryPath)).json(),
+      );
+      expect(categoryPage.items).toHaveLength(8);
+      const availablePage = productCategoryPageSchema.parse(
+        await (await fixture.request(categoryPath + "/available")).json(),
+      );
+      expect(availablePage.items.every((category) => category.is_active)).toBe(
+        true,
+      );
+      for (const product of state.products) {
+        const category = seed.product_categories.find(
+          (item) => item.id === product.category_id,
+        )!;
+        expect(category).toBeDefined();
+        expect(product).toMatchObject({
+          category_name: category.name,
+          category_is_active: category.is_active,
+        });
+        const setup = productSetupSchema.parse(
+          await (await fixture.request(`/products/${product.id}/setup`)).json(),
+        );
+        expect(setup.product).toEqual(productSchema.parse(product));
+      }
+      expect(
+        await (await fixture.request(categoryPath + "/available")).json(),
+      ).toMatchObject({ total: 7, page: 1, page_size: 10 });
+      expect(
+        await (await fixture.request(categoryPath + "?is_active=false")).json(),
+      ).toMatchObject({
+        total: 1,
+        items: [{ name: "Legacy items", is_active: false }],
+      });
+      for (let index = 0; index < 35; index++) {
+        expect(
+          (
+            await fixture.request(categoryPath, "POST", {
+              name: `Seasonal menu ${String(index).padStart(2, "0")}`,
+            })
+          ).status,
+        ).toBe(201);
+      }
+      for (const pageSize of [10, 30, 50]) {
+        const page = await (
+          await fixture.request(
+            `${categoryPath}?search=seasonal&page_size=${pageSize}`,
+          )
+        ).json();
+        expect(page).toMatchObject({ total: 35, page: 1, page_size: pageSize });
+        expect(page.items).toHaveLength(Math.min(35, pageSize));
+      }
+      const second = await (
+        await fixture.request(
+          categoryPath + "/available?search=seasonal&page=2&page_size=30",
+        )
+      ).json();
+      expect(second).toMatchObject({
+        total: 35,
+        page: 2,
+        items: [
+          { name: "Seasonal menu 30" },
+          { name: "Seasonal menu 31" },
+          { name: "Seasonal menu 32" },
+          { name: "Seasonal menu 33" },
+          { name: "Seasonal menu 34" },
+        ],
+      });
+      expect(
+        await (
+          await fixture.request(categoryPath + "/available?search=MENU+34")
+        ).json(),
+      ).toMatchObject({ total: 1, items: [{ name: "Seasonal menu 34" }] });
+      expect(
+        (await fixture.request(categoryPath + "?page_size=25")).status,
+      ).toBe(400);
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("validates names, blocks deactivation of assigned active products, and supports archive/reactivation", async () => {
+    const fixture = await start();
+    try {
+      for (const name of ["", "x", " ", "x".repeat(81), null]) {
+        expect(
+          (await fixture.request(categoryPath, "POST", { name })).status,
+        ).toBe(400);
+      }
+      expect(
+        (await fixture.request(categoryPath, "POST", { name: " rice MEALS " }))
+          .status,
+      ).toBe(409);
+      const activeId = seed.product_categories[0].id;
+      expect(
+        (
+          await fixture.request(
+            `${categoryPath}/${activeId}/deactivate`,
+            "POST",
+          )
+        ).status,
+      ).toBe(409);
+      expect(
+        (
+          await fixture.request(`${categoryPath}/${activeId}`, "PATCH", {
+            name: "Should not persist",
+            is_active: false,
+          })
+        ).status,
+      ).toBe(409);
+      expect(
+        await (await fixture.request(categoryPath + "?search=Rice")).json(),
+      ).toMatchObject({ items: [{ name: "Rice meals", is_active: true }] });
+      const created = await (
+        await fixture.request(categoryPath, "POST", {
+          name: "  Seasonal specials  ",
+        })
+      ).json();
+      expect(created).toMatchObject({
+        name: "Seasonal specials",
+        is_active: true,
+        created_at: expect.any(String),
+        updated_at: expect.any(String),
+      });
+      expect(created.id).toMatch(/^[0-9a-f-]{36}$/);
+      expect(
+        (
+          await fixture.request(
+            `${categoryPath}/${created.id}/deactivate`,
+            "POST",
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        await (
+          await fixture.request(categoryPath + "/available?search=Seasonal")
+        ).json(),
+      ).toMatchObject({ total: 0 });
+      expect(
+        await (
+          await fixture.request(`${categoryPath}/${created.id}`, "PATCH", {
+            is_active: true,
+          })
+        ).json(),
+      ).toMatchObject({ name: "Seasonal specials", is_active: true });
+      expect(
+        (
+          await fixture.request(`${categoryPath}/${created.id}`, "PATCH", {
+            name: "Sides",
+          })
+        ).status,
+      ).toBe(409);
+      expect(
+        (
+          await fixture.request(`${categoryPath}/${created.id}`, "PATCH", {
+            is_active: "false",
+          })
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await fixture.request(
+            `${categoryPath}/36000000-0000-4000-8000-999999999999`,
+            "PATCH",
+            { name: "Missing" },
+          )
+        ).status,
+      ).toBe(404);
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("requires an active category on creation/setup, preserves omitted fields, and reads current category metadata everywhere", async () => {
+    const fixture = await start();
+    try {
+      for (const categoryId of [
+        undefined,
+        null,
+        "invalid",
+        "36000000-0000-4000-8000-999999999999",
+        seed.product_categories[7].id,
+      ]) {
+        const input = { ...productInput, category_id: categoryId };
+        expect((await fixture.request("/products", "POST", input)).status).toBe(
+          400,
+        );
+        expect(
+          (
+            await fixture.request("/products/setup", "POST", {
+              product: input,
+              expected_product_revision: 0,
+            })
+          ).status,
+        ).toBe(400);
+      }
+      const created = await (
+        await fixture.request("/products/setup", "POST", {
+          product: productInput,
+          expected_product_revision: 0,
+        })
+      ).json();
+      expect(created).toMatchObject({
+        branch_ids: [branchId],
+        product: {
+          category_id: productInput.category_id,
+          product_name: productInput.product_name,
+          price: productInput.price,
+          service_types: productInput.service_types,
+        },
+      });
+      const productId = created.product.id;
+      expect(productSetupSchema.parse(created).product.category_id).toBe(
+        productInput.category_id,
+      );
+      const renamed = await (
+        await fixture.request(
+          `${categoryPath}/${productInput.category_id}`,
+          "PATCH",
+          { name: "Sweet treats" },
+        )
+      ).json();
+      expect(renamed.name).toBe("Sweet treats");
+      const updated = await (
+        await fixture.request(`/products/${productId}`, "PATCH", {
+          description: "Chilled mango dessert",
+        })
+      ).json();
+      expect(updated).toMatchObject({
+        category_id: productInput.category_id,
+        category_name: "Sweet treats",
+        category_is_active: true,
+        product_name: productInput.product_name,
+        price: productInput.price,
+        service_types: productInput.service_types,
+      });
+      expect(
+        await (await fixture.request(`/products/${productId}/setup`)).json(),
+      ).toMatchObject({
+        branch_ids: [branchId],
+        product: { category_name: "Sweet treats" },
+      });
+      expect(
+        await (await fixture.request(`/products/${productId}`)).json(),
+      ).toMatchObject({ category_name: "Sweet treats" });
+      expect(
+        await (await fixture.request("/products?search=Fresh+mango")).json(),
+      ).toMatchObject({ items: [{ category_name: "Sweet treats" }] });
+      expect(
+        await (
+          await fixture.request(
+            `/branches/${branchId}/products?search=Fresh+mango`,
+          )
+        ).json(),
+      ).toMatchObject({
+        items: [{ category_name: "Sweet treats", category_is_active: true }],
+      });
+      expect(
+        await (
+          await fixture.request(`/branches/${branchId}/products/categories`)
+        ).json(),
+      ).toContainEqual({ id: productInput.category_id, name: "Sweet treats" });
+      const beforeInvalid = await (
+        await fixture.request("/__fixture/state")
+      ).json();
+      expect(
+        (
+          await fixture.request(`/products/${productId}`, "PATCH", {
+            product_name: "Must not persist",
+            category_id: seed.product_categories[7].id,
+          })
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await fixture.request(`/products/${productId}/setup`, "PUT", {
+            product: {
+              ...productInput,
+              category_id: seed.product_categories[7].id,
+            },
+            expected_product_revision: updated.setup_revision,
+          })
+        ).status,
+      ).toBe(400);
+      expect(await (await fixture.request("/__fixture/state")).json()).toEqual(
+        beforeInvalid,
+      );
+      const saved = await (
+        await fixture.request(`/products/${productId}/setup`, "PUT", {
+          product: {
+            ...productInput,
+            category_id: seed.product_categories[0].id,
+          },
+          expected_product_revision: updated.setup_revision,
+        })
+      ).json();
+      expect(saved.product).toMatchObject({
+        category_id: seed.product_categories[0].id,
+        category_name: "Rice meals",
+      });
+      expect(productSetupSchema.parse(saved).product.category_id).toBe(
+        seed.product_categories[0].id,
+      );
+      const historicalId = fixtureProductId(2);
+      expect(
+        await (
+          await fixture.request(`/products/${historicalId}`, "PATCH", {
+            description: "Preserve historical category",
+          })
+        ).json(),
+      ).toMatchObject({
+        category_id: seed.product_categories[7].id,
+        category_name: "Legacy items",
+        category_is_active: false,
+      });
+      await fixture.request(
+        `${categoryPath}/${seed.product_categories[7].id}`,
+        "PATCH",
+        { name: "Retired dishes", is_active: true },
+      );
+      expect(
+        await (await fixture.request(`/products/${historicalId}`)).json(),
+      ).toMatchObject({
+        category_name: "Retired dishes",
+        category_is_active: true,
+      });
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("filters branch menus before count/pagination and discovers categories beyond the first page independently of search", async () => {
+    const fixture = await start();
+    try {
+      const category = await (
+        await fixture.request(categoryPath, "POST", {
+          name: "Weekend specials",
+        })
+      ).json();
+      const ids: string[] = [];
+      for (let index = 0; index < 12; index++) {
+        const result = await (
+          await fixture.request("/products/setup", "POST", {
+            product: {
+              ...productInput,
+              product_name: `Zesty weekend rice bowl ${String(index).padStart(2, "0")}`,
+              category_id: category.id,
+              service_types: ["TAKEAWAY"],
+            },
+            expected_product_revision: 0,
+          })
+        ).json();
+        ids.push(result.product.id);
+      }
+      const firstPage = await (
+        await fixture.request(`/branches/${branchId}/products?page_size=10`)
+      ).json();
+      expect(
+        firstPage.items.every(
+          (item: { category_id: string }) => item.category_id !== category.id,
+        ),
+      ).toBe(true);
+      const filteredPath = `/branches/${branchId}/products?category_id=${category.id}&page_size=10&is_available=true&service_type=TAKEAWAY`;
+      const first = await (await fixture.request(filteredPath)).json();
+      const second = await (
+        await fixture.request(filteredPath + "&page=2")
+      ).json();
+      expect(first).toMatchObject({ total: 12, page: 1 });
+      expect(first.items).toHaveLength(10);
+      expect(second).toMatchObject({ total: 12, page: 2 });
+      expect(second.items).toHaveLength(2);
+      expect(
+        [...first.items, ...second.items].map(
+          (item: { product_id: string }) => item.product_id,
+        ),
+      ).toEqual(ids);
+      expect(
+        await (await fixture.request(filteredPath + "&search=bowl+11")).json(),
+      ).toMatchObject({ total: 1, items: [{ product_id: ids[11] }] });
+      const lookup = `/branches/${branchId}/products/categories`;
+      const categories = await (
+        await fixture.request(lookup + "?service_type=TAKEAWAY")
+      ).json();
+      expect(Array.isArray(categories)).toBe(true);
+      expect(categories).toContainEqual({
+        id: category.id,
+        name: category.name,
+      });
+      expect(
+        new Set(categories.map((item: { id: string }) => item.id)).size,
+      ).toBe(categories.length);
+      expect(
+        await (
+          await fixture.request(
+            lookup +
+              "?service_type=TAKEAWAY&search=nonexistent&page=999&page_size=1&category_id=invalid",
+          )
+        ).json(),
+      ).toEqual(categories);
+      expect(
+        await (await fixture.request(lookup + "?service_type=DINE_IN")).json(),
+      ).not.toContainEqual({ id: category.id, name: category.name });
+      expect(
+        await (
+          await fixture.request(
+            "/branches/10000000-0000-4000-8000-000000000002/products/categories",
+          )
+        ).json(),
+      ).toEqual([]);
+      for (const id of ids)
+        await fixture.request(
+          `/branches/${branchId}/products/${id}/availability`,
+          "POST",
+          { is_available: false },
+        );
+      expect(await (await fixture.request(lookup)).json()).not.toContainEqual({
+        id: category.id,
+        name: category.name,
+      });
+      await fixture.request(
+        `/branches/${branchId}/products/${ids[0]}/availability`,
+        "POST",
+        { is_available: true },
+      );
+      await fixture.request(`/products/${ids[0]}/deactivate`, "POST");
+      expect(await (await fixture.request(lookup)).json()).not.toContainEqual({
+        id: category.id,
+        name: category.name,
+      });
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("protects category management while allowing authenticated active lookups", async () => {
+    const authUser = {
+      ...seed.user,
+      role: { ...seed.user.role, code: "CASHIER", isSystem: false },
+    };
+    const fixture = await createOperationalApiFixture({
+      gatewaySecret,
+      authUser,
+    });
+    try {
+      const headers = {
+        ...(await getAuthenticatedHeaders(fixture.baseUrl)),
+        "content-type": "application/json",
+      };
+      for (const [path, method, body] of [
+        [categoryPath, "GET", undefined],
+        [categoryPath, "POST", { name: "Unauthorized" }],
+        [
+          `${categoryPath}/${seed.product_categories[0].id}`,
+          "PATCH",
+          { name: "Unauthorized" },
+        ],
+        [
+          `${categoryPath}/${seed.product_categories[0].id}/deactivate`,
+          "POST",
+          undefined,
+        ],
+      ] as const) {
+        expect(
+          (
+            await fetch(fixture.baseUrl + path, {
+              headers,
+              method,
+              body: body === undefined ? undefined : JSON.stringify(body),
+            })
+          ).status,
+        ).toBe(403);
+      }
+      expect(
+        (
+          await fetch(fixture.baseUrl + categoryPath + "/available", {
+            headers,
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await fetch(fixture.baseUrl + categoryPath + "/available", {
+            headers: { "x-coms-auth-gateway": gatewaySecret },
+          })
+        ).status,
+      ).toBe(401);
+    } finally {
+      await fixture.close();
+    }
+  });
+});
 
 describe("reviewed dispatch fixture", () => {
   it("sends atomically, retries without another deduction, and leaves no record after failure", async () => {
@@ -76,6 +605,7 @@ describe("reviewed dispatch fixture", () => {
         items: [
           { stock_item_id: stock.items[0].id, quantity_dispatched: "2.5" },
         ],
+        delivered_by_name: "Fixture Courier",
       };
       const key = "92000000-0000-4000-8000-000000000001";
       const send = () =>
@@ -152,6 +682,35 @@ function fixtureReportId(index: number) {
 }
 
 describe("operational API fixture", () => {
+  it("serves enabled POS payment choices with Cash as the default", async () => {
+    const fixture = await createOperationalApiFixture({ gatewaySecret });
+    try {
+      const path = fixture.baseUrl + "/payment-methods/available";
+      expect((await fetch(path)).status).toBe(401);
+      expect(
+        (
+          await fetch(path, {
+            headers: { "x-coms-auth-gateway": gatewaySecret },
+          })
+        ).status,
+      ).toBe(401);
+      const response = await fetch(path, {
+        headers: await getAuthenticatedHeaders(fixture.baseUrl),
+      });
+      expect(response.status).toBe(200);
+      const methods = paymentMethodChoiceSchema
+        .array()
+        .parse(await response.json());
+      expect(methods).toEqual([
+        { id: seed.payment_methods[0].id, name: "Cash", kind: "CASH" },
+        { id: seed.payment_methods[1].id, name: "GCash", kind: "NON_CASH" },
+      ]);
+      expect(methods.find((method) => method.kind === "CASH")).toBe(methods[0]);
+    } finally {
+      await fixture.close();
+    }
+  });
+
   it("keeps its seeded auth, roles, and permission catalog within app schemas", () => {
     const user = authMeResponseSchema.parse({
       user: seed.user,
@@ -966,11 +1525,19 @@ describe("operational API fixture", () => {
       expect(conflictingRetry.status).toBe(409);
 
       const dispatchKey = "71000000-0000-4000-8000-000000000002";
+      const deliveryBody = JSON.stringify({
+        delivered_by_name: "Fixture Courier",
+      });
       const postedResponse = await fetch(
         fixture.baseUrl + "/dispatches/" + created.id + "/dispatch",
         {
           method: "POST",
-          headers: { ...headers, "Idempotency-Key": dispatchKey },
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": dispatchKey,
+          },
+          body: deliveryBody,
         },
       );
       const posted = dispatchDetailSchema.parse(await postedResponse.json());
@@ -991,7 +1558,12 @@ describe("operational API fixture", () => {
       ).toHaveLength(initialMovementCount + 1);
       await fetch(fixture.baseUrl + "/dispatches/" + created.id + "/dispatch", {
         method: "POST",
-        headers: { ...headers, "Idempotency-Key": dispatchKey },
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+          "Idempotency-Key": dispatchKey,
+        },
+        body: deliveryBody,
       });
       const retriedPostState = await fetch(
         fixture.baseUrl + "/__fixture/state",
@@ -1028,7 +1600,12 @@ describe("operational API fixture", () => {
         fixture.baseUrl + "/dispatches/" + insufficientDraft.id + "/dispatch",
         {
           method: "POST",
-          headers: { ...headers, "Idempotency-Key": insufficientKey },
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            "Idempotency-Key": insufficientKey,
+          },
+          body: deliveryBody,
         },
       );
       expect(insufficientPost.status).toBe(409);
@@ -1052,82 +1629,105 @@ describe("operational API fixture", () => {
         (item) => item.quantity_dispatched === "12.5",
       )!;
       const receiveKey = "71000000-0000-4000-8000-000000000003";
-      const receiveBody = {
-        items: [{ dispatch_item_id: firstItem.id, quantity_received: "2.5" }],
-      };
-      const receive = () =>
+      const countLines = posted.items.map((item) => ({
+        dispatch_item_id: item.id,
+        quantity_received: item.id === firstItem.id ? "11.5" : "0",
+      }));
+      const receive = (body: object, key = receiveKey) =>
         fetch(fixture.baseUrl + "/dispatches/" + created.id + "/receive", {
           method: "POST",
           headers: {
             ...headers,
             "content-type": "application/json",
-            "Idempotency-Key": receiveKey,
+            "Idempotency-Key": key,
           },
-          body: JSON.stringify(receiveBody),
+          body: JSON.stringify(body),
         });
-      const firstReceipt = dispatchDetailSchema.parse(
-        await (await receive()).json(),
+      const missingLine = await receive(
+        { items: [] },
+        "71000000-0000-4000-8000-000000000009",
       );
-      expect(firstReceipt.status).toBe("PARTIALLY_RECEIVED");
+      expect(missingLine.status).toBe(400);
+      const counted = dispatchDetailSchema.parse(
+        await (await receive({ items: countLines })).json(),
+      );
+      expect(counted.status).toBe("PARTIALLY_RECEIVED");
+      expect(counted.counted_at).toBeTruthy();
+      expect(counted.discrepancy?.status).toBe("OPEN");
       expect(
-        dispatchDetailSchema.parse(await (await receive()).json()).receipts,
+        dispatchDetailSchema.parse(
+          await (await receive({ items: countLines })).json(),
+        ).receipts,
       ).toHaveLength(1);
-
-      const secondReceipt = await fetch(
-        fixture.baseUrl + "/dispatches/" + created.id + "/receive",
-        {
-          method: "POST",
-          headers: {
-            ...headers,
-            "content-type": "application/json",
-            "Idempotency-Key": "71000000-0000-4000-8000-000000000004",
-          },
-          body: JSON.stringify({
-            items: [
-              { dispatch_item_id: firstItem.id, quantity_received: "1.5" },
-            ],
-          }),
-        },
-      );
-      const partiallyReceived = dispatchDetailSchema.parse(
-        await secondReceipt.json(),
-      );
-      expect(partiallyReceived.receipts).toHaveLength(2);
       expect(
-        partiallyReceived.items.find((item) => item.id === firstItem.id),
+        counted.items.find((item) => item.id === firstItem.id),
       ).toMatchObject({
-        quantity_received: "4",
-        quantity_in_transit: "8.5",
+        quantity_received: "11.5",
+        quantity_variance: "-1",
+        quantity_outstanding: "1",
+        quantity_in_transit: "0",
       });
-
-      const shortageResponse = await fetch(
-        fixture.baseUrl + "/dispatches/" + created.id + "/shortage-closures",
-        {
-          method: "POST",
-          headers: {
-            ...headers,
-            "content-type": "application/json",
-            "Idempotency-Key": "71000000-0000-4000-8000-000000000005",
-          },
-          body: JSON.stringify({
-            reason: "Fixture transport damage.",
-            items: [{ dispatch_item_id: firstItem.id, quantity_closed: "1" }],
-          }),
-        },
+      const secondCount = await receive(
+        { items: countLines },
+        "71000000-0000-4000-8000-000000000004",
       );
-      const closed = dispatchDetailSchema.parse(await shortageResponse.json());
-      expect(closed.shortage_closures).toHaveLength(1);
-      expect(closed.shortage_closures[0]).toMatchObject({
-        reason: "Fixture transport damage.",
+      expect(secondCount.status).toBe(409);
+
+      const resolve = (outcome: string, quantity: string, key: string) =>
+        fetch(
+          fixture.baseUrl + "/dispatches/" + created.id + "/shortage-closures",
+          {
+            method: "POST",
+            headers: {
+              ...headers,
+              "content-type": "application/json",
+              "Idempotency-Key": key,
+            },
+            body: JSON.stringify({
+              outcome,
+              reason: "Fixture bag left at the commissary.",
+              items: [
+                { dispatch_item_id: firstItem.id, quantity_closed: quantity },
+              ],
+            }),
+          },
+        );
+      expect(
+        (await resolve("SURPLUS", "1", "71000000-0000-4000-8000-000000000010"))
+          .status,
+      ).toBe(400);
+      const beforeResolve = await fetch(
+        fixture.baseUrl + "/__fixture/state",
+      ).then((response) => response.json());
+      const closed = dispatchDetailSchema.parse(
+        await (
+          await resolve(
+            "NOT_LOADED",
+            "1",
+            "71000000-0000-4000-8000-000000000005",
+          )
+        ).json(),
+      );
+      expect(closed.shortage_closures.at(-1)).toMatchObject({
+        outcome: "NOT_LOADED",
+        reason: "Fixture bag left at the commissary.",
         items: [{ quantity_closed: "1" }],
       });
       expect(
         closed.items.find((item) => item.id === firstItem.id),
       ).toMatchObject({
-        quantity_received: "4",
         quantity_shortage_closed: "1",
-        quantity_in_transit: "7.5",
+        quantity_outstanding: "0",
       });
+      const afterResolve = await fetch(
+        fixture.baseUrl + "/__fixture/state",
+      ).then((response) => response.json());
+      expect(afterResolve.commissaryMovements).toHaveLength(
+        beforeResolve.commissaryMovements.length + 1,
+      );
+      expect(afterResolve.commissaryMovements.at(-1).movement_type).toBe(
+        "DISPATCH_RETURN",
+      );
     } finally {
       await fixture.close();
     }
@@ -1163,13 +1763,13 @@ describe("operational API fixture", () => {
       const filteredProducts = productPageSchema.parse(
         await (
           await fetch(
-            fixture.baseUrl + "/products?search=Product+31&is_active=true",
+            fixture.baseUrl + "/products?search=Sago+gulaman&is_active=true",
             { headers },
           )
         ).json(),
       );
       expect(filteredProducts).toMatchObject({ total: 1, page: 1 });
-      expect(filteredProducts.items[0].product_name).toBe("Fixture Product 31");
+      expect(filteredProducts.items[0].product_name).toBe("Sago gulaman");
 
       const stockItems = stockItemPageSchema.parse(
         await (
@@ -1362,6 +1962,7 @@ describe("operational API fixture", () => {
         headers: { ...headers, "content-type": "application/json" },
         body: JSON.stringify({
           product_name: "Fixture added product",
+          category_id: seed.product_categories[0].id,
           price: "125.001",
           service_types: ["DINE_IN", "TAKEAWAY"],
           description: "Created through the operational fixture.",
@@ -1375,6 +1976,7 @@ describe("operational API fixture", () => {
           headers: { ...headers, "content-type": "application/json" },
           body: JSON.stringify({
             product_name: "Fixture added product",
+            category_id: seed.product_categories[0].id,
             price: "125.001",
             service_types: ["DINE_IN", "TAKEAWAY"],
             description: "Created through the operational fixture.",
@@ -1386,6 +1988,7 @@ describe("operational API fixture", () => {
       );
       expect(createdProduct).toMatchObject({
         product_name: "Fixture added product",
+        category_id: seed.product_categories[0].id,
         is_active: true,
       });
 

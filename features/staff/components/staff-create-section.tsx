@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { XIcon } from "lucide-react";
+import { Plus, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -94,8 +94,9 @@ export function StaffCreateSection({
           setStatus("");
           setOpen(true);
         }}
+        className="h-10"
       >
-        Add staff
+        <Plus aria-hidden="true" /> Add staff
       </Button>
       <Dialog
         open={open}
@@ -105,13 +106,13 @@ export function StaffCreateSection({
           data-coms-ui="operational"
           showCloseButton={false}
           overlayClassName="bg-black/45 supports-backdrop-filter:backdrop-blur-none"
-          className="flex max-h-[min(90dvh,48rem)] w-full min-h-0 flex-col gap-0 overflow-hidden rounded-xl p-0 sm:max-w-[44rem]"
+          className="flex max-h-[min(90dvh,48rem)] w-full min-h-0 flex-col gap-0 overflow-hidden rounded-xl p-0 sm:max-w-2xl"
         >
           <DialogHeader className="relative shrink-0 gap-1 px-5 pt-6 pb-1 sm:px-8 sm:pt-7">
             <DialogTitle className="pr-10 text-2xl font-semibold">
               Add staff
             </DialogTitle>
-            <DialogDescription className="pr-10">
+            <DialogDescription className="sr-only">
               Create an account and assign role and branch access.
             </DialogDescription>
             <Button

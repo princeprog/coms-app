@@ -1,6 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 export function dispatchStatusLabel(status: string) {
+  if (status === "PARTIALLY_RECEIVED") return "Needs review";
+  if (status === "CLOSED_WITH_SHORTAGE") return "Resolved with variance";
+  if (status === "IN_TRANSIT") return "Awaiting count";
   const label = status.toLowerCase().replaceAll("_", " ");
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
@@ -13,6 +16,7 @@ const styles: Record<string, string> = {
   OPEN: "bg-red-700",
   RECOUNT_REQUESTED: "bg-amber-800",
   RESOLVED: "bg-emerald-700",
+  NOT_REPORTED: "bg-slate-600",
 };
 export function DispatchStatusBadge({
   status,

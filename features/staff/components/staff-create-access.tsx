@@ -33,11 +33,11 @@ export function StaffCreateAccess({
   onLimitReached: () => void;
 }) {
   return (
-    <section aria-labelledby="staff-create-access" className="space-y-4">
-      <h3
-        id="staff-create-access"
-        className="border-b pb-2 text-base font-semibold"
-      >
+    <section
+      aria-labelledby="staff-create-access"
+      className="space-y-4 border-t pt-5"
+    >
+      <h3 id="staff-create-access" className="text-sm font-semibold">
         Access
       </h3>
       <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
@@ -51,7 +51,12 @@ export function StaffCreateAccess({
           >
             <SelectTrigger
               id="staff-create-role"
-              className="h-11 w-full"
+              aria-describedby={
+                roleId === UNASSIGNED_ROLE_VALUE
+                  ? "staff-create-role-hint"
+                  : undefined
+              }
+              className="w-full data-[size=default]:h-11"
               disabled={pending}
             >
               <SelectValue>
@@ -63,7 +68,10 @@ export function StaffCreateAccess({
                 }
               </SelectValue>
             </SelectTrigger>
-            <SelectContent data-coms-ui="operational">
+            <SelectContent
+              data-coms-ui="operational"
+              alignItemWithTrigger={false}
+            >
               <SelectItem value={UNASSIGNED_ROLE_VALUE}>Unassigned</SelectItem>
               {roles.map((role) => (
                 <SelectItem key={role.id} value={role.id}>
@@ -72,9 +80,11 @@ export function StaffCreateAccess({
               ))}
             </SelectContent>
           </Select>
-          <FieldDescription>
-            Unassigned staff can sign in but cannot access COMS operations.
-          </FieldDescription>
+          {roleId === UNASSIGNED_ROLE_VALUE && (
+            <FieldDescription id="staff-create-role-hint">
+              No access until a role is assigned.
+            </FieldDescription>
+          )}
         </Field>
 
         <Field className="gap-2">
@@ -86,11 +96,9 @@ export function StaffCreateAccess({
             onChange={onBranchChange}
             onLimitReached={onLimitReached}
           />
-          <FieldDescription>
-            {branches.length === 0
-              ? "No active branches are available to assign."
-              : "Choose the branches this staff member can access."}
-          </FieldDescription>
+          {branches.length === 0 && (
+            <FieldDescription>No active branches available.</FieldDescription>
+          )}
         </Field>
       </div>
     </section>

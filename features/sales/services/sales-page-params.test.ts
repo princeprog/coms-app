@@ -5,6 +5,22 @@ const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const saleId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
 
 describe("POS page parameters", () => {
+  it("normalizes and preserves category across page and history links", () => {
+    const filters = parseSalesPageFilters({
+      category_id: saleId.toUpperCase(),
+      page: "2",
+    });
+    expect(filters.categoryId).toBe(saleId);
+    expect(
+      new URL(
+        createSalesHref({ ...filters, view: "history", saleId }),
+        "http://localhost",
+      ).searchParams.get("category_id"),
+    ).toBe(saleId);
+    expect(
+      parseSalesPageFilters({ category_id: "invalid" }),
+    ).not.toHaveProperty("categoryId");
+  });
   it("preserves the active section through history pagination and detail navigation", () => {
     const filters = parseSalesPageFilters({
       view: "history",

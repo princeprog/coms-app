@@ -862,6 +862,7 @@ let baseUrl;
       message: "Temporary dispatch sending failure.",
     }),
   });
+  await sendModal.getByLabel("Delivered by").fill("Fixture Courier");
   await sendModal.getByRole("button", { name: "Confirm dispatch" }).click();
   await sendModal.getByRole("alert").waitFor();
   const afterFailure = await fetch(fixture.baseUrl + "/__fixture/state").then(
@@ -880,7 +881,7 @@ let baseUrl;
   await sendModal.getByRole("button", { name: "Confirm dispatch" }).click();
   await page.waitForURL(/\/dispatches\/[0-9a-f-]+$/);
   await page.getByText("Dispatch sent", { exact: true }).waitFor();
-  await page.getByText("IN TRANSIT", { exact: true }).waitFor();
+  await page.getByText(/^awaiting count$/i).first().waitFor();
   const afterSend = await fetch(fixture.baseUrl + "/__fixture/state").then(
     (r) => r.json(),
   );
@@ -1074,19 +1075,12 @@ let baseUrl;
         route === `/dispatches/${openDiscrepancyDispatch.id}`
       ) {
         await page
-          .getByRole("button", { name: "Request recount", exact: true })
+          .getByRole("button", { name: "Resolve variance", exact: true })
           .waitFor();
         assert.equal(
-          await page.getByRole("button", { name: "Receive dispatch" }).count(),
+          await page.getByRole("button", { name: "Count delivery" }).count(),
           0,
-          "Super Admin cannot enter a branch dispatch receipt",
-        );
-        assert.equal(
-          await page
-            .getByRole("button", { name: "Report discrepancy" })
-            .count(),
-          0,
-          "Super Admin cannot report a branch receipt discrepancy",
+          "Super Admin cannot count a branch delivery",
         );
         await page
           .getByText("The delivery count is short", { exact: false })

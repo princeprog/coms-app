@@ -8,8 +8,8 @@ import {
   createDispatchSchema,
   dispatchDetailSchema,
   receiveDispatchSchema,
-  reportDispatchDiscrepancySchema,
-  requestDispatchRecountSchema,
+  sendDispatchDraftSchema,
+  sendDispatchSchema,
 } from "@/features/dispatches/schemas/dispatch.schema";
 import {
   dispatchesEndpoint,
@@ -26,13 +26,18 @@ function getActionError(error: unknown) {
   if (error instanceof ApiRequestError) {
     if (error.status === 401) return "Your session expired. Sign in again.";
     if (error.status === 403)
-      return "You do not have permission to manage this dispatch or branch.";
+      return error.message.startsWith("The person who")
+        ? error.message
+        : "You do not have permission to manage this dispatch or branch.";
     if (error.status === 404)
       return "This dispatch, branch, or stock item is no longer available.";
     if (error.status === 409)
-      return "The workflow changed or this retry key was already used. Refresh and try again.";
+      return error.message &&
+        !error.message.startsWith("Idempotency key")
+        ? error.message
+        : "The workflow changed or this retry key was already used. Refresh and try again.";
     if (error.status === 400)
-      return "Check the quantities, reason, and remaining in-transit amounts.";
+      return "Check the quantities, delivery name, and reason, then try again.";
     return error.message;
   }
   return "COMS could not complete this dispatch action. Try again.";
@@ -73,9 +78,12 @@ export async function sendDispatchAction(
   idempotencyKey: string,
 ): Promise<DispatchMutationResult> {
   const parsedKey = z.uuid().safeParse(idempotencyKey);
-  const parsedInput = createDispatchSchema.safeParse(input);
+  const parsedInput = sendDispatchSchema.safeParse(input);
   if (!parsedKey.success || !parsedInput.success)
-    return { ok: false, error: "Check the branch and dispatch item lines." };
+    return {
+      ok: false,
+      error: "Check the branch, item lines, and who is delivering the stock.",
+    };
   try {
     const payload = await requestComsApi<unknown>(
       `${dispatchesEndpoint}/send`,
@@ -133,16 +141,20 @@ export async function createDispatchAction(
 
 export async function postDispatchAction(
   id: string,
+  input: unknown,
   idempotencyKey: string,
 ): Promise<DispatchActionResult> {
   const parsedId = z.uuid().safeParse(id);
   const parsedKey = z.uuid().safeParse(idempotencyKey);
+  const parsedInput = sendDispatchDraftSchema.safeParse(input);
   if (!parsedId.success || !parsedKey.success)
     return { ok: false, error: "Check the selected dispatch." };
+  if (!parsedInput.success)
+    return { ok: false, error: "Enter who is delivering this dispatch." };
   return submitDispatchAction(
     `${dispatchesEndpoint}/${parsedId.data}/dispatch`,
     parsedId.data,
-    undefined,
+    parsedInput.data,
     parsedKey.data,
   );
 }
@@ -156,7 +168,7 @@ export async function receiveDispatchAction(
   const parsedKey = z.uuid().safeParse(idempotencyKey);
   const parsedInput = receiveDispatchSchema.safeParse(input);
   if (!parsedId.success || !parsedKey.success || !parsedInput.success)
-    return { ok: false, error: "Check the received quantities." };
+    return { ok: false, error: "Check the counted quantities." };
   return submitDispatchAction(
     `${dispatchesEndpoint}/${parsedId.data}/receive`,
     parsedId.data,
@@ -174,45 +186,9 @@ export async function closeDispatchShortageAction(
   const parsedKey = z.uuid().safeParse(idempotencyKey);
   const parsedInput = closeDispatchShortageSchema.safeParse(input);
   if (!parsedId.success || !parsedKey.success || !parsedInput.success)
-    return { ok: false, error: "Check the shortage reason and quantities." };
+    return { ok: false, error: "Check the outcome, reason, and quantity." };
   return submitDispatchAction(
     `${dispatchesEndpoint}/${parsedId.data}/shortage-closures`,
-    parsedId.data,
-    parsedInput.data,
-    parsedKey.data,
-  );
-}
-
-export async function reportDispatchDiscrepancyAction(
-  id: string,
-  input: unknown,
-  idempotencyKey: string,
-): Promise<DispatchActionResult> {
-  const parsedId = z.uuid().safeParse(id);
-  const parsedKey = z.uuid().safeParse(idempotencyKey);
-  const parsedInput = reportDispatchDiscrepancySchema.safeParse(input);
-  if (!parsedId.success || !parsedKey.success || !parsedInput.success)
-    return { ok: false, error: "Enter a note about the received quantity." };
-  return submitDispatchAction(
-    `${dispatchesEndpoint}/${parsedId.data}/discrepancies`,
-    parsedId.data,
-    parsedInput.data,
-    parsedKey.data,
-  );
-}
-
-export async function requestDispatchRecountAction(
-  id: string,
-  input: unknown,
-  idempotencyKey: string,
-): Promise<DispatchActionResult> {
-  const parsedId = z.uuid().safeParse(id);
-  const parsedKey = z.uuid().safeParse(idempotencyKey);
-  const parsedInput = requestDispatchRecountSchema.safeParse(input);
-  if (!parsedId.success || !parsedKey.success || !parsedInput.success)
-    return { ok: false, error: "Enter a reason for the recount request." };
-  return submitDispatchAction(
-    `${dispatchesEndpoint}/${parsedId.data}/discrepancies/recount`,
     parsedId.data,
     parsedInput.data,
     parsedKey.data,

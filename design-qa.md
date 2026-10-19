@@ -59,6 +59,66 @@ Minor differences in mock typography, milestone positioning and badge density ar
 
 final result: passed
 
+## 2026-10-12 — Dispatches directory selected design
+
+Source visual truth: `C:\Users\Al Prince\.codex\generated_images\01a12fad-fb70-7b92-9a10-46573ed90af8\exec-19c14b4e-895a-4043-a999-8ddfe3a6138a.png` (1487 × 1058 pixels). Implementation screenshot: Codex in-app browser tab 6 capture emitted inline in this task; the browser API did not expose a local screenshot path. Comparison viewport: 1440 × 1024 CSS pixels at device pixel ratio 1. State: live authenticated Dispatches directory with eight records and no applied filters. The source and implementation captures were reviewed together in the current visual context; the toolbar and table remained readable at full-view scale, so no separate focused crop was required. DOM measurements additionally verified control widths, row heights, viewport fit, and zero page overflow at the checked responsive sizes.
+
+**Findings and comparison history**
+
+- P2 fixed: the first responsive pass kept the one-row desktop toolbar at the 768px breakpoint, producing page-level horizontal overflow. Moved the horizontal layout to the large breakpoint and made every filter full width below it. Post-fix evidence measured `scrollWidth: 753` in a 768px viewport and `scrollWidth: 375` in a 390px viewport, with all controls visible and stacked.
+- Fonts and typography: the existing Inter-based COMS typography preserves the source hierarchy with a semibold page title, compact supporting copy, clear table labels, and legible 12px status text. The real application header and sidebar typography remain authoritative.
+- Spacing and layout rhythm: the live page matches the source hierarchy—page heading and primary action, one utility row, one dominant bordered table card, compact rows, and a result/pagination footer. Existing Nova control heights and the persistent 288px application sidebar are intentionally retained instead of copying the generated image's approximate shell dimensions.
+- Colors and visual tokens: the implementation uses the existing orange primary token, neutral surfaces and borders, and solid blue/green/amber/gray shadcn badges with white text. Status meaning always remains visible as text.
+- Image quality and asset fidelity: the application keeps its real Emma's Chicken House logo and existing shell icons; the generated concept's approximate logo and icon drawings were not introduced as new assets.
+- Copy and content: page, filter, table, status, timestamp, and pagination copy match the selected direction while using real server data. The sort trigger intentionally shows the explicit applied value `Newest first` instead of the concept's ambiguous `Sort by` placeholder.
+- Interaction and accessibility: Create dispatch opens and closes through the existing accessible dialog; the status select and row action menu open by keyboard-compatible shadcn primitives; actions retain permission checks; desktop, tablet, and phone layouts expose the appropriate table columns without document overflow. Browser warning/error logs were empty.
+
+**Implementation checklist**
+
+- Approved Dispatches image implemented with existing shadcn Button, Field, InputGroup, Select, Card, Table, Badge, DropdownMenu, and Pagination primitives.
+- Server-owned search, filters, sorting, pagination, permissions, create workflow, loading, empty, and error behavior preserved.
+- Compact desktop toolbar, solid discrepancy badges, single-line PHT timestamps, plus-icon primary action, and numbered pagination verified.
+- Focused Dispatches tests, complete frontend suite, TypeScript, full ESLint, formatting, production build, responsive browser checks, primary interactions, and console inspection completed.
+
+final result: passed
+
+## 2026-10-12 — Inventory professional redesign
+
+Source visual truth: `C:/Users/Al Prince/.codex/generated_images/01a12fad-fb70-7b92-9a10-46573ed90af8/exec-ee1cb878-f58c-48a5-a994-7e8439a290e6.png` (1586×992). The source was normalized with high-quality bicubic scaling to `test-results/inventory-redesign/source-normalized-1600x1000.png` (1600×1000) before comparison. Rendered implementation: `test-results/inventory-redesign/desktop-1600x1000.png` (1600×1000 pixels from a 1600×1000 CSS viewport, DPR 1), Light theme, Commissary scope, real current inventory data. Full-view combined evidence: `test-results/inventory-redesign/comparison-1600x1000.png` (source left, implementation right). Focused readable evidence: `test-results/inventory-redesign/comparison-main-region.png`, comparing the stock-balance and five-item activity regions. Responsive evidence: `test-results/inventory-redesign/mobile-390x844-full.png` (375×1446 full-page capture from a 390×844 viewport; 375px document client width, DPR 1).
+
+**Findings and comparison history**
+
+- Initial comparison found one P2 density mismatch: visible explanatory copy made both collection headers materially taller than the source. The copy remains available to assistive technology, while the visual headers now use the source's compact title/count treatment. The final desktop and focused comparisons confirm aligned header height and row rhythm.
+- No actionable P0/P1/P2 findings remain. The generated source's Low stock tile, low-stock rows, Export, Columns, View all and global Adjust stock actions are intentionally omitted because current COMS contracts do not provide reorder thresholds, authoritative aggregates, an export, column preferences, a complete movement-history route or a global adjustment selection flow. The implementation does not invent totals or non-functional controls.
+- The source's six balance rows are compared with the three records currently available in the live commissary. The resulting lower card height is data-state variance, not spacing drift. The implementation retains server-owned totals and pagination.
+
+**Required fidelity surfaces**
+
+- Typography: existing Inter, compact semibold headings, readable 14px table/activity text and tabular quantities match the Nova operational UI. Long item/category/reason text wraps without clipping. Minor generated-image raster softness is expected and classified P3.
+- Spacing and layout: existing shell gutter is preserved. The page uses a clear location row, one aligned search/filter toolbar, a dominant balance table and adjacent activity rail at desktop, then stacks the cards on phones. Card headers, approximately 54px table rows and approximately 72px activity rows match the source's density. At 390px the document has zero horizontal overflow; the balance table preserves identity, quantity, health and actions.
+- Colors and tokens: COMS orange primary, neutral card surfaces, subtle borders and existing semantic state colors are retained. In stock, Out of stock and Inactive include text labels; activity direction also uses icons and signed quantities, so color is not the only cue. Light/dark-compatible semantic classes are used even though this source comparison is Light.
+- Image and icon fidelity: the existing Emma's logo is retained. Standard installed Lucide arrows, circles and row-action icons match the source's operational icon language. The page has no product-image contract and introduces no placeholder imagery, CSS art or custom SVG assets.
+- Copy and content: exact decimal quantity strings and units remain intact. Updated and activity timestamps use PHT. Supplier receipt activity hides internal receipt UUIDs behind a readable label; meaningful adjustment reasons remain visible. Recent activity is explicitly newest-first and the footer truthfully reports how many of the total movements are shown.
+
+**Interaction and browser evidence**
+
+- The production page requested and rendered exactly five recent movements on both desktop and phone. A defensive UI cap also prevents a larger payload from displaying more than five.
+- Commissary → Branches displayed the authorized Branch selector at the URL-backed branch route; returning to Commissary restored `/inventory?scope=COMMISSARY` and retained five activity rows.
+- Desktop and mobile browser console error logs were empty. The final 390px page had zero document overflow. Existing component coverage verifies debounced search, immediate status/category filters, removable chips, pagination, fixed-branch behavior, adjustment permissions, loading, empty and retry states.
+- Final engineering verification passed: 130 test files / 565 tests with two workers, including 2 Inventory files / 32 focused tests; full ESLint; TypeScript; changed-file Prettier; whitespace checks; and the optimized Next.js production build. One earlier unconstrained full-suite run exposed an unrelated Staff Select timing failure; that file passed alone and the complete controlled run passed without changing Staff code or weakening its test.
+- Limits: no inventory write was performed; browser checks used the user's current read-only records. Native zoom/text scaling, a real screen reader, Dark-theme visual comparison and an exhaustive error matrix were not run in this pass.
+
+**Implementation checklist**
+
+- Selected mock translated into the existing COMS shell and shadcn/Nova system.
+- Movement request and rendered list both capped at five.
+- Stock health derived only from active state and exact zero balance; no low-stock threshold invented.
+- Loading skeleton updated to match the two-column composition.
+- Matched full and focused comparisons repeated after the P2 header-density correction.
+- Desktop/mobile responsiveness, location switching and console state verified in the in-app browser.
+
+final result: passed
+
 # Branch Menu — selected design
 
 Completed 2026-10-10. This is the latest design QA; the Dispatch Details report above is retained.
@@ -261,6 +321,7 @@ final result: passed
 Source: test-results/branches-design/source-design.png (1487×1058). Initial implementation: desktop-initial-light.png (1487×1058), CSS viewport 1487×1058, Light, All branches, Riverside action menu open. Combined evidence: comparison-initial.png, source left and implementation right. Existing COMS shell/brand are intentionally retained. Browser screenshots at an overridden viewport have some renderer resampling; native capture will accompany final proof.
 
 Findings:
+
 - [P2] Branch identity and status emphasis are weaker than the selected source. Increase the heading/branch-name scale and use compact rectangular solid badges; retain Inter and the current semantic theme.
 - [P2] Service/Sort controls are proportionally too narrow. Give the three controls a 5:2:2 desktop grid while preserving mobile stacking.
 - [P2] Status tab labels cause document overflow at 240 CSS px (scrollWidth 245). Allow tabs to wrap without losing keyboard operation. The table already contains its own scroll (338px table inside 193px region).
@@ -280,6 +341,7 @@ Source visual truth: test-results/branches-design/source-design.png. Rendered pr
 **Findings and comparison history**
 
 All earlier P2 findings are resolved in the latest browser captures:
+
 - Heading and branch identity now have stronger scale; status badges are compact rectangles with solid contrast-safe colors and white labels.
 - Desktop search/service/sort proportions use a 5:2:2 grid; controls stack on phones.
 - The status tabs wrap at 240px. Document width stays within the viewport; horizontal scrolling is contained by the named, focusable table region.
@@ -322,6 +384,7 @@ Source visual truth: test-results/pos-design/source.png (1536 x 1024).
 Implementation: test-results/pos-design/desktop-final-light.png (1536 x 1024 CSS viewport and capture; browser raster resampling softens the capture). State: synthetic Cebu Branch, Takeout, 2 Roasted Chicken + 2 Mineral Water, total 540, cash 1000, change 460. Source and rendered views were opened for comparison. Desktop-first and desktop-light-first record the initial pass; mobile.png and tablet-dark.png cover responsive states.
 
 Findings and iteration:
+
 - P2 fixed: the initial checkout button extended below the 1024px desktop viewport. Reduced row padding/quantity-control height on desktop and tightened order-panel spacing. Final button bottom is 992px with scrollY=0; all payment actions visible.
 - P2 fixed: on narrow layouts the service selector followed the product list. Added Choose service and Browse products anchors; verified keyboard service selection and the jump back to products on the final production build.
 - Typography: existing Inter, readable labels, strong totals and cash change hierarchy. Layout: two-column product tiles and separate checkout pane; existing persistent application shell is intentionally retained rather than replacing navigation app-wide. Existing history tabs move into the header and keep the cart mounted.

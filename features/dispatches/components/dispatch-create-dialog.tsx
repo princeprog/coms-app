@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { XIcon } from "lucide-react";
+import { PlusIcon, XIcon } from "lucide-react";
 import { useQuickCreateDialog } from "@/components/layout/use-quick-create-dialog";
 import {
   AlertDialog,
@@ -29,6 +29,7 @@ import type {
   DispatchCreateOptions,
 } from "@/features/dispatches/types/dispatch.types";
 import { DispatchCreateForm } from "./dispatch-create-form";
+import styles from "./dispatch-create.module.css";
 
 export function DispatchCreateDialog({
   canCreate,
@@ -76,27 +77,29 @@ export function DispatchCreateDialog({
       }}
     >
       {canCreate && (
-        <DialogTrigger
-          render={<Button type="button">Create dispatch</Button>}
-        />
+        <DialogTrigger render={<Button type="button" />}>
+          <PlusIcon data-icon="inline-start" />
+          Create dispatch
+        </DialogTrigger>
       )}
       <DialogContent
         data-coms-ui="operational"
         showCloseButton={false}
-        className="flex max-h-[min(90dvh,48rem)] min-h-0 w-full flex-col gap-0 overflow-clip p-0 sm:max-w-2xl"
+        overlayClassName={`${styles.overlay} bg-black/30 supports-backdrop-filter:backdrop-blur-xs`}
+        className={`${styles.modal} flex max-h-[min(90dvh,44rem)] min-h-0 w-full flex-col gap-0 overflow-clip rounded-2xl p-0 shadow-xl sm:max-w-2xl`}
       >
-        <DialogHeader className="relative shrink-0 gap-1 border-b p-4 sm:p-6">
-          <DialogTitle className="pr-10 text-xl font-semibold">
+        <DialogHeader className="relative shrink-0 px-5 pt-6 pb-5 pr-16 sm:px-6 sm:pr-16">
+          <DialogTitle className="text-xl leading-tight font-semibold tracking-tight">
             Create dispatch
           </DialogTitle>
-          <DialogDescription className="pr-10">
-            Choose an active branch and the stock items and quantities to send.
+          <DialogDescription className="sr-only">
+            Send stock to a branch.
           </DialogDescription>
           <Button
             type="button"
             variant="ghost"
-            size="icon-sm"
-            className="absolute top-4 right-4 sm:top-6 sm:right-6"
+            size="icon"
+            className="absolute top-4 right-4 text-muted-foreground"
             aria-label="Close Create dispatch"
             disabled={pending}
             onClick={requestClose}
@@ -129,8 +132,6 @@ export function DispatchCreateDialog({
             onCreated={(id) => {
               toast.add({
                 title: "Dispatch sent",
-                description:
-                  "The dispatch is in transit. Branch staff can confirm actual receipt.",
               });
               setDirty(false);
               closeDialog();

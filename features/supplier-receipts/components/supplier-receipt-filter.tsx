@@ -14,9 +14,9 @@ import { DirectorySelect } from "@/components/shared/directory-select";
 import { useDirectoryQuery } from "@/hooks/use-directory-query";
 import {
   createSupplierReceiptHref,
-  receiptSortOptions,
   type SupplierReceiptPageFilters,
 } from "../services/supplier-receipt-page-params";
+import { supplierReceiptSortOptions } from "./supplier-receipt-filter-options";
 import { SupplierReceiptRangeFilters } from "./supplier-receipt-range-filters";
 
 export function SupplierReceiptFilter({
@@ -50,9 +50,10 @@ export function SupplierReceiptFilter({
       <FieldGroup className="gap-3 sm:flex-row sm:flex-wrap sm:items-end">
         <Field className="min-w-0 sm:min-w-48 sm:flex-1">
           <FieldLabel htmlFor="receipt-search">Search supplier</FieldLabel>
-          <InputGroup>
+          <InputGroup className="h-10">
             <InputGroupInput
               id="receipt-search"
+              className="h-full text-base md:text-sm"
               type="search"
               maxLength={100}
               value={search}
@@ -65,7 +66,7 @@ export function SupplierReceiptFilter({
               }}
               placeholder="Search by supplier name…"
             />
-            <InputGroupAddon>
+            <InputGroupAddon className="pl-3">
               <Search aria-hidden="true" />
             </InputGroupAddon>
           </InputGroup>
@@ -74,7 +75,9 @@ export function SupplierReceiptFilter({
           id="receipt-sort"
           label="Sort by"
           value={filters.sort ?? "newest"}
-          options={receiptSortOptions}
+          options={supplierReceiptSortOptions}
+          alignItemWithTrigger={false}
+          className="sm:w-56 [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:px-3"
           onChange={(sort) => apply({ sort })}
         />
         <Button
@@ -82,9 +85,14 @@ export function SupplierReceiptFilter({
           variant="outline"
           aria-expanded={expanded}
           aria-controls="delivery-range-filters"
+          className="h-10 px-3"
           onClick={() => setExpanded(!expanded)}
         >
-          <SlidersHorizontal data-icon="inline-start" />
+          <SlidersHorizontal
+            aria-hidden="true"
+            data-icon="inline-start"
+            className="text-primary"
+          />
           Filters
           {active.length > (filters.search ? 1 : 0)
             ? ` (${active.length - (filters.search ? 1 : 0)})`
@@ -155,7 +163,10 @@ export function SupplierReceiptFilter({
           </Button>
         </div>
       )}
-      <span role="status" className="text-xs text-muted-foreground">
+      <span
+        role="status"
+        className={pending ? "text-xs text-muted-foreground" : "sr-only"}
+      >
         {pending ? "Updating deliveries…" : "Search updates as you type."}
       </span>
     </form>

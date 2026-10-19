@@ -14,6 +14,10 @@ For frontend forms, CRUD screens, relational selectors, tables, status actions, 
 
 When a conversation is compacted, resumed from a summary, or prior context is uncertain, reread this file and the complete applicable frontend skill from `../.agents/skills/` before continuing. Recheck the current repository state afterward; summaries describe prior work but do not replace these instructions or live source files.
 
+## Running locally
+
+Run `pnpm dev` from this directory. The app starts with Turbopack on http://localhost:3005. Start `coms-api` (`pnpm run start:dev`) first so API calls succeed. In the Codex sandbox, run it with escalated permissions because Next.js needs to spawn a child process.
+
 ## Repository expectations
 
 - Inspect the existing routes, components, styling, and package scripts before making changes.

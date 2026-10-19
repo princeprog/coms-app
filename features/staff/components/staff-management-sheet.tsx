@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type RefObject } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StaffStatusBadge } from "./staff-status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -103,31 +103,33 @@ export function StaffManagementSheet({
         side="right"
         className="h-full w-full gap-0 overflow-hidden sm:max-w-2xl"
       >
-        <SheetHeader className="border-b">
+        <SheetHeader className="gap-3 border-b px-6 py-6">
           <div className="flex flex-wrap items-center gap-2 pr-8">
-            <SheetTitle>{staff.full_name}</SheetTitle>
-            <Badge variant={staff.is_active ? "secondary" : "outline"}>
-              {staff.is_active ? "Active account" : "Inactive account"}
-            </Badge>
+            <SheetTitle className="text-xl wrap-anywhere">
+              {staff.full_name}
+            </SheetTitle>
+            <StaffStatusBadge active={staff.is_active} />
           </div>
-          <SheetDescription>
+          <SheetDescription className="wrap-anywhere">
             {staff.email} · {staff.role_name ?? "Unassigned"}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6 [&_input]:h-10 [&_[data-slot=select-trigger]]:h-10 [&_summary]:py-1 [&_summary]:text-sm">
           <section aria-label={`Staff details for ${staff.full_name}`}>
             <h3 className="mb-3 text-sm font-medium">Account details</h3>
-            <dl className="grid gap-3 rounded-lg border p-4 text-sm sm:grid-cols-2">
+            <dl className="grid gap-5 rounded-lg bg-muted/50 p-4 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-xs text-muted-foreground">
                   Contact number
                 </dt>
-                <dd className="mt-1">{staff.contact_number}</dd>
+                <dd className="mt-1.5 font-medium wrap-anywhere">
+                  {staff.contact_number}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">Branch access</dt>
-                <dd className="mt-1">
+                <dd className="mt-1.5 font-medium wrap-anywhere">
                   {assignedBranches.length > 0
                     ? assignedBranches.join(", ")
                     : "None assigned"}

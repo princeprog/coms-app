@@ -3,14 +3,25 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { z } from "zod";
 import type { ServiceType } from "@/features/menus/schemas/menu.schema";
 import {
   productSetupInputSchema,
   type ProductSetup,
 } from "../schemas/product-setup.schema";
 import { saveProductSetupAction } from "../services/product-setup-actions";
+import type { CategoryChoice } from "@/features/product-categories/schemas/product-category.schema";
 export function useProductSetup(initial: ProductSetup | null) {
   const router = useRouter();
+  const [category, setCategoryValue] = useState<CategoryChoice | null>(
+    initial
+      ? {
+          id: initial.product.category_id,
+          name: initial.product.category_name,
+          is_active: initial.product.category_is_active,
+        }
+      : null,
+  );
   const [name, setName] = useState(initial?.product.product_name ?? "");
   const [price, setPrice] = useState(initial?.product.price ?? "");
   const [description, setDescription] = useState(
@@ -22,7 +33,20 @@ export function useProductSetup(initial: ProductSetup | null) {
   const [branchIds, setBranchIds] = useState(initial?.branch_ids ?? []);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  function setCategory(value: CategoryChoice) {
+    setCategoryValue(value);
+    if (!value.is_active || !z.uuid().safeParse(value.id).success) return;
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.category_id;
+      return next;
+    });
+    setError((current) =>
+      current === "Select an active category before saving." ? "" : current,
+    );
+  }
   const state = JSON.stringify({
+    categoryId: category?.id,
     name,
     price,
     description,
@@ -40,9 +64,14 @@ export function useProductSetup(initial: ProductSetup | null) {
   }, [dirty]);
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!category?.is_active) {
+        setFieldErrors({ category_id: "Select an active category." });
+        throw Error("Select an active category before saving.");
+      }
       const parsed = productSetupInputSchema.safeParse({
         expected_product_revision: initial?.product.setup_revision ?? 0,
         product: {
+          category_id: category.id,
           product_name: name,
           price: price.trim(),
           description,
@@ -85,6 +114,8 @@ export function useProductSetup(initial: ProductSetup | null) {
     },
   });
   return {
+    category,
+    setCategory,
     name,
     setName,
     price,

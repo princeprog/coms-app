@@ -6,6 +6,7 @@ import {
   isProtectedSuperAdmin,
 } from "@/features/auth/permissions";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
+import { createCatalogHref } from "@/features/catalogs/services/catalog-page-params";
 import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-error";
 import { CatalogManagement } from "@/features/catalogs/components/catalog-management";
 import {
@@ -19,8 +20,11 @@ import {
   updateProductAction,
 } from "@/features/products/services/product-actions";
 import { getProductPageData } from "@/features/products/services/product-queries";
+import { parseTablePageSize } from "@/lib/table-pagination";
 import { ApiRequestError } from "@/services/api-services";
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -46,6 +50,7 @@ export default async function ProductsPage({
 
   const params = await searchParams;
   const search = (first(params.search) ?? "").trim().slice(0, 160);
+  const pageSize = parseTablePageSize(params.page_size);
   const statusValue = first(params.is_active);
   const activeFilter =
     statusValue === "true" || statusValue === "false" ? statusValue : "all";
@@ -54,6 +59,7 @@ export default async function ProductsPage({
     pageData = await getProductPageData({
       page: requestedPage(first(params.page)),
       search,
+      pageSize,
       active: activeFilter === "all" ? undefined : activeFilter === "true",
     });
   } catch (error) {
@@ -66,6 +72,17 @@ export default async function ProductsPage({
     );
   }
 
+  const pageCount = Math.max(1, Math.ceil(pageData.total / pageData.page_size));
+  if (pageData.page > pageCount)
+    redirect(
+      createCatalogHref(productsEndpoint, {
+        page: pageCount,
+        pageSize,
+        search,
+        active: activeFilter,
+      }),
+    );
+
   return (
     <AppPageShell user={session.user}>
       <CatalogManagement
@@ -74,7 +91,18 @@ export default async function ProductsPage({
         detailsPath="/products"
         setupEnabled
         resourceName="product"
-        description="Create products, set one selling price, and choose available branches."
+        description=""
+        directoryDescription=""
+        secondaryActions={
+          isProtectedSuperAdmin(session.user) ? (
+            <Link
+              href="/products/categories"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Manage categories
+            </Link>
+          ) : undefined
+        }
         routePath={productsEndpoint}
         displayColumns={productDisplayColumns}
         fields={productFields}

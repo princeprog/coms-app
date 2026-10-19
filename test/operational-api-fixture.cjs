@@ -20,6 +20,14 @@ const {
   handleInventoryRequest,
 } = require("./fixtures/inventory-fixture.cjs");
 
+const {
+  categoryMetadata,
+  productView,
+  eligibleServices,
+  handleCategoryRequest,
+  handleProductRequest,
+} = require("./fixtures/product-categories-fixture.cjs");
+
 const seed = JSON.parse(
   fs.readFileSync(
     path.join(__dirname, "fixtures", "operational-api.json"),
@@ -244,7 +252,6 @@ function dashboardResponse(state, from, to, selectedBranchId) {
   };
 }
 
-
 function send(response, status, payload, headers = {}) {
   response.writeHead(status, {
     "cache-control": "no-store",
@@ -333,7 +340,7 @@ function createState({ stockItemCount = 26 } = {}) {
   const stockItems = Array.from({ length: stockItemCount }, (_, index) => {
     const sequence = String(index + 1).padStart(12, "0");
     return {
-      usage_types:["INGREDIENT"],
+      usage_types: ["INGREDIENT"],
       id: "31000000-0000-4000-8000-" + sequence,
       stock_item_name:
         index === 0
@@ -348,24 +355,19 @@ function createState({ stockItemCount = 26 } = {}) {
       updated_at: "2026-01-01T00:00:00.000Z",
     };
   });
-  const products = Array.from({ length: 31 }, (_, index) => {
-    const sequence = String(index + 1).padStart(12, "0");
-    return {
-      id: "35000000-0000-4000-8000-" + sequence,
-      product_name:
-        index === 0
-          ? "Chicken sandwich"
-          : index === 1
-            ? "Fixture product with a deliberately long name for responsive table truncation across every viewport"
-            : "Fixture Product " + String(index + 1).padStart(2, "0"),
-      description: index === 0 ? "Grilled chicken on sourdough" : null,
-      price: String(100 + index)+".0000",price_revision:1,setup_revision:1,service_types:["DINE_IN","TAKEAWAY"],
-      is_active: index !== 2,
-      created_at: "2026-01-01T00:00:00.000Z",
-      updated_at: "2026-01-01T00:00:00.000Z",
-    };
-  });
-  products[30].product_name = "Fixture Product 31";
+  const productCategories = clone(seed.product_categories);
+  const products = seed.products.map((item, index) => ({
+    id: "35000000-0000-4000-8000-" + String(index + 1).padStart(12, "0"),
+    ...clone(item),
+    description: index === 0 ? "Grilled chicken on sourdough" : null,
+    price: String(100 + index) + ".0000",
+    price_revision: 1,
+    setup_revision: 1,
+    service_types: index === 24 ? ["TAKEAWAY"] : ["DINE_IN", "TAKEAWAY"],
+    is_active: index !== 2,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+  }));
   const branchProducts = products.slice(0, 26).map((product, index) => ({
     branch_id: primaryBranchId,
     branch_name: branches[0].branch_name,
@@ -514,6 +516,7 @@ function createState({ stockItemCount = 26 } = {}) {
     suppliers,
     stockItems,
     products,
+    productCategories,
     branchProducts,
     recipes,
     receipts,
@@ -554,7 +557,6 @@ function isNonnegativeDecimal(value) {
   );
 }
 
-
 function branchProductRecord(branch, product, price, isAvailable, timestamp) {
   return {
     branch_id: branch.id,
@@ -580,6 +582,15 @@ function branchProductView(state, offer) {
     product_name: product.product_name,
     description: product.description,
     product_is_active: product.is_active,
+    ...categoryMetadata(state, product),
+    price_revision: product.price_revision,
+    service_types: product.service_types,
+    eligible_service_types: eligibleServices(branch, product),
+    available_service_types: offer.is_available
+      ? eligibleServices(branch, product)
+      : [],
+    has_dine_in: branch.has_dine_in,
+    has_takeaway: branch.has_takeaway !== false,
     price: offer.price,
     is_available: offer.is_available,
     created_at: offer.created_at,
@@ -634,8 +645,14 @@ function createOperationalApiFixture({
           staff: state.staff,
           suppliers: state.suppliers,
           stockItems: state.stockItems,
-          products: state.products,
-          branchProducts: state.branchProducts,
+          productCategories: state.productCategories,
+          product_categories: state.productCategories,
+          products: state.products.map((product) =>
+            productView(state, product),
+          ),
+          branchProducts: state.branchProducts.map((offer) =>
+            branchProductView(state, offer),
+          ),
           recipes: state.recipes,
           receipts: state.receipts.map(receiptDetail),
           commissaryBalances: state.commissaryBalances,
@@ -731,6 +748,19 @@ function createOperationalApiFixture({
         return send(response, 401, { message: "Unauthorized." });
       }
 
+      if (
+        url.pathname === "/payment-methods/available" &&
+        request.method === "GET"
+      ) {
+        return send(
+          response,
+          200,
+          seed.payment_methods
+            .filter((method) => method.is_active)
+            .map(({ id, name, kind }) => ({ id, name, kind })),
+        );
+      }
+
       const salesResponse = handleSalesRequest({
         request,
         response,
@@ -813,89 +843,70 @@ function createOperationalApiFixture({
         );
       }
 
-      if (url.pathname === "/products" && request.method === "GET") {
-        const search = (url.searchParams.get("search") ?? "")
-          .trim()
-          .toLowerCase();
-        const activeFilter = url.searchParams.get("is_active");
-        const matches = state.products.filter((product) => {
-          if (activeFilter === "true" && !product.is_active) return false;
-          if (activeFilter === "false" && product.is_active) return false;
-          return !search || product.product_name.toLowerCase().includes(search);
-        });
-        matches.sort(
-          (left, right) =>
-            left.product_name.localeCompare(right.product_name) ||
-            left.id.localeCompare(right.id),
-        );
-        return send(response, 200, pageItems(matches, url));
-      }
-      if (url.pathname === "/products" && request.method === "POST") {
-        if (
-          typeof body?.product_name !== "string" ||
-          body.product_name.trim().length < 2 ||
-          body.product_name.length > 160 ||
-          (body.description !== undefined &&
-            body.description !== null &&
-            (typeof body.description !== "string" ||
-              body.description.length > 1000))
-        ) {
-          return send(response, 400, { message: "Invalid fixture product." });
-        }
-        const sequence = String(state.products.length + 1).padStart(12, "0");
-        const now = "2026-09-25T03:00:00.000Z";
-        const product = {
-          id: "35000000-0000-4000-8000-" + sequence,
-          product_name: body.product_name.trim(),
-          description: body.description?.trim() || null,
-          price:body.price,price_revision:1,setup_revision:1,service_types:body.service_types ?? ["DINE_IN","TAKEAWAY"],
-          is_active: true,
-          created_at: now,
-          updated_at: now,
-        };
-        state.products.push(product);
-        return send(response, 201, product);
-      }
+      const categoryResponse = handleCategoryRequest({
+        request,
+        response,
+        url,
+        body,
+        state,
+        authUser,
+        send,
+      });
+      if (categoryResponse !== false) return categoryResponse;
+      const productResponse = handleProductRequest({
+        request,
+        response,
+        url,
+        body,
+        state,
+        send,
+        pageItems,
+      });
+      if (productResponse !== false) return productResponse;
 
-      if (/^\/products\/[0-9a-f-]{36}\/recipe$/i.test(url.pathname)) return send(response,404,{message:"Recipe setup is retired."});
-      const productRoute = url.pathname.match(
-        /^\/products\/([0-9a-f-]{36})(?:\/(deactivate))?$/i,
+      const branchCategoriesRoute = url.pathname.match(
+        /^\/branches\/([0-9a-f-]{36})\/products\/categories$/i,
       );
-      if (productRoute) {
-        const product = state.products.find(
-          (item) => item.id === productRoute[1],
+      if (branchCategoriesRoute && request.method === "GET") {
+        const branch = state.branches.find(
+          (item) => item.id === branchCategoriesRoute[1],
         );
-        if (!product)
-          return send(response, 404, { message: "Product not found." });
-        if (request.method === "PATCH" && !productRoute[2]) {
-          if (
-            body?.product_name !== undefined &&
-            (typeof body.product_name !== "string" ||
-              body.product_name.trim().length < 2 ||
-              body.product_name.length > 160)
-          ) {
-            return send(response, 400, { message: "Invalid product name." });
-          }
-          if (
-            body?.description !== undefined &&
-            body.description !== null &&
-            (typeof body.description !== "string" ||
-              body.description.length > 1000)
-          ) {
-            return send(response, 400, { message: "Invalid description." });
-          }
-          if (body.product_name !== undefined)
-            product.product_name = body.product_name.trim();
-          if (Object.hasOwn(body, "description"))
-            product.description = body.description?.trim() || null;
-          product.updated_at = "2026-09-25T03:00:00.000Z";
-          return send(response, 200, product);
-        }
-        if (request.method === "POST" && productRoute[2] === "deactivate") {
-          product.is_active = false;
-          product.updated_at = "2026-09-25T03:00:00.000Z";
-          return send(response, 200, product);
-        }
+        if (!branch)
+          return send(response, 404, { message: "Branch not found." });
+        const service = url.searchParams.get("service_type");
+        if (service && !["DINE_IN", "TAKEAWAY"].includes(service))
+          return send(response, 400, { message: "Invalid service type." });
+        const ids = new Set(
+          state.branchProducts
+            .filter(
+              (offer) => offer.branch_id === branch.id && offer.is_available,
+            )
+            .flatMap((offer) => {
+              const product = state.products.find(
+                (item) => item.id === offer.product_id,
+              );
+              if (
+                !product ||
+                !categoryMetadata(state, product).category_is_active
+              )
+                return [];
+              const services = eligibleServices(branch, product);
+              return services.length && (!service || services.includes(service))
+                ? [product.category_id]
+                : [];
+            }),
+        );
+        return send(
+          response,
+          200,
+          state.productCategories
+            .filter((category) => ids.has(category.id))
+            .map(({ id, name }) => ({ id, name }))
+            .sort(
+              (a, b) =>
+                a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+            ),
+        );
       }
 
       const branchProductsRoute = url.pathname.match(
@@ -912,6 +923,8 @@ function createOperationalApiFixture({
             .trim()
             .toLowerCase();
           const availability = url.searchParams.get("is_available");
+          const categoryId = url.searchParams.get("category_id");
+          const service = url.searchParams.get("service_type");
           const matches = state.branchProducts
             .filter((offer) => offer.branch_id === branch.id)
             .map((offer) => ({
@@ -922,6 +935,13 @@ function createOperationalApiFixture({
             }))
             .filter(({ offer, product }) => {
               if (!product) return false;
+              if (categoryId && product.category_id !== categoryId)
+                return false;
+              if (
+                service &&
+                !eligibleServices(branch, product).includes(service)
+              )
+                return false;
               if (availability === "true" && !offer.is_available) return false;
               if (availability === "false" && offer.is_available) return false;
               return (
@@ -976,7 +996,7 @@ function createOperationalApiFixture({
             now,
           );
           state.branchProducts.push(offer);
-          return send(response, 201, offer);
+          return send(response, 201, branchProductView(state, offer));
         }
         if (branchProductsRoute[2]) {
           const offer = state.branchProducts.find(

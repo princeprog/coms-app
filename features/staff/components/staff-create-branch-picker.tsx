@@ -12,7 +12,6 @@ import {
 import {
   Popover,
   PopoverContent,
-  PopoverDescription,
   PopoverHeader,
   PopoverTitle,
   PopoverTrigger,
@@ -76,7 +75,7 @@ export function StaffCreateBranchPicker({
             id="staff-create-branches"
             type="button"
             variant="outline"
-            className="h-9 w-full min-w-0 justify-between px-3 text-left font-normal hover:bg-background aria-expanded:bg-background"
+            className="h-11 w-full min-w-0 justify-between px-3 text-left font-normal hover:bg-background aria-expanded:bg-background"
             disabled={pending || branches.length === 0}
             aria-label="Branches"
           />
@@ -90,12 +89,11 @@ export function StaffCreateBranchPicker({
         align="start"
         className="w-[min(24rem,calc(100vw-2rem))] gap-0 p-0 sm:w-(--anchor-width)"
       >
-        <PopoverHeader className="gap-0 px-4 pt-4 pb-3">
-          <PopoverTitle>Assign branches</PopoverTitle>
-          <PopoverDescription>
-            {selectedCount} selected · Up to {MAX_STAFF_BRANCH_ASSIGNMENTS}{" "}
-            active branches
-          </PopoverDescription>
+        <PopoverHeader className="flex-row items-center justify-between px-4 pt-4 pb-3">
+          <PopoverTitle>Branches</PopoverTitle>
+          <span className="text-xs text-muted-foreground">
+            {selectedCount} selected
+          </span>
         </PopoverHeader>
         <div className="px-3 pb-3">
           <InputGroup>

@@ -8,6 +8,7 @@ export type SalesPageSearchParams = Record<
 
 export type SalesPageFilters = {
   branchId?: string;
+  categoryId?: string;
   page: number;
   historyPage: number;
   search: string;
@@ -20,6 +21,7 @@ export function parseSalesPageFilters(
   params: SalesPageSearchParams,
 ): SalesPageFilters {
   const branchId = z.uuid().safeParse(first(params.branch_id));
+  const categoryId = z.uuid().safeParse(first(params.category_id));
   const saleId = z.uuid().safeParse(first(params.sale_id));
   return {
     page: parsePage(first(params.page)),
@@ -29,6 +31,9 @@ export function parseSalesPageFilters(
       ? { view: first(params.view) as "checkout" | "history" }
       : {}),
     ...(branchId.success ? { branchId: branchId.data.toLowerCase() } : {}),
+    ...(categoryId.success
+      ? { categoryId: categoryId.data.toLowerCase() }
+      : {}),
     ...(saleId.success ? { saleId: saleId.data.toLowerCase() } : {}),
     ...(["DINE_IN", "TAKEAWAY"].includes(first(params.service_type) ?? "")
       ? { serviceType: first(params.service_type) as "DINE_IN" | "TAKEAWAY" }
@@ -39,6 +44,7 @@ export function parseSalesPageFilters(
 export function createSalesHref(filters: SalesPageFilters): string {
   const params = new URLSearchParams();
   if (filters.branchId) params.set("branch_id", filters.branchId);
+  if (filters.categoryId) params.set("category_id", filters.categoryId);
   if (filters.page > 1) params.set("page", String(filters.page));
   if (filters.historyPage > 1)
     params.set("history_page", String(filters.historyPage));

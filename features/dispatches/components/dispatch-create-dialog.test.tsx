@@ -20,7 +20,7 @@ vi.mock("../services/dispatch-stock-actions", () => ({
     total: 1,
     page: 1,
     page_size: 25,
-    availabilityVisible: false,
+    availabilityVisible: true,
   }),
 }));
 function render(ui: ReactNode) {
@@ -68,6 +68,7 @@ const options = {
     {
       id: stockItemId,
       stock_item_name: "Flour",
+      quantity_on_hand: "12.50",
       category: "Dry goods",
       unit: "kg",
       is_active: true,
@@ -83,6 +84,49 @@ afterEach(() => {
 });
 
 describe("direct dispatch creation", () => {
+  it("keeps an over-stock quantity in entry, focuses its error, and reviews after correction", async () => {
+    const user = userEvent.setup();
+    const action = vi.fn();
+    render(
+      <DispatchCreateDialog
+        canCreate
+        options={{ ...options, availabilityVisible: true }}
+        optionsIssue={null}
+        action={action}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Create dispatch" }));
+    await user.click(screen.getByRole("combobox", { name: "Branch" }));
+    await user.click(
+      await screen.findByRole("option", { name: "Banilad Branch" }),
+    );
+    await user.click(screen.getByRole("combobox", { name: "Stock item 1" }));
+    await user.click(await screen.findByRole("option", { name: /Flour/ }));
+    const quantity = screen.getByLabelText("Quantity (kg)");
+    await user.type(quantity, "12.51");
+    await user.click(screen.getByRole("button", { name: "Review & send" }));
+    expect(
+      screen.queryByRole("button", { name: "Confirm dispatch" }),
+    ).toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain(
+      "12.50 kg available",
+    );
+    expect(quantity.getAttribute("aria-invalid")).toBe("true");
+    expect(quantity.getAttribute("aria-describedby")).toBe(
+      screen.getByRole("alert").id,
+    );
+    expect(document.activeElement).toBe(quantity);
+    expect(action).not.toHaveBeenCalled();
+    await user.clear(quantity);
+    await user.type(quantity, "12.50");
+    expect(screen.queryByRole("alert")).toBeNull();
+    await user.keyboard("{Enter}");
+    expect(
+      screen.getByRole("button", { name: "Confirm dispatch" }),
+    ).toBeTruthy();
+    expect(action).not.toHaveBeenCalled();
+  });
+
   it("reviews without mutation, reuses an uncertain retry key, and opens the sent dispatch", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("crypto", { randomUUID: vi.fn().mockReturnValue(retryKey) });
@@ -123,6 +167,12 @@ describe("direct dispatch creation", () => {
     expect(action).not.toHaveBeenCalled();
     expect(screen.getByText("12.50 kg")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
+    expect(
+      await screen.findByText("Enter who is delivering this dispatch."),
+    ).toBeTruthy();
+    expect(action).not.toHaveBeenCalled();
+    await user.type(screen.getByLabelText("Delivered by"), "Juan Dela Cruz");
+    await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
     expect(await screen.findByText("Temporary failure.")).toBeTruthy();
 
     await user.click(
@@ -133,6 +183,7 @@ describe("direct dispatch creation", () => {
       {
         branch_id: branchId,
         items: [{ stock_item_id: stockItemId, quantity_dispatched: "12.50" }],
+        delivered_by_name: "Juan Dela Cruz",
       },
       retryKey,
     ]);
@@ -195,6 +246,7 @@ describe("direct dispatch creation", () => {
     await user.click(await screen.findByRole("option", { name: "Flour · kg" }));
     await user.type(screen.getByLabelText("Quantity (kg)"), "12.50");
     await user.click(screen.getByRole("button", { name: "Review & send" }));
+    await user.type(screen.getByLabelText("Delivered by"), "Juan");
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
     await screen.findByText("Stock is insufficient.");
     await user.click(screen.getByRole("button", { name: "Back to edit" }));
@@ -212,6 +264,7 @@ describe("direct dispatch creation", () => {
       {
         branch_id: branchId,
         items: [{ stock_item_id: stockItemId, quantity_dispatched: "10.125" }],
+        delivered_by_name: "Juan",
       },
       nextKey,
     ]);
@@ -352,6 +405,7 @@ describe("direct dispatch creation", () => {
     await user.click(
       within(form).getByRole("button", { name: "Review & send" }),
     );
+    await user.type(screen.getByLabelText("Delivered by"), "Juan");
     await user.click(
       within(form).getByRole("button", { name: "Confirm dispatch" }),
     );

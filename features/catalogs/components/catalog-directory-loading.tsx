@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
@@ -26,17 +27,26 @@ export function CatalogDirectoryLoading({ title }: { title: string }) {
           <Skeleton className="h-16 w-full sm:flex-1" />
           <Skeleton className="h-16 w-full sm:w-48" />
         </div>
-        <Skeleton className="h-4 w-64 max-w-full" />
+        {!stockItems && title !== "Suppliers" && (
+          <Skeleton className="h-4 w-64 max-w-full" />
+        )}
       </div>
       <Card className="min-w-0 gap-0 overflow-hidden py-0">
-        <CardHeader className="border-b px-4 py-4 sm:px-5">
-          <Skeleton className="h-5 w-40 max-w-full" />
-          <Skeleton className="h-4 w-64 max-w-full" />
-        </CardHeader>
+        {!stockItems && (
+          <CardHeader className="border-b px-4 py-4 sm:px-5">
+            <Skeleton className="h-5 w-40 max-w-full" />
+            <Skeleton className="h-4 w-64 max-w-full" />
+          </CardHeader>
+        )}
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <div className="min-w-80">
-              <div className="flex items-center gap-4 border-b px-4 py-3 sm:px-5">
+              <div
+                className={cn(
+                  "flex items-center gap-4 border-b px-4 py-3 sm:px-5",
+                  stockItems && "bg-muted",
+                )}
+              >
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="ml-auto h-4 w-20" />
               </div>

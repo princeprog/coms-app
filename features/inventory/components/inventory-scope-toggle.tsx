@@ -1,5 +1,6 @@
 "use client";
 
+import { Store, Warehouse } from "lucide-react";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -39,6 +40,10 @@ export function InventoryScopeToggle({
           disabled={!canViewCommissary}
           className="h-auto min-h-11 min-w-0 flex-1 whitespace-normal"
         >
+          <Warehouse
+            aria-hidden="true"
+            className="size-4 shrink-0 text-amber-600 dark:text-amber-400"
+          />
           Commissary
         </ToggleGroupItem>
         <ToggleGroupItem
@@ -46,6 +51,10 @@ export function InventoryScopeToggle({
           disabled={!canViewBranch || !hasBranches}
           className="h-auto min-h-11 min-w-0 flex-1 whitespace-normal"
         >
+          <Store
+            aria-hidden="true"
+            className="size-4 shrink-0 text-blue-600 dark:text-blue-400"
+          />
           Branches
         </ToggleGroupItem>
       </ToggleGroup>

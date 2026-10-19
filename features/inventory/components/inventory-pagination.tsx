@@ -1,3 +1,4 @@
+import { TablePageSize } from "@/components/shared/table-page-size";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export function InventoryPagination({
       scope,
       branchId,
       page: targetPage,
+      pageSize,
       search,
       status,
       category,
@@ -49,86 +51,89 @@ export function InventoryPagination({
       <p className="text-sm text-muted-foreground">
         Showing {start}–{end} of {total} stock {total === 1 ? "item" : "items"}
       </p>
-      <Pagination aria-label="Inventory pages" className="mx-0 w-auto">
-        <PaginationContent>
-          <PaginationItem>
-            {page > 1 ? (
-              <Link
-                href={href(page - 1)}
-                aria-label="Previous page"
-                className={buttonVariants({
-                  variant: "outline",
-                  size: "icon-sm",
-                  className: "border-border!",
-                })}
-              >
-                <ChevronLeft aria-hidden="true" />
-              </Link>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                aria-label="Previous page"
-                disabled
-              >
-                <ChevronLeft aria-hidden="true" />
-              </Button>
-            )}
-          </PaginationItem>
-          {visiblePages.map((value) => (
-            <PaginationItem key={value}>
-              {value === page ? (
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  aria-label={`Page ${value}`}
-                  aria-current="page"
-                >
-                  {value}
-                </Button>
-              ) : (
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-3 sm:gap-4">
+        <TablePageSize pageSize={pageSize} href={href(1)} />
+        <Pagination aria-label="Inventory pages" className="mx-0 w-auto">
+          <PaginationContent>
+            <PaginationItem>
+              {page > 1 ? (
                 <Link
-                  href={href(value)}
-                  aria-label={`Page ${value}`}
+                  href={href(page - 1)}
+                  aria-label="Previous page"
                   className={buttonVariants({
                     variant: "outline",
                     size: "icon-sm",
                     className: "border-border!",
                   })}
                 >
-                  {value}
+                  <ChevronLeft aria-hidden="true" />
                 </Link>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Previous page"
+                  disabled
+                >
+                  <ChevronLeft aria-hidden="true" />
+                </Button>
               )}
             </PaginationItem>
-          ))}
-          <PaginationItem>
-            {page < pageCount ? (
-              <Link
-                href={href(page + 1)}
-                aria-label="Next page"
-                className={buttonVariants({
-                  variant: "outline",
-                  size: "icon-sm",
-                  className: "border-border!",
-                })}
-              >
-                <ChevronRight aria-hidden="true" />
-              </Link>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                aria-label="Next page"
-                disabled
-              >
-                <ChevronRight aria-hidden="true" />
-              </Button>
-            )}
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+            {visiblePages.map((value) => (
+              <PaginationItem key={value}>
+                {value === page ? (
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    aria-label={`Page ${value}`}
+                    aria-current="page"
+                  >
+                    {value}
+                  </Button>
+                ) : (
+                  <Link
+                    href={href(value)}
+                    aria-label={`Page ${value}`}
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "icon-sm",
+                      className: "border-border!",
+                    })}
+                  >
+                    {value}
+                  </Link>
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              {page < pageCount ? (
+                <Link
+                  href={href(page + 1)}
+                  aria-label="Next page"
+                  className={buttonVariants({
+                    variant: "outline",
+                    size: "icon-sm",
+                    className: "border-border!",
+                  })}
+                >
+                  <ChevronRight aria-hidden="true" />
+                </Link>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Next page"
+                  disabled
+                >
+                  <ChevronRight aria-hidden="true" />
+                </Button>
+              )}
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
     </div>
   );
 }

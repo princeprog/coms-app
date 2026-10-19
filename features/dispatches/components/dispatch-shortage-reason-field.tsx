@@ -12,11 +12,11 @@ export function DispatchShortageReasonField({
   disabled: boolean;
   onReasonChange: (reason: string) => void;
 }) {
-  const inputId = `shortage-reason-${dispatchId}`;
+  const inputId = `resolution-reason-${dispatchId}`;
 
   return (
     <Field>
-      <FieldLabel htmlFor={inputId}>Reason for shortage closure</FieldLabel>
+      <FieldLabel htmlFor={inputId}>Reason</FieldLabel>
       <Textarea
         id={inputId}
         maxLength={500}
@@ -26,7 +26,7 @@ export function DispatchShortageReasonField({
         onChange={(event) => onReasonChange(event.target.value)}
       />
       <FieldDescription id={`${inputId}-hint`}>
-        Maximum 500 characters.
+        Explain what was checked. Maximum 500 characters.
       </FieldDescription>
     </Field>
   );

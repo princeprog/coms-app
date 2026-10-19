@@ -4,6 +4,7 @@ import { hasBranchScope, hasPermission } from "@/features/auth/permissions";
 import type { User } from "@/features/auth/types/auth.types";
 import {
   getBranchOptions,
+  getBranchMenuCategories,
   getBranchProductPageData,
 } from "@/features/branch-products/services/branch-product-queries";
 import type { BranchProductBranchOption } from "@/features/branch-products/types/branch-product.types";
@@ -20,58 +21,16 @@ import {
   type SalesPageSearchParams,
 } from "./sales-page-params";
 
-type Captured<T> = { data: T } | { error: unknown };
+import type { BranchMenuCategory } from "@/features/branch-products/schemas/branch-product.schema";
 
-export type SalesViewResult =
-  | { status: "forbidden" }
-  | { status: "session-expired" }
-  | { status: "branch-options-error" }
-  | { status: "branch-unavailable" }
-  | { status: "redirect"; href: string }
-  | {
-      status: "ready";
-      filters: ReturnType<typeof parseSalesPageFilters>;
-      branchOptions: BranchProductBranchOption[];
-      selectedBranch: BranchProductBranchOption;
-      menuPage: SalesMenuPage | null;
-      menuIssue: "permissions" | "unavailable" | "inactive" | null;
-      salesPage: SalePage | null;
-      historyIssue: "permissions" | "unavailable" | null;
-      selectedSale: Sale | null;
-      detailIssue: "permissions" | "not-found" | "unavailable" | null;
-      canCreate: boolean;
-      canRead: boolean;
-      canVoid: boolean;
-    };
-
-function getAccessFailure(
-  error: unknown,
-): { status: "forbidden" } | { status: "session-expired" } | null {
-  if (!(error instanceof ApiRequestError)) return null;
-  if (error.status === 401) return { status: "session-expired" };
-  if (error.status === 403) return { status: "forbidden" };
-  return null;
-}
-
-function getAssignedBranchOptions(user: User): BranchProductBranchOption[] {
-  const branchIds = user.branch_ids ?? [];
-  return branchIds.map((id, index) => ({
-    id: id.toLowerCase(),
-    name:
-      branchIds.length === 1
-        ? "Assigned branch"
-        : `Assigned branch ${index + 1}`,
-    status: "unknown",
-  }));
-}
-
-async function capture<T>(request: () => Promise<T>): Promise<Captured<T>> {
-  try {
-    return { data: await request() };
-  } catch (error) {
-    return { error };
-  }
-}
+import {
+  capture,
+  getAccessFailure,
+  getAssignedBranchOptions,
+  type Captured,
+  type SalesViewResult,
+} from "./sales-page-state";
+export type { SalesViewResult } from "./sales-page-state";
 
 export async function loadSalesView(
   user: User,
@@ -118,39 +77,66 @@ export async function loadSalesView(
         ? "permissions"
         : null;
 
-  const [menuResult, historyResult, detailResult] = await Promise.all([
-    canCreateAtBranch && canReadMenu
-      ? capture(() =>
-          getBranchProductPageData({
-            branchId: selectedBranch.id,
-            page: filters.page,
-            search: filters.search,
-            isAvailable: true,
-            eligibleOnly: true,
-            ...(filters.serviceType
-              ? { serviceType: filters.serviceType }
-              : {}),
-          }),
-        )
-      : Promise.resolve({ data: null } as Captured<SalesMenuPage | null>),
-    canRead
-      ? capture(() =>
-          getSalePageData({
-            branchId: selectedBranch.id,
-            page: filters.historyPage,
-          }),
-        )
-      : Promise.resolve({ data: null } as Captured<SalePage | null>),
-    filters.saleId && canRead
-      ? capture(() => getSaleDetailData(selectedBranch.id, filters.saleId!))
-      : Promise.resolve({ data: null } as Captured<Sale | null>),
-  ]);
+  const [menuResult, historyResult, detailResult, categoriesResult] =
+    await Promise.all([
+      canCreateAtBranch && canReadMenu
+        ? capture(() =>
+            getBranchProductPageData({
+              pageSize: 25,
+              branchId: selectedBranch.id,
+              page: filters.page,
+              search: filters.search,
+              isAvailable: true,
+              eligibleOnly: true,
+              ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+              ...(filters.serviceType
+                ? { serviceType: filters.serviceType }
+                : {}),
+            }),
+          )
+        : Promise.resolve({ data: null } as Captured<SalesMenuPage | null>),
+      canRead
+        ? capture(() =>
+            getSalePageData({
+              branchId: selectedBranch.id,
+              page: filters.historyPage,
+            }),
+          )
+        : Promise.resolve({ data: null } as Captured<SalePage | null>),
+      filters.saleId && canRead
+        ? capture(() => getSaleDetailData(selectedBranch.id, filters.saleId!))
+        : Promise.resolve({ data: null } as Captured<Sale | null>),
+      canCreateAtBranch && canReadMenu
+        ? capture(() =>
+            getBranchMenuCategories(selectedBranch.id, filters.serviceType),
+          )
+        : Promise.resolve({ data: [] } as Captured<BranchMenuCategory[]>),
+    ]);
 
-  for (const result of [menuResult, historyResult, detailResult]) {
+  for (const result of [
+    menuResult,
+    historyResult,
+    detailResult,
+    categoriesResult,
+  ]) {
     if ("error" in result) {
       const accessFailure = getAccessFailure(result.error);
       if (accessFailure) return accessFailure;
     }
+  }
+
+  const categories = "data" in categoriesResult ? categoriesResult.data : [];
+  if (
+    canCreateAtBranch &&
+    canReadMenu &&
+    "data" in categoriesResult &&
+    filters.categoryId &&
+    !categories.some((category) => category.id === filters.categoryId)
+  ) {
+    return {
+      status: "redirect",
+      href: createSalesHref({ ...filters, categoryId: undefined, page: 1 }),
+    };
   }
 
   let resolvedMenuIssue: "permissions" | "unavailable" | "inactive" | null =
@@ -212,12 +198,14 @@ export async function loadSalesView(
     branchOptions,
     selectedBranch,
     menuPage,
+    categories,
+    categoriesUnavailable: "error" in categoriesResult,
     menuIssue: resolvedMenuIssue,
     salesPage,
     historyIssue,
     selectedSale,
     detailIssue,
-    canCreate: canCreateAtBranch && canReadMenu && menuPage !== null,
+    canCreate: canCreateAtBranch && canReadMenu,
     canRead,
     canVoid,
   };

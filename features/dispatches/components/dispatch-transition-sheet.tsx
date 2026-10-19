@@ -20,6 +20,7 @@ export function DispatchTransitionSheet({
   formLabel,
   submitLabel,
   pendingLabel,
+  cancelLabel = "Cancel",
   destructive = false,
   open,
   pending,
@@ -36,6 +37,7 @@ export function DispatchTransitionSheet({
   formLabel: string;
   submitLabel: string;
   pendingLabel: string;
+  cancelLabel?: string;
   destructive?: boolean;
   open: boolean;
   pending: boolean;
@@ -89,7 +91,7 @@ export function DispatchTransitionSheet({
               disabled={pending}
               onClick={onCancel}
             >
-              Cancel
+              {cancelLabel}
             </Button>
             <Button
               type="submit"

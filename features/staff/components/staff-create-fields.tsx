@@ -46,10 +46,7 @@ export function StaffCreateFields({
 
   return (
     <section aria-labelledby="staff-account-details" className="space-y-4">
-      <h3
-        id="staff-account-details"
-        className="border-b pb-2 text-base font-semibold"
-      >
+      <h3 id="staff-account-details" className="sr-only">
         Account details
       </h3>
       <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
@@ -147,10 +144,9 @@ export function StaffCreateFields({
               onBlur={() => onBlur("contactNumber")}
             />
           </div>
-          <FieldDescription id="staff-create-contact-hint">
-            Philippine mobile number: 10 digits after +63. You can paste an 089,
-            09, or +63 number.
-          </FieldDescription>
+          <span id="staff-create-contact-hint" className="sr-only">
+            Philippine mobile number: 10 digits after +63.
+          </span>
           <FieldError
             id="staff-create-contact-error"
             message={errors.contactNumber}
@@ -175,7 +171,7 @@ export function StaffCreateFields({
               disabled={pending}
               aria-required="true"
               aria-invalid={Boolean(errors.password)}
-              aria-describedby="staff-create-password-hint staff-create-password-error"
+              aria-describedby={`staff-create-password-hint${errors.password ? " staff-create-password-error" : ""}`}
               onChange={(event) =>
                 onChange("password", event.currentTarget.value)
               }
@@ -194,8 +190,7 @@ export function StaffCreateFields({
             </Button>
           </div>
           <FieldDescription id="staff-create-password-hint">
-            Use at least 12 characters. The password is never shown again after
-            creation.
+            Minimum 12 characters.
           </FieldDescription>
           <FieldError
             id="staff-create-password-error"

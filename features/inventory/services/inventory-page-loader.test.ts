@@ -93,6 +93,7 @@ describe("loadInventoryView", () => {
     });
     expect(getInventoryBranchOptions).not.toHaveBeenCalled();
     expect(getInventoryPageData).toHaveBeenCalledWith({
+      pageSize: 10,
       scope: "BRANCH",
       branchId,
       page: 1,
@@ -145,6 +146,7 @@ describe("loadInventoryView", () => {
     });
     expect(getInventoryBranchOptions).toHaveBeenCalledOnce();
     expect(getInventoryPageData).toHaveBeenCalledWith({
+      pageSize: 10,
       scope: "COMMISSARY",
       page: 1,
       search: "",
@@ -176,6 +178,7 @@ describe("loadInventoryView", () => {
     });
 
     expect(getInventoryPageData).toHaveBeenCalledWith({
+      pageSize: 10,
       scope: "COMMISSARY",
       page: 1,
       search: "Flour",

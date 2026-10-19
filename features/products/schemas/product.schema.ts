@@ -18,6 +18,9 @@ const branchIds = z
 export const productSchema = z.object({
   id: z.uuid(),
   product_name: z.string().min(2).max(160),
+  category_id: z.uuid(),
+  category_name: z.string().min(2).max(80),
+  category_is_active: z.boolean(),
   description: z.string().nullable(),
   price: menuDecimal,
   price_revision: z.number().int().positive(),
@@ -31,6 +34,7 @@ export const productPageSchema = catalogPageSchema(productSchema);
 export const createProductSchema = z
   .object({
     product_name: z.string().trim().min(2, "Enter a product name.").max(160),
+    category_id: z.uuid("Select an active category."),
     price: menuDecimal,
     description,
     service_types: serviceTypesSchema,
@@ -40,6 +44,7 @@ export const createProductSchema = z
 export const updateProductSchema = z
   .object({
     product_name: z.string().trim().min(2).max(160).optional(),
+    category_id: z.uuid("Select an active category.").optional(),
     price: menuDecimal.optional(),
     description,
     service_types: serviceTypesSchema.optional(),

@@ -1,20 +1,16 @@
+import { cn } from "@/lib/utils";
+import { CatalogCollectionHeader } from "./catalog-collection-header";
 import type { ComponentProps } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
 import { CatalogTable } from "./catalog-table";
 import { CatalogPagination } from "./catalog-pagination";
 import { CatalogDirectoryPagination } from "./catalog-directory-pagination";
 import type { CatalogPage } from "../types/catalog.types";
+import { createCatalogHref } from "../services/catalog-page-params";
 
 type Props = Omit<
   ComponentProps<typeof CatalogTable>,
@@ -48,6 +44,7 @@ export function CatalogCollection({
   ...tableProps
 }: Props) {
   const { title } = tableProps;
+  const isStockItems = routePath === "/stock-items";
   const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));
   const filtered = Boolean(search) || activeFilter !== "all";
   const content =
@@ -76,7 +73,14 @@ export function CatalogCollection({
             directoryLayout ? (
               filtered ? (
                 <Link
-                  href={routePath}
+                  href={createCatalogHref(routePath, {
+                    page: 1,
+                    search: "",
+                    active: "all",
+                    ...(["/products", "/stock-items"].includes(routePath)
+                      ? { pageSize: page.page_size }
+                      : {}),
+                  })}
                   className={buttonVariants({ variant: "outline" })}
                 >
                   Clear filters
@@ -125,49 +129,50 @@ export function CatalogCollection({
     );
   return (
     <Card
-      aria-labelledby="catalog-directory-heading"
+      aria-label={isStockItems ? title : undefined}
+      aria-labelledby={isStockItems ? undefined : "catalog-directory-heading"}
       aria-busy={pending}
-      className="min-w-0 gap-0 overflow-hidden py-0"
+      className={cn(
+        "min-w-0 gap-0 overflow-hidden py-0",
+        isStockItems && "[&_[data-slot=table-header]]:bg-muted",
+      )}
     >
-      <CardHeader className="border-b px-4 py-4 sm:px-5">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="flex flex-col gap-1">
-            <CardTitle>
-              <h3 id="catalog-directory-heading">
-                {directoryTitle ??
-                  (resourceName === "supplier"
-                    ? "Supplier directory"
-                    : resourceName === "product"
-                      ? "Product catalog"
-                      : "Stock item directory")}
-              </h3>
-            </CardTitle>
-            <CardDescription>
-              {directoryDescription ??
-                (resourceName === "supplier"
-                  ? "Supplier contacts for receiving, listed A–Z."
-                  : resourceName === "product"
-                    ? "One selling price per product. Open details to view branch availability."
-                    : "Stock item categories and units, listed A–Z.")}
-            </CardDescription>
-          </div>
-          {pending && (
-            <p
-              role="status"
-              className="flex items-center gap-2 text-sm text-muted-foreground"
-            >
-              <Spinner aria-hidden="true" />
-              Updating {title.toLowerCase()}...
-            </p>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">{content}</CardContent>
-      <CardFooter className="border-t px-4 py-3 sm:px-5">
+      {!isStockItems && (
+        <CatalogCollectionHeader
+          title={title}
+          resourceName={resourceName}
+          directoryTitle={directoryTitle}
+          directoryDescription={directoryDescription}
+          pending={pending}
+        />
+      )}
+      <CardContent
+        className={cn("p-0", isStockItems && pending && "opacity-60")}
+      >
+        {content}
+      </CardContent>
+      <CardFooter
+        className={cn(
+          "border-t px-4 py-3 sm:px-5",
+          isStockItems && "flex-col items-stretch gap-2",
+        )}
+      >
+        {isStockItems && pending && (
+          <p
+            role="status"
+            className="flex items-center gap-2 text-sm text-muted-foreground"
+          >
+            <Spinner aria-hidden="true" />
+            Updating stock items...
+          </p>
+        )}
         <CatalogDirectoryPagination
           page={page}
           filters={{
             page: page.page,
+            ...(["/products", "/stock-items"].includes(routePath)
+              ? { pageSize: page.page_size }
+              : {}),
             search,
             active: activeFilter,
           }}

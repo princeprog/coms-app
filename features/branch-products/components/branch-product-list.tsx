@@ -41,6 +41,7 @@ export function BranchProductList({
     createBranchProductsHref({
       branchId,
       page: requestedPage,
+      pageSize: page.page_size,
       search,
       isAvailable,
       serviceType,
@@ -115,6 +116,7 @@ export function BranchProductList({
                     href={createBranchProductsHref({
                       branchId,
                       page: 1,
+                      pageSize: page.page_size,
                       search: "",
                     })}
                   >

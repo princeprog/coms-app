@@ -5,12 +5,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProductSetupWorkspace } from "./product-setup-workspace";
 import type { ProductSetup } from "../schemas/product-setup.schema";
-const { save, refresh, replace, searchBranches } = vi.hoisted(() => ({
-  save: vi.fn(),
-  refresh: vi.fn(),
-  replace: vi.fn(),
-  searchBranches: vi.fn(),
-}));
+const { save, refresh, replace, searchBranches, searchCategories } = vi.hoisted(
+  () => ({
+    save: vi.fn(),
+    refresh: vi.fn(),
+    replace: vi.fn(),
+    searchBranches: vi.fn(),
+    searchCategories: vi.fn(),
+  }),
+);
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh, replace, push: vi.fn() }),
 }));
@@ -20,11 +23,23 @@ vi.mock("../services/product-setup-actions", () => ({
 vi.mock("../services/product-branch-actions", () => ({
   searchProductBranchesAction: searchBranches,
 }));
+vi.mock(
+  "@/features/product-categories/services/product-category-actions",
+  () => ({ searchAvailableCategoriesAction: searchCategories }),
+);
+const category = {
+  id: "00000000-0000-4000-8000-000000000002",
+  name: "Meals",
+  is_active: true,
+};
 const id = "00000000-0000-4000-8000-000000000001",
   branch = "00000000-0000-4000-8000-000000000003";
 const initial = {
   product: {
     id,
+    category_id: category.id,
+    category_name: category.name,
+    category_is_active: true,
     product_name: "Chicken meal",
     price: "125.005",
     price_revision: 1,
@@ -60,12 +75,81 @@ function mount(data: ProductSetup | null = initial, canManage = true) {
   );
 }
 beforeEach(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+  Element.prototype.scrollIntoView = vi.fn();
+  searchCategories.mockReset().mockResolvedValue({
+    ok: true,
+    data: { items: [category], total: 1, page: 1, page_size: 10 },
+  });
   save.mockReset();
   refresh.mockReset();
   replace.mockReset();
   searchBranches.mockReset();
 });
 describe("simple product form", () => {
+  it("does not preselect a category or save without a deliberate selection", async () => {
+    const user = userEvent.setup();
+    mount(null);
+    expect(screen.getByText("Select a category")).toBeTruthy();
+    expect(searchCategories).not.toHaveBeenCalled();
+    await user.type(screen.getByLabelText("Product name"), "New meal");
+    await user.type(screen.getByLabelText("Selling price"), "100");
+    await user.click(screen.getByRole("button", { name: "Create product" }));
+    expect(await screen.findByText("Select an active category.")).toBeTruthy();
+    expect(save).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Product name")).toHaveProperty(
+      "value",
+      "New meal",
+    );
+  });
+  it("keeps an archived category readable and requires an active replacement for a full save", async () => {
+    const user = userEvent.setup();
+    mount({
+      ...initial,
+      product: { ...initial.product, category_is_active: false },
+    });
+    expect(screen.getByText("Meals (Archived)")).toBeTruthy();
+    await user.type(screen.getByLabelText("Product name"), " updated");
+    await user.click(screen.getByRole("button", { name: "Save product" }));
+    expect(await screen.findByText("Select an active category.")).toBeTruthy();
+    expect(save).not.toHaveBeenCalled();
+    save.mockResolvedValue({
+      ok: false,
+      error: "Category was archived. Select an active category.",
+    });
+    await user.click(screen.getByRole("combobox", { name: /Category/ }));
+    await user.click(await screen.findByRole("option", { name: "Meals" }));
+    expect(screen.queryByText("Select an active category.")).toBeNull();
+    expect(
+      screen.queryByText(/Select an active category before saving/),
+    ).toBeNull();
+    expect(
+      screen
+        .getByRole("combobox", { name: /Category/ })
+        .getAttribute("aria-invalid"),
+    ).toBe("false");
+    await user.click(screen.getByRole("button", { name: "Save product" }));
+    expect(await screen.findByText(/Category was archived/)).toBeTruthy();
+    expect(screen.getByLabelText("Product name")).toHaveProperty(
+      "value",
+      "Chicken meal updated",
+    );
+    expect(
+      screen.getByRole("combobox", { name: /Category/ }).textContent,
+    ).toContain("Meals");
+    save.mockResolvedValue({ ok: true, data: initial });
+    await user.click(screen.getByRole("button", { name: "Save product" }));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(save.mock.calls[0][1].product.category_id).toBe(category.id);
+    expect(save.mock.calls[0][2]).toBe(save.mock.calls[1][2]);
+  });
   it("creates a priced product with deliberate branch selection and no recipe workflow", async () => {
     const user = userEvent.setup();
     save.mockResolvedValue({ ok: true, data: initial });
@@ -77,12 +161,15 @@ describe("simple product form", () => {
     ).toBe("false");
     await user.type(screen.getByLabelText("Product name"), "Bottled drink");
     await user.type(screen.getByLabelText("Selling price"), "55.001");
+    await user.click(screen.getByRole("combobox", { name: /Category/ }));
+    await user.click(await screen.findByRole("option", { name: "Meals" }));
     await user.click(screen.getByRole("checkbox", { name: "Dining branch" }));
     await user.click(screen.getByRole("button", { name: "Create product" }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1]).toEqual({
       expected_product_revision: 0,
       product: {
+        category_id: category.id,
         product_name: "Bottled drink",
         price: "55.001",
         description: null,
@@ -171,5 +258,45 @@ describe("simple product form", () => {
       branch,
       otherBranch,
     ]);
+  });
+  it("selects only eligible branches and removes a selection from the tray", async () => {
+    const user = userEvent.setup();
+    const closed = "00000000-0000-4000-8000-000000000005";
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ProductSetupWorkspace
+          initial={null}
+          canManage
+          branches={[
+            {
+              id: branch,
+              name: "Dining branch",
+              status: "active",
+              serviceTypes: ["DINE_IN", "TAKEAWAY"],
+            },
+            {
+              id: closed,
+              name: "Closed branch",
+              status: "inactive",
+              serviceTypes: ["DINE_IN"],
+            },
+          ]}
+        />
+      </QueryClientProvider>,
+    );
+    const dining = screen.getByRole("checkbox", { name: "Dining branch" });
+    const inactive = screen.getByRole("checkbox", { name: "Closed branch" });
+    await user.click(screen.getByRole("button", { name: "Select all" }));
+    expect(dining.getAttribute("aria-checked")).toBe("true");
+    expect(inactive.getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByText("1 selected")).toBeTruthy();
+    await user.click(
+      screen.getByRole("button", { name: "Remove Dining branch" }),
+    );
+    expect(dining.getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByText("0 selected")).toBeTruthy();
+    expect(
+      screen.queryByRole("group", { name: "Selected branches" }),
+    ).toBeNull();
   });
 });

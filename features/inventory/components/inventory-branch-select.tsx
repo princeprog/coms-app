@@ -1,5 +1,6 @@
 "use client";
 
+import { Store } from "lucide-react";
 import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Select,
@@ -34,9 +35,11 @@ export function InventoryBranchSelect({
         <SelectTrigger
           id="inventory-branch"
           aria-label="Branch"
-          className="w-full"
+          className="w-full px-3 data-[size=default]:h-10"
         >
-          <SelectValue placeholder="Select a branch">{label}</SelectValue>
+          <SelectValue placeholder="Select a branch">
+            <BranchLabel label={label} />
+          </SelectValue>
         </SelectTrigger>
         <SelectContent
           side="bottom"
@@ -46,14 +49,30 @@ export function InventoryBranchSelect({
           <SelectGroup>
             {branchOptions.map((branch) => (
               <SelectItem key={branch.id} value={`BRANCH:${branch.id}`}>
-                {branch.status === "inactive"
-                  ? `${branch.name} (inactive)`
-                  : branch.name}
+                <BranchLabel
+                  label={
+                    branch.status === "inactive"
+                      ? `${branch.name} (inactive)`
+                      : branch.name
+                  }
+                />
               </SelectItem>
             ))}
           </SelectGroup>
         </SelectContent>
       </Select>
     </Field>
+  );
+}
+
+function BranchLabel({ label }: { label: string }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <Store
+        aria-hidden="true"
+        className="size-4 shrink-0 text-blue-600! dark:text-blue-400! [&_*]:text-inherit!"
+      />
+      <span className="truncate">{label}</span>
+    </span>
   );
 }

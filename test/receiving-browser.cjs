@@ -380,7 +380,7 @@ async function chooseDate(label, day) {
     (url) => url.searchParams.get("search") === branchSearch,
   );
   await page.getByRole("combobox", { name: "Dispatch status" }).click();
-  await page.getByRole("option", { name: "In transit", exact: true }).click();
+  await page.getByRole("option", { name: "Awaiting count", exact: true }).click();
   await page.waitForURL(
     (url) =>
       url.searchParams.get("status") === "IN_TRANSIT" &&

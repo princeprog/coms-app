@@ -55,6 +55,9 @@ const baseView: Extract<SalesViewResult, { status: "ready" }> = {
         product_id: productId,
         product_name: "Chicken sandwich",
         description: null,
+        category_id: "aa000000-0000-4000-8000-000000000001",
+        category_name: "Rice meals",
+        category_is_active: true,
         product_is_active: true,
         price_revision: 1,
         price: "12.50",
@@ -68,6 +71,10 @@ const baseView: Extract<SalesViewResult, { status: "ready" }> = {
     page_size: 25,
   },
   menuIssue: null,
+  categories: [
+    { id: "aa000000-0000-4000-8000-000000000001", name: "Rice meals" },
+  ],
+  categoriesUnavailable: false,
   salesPage: {
     items: [
       {
@@ -134,6 +141,99 @@ describe("POS management", () => {
         ) as HTMLInputElement
       ).value,
     ).toBe("1");
+  });
+
+  it("keeps cart quantities and cash when a category returns different products", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <SalesManagement
+        view={baseView}
+        createAction={createAction}
+        voidAction={voidAction}
+      />,
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    await user.type(screen.getByLabelText("Amount received"), "100");
+    await user.click(screen.getByRole("button", { name: "Rice meals" }));
+    expect(replace).toHaveBeenLastCalledWith(
+      expect.stringContaining(
+        "category_id=aa000000-0000-4000-8000-000000000001",
+      ),
+      { scroll: false },
+    );
+    rerender(
+      <SalesManagement
+        view={{
+          ...baseView,
+          filters: {
+            ...baseView.filters,
+            categoryId: baseView.categories[0].id,
+          },
+          menuPage: { ...baseView.menuPage!, items: [], total: 0 },
+        }}
+        createAction={createAction}
+        voidAction={voidAction}
+      />,
+    );
+    expect(screen.getByText("No products match your filters")).toBeTruthy();
+    expect(
+      screen.getByLabelText("Quantity for Chicken sandwich"),
+    ).toHaveProperty("value", "1");
+    expect(screen.getByLabelText("Amount received")).toHaveProperty(
+      "value",
+      "100",
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "Rice meals" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
+  it("preserves the order and cash through a failed product filter and retry", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <SalesManagement
+        view={baseView}
+        createAction={createAction}
+        voidAction={voidAction}
+      />,
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    await user.type(screen.getByLabelText("Amount received"), "100");
+    rerender(
+      <SalesManagement
+        view={{ ...baseView, menuPage: null, menuIssue: "unavailable" }}
+        createAction={createAction}
+        voidAction={voidAction}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Retry products" })).toBeTruthy();
+    expect(
+      screen.getByLabelText("Quantity for Chicken sandwich"),
+    ).toHaveProperty("value", "1");
+    expect(screen.getByLabelText("Amount received")).toHaveProperty(
+      "value",
+      "100",
+    );
+    rerender(
+      <SalesManagement
+        view={baseView}
+        createAction={createAction}
+        voidAction={voidAction}
+      />,
+    );
+    expect(
+      screen.getByLabelText("Quantity for Chicken sandwich"),
+    ).toHaveProperty("value", "1");
+    expect(screen.getByLabelText("Amount received")).toHaveProperty(
+      "value",
+      "100",
+    );
   });
 
   it("keeps history visible and explains when menu read permission is missing", () => {

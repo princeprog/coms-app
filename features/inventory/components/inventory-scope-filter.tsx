@@ -2,7 +2,7 @@
 
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
   InputGroup,
   InputGroupAddon,
@@ -11,7 +11,6 @@ import {
 import { InventoryBalanceFilterControls } from "./inventory-balance-filter-controls";
 import { InventoryBranchSelect } from "./inventory-branch-select";
 import { InventoryScopeToggle } from "./inventory-scope-toggle";
-import { cn } from "@/lib/utils";
 import { useInventoryFilters } from "../hooks/use-inventory-filters";
 import type { InventoryScopeFilterProps } from "../types/inventory-filter.types";
 
@@ -62,45 +61,45 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
   return (
     <section
       aria-label="Inventory location and filters"
-      className="flex min-w-0 flex-col gap-3"
+      className="flex min-w-0 flex-col gap-4"
     >
-      {!isFixedBranch && (
-        <InventoryScopeToggle
-          scope={scope}
-          canViewCommissary={canViewCommissary}
-          canViewBranch={canViewBranch}
-          hasBranches={branchOptions.length > 0}
-          onValueChange={(nextScope) =>
-            handleLocationChange(
-              nextScope === "COMMISSARY"
-                ? "COMMISSARY"
-                : `BRANCH:${props.selectedBranchId ?? branchOptions[0]?.id ?? ""}`,
-            )
-          }
-        />
+      {(!isFixedBranch || showBranchSelect) && (
+        <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:max-w-3xl lg:grid-cols-[20rem_1fr] lg:items-start">
+          {!isFixedBranch && (
+            <InventoryScopeToggle
+              scope={scope}
+              canViewCommissary={canViewCommissary}
+              canViewBranch={canViewBranch}
+              hasBranches={branchOptions.length > 0}
+              onValueChange={(nextScope) =>
+                handleLocationChange(
+                  nextScope === "COMMISSARY"
+                    ? "COMMISSARY"
+                    : `BRANCH:${props.selectedBranchId ?? branchOptions[0]?.id ?? ""}`,
+                )
+              }
+            />
+          )}
+          {showBranchSelect && (
+            <InventoryBranchSelect
+              value={locationValue}
+              label={locationLabel}
+              branchOptions={branchOptions}
+              onValueChange={handleLocationChange}
+            />
+          )}
+        </div>
       )}
-      <FieldGroup
-        className={cn(
-          "grid min-w-0 gap-3",
-          showBranchSelect && "md:grid-cols-3",
-        )}
-      >
-        {showBranchSelect && (
-          <InventoryBranchSelect
-            value={locationValue}
-            label={locationLabel}
-            branchOptions={branchOptions}
-            onValueChange={handleLocationChange}
-          />
-        )}
-        <Field className={cn("min-w-0", showBranchSelect && "md:col-span-2")}>
+      <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(18rem,1fr)_minmax(22rem,0.75fr)] lg:items-end">
+        <Field className="min-w-0">
           <FieldLabel htmlFor="inventory-search">Search stock items</FieldLabel>
-          <InputGroup>
-            <InputGroupAddon>
+          <InputGroup className="h-10">
+            <InputGroupAddon className="pl-3">
               <Search aria-hidden="true" />
             </InputGroupAddon>
             <InputGroupInput
               id="inventory-search"
+              className="h-full text-base md:text-sm"
               type="search"
               maxLength={120}
               value={draftSearch}
@@ -110,18 +109,18 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
             />
           </InputGroup>
         </Field>
-      </FieldGroup>
-      <InventoryBalanceFilterControls
-        statusFilter={statusFilter}
-        categoryFilter={categoryFilter}
-        availableCategories={availableCategories}
-        onStatusChange={(nextStatus) =>
-          applyFilters({ nextStatus: nextStatus ?? null })
-        }
-        onCategoryChange={(nextCategory) =>
-          applyFilters({ nextCategory: nextCategory ?? null })
-        }
-      />
+        <InventoryBalanceFilterControls
+          statusFilter={statusFilter}
+          categoryFilter={categoryFilter}
+          availableCategories={availableCategories}
+          onStatusChange={(nextStatus) =>
+            applyFilters({ nextStatus: nextStatus ?? null })
+          }
+          onCategoryChange={(nextCategory) =>
+            applyFilters({ nextCategory: nextCategory ?? null })
+          }
+        />
+      </div>
       {chips.length > 0 && (
         <div
           aria-label="Active stock filters"
@@ -164,8 +163,9 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
           </Button>
         </div>
       )}
-      <p className="text-xs text-muted-foreground">
-        Search updates as you type. Filters apply to stock balances.
+      <p className="sr-only">
+        Search updates as you type. Filters apply to stock balances, while
+        recent activity stays location-scoped.
       </p>
     </section>
   );

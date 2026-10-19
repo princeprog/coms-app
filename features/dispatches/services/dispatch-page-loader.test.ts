@@ -21,8 +21,9 @@ vi.mock("./dispatch-queries", () => ({
 }));
 
 const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+const senderId = "5fa85f64-5717-4562-b3fc-2c963f66afa6";
 const timestamp = "2026-09-24T01:30:00.000Z";
-const page = { items: [], total: 0, page: 1, page_size: 25 };
+const page = { items: [], total: 0, page: 1, page_size: 10 };
 const detail = {
   id,
   branch_id: id,
@@ -30,9 +31,11 @@ const detail = {
   status: "IN_TRANSIT" as const,
   created_by_user_id: id,
   created_by_name: "Commissary Staff",
-  dispatched_by_user_id: id,
+  dispatched_by_user_id: senderId,
   dispatched_by_name: "Commissary Staff",
   dispatched_at: timestamp,
+  counted_at: null,
+  counted_by_user_id: null,
   created_at: timestamp,
   updated_at: timestamp,
   items: [],
@@ -94,6 +97,7 @@ describe("dispatch page loader", () => {
     });
     expect(getDispatchPageData).toHaveBeenCalledWith({
       page: 4,
+      pageSize: 10,
       status: "IN_TRANSIT",
       discrepancyStatus: "all",
     });
@@ -134,7 +138,7 @@ describe("dispatch page loader", () => {
     ).resolves.toMatchObject({ status: "ready", canCreate: false });
   });
 
-  it("shows only workflow actions granted to the assigned branch user", async () => {
+  it("lets the assigned branch user count an uncounted delivery once", async () => {
     await expect(
       loadDispatchDetailView(
         user(["dispatches.read", "dispatches.receive"]),
@@ -145,18 +149,54 @@ describe("dispatch page loader", () => {
       dispatch: detail,
       canDispatch: false,
       canReceive: true,
-      canCloseShortage: false,
-      canReportDiscrepancy: false,
-      canRequestRecount: false,
+      canResolve: false,
     });
-  });
-
-  it("lets Super Admin reconcile but never enter a branch receipt", async () => {
     getDispatchDetail.mockResolvedValue({
       ...detail,
       status: "PARTIALLY_RECEIVED",
+      counted_at: timestamp,
+      counted_by_user_id: id,
+    });
+    await expect(
+      loadDispatchDetailView(
+        user(["dispatches.read", "dispatches.receive"]),
+        id,
+      ),
+    ).resolves.toMatchObject({ canReceive: false, canResolve: false });
+  });
+
+  it("never lets the sender count or the counter resolve", async () => {
+    getDispatchDetail.mockResolvedValue({
+      ...detail,
+      dispatched_by_user_id: id,
+    });
+    await expect(
+      loadDispatchDetailView(
+        user(["dispatches.read", "dispatches.receive"]),
+        id,
+      ),
+    ).resolves.toMatchObject({ canReceive: false });
+    getDispatchDetail.mockResolvedValue({
+      ...detail,
+      status: "PARTIALLY_RECEIVED",
+      counted_at: timestamp,
+      counted_by_user_id: id,
+    });
+    await expect(
+      loadDispatchDetailView(
+        user(["dispatches.read", "dispatches.shortage_close"]),
+        id,
+      ),
+    ).resolves.toMatchObject({ canResolve: false });
+  });
+
+  it("lets Super Admin resolve a counted variance but never count a delivery", async () => {
+    getDispatchDetail.mockResolvedValue({
+      ...detail,
+      status: "PARTIALLY_RECEIVED",
+      counted_at: timestamp,
+      counted_by_user_id: senderId,
       discrepancy: { status: "OPEN" },
-      items: [{ quantity_received: "80", quantity_in_transit: "20" }],
     });
     const admin = {
       ...user([]),
@@ -171,13 +211,11 @@ describe("dispatch page loader", () => {
     await expect(loadDispatchDetailView(admin, id)).resolves.toMatchObject({
       status: "ready",
       canReceive: false,
-      canReportDiscrepancy: false,
-      canRequestRecount: true,
-      canCloseShortage: true,
+      canResolve: true,
     });
   });
 
-  it("hides receiving and shortage actions for a draft", async () => {
+  it("hides counting and resolution actions for a draft", async () => {
     getDispatchDetail.mockResolvedValue({ ...detail, status: "DRAFT" });
     await expect(
       loadDispatchDetailView(
@@ -193,7 +231,7 @@ describe("dispatch page loader", () => {
       status: "ready",
       canDispatch: true,
       canReceive: false,
-      canCloseShortage: false,
+      canResolve: false,
     });
   });
 

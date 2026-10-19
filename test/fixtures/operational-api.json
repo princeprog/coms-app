@@ -1,4 +1,18 @@
 {
+  "payment_methods": [
+    {
+      "id": "37000000-0000-4000-8000-000000000001",
+      "name": "Cash",
+      "kind": "CASH",
+      "is_active": true
+    },
+    {
+      "id": "37000000-0000-4000-8000-000000000002",
+      "name": "GCash",
+      "kind": "NON_CASH",
+      "is_active": true
+    }
+  ],
   "login": {
     "email": "ops-admin@example.test",
     "password": "fixture-only-password"
@@ -72,9 +86,7 @@
       "daily_reports.return",
       "daily_reports.approve"
     ],
-    "branch_ids": [
-      "00000000-0000-4000-8000-000000000001"
-    ]
+    "branch_ids": ["00000000-0000-4000-8000-000000000001"]
   },
   "roles": [
     {
@@ -93,9 +105,7 @@
       "is_system": false,
       "is_predefined": false,
       "is_active": true,
-      "permission_keys": [
-        "inventory.read"
-      ]
+      "permission_keys": ["inventory.read"]
     },
     {
       "id": "4",
@@ -528,6 +538,190 @@
       "module_key": "dashboard",
       "action_key": "global_read",
       "description": "View overall and any-branch dashboard performance"
+    }
+  ],
+  "product_categories": [
+    {
+      "id": "36000000-0000-4000-8000-000000000001",
+      "name": "Rice meals",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "36000000-0000-4000-8000-000000000002",
+      "name": "Silog meals",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "36000000-0000-4000-8000-000000000003",
+      "name": "Chicken",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "36000000-0000-4000-8000-000000000004",
+      "name": "Noodles",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "36000000-0000-4000-8000-000000000005",
+      "name": "Sides",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "36000000-0000-4000-8000-000000000006",
+      "name": "Desserts",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "36000000-0000-4000-8000-000000000007",
+      "name": "Beverages",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "36000000-0000-4000-8000-000000000008",
+      "name": "Legacy items",
+      "is_active": false,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "products": [
+    {
+      "product_name": "Chicken sandwich",
+      "category_id": "36000000-0000-4000-8000-000000000003"
+    },
+    {
+      "product_name": "Slow-braised beef tapa rice bowl with garlic rice, fried egg and pickled vegetables",
+      "category_id": "36000000-0000-4000-8000-000000000001"
+    },
+    {
+      "product_name": "Retired pork barbecue platter",
+      "category_id": "36000000-0000-4000-8000-000000000008"
+    },
+    {
+      "product_name": "Tapsilog",
+      "category_id": "36000000-0000-4000-8000-000000000002"
+    },
+    {
+      "product_name": "Tocilog",
+      "category_id": "36000000-0000-4000-8000-000000000002"
+    },
+    {
+      "product_name": "Pork adobo rice meal",
+      "category_id": "36000000-0000-4000-8000-000000000001"
+    },
+    {
+      "product_name": "Beef caldereta rice meal",
+      "category_id": "36000000-0000-4000-8000-000000000001"
+    },
+    {
+      "product_name": "Grilled inasal",
+      "category_id": "36000000-0000-4000-8000-000000000003"
+    },
+    {
+      "product_name": "Crispy drumsticks",
+      "category_id": "36000000-0000-4000-8000-000000000003"
+    },
+    {
+      "product_name": "Pancit canton",
+      "category_id": "36000000-0000-4000-8000-000000000004"
+    },
+    {
+      "product_name": "Pancit bihon",
+      "category_id": "36000000-0000-4000-8000-000000000004"
+    },
+    {
+      "product_name": "Spaghetti",
+      "category_id": "36000000-0000-4000-8000-000000000004"
+    },
+    {
+      "product_name": "Garlic rice",
+      "category_id": "36000000-0000-4000-8000-000000000005"
+    },
+    {
+      "product_name": "Lumpiang shanghai",
+      "category_id": "36000000-0000-4000-8000-000000000005"
+    },
+    {
+      "product_name": "French fries",
+      "category_id": "36000000-0000-4000-8000-000000000005"
+    },
+    {
+      "product_name": "Leche flan",
+      "category_id": "36000000-0000-4000-8000-000000000006"
+    },
+    {
+      "product_name": "Ube halaya",
+      "category_id": "36000000-0000-4000-8000-000000000006"
+    },
+    {
+      "product_name": "Buko pandan",
+      "category_id": "36000000-0000-4000-8000-000000000006"
+    },
+    {
+      "product_name": "Calamansi juice",
+      "category_id": "36000000-0000-4000-8000-000000000007"
+    },
+    {
+      "product_name": "Iced tea",
+      "category_id": "36000000-0000-4000-8000-000000000007"
+    },
+    {
+      "product_name": "Bottled water",
+      "category_id": "36000000-0000-4000-8000-000000000007"
+    },
+    {
+      "product_name": "Pork sisig rice meal",
+      "category_id": "36000000-0000-4000-8000-000000000001"
+    },
+    {
+      "product_name": "Longsilog",
+      "category_id": "36000000-0000-4000-8000-000000000002"
+    },
+    {
+      "product_name": "Fried wings",
+      "category_id": "36000000-0000-4000-8000-000000000003"
+    },
+    {
+      "product_name": "Sotanghon guisado",
+      "category_id": "36000000-0000-4000-8000-000000000004"
+    },
+    {
+      "product_name": "Turon",
+      "category_id": "36000000-0000-4000-8000-000000000006"
+    },
+    {
+      "product_name": "Mango shake",
+      "category_id": "36000000-0000-4000-8000-000000000007"
+    },
+    {
+      "product_name": "Atchara",
+      "category_id": "36000000-0000-4000-8000-000000000005"
+    },
+    {
+      "product_name": "Bangsilog",
+      "category_id": "36000000-0000-4000-8000-000000000002"
+    },
+    {
+      "product_name": "Beef pares rice meal",
+      "category_id": "36000000-0000-4000-8000-000000000001"
+    },
+    {
+      "product_name": "Sago gulaman",
+      "category_id": "36000000-0000-4000-8000-000000000007"
     }
   ]
 }

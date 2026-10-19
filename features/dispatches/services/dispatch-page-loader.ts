@@ -53,9 +53,7 @@ export type DispatchDetailViewResult =
       dispatch: Dispatch;
       canDispatch: boolean;
       canReceive: boolean;
-      canCloseShortage: boolean;
-      canReportDiscrepancy: boolean;
-      canRequestRecount: boolean;
+      canResolve: boolean;
     };
 
 function getAccessFailure(
@@ -143,38 +141,28 @@ export async function loadDispatchDetailView(
     if (!hasBranchScope(user, dispatch.branch_id))
       return { status: "forbidden" };
 
-    const canReceiveStatus =
+    const open =
       dispatch.status === "IN_TRANSIT" ||
       dispatch.status === "PARTIALLY_RECEIVED";
-    const hasRemainingTransit = dispatch.items.some(
-      (item) => Number(item.quantity_in_transit) > 0,
-    );
-    const hasPartialReceipt = dispatch.items.some(
-      (item) => Number(item.quantity_received) > 0,
-    );
+    const counted = Boolean(dispatch.counted_at);
     return {
       status: "ready",
       dispatch,
       canDispatch:
         dispatch.status === "DRAFT" &&
         hasPermission(user, "dispatches.dispatch"),
+      // The sender never counts, and the counter never resolves their own count.
       canReceive:
         !isProtectedSuperAdmin(user) &&
-        canReceiveStatus &&
+        open &&
+        !counted &&
+        dispatch.dispatched_by_user_id !== user.id &&
         hasPermission(user, "dispatches.receive"),
-      canCloseShortage:
-        canReceiveStatus && hasPermission(user, "dispatches.shortage_close"),
-      canReportDiscrepancy:
-        !isProtectedSuperAdmin(user) &&
-        dispatch.status === "PARTIALLY_RECEIVED" &&
-        hasRemainingTransit &&
-        hasPartialReceipt &&
-        hasPermission(user, "dispatches.receive") &&
-        (dispatch.discrepancy?.status === undefined ||
-          dispatch.discrepancy.status === "RESOLVED"),
-      canRequestRecount:
-        dispatch.discrepancy?.status === "OPEN" &&
-        hasPermission(user, "dispatches.reconcile"),
+      canResolve:
+        open &&
+        counted &&
+        dispatch.counted_by_user_id !== user.id &&
+        hasPermission(user, "dispatches.shortage_close"),
     };
   } catch (error) {
     const accessFailure = getAccessFailure(error);

@@ -15,8 +15,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { ServiceType } from "@/features/menus/schemas/menu.schema";
 import { formatProductPrice } from "../product-format";
+import type { CategoryChoice } from "@/features/product-categories/schemas/product-category.schema";
+import { ProductCategorySelector } from "@/features/product-categories/components/product-category-selector";
 export function ProductSetupInfo({
   name,
+  category,
+  onCategory,
   price,
   description,
   services,
@@ -28,6 +32,8 @@ export function ProductSetupInfo({
   errors = {},
 }: {
   name: string;
+  category: CategoryChoice | null;
+  onCategory: (category: CategoryChoice) => void;
   price: string;
   description: string;
   services: ServiceType[];
@@ -41,6 +47,13 @@ export function ProductSetupInfo({
   if (readOnly)
     return (
       <dl className="grid gap-5 text-sm sm:grid-cols-2">
+        <div>
+          <dt className="text-muted-foreground">Category</dt>
+          <dd className="mt-1 font-medium">
+            {category?.name}
+            {category && !category.is_active ? " (Archived)" : ""}
+          </dd>
+        </div>
         <div>
           <dt className="text-muted-foreground">Product name</dt>
           <dd className="mt-1 font-medium">{name}</dd>
@@ -132,6 +145,12 @@ export function ProductSetupInfo({
           )}
         </Field>
       </FieldGroup>
+      <ProductCategorySelector
+        value={category}
+        onChange={onCategory}
+        disabled={disabled}
+        error={errors.category_id}
+      />
       <Field>
         <FieldLabel htmlFor="setup-description">
           Description <span className="text-muted-foreground">(optional)</span>

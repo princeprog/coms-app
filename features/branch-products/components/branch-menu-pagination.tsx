@@ -1,3 +1,4 @@
+import { TablePageSize } from "@/components/shared/table-page-size";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -67,43 +68,46 @@ export function BranchMenuPagination({
         Showing {start}–{end} of {page.total}{" "}
         {page.total === 1 ? "product" : "products"}
       </p>
-      {count > 1 && (
-        <Pagination
-          aria-label={`${branchName} menu pages`}
-          className="mx-0 w-auto max-w-full"
-        >
-          <PaginationContent className="flex-wrap">
-            <PaginationItem>{arrow(true)}</PaginationItem>
-            {numbers.map((number) => (
-              <PaginationItem key={number}>
-                {number === page.page ? (
-                  <Button
-                    size="icon"
-                    className="size-11 sm:size-10"
-                    aria-current="page"
-                    aria-label={`Page ${number}`}
-                  >
-                    {number}
-                  </Button>
-                ) : (
-                  <Link
-                    href={href(number)}
-                    aria-label={`Page ${number}`}
-                    className={buttonVariants({
-                      variant: "outline",
-                      size: "icon",
-                      className: "size-11 sm:size-10",
-                    })}
-                  >
-                    {number}
-                  </Link>
-                )}
-              </PaginationItem>
-            ))}
-            <PaginationItem>{arrow(false)}</PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-3 sm:gap-4">
+        <TablePageSize pageSize={page.page_size} href={href(1)} />
+        {count > 1 && (
+          <Pagination
+            aria-label={`${branchName} menu pages`}
+            className="mx-0 w-auto max-w-full"
+          >
+            <PaginationContent className="flex-wrap">
+              <PaginationItem>{arrow(true)}</PaginationItem>
+              {numbers.map((number) => (
+                <PaginationItem key={number}>
+                  {number === page.page ? (
+                    <Button
+                      size="icon"
+                      className="size-11 sm:size-10"
+                      aria-current="page"
+                      aria-label={`Page ${number}`}
+                    >
+                      {number}
+                    </Button>
+                  ) : (
+                    <Link
+                      href={href(number)}
+                      aria-label={`Page ${number}`}
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "icon",
+                        className: "size-11 sm:size-10",
+                      })}
+                    >
+                      {number}
+                    </Link>
+                  )}
+                </PaginationItem>
+              ))}
+              <PaginationItem>{arrow(false)}</PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+      </div>
     </footer>
   );
 }

@@ -11,6 +11,8 @@ export function displayValue(
   labels?: Record<string, string>,
 ) {
   const value = record[key];
+  if (key === "category_name" && typeof value === "string")
+    return `${value}${record.category_is_active === false ? " (Archived)" : ""}`;
   if (Array.isArray(value))
     return (
       value.map((v) => labels?.[String(v)] ?? String(v)).join(", ") || missing

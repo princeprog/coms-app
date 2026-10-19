@@ -1,3 +1,4 @@
+import { parseTablePageSize } from "@/lib/table-pagination";
 import { z } from "zod";
 import { branchProductsRoute } from "@/features/branch-products/constants";
 
@@ -12,6 +13,7 @@ export type BranchProductsSearchParams = Record<
 
 export type BranchProductPageFilters = {
   page: number;
+  pageSize?: number;
   search: string;
   isAvailable?: boolean;
   serviceType?: "DINE_IN" | "TAKEAWAY";
@@ -32,6 +34,7 @@ export function parseBranchProductFilters(
 
   return {
     page,
+    pageSize: parseTablePageSize(params.page_size),
     ...(["DINE_IN", "TAKEAWAY"].includes(first(params.service_type) ?? "")
       ? { serviceType: first(params.service_type) as "DINE_IN" | "TAKEAWAY" }
       : {}),
@@ -60,6 +63,7 @@ export function parseBranchProductFilters(
 export function createBranchProductsHref({
   branchId,
   page,
+  pageSize,
   search,
   isAvailable,
   serviceType,
@@ -67,12 +71,14 @@ export function createBranchProductsHref({
 }: {
   branchId?: string;
   page: number;
+  pageSize?: number;
   search: string;
   isAvailable?: boolean;
   serviceType?: "DINE_IN" | "TAKEAWAY";
   sort?: string;
 }) {
   const params = new URLSearchParams();
+  if (pageSize && pageSize !== 10) params.set("page_size", String(pageSize));
   if (branchId) params.set("branch_id", branchId);
   if (serviceType) params.set("service_type", serviceType);
   if (sort) params.set("sort", sort);

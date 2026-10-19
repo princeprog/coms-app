@@ -1,5 +1,4 @@
-import type { Dispatch } from "../types/dispatch.types";
-import { isDecimalQuantityWithinLimit } from "./decimal-quantity";
+import type { Dispatch, DispatchItem } from "../types/dispatch.types";
 
 export const dispatchDate = new Intl.DateTimeFormat("en-US", {
   timeZone: "Asia/Manila",
@@ -26,6 +25,29 @@ export function receivedPercentage(received: string, dispatched: string) {
   return Math.min(100, Number((numerator * BigInt(1000)) / denominator) / 10);
 }
 
+export type VarianceLine = {
+  item: DispatchItem;
+  direction: "short" | "surplus";
+  amount: string;
+};
+
+/** Lines whose counted quantity still differs from what was sent. */
+export function varianceLines(dispatch: Dispatch): VarianceLine[] {
+  if (!dispatch.counted_at) return [];
+  return dispatch.items.flatMap((item) => {
+    const outstanding = item.quantity_outstanding;
+    if (!outstanding || !/[1-9]/.test(outstanding)) return [];
+    const surplus = outstanding.startsWith("-");
+    return [
+      {
+        item,
+        direction: surplus ? "surplus" : "short",
+        amount: surplus ? outstanding.slice(1) : outstanding,
+      },
+    ];
+  });
+}
+
 export type DispatchActivity = {
   id: string;
   kind: "created" | "dispatched" | "receipt" | "shortage" | "discrepancy";
@@ -39,14 +61,19 @@ export type DispatchActivity = {
 const eventTitles = {
   CREATED: "Dispatch created",
   DISPATCHED: "Dispatched",
-  RECEIPT_RECORDED: "Branch receipt recorded",
-  SHORTAGE_CLOSED: "Shortage closed",
+  RECEIPT_RECORDED: "Branch count recorded",
+  SHORTAGE_CLOSED: "Variance resolved",
 };
 const discrepancyTitles = {
-  REPORTED: "Discrepancy reported",
+  REPORTED: "Count variance flagged",
   RECOUNT_REQUESTED: "Recount requested",
   RESOLVED_RECEIVED: "Discrepancy resolved by receipt",
-  RESOLVED_SHORTAGE: "Discrepancy resolved by shortage closure",
+  RESOLVED_SHORTAGE: "Discrepancy resolved",
+};
+const outcomeTitles = {
+  LOST: "Variance resolved: lost",
+  NOT_LOADED: "Variance resolved: not loaded",
+  SURPLUS: "Surplus confirmed",
 };
 
 export function buildDispatchActivity(dispatch: Dispatch): DispatchActivity[] {
@@ -104,28 +131,20 @@ export function buildDispatchActivity(dispatch: Dispatch): DispatchActivity[] {
       timestamp: dispatch.dispatched_at,
     });
   }
-  dispatch.receipts.forEach((receipt) =>
+  const sortedReceipts = [...dispatch.receipts].sort(
+    (a, b) => Date.parse(a.created_at) - Date.parse(b.created_at),
+  );
+  sortedReceipts.forEach((receipt, index) =>
     entries.push({
       id: `receipt-${receipt.id}`,
       kind: "receipt",
       title:
-        receipt.items.length === dispatch.items.length &&
-        receipt.items.every((line) => {
-          const item = dispatch.items.find(
-            (item) => item.id === line.dispatch_item_id,
-          );
-          return (
-            item &&
-            isDecimalQuantityWithinLimit(
-              item.quantity_dispatched,
-              line.quantity_received,
-            )
-          );
-        })
-          ? "Receipt recorded"
+        dispatch.counted_at && index === sortedReceipts.length - 1
+          ? "Final count submitted"
           : "Partial receipt recorded",
       actor: receipt.receiver_name,
       timestamp: receipt.created_at,
+      note: receipt.note ?? undefined,
       lines: receipt.items.map((item) => ({
         name: item.stock_item_name,
         unit: item.unit,
@@ -137,7 +156,7 @@ export function buildDispatchActivity(dispatch: Dispatch): DispatchActivity[] {
     entries.push({
       id: `shortage-${closure.id}`,
       kind: "shortage",
-      title: "Shortage closed",
+      title: outcomeTitles[closure.outcome ?? "LOST"],
       actor: closure.closer_name,
       timestamp: closure.created_at,
       note: closure.reason,
@@ -148,6 +167,7 @@ export function buildDispatchActivity(dispatch: Dispatch): DispatchActivity[] {
       })),
     }),
   );
+  const receiptNotes = new Set(dispatch.receipts.map((receipt) => receipt.note));
   dispatch.discrepancy_events?.forEach((event) =>
     entries.push({
       id: `discrepancy-${event.id}`,
@@ -155,7 +175,11 @@ export function buildDispatchActivity(dispatch: Dispatch): DispatchActivity[] {
       title: discrepancyTitles[event.event_type],
       actor: event.actor_name,
       timestamp: event.created_at,
-      note: event.note,
+      // The branch's count note is already shown on the count entry.
+      note:
+        event.event_type === "REPORTED" && receiptNotes.has(event.note)
+          ? undefined
+          : event.note,
     }),
   );
   if (
@@ -167,7 +191,7 @@ export function buildDispatchActivity(dispatch: Dispatch): DispatchActivity[] {
     entries.push({
       id: "discrepancy-reported",
       kind: "discrepancy",
-      title: "Discrepancy reported",
+      title: "Count variance flagged",
       actor: dispatch.discrepancy.reported_by_name,
       timestamp: dispatch.discrepancy.reported_at,
     });

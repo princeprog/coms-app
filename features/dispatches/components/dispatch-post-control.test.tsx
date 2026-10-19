@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe("dispatch post control", () => {
-  it("requires confirmation before posting and refreshes after success", async () => {
+  it("requires a delivery name before sending and refreshes after success", async () => {
     vi.stubGlobal("crypto", {
       randomUUID: vi.fn().mockReturnValue(idempotencyKey),
     });
@@ -35,9 +35,17 @@ describe("dispatch post control", () => {
     ).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(action).not.toHaveBeenCalled();
+    await user.type(screen.getByLabelText("Delivered by"), " Juan Dela Cruz ");
+    await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
 
     await waitFor(() =>
-      expect(action).toHaveBeenCalledWith(dispatchId, idempotencyKey),
+      expect(action).toHaveBeenCalledWith(
+        dispatchId,
+        { delivered_by_name: "Juan Dela Cruz" },
+        idempotencyKey,
+      ),
     );
     expect(refresh).toHaveBeenCalledTimes(1);
   });
@@ -54,12 +62,14 @@ describe("dispatch post control", () => {
     render(<DispatchPostControl dispatchId={dispatchId} action={action} />);
 
     await user.click(screen.getByRole("button", { name: "Send dispatch" }));
+    await user.type(screen.getByLabelText("Delivered by"), "Juan");
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
     await screen.findByRole("alert");
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
 
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
-    expect(action.mock.calls[0]).toEqual([dispatchId, idempotencyKey]);
-    expect(action.mock.calls[1]).toEqual([dispatchId, idempotencyKey]);
+    const body = { delivered_by_name: "Juan" };
+    expect(action.mock.calls[0]).toEqual([dispatchId, body, idempotencyKey]);
+    expect(action.mock.calls[1]).toEqual([dispatchId, body, idempotencyKey]);
   });
 });

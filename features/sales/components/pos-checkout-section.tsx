@@ -1,4 +1,7 @@
-import { MenuListControls } from "@/features/menus/components/menu-list-controls";
+"use client";
+import { useDirectoryQuery } from "@/hooks/use-directory-query";
+import { createSalesHref } from "../services/sales-page-params";
+import { PosMenuControls } from "./pos-menu-controls";
 import type { SalesViewResult } from "../services/sales-page-loader";
 import type { SaleCreateAction } from "../types/sale.types";
 import { PosCheckout } from "./pos-checkout";
@@ -11,12 +14,19 @@ export function PosCheckoutSection({
   view: Extract<SalesViewResult, { status: "ready" }>;
   createAction: SaleCreateAction;
 }) {
-  if (!view.menuPage || !view.canCreate) return null;
-  const { selectedBranch, filters } = view;
-  const pages = Math.max(
-    1,
-    Math.ceil(view.menuPage.total / view.menuPage.page_size),
+  const query = useDirectoryQuery(
+    { ...view.filters, branchId: view.selectedBranch.id },
+    createSalesHref,
   );
+  if (!view.canCreate) return null;
+  const menuPage = view.menuPage ?? {
+    items: [],
+    total: 0,
+    page: 1,
+    page_size: 25,
+  };
+  const { selectedBranch, filters } = view;
+  const pages = Math.max(1, Math.ceil(menuPage.total / menuPage.page_size));
   return (
     <PosCheckout
       key={selectedBranch.id}
@@ -24,15 +34,18 @@ export function PosCheckoutSection({
       serviceTypes={selectedBranch.serviceTypes}
       appliedService={filters.serviceType}
       branchActive={selectedBranch.status !== "inactive"}
-      menuPage={view.menuPage}
+      menuPage={menuPage}
+      menuUnavailable={view.menuIssue === "unavailable"}
       action={createAction}
+      menuRefreshing={query.pending}
+      onServiceChange={(serviceType) => query.apply({ serviceType })}
+      menuFiltered={Boolean(filters.search || filters.categoryId)}
       menuControls={
-        <MenuListControls
-          route="/pos"
-          search={filters.search}
-          searchLabel="Search products"
-          searchPlaceholder="Find a product…"
-          preserveKeys={["service_type", "view"]}
+        <PosMenuControls
+          filters={{ ...filters, branchId: selectedBranch.id }}
+          categories={view.categories}
+          categoriesUnavailable={view.categoriesUnavailable}
+          query={query}
         />
       }
       menuPagination={

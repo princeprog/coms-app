@@ -177,18 +177,20 @@ describe("catalog management", () => {
 
     await user.click(screen.getByRole("button", { name: "Add stock item" }));
     const dialog = screen.getByRole("dialog", { name: "Create stock item" });
+    expect(within(dialog).queryByText("Item identity")).toBeNull();
     expect(
-      within(dialog).getByRole("heading", { name: "Stock item details" }),
-    ).toBeTruthy();
+      within(dialog).queryByText("Classification and tracking"),
+    ).toBeNull();
     expect(
-      within(dialog).getByRole("heading", {
-        name: "Classification and unit",
-      }),
-    ).toBeTruthy();
-    expect(within(dialog).getByLabelText("Stock item name")).toHaveProperty(
-      "required",
-      true,
-    );
+      within(dialog).queryByText(
+        "Give the item a familiar name that is easy to find during daily work.",
+      ),
+    ).toBeNull();
+    const itemName = within(dialog).getByRole("textbox", {
+      name: "Stock item name",
+    });
+    expect(itemName).toHaveProperty("required", true);
+    expect(itemName.getAttribute("aria-describedby")).toBeNull();
     const category = within(dialog).getByRole("combobox", {
       name: "Category",
     });
@@ -196,10 +198,9 @@ describe("catalog management", () => {
     expect(
       within(dialog).queryByRole("textbox", { name: "Category" }),
     ).toBeNull();
-    expect(within(dialog).getByLabelText("Unit")).toHaveProperty(
-      "required",
-      true,
-    );
+    const unit = within(dialog).getByRole("textbox", { name: "Unit" });
+    expect(unit).toHaveProperty("required", true);
+    expect(unit.getAttribute("aria-describedby")).toBeNull();
 
     await user.type(
       within(dialog).getByLabelText("Stock item name"),
@@ -222,6 +223,60 @@ describe("catalog management", () => {
         category: "Dry goods",
         unit: "kg",
       }),
+    );
+  });
+
+  it("shows accessible progress while stock item creation is pending", async () => {
+    const user = userEvent.setup();
+    let completeCreate: (result: { ok: true }) => void = () => undefined;
+    const createStockItem = vi.fn(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          completeCreate = resolve;
+        }),
+    );
+    renderCatalog({
+      title: "Stock Items",
+      resourceName: "stock item",
+      description: "Maintain stock items.",
+      routePath: "/stock-items",
+      displayColumns: stockItemDisplayColumns,
+      fields: stockItemFields,
+      page: { items: [], total: 0, page: 1, page_size: 25 },
+      createAction: createStockItem,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add stock item" }));
+    const dialog = screen.getByRole("dialog", { name: "Create stock item" });
+    await user.type(
+      within(dialog).getByLabelText("Stock item name"),
+      "All-purpose flour",
+    );
+    await user.type(within(dialog).getByLabelText("Unit"), "kg");
+    await user.click(
+      within(dialog).getByRole("combobox", { name: "Category" }),
+    );
+    await user.click(await screen.findByRole("option", { name: "Dry goods" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: "Create stock item" }),
+    );
+
+    const pendingButton = within(dialog).getByRole("button", {
+      name: "Creating stock item…",
+    });
+    expect(pendingButton).toHaveProperty("disabled", true);
+    expect(
+      within(pendingButton).getByRole("status", { name: "Loading" }),
+    ).toBeTruthy();
+    expect(
+      within(dialog).getByRole("button", { name: "Cancel" }),
+    ).toHaveProperty("disabled", true);
+
+    completeCreate({ ok: true });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Create stock item" }),
+      ).toBeNull(),
     );
   });
 

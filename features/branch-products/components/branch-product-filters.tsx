@@ -2,6 +2,11 @@ import { MapPin } from "lucide-react";
 import { MenuListControls } from "@/features/menus/components/menu-list-controls";
 import type { BranchProductBranchOption } from "../types/branch-product.types";
 import type { BranchProductPageFilters } from "../services/branch-product-page-params";
+import {
+  branchMenuAvailabilityOptions,
+  branchMenuServiceOptions,
+  branchMenuSortOptions,
+} from "./branch-product-filter-options";
 export function BranchProductFilters({
   branchOptions,
   selectedBranchId,
@@ -28,10 +33,12 @@ export function BranchProductFilters({
   return (
     <MenuListControls
       route="/branch-products"
+      preserveKeys={["page_size"]}
       search={filters.search}
       searchLabel="Search products"
       searchPlaceholder="Search by product name…"
       comfortable
+      alignItemWithTrigger={false}
       context={{
         key: "branch_id",
         label: "Branch",
@@ -41,7 +48,12 @@ export function BranchProductFilters({
           label: option.name,
         })),
         description,
-        icon: <MapPin aria-hidden="true" className="size-4 shrink-0" />,
+        icon: (
+          <MapPin
+            aria-hidden="true"
+            className="size-4 shrink-0 text-primary! [&_*]:text-inherit!"
+          />
+        ),
       }}
       filters={[
         {
@@ -51,34 +63,19 @@ export function BranchProductFilters({
             filters.isAvailable === undefined
               ? ""
               : String(filters.isAvailable),
-          options: [
-            { value: "", label: "All availability" },
-            { value: "true", label: "Available" },
-            { value: "false", label: "Unavailable" },
-          ],
+          options: branchMenuAvailabilityOptions,
         },
         {
           key: "service_type",
           label: "Service",
           value: filters.serviceType ?? "",
-          options: [
-            { value: "", label: "All services" },
-            { value: "DINE_IN", label: "Dine-in" },
-            { value: "TAKEAWAY", label: "Takeout" },
-          ],
+          options: branchMenuServiceOptions,
         },
         {
           key: "sort",
           label: "Sort by",
           value: filters.sort ?? "product_name:asc",
-          options: [
-            { value: "product_name:asc", label: "Name A–Z" },
-            { value: "product_name:desc", label: "Name Z–A" },
-            { value: "price:asc", label: "Lowest price" },
-            { value: "price:desc", label: "Highest price" },
-            { value: "created_at:desc", label: "Newest added" },
-            { value: "created_at:asc", label: "Oldest added" },
-          ],
+          options: branchMenuSortOptions,
         },
       ]}
     />

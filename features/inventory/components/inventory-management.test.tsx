@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
@@ -102,8 +102,17 @@ describe("inventory management", () => {
     expect(
       screen.getByRole("heading", { name: "Stock balances" }),
     ).toBeTruthy();
-    expect(screen.getByText("2.500 kg")).toBeTruthy();
-    expect(screen.getAllByText("Supplier receipt")).toHaveLength(2);
+    expect(screen.getByText("2.500")).toBeTruthy();
+    const balances = screen.getByRole("table", { name: "Stock balances" });
+    expect(
+      within(balances).getByRole("columnheader", { name: "Units" }),
+    ).toBeTruthy();
+    expect(
+      within(balances).getByRole("cell", { name: "Kilograms" }),
+    ).toBeTruthy();
+    expect(within(balances).getByRole("cell", { name: "Liters" })).toBeTruthy();
+    expect(within(balances).getByRole("cell", { name: "2.500" })).toBeTruthy();
+    expect(screen.getByText("Supplier receipt")).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Status" })).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Category" })).toBeTruthy();
@@ -116,6 +125,63 @@ describe("inventory management", () => {
     expect(
       screen.getByRole("combobox", { name: "Category" }).textContent,
     ).toContain("All categories");
+  });
+
+  it("shows only the five newest movements in recent activity", () => {
+    const activityItems = Array.from({ length: 6 }, (_, index) => ({
+      ...movements.items[0],
+      id: `movement-${index + 1}`,
+      stock_item_name: `Movement ${index + 1}`,
+    }));
+
+    renderInventory({
+      movements: {
+        ...movements,
+        items: activityItems,
+        total: activityItems.length,
+      },
+    });
+
+    const activity = screen.getByRole("table", { name: "Recent activity" });
+    expect(within(activity).getAllByRole("row")).toHaveLength(6);
+    expect(within(activity).getByText("Movement 1")).toBeTruthy();
+    expect(within(activity).queryByText("Movement 6")).toBeNull();
+  });
+
+  it("shows stock health from active state and exact on-hand quantity", () => {
+    renderInventory({
+      inventory: {
+        ...inventory,
+        items: [
+          inventory.items[0],
+          {
+            ...inventory.items[0],
+            id: "6ba7b810-9dad-41d1-80b4-00c04fd430c8",
+            stock_item_name: "Takeout boxes",
+            unit: "pcs",
+            quantity_on_hand: "0.000",
+          },
+          inventory.items[1],
+        ],
+        total: 3,
+      },
+    });
+
+    const inStock = screen.getByText("In stock");
+    const outOfStock = screen.getByText("Out of stock");
+    const inactive = screen.getByText("Inactive");
+
+    expect(inStock.className).toContain("bg-emerald-700");
+    expect(inStock.className).toContain("text-white");
+    expect(outOfStock.className).toContain("bg-red-700");
+    expect(outOfStock.className).toContain("text-white");
+    expect(inactive.className).toContain("bg-red-700");
+    expect(inactive.className).toContain("text-white");
+    expect(inStock.querySelector("svg")).toBeNull();
+    expect(outOfStock.querySelector("svg")).toBeNull();
+    expect(inactive.querySelector("svg")).toBeNull();
+    expect(screen.getByText("0.000")).toBeTruthy();
+    expect(screen.getByRole("cell", { name: "Pieces" })).toBeTruthy();
   });
 
   it("limits the scope to Branches and shows authorized branch choices for branch-only access", () => {
@@ -131,7 +197,9 @@ describe("inventory management", () => {
 
     expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
     expect(
-      screen.getByText("Stock balances and recent movements for Manila North."),
+      screen.getByText(
+        "Monitor stock levels and recent changes for Manila North.",
+      ),
     ).toBeTruthy();
     expect(
       screen
@@ -149,7 +217,7 @@ describe("inventory management", () => {
     expect(screen.getByRole("combobox", { name: "Status" })).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Category" })).toBeTruthy();
     expect(screen.queryByRole("columnheader", { name: "Actions" })).toBeNull();
-    expect(screen.getByRole("columnheader", { name: "Unit" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Status" })).toBeTruthy();
   });
 
   it("hides the branch scope for commissary-only users", () => {
@@ -170,14 +238,16 @@ describe("inventory management", () => {
     expect(screen.queryByRole("button", { name: "Branches" })).toBeNull();
     expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
     expect(
-      screen.getByText("Stock balances and recent movements for Manila North."),
+      screen.getByText(
+        "Monitor stock levels and recent changes for Manila North.",
+      ),
     ).toBeTruthy();
     expect(
       screen.getByRole("searchbox", { name: "Search stock items" }),
     ).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Status" })).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Category" })).toBeTruthy();
-    expect(screen.getByText("2.500 kg")).toBeTruthy();
+    expect(screen.getByText("2.500")).toBeTruthy();
   });
 
   it("retains the fixed branch when searching and paging without location selectors", () => {
@@ -194,12 +264,14 @@ describe("inventory management", () => {
     act(() => vi.advanceTimersByTime(350));
 
     expect(replace).toHaveBeenCalledWith(
-      `/inventory?scope=BRANCH&branch_id=${branchId}&search=Rice`,
+      `/inventory?page_size=25&scope=BRANCH&branch_id=${branchId}&search=Rice`,
       { scroll: false },
     );
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
-    ).toBe(`/inventory?scope=BRANCH&branch_id=${branchId}&page=3&search=Flour`);
+    ).toBe(
+      `/inventory?page_size=25&scope=BRANCH&branch_id=${branchId}&page=3&search=Flour`,
+    );
     expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
   });
 
@@ -220,7 +292,7 @@ describe("inventory management", () => {
     ).toBeTruthy();
   });
 
-  it("keeps stock balances and movements in labeled scroll regions", () => {
+  it("keeps stock balances scrollable and recent activity semantic", () => {
     const { container } = renderInventory();
 
     expect(
@@ -229,13 +301,20 @@ describe("inventory management", () => {
     const balanceRegion = screen.getByRole("region", {
       name: "Stock balances table",
     });
-    const movementRegion = screen.getByRole("region", {
-      name: "Recent inventory movements table",
-    });
+    const activity = screen.getByRole("table", { name: "Recent activity" });
     expect(balanceRegion.getAttribute("data-slot")).toBe("table-container");
     expect(balanceRegion.getAttribute("tabindex")).toBe("0");
-    expect(movementRegion.getAttribute("data-slot")).toBe("table-container");
-    expect(movementRegion.getAttribute("tabindex")).toBe("0");
+    expect(activity.querySelectorAll("tbody tr")).toHaveLength(1);
+    expect(
+      screen
+        .getByRole("region", { name: "Recent activity table" })
+        .getAttribute("tabindex"),
+    ).toBe("0");
+    expect(
+      within(activity)
+        .getAllByRole("columnheader")
+        .map((cell) => cell.textContent),
+    ).toEqual(["Stock item", "Activity", "Quantity change", "Recorded at"]);
   });
 
   it("hides adjustment actions when not granted and for inactive stock", () => {
@@ -247,7 +326,7 @@ describe("inventory management", () => {
     expect(
       screen.queryByRole("button", { name: "Actions for Cooking oil" }),
     ).toBeNull();
-    expect(screen.getAllByText("Inactive")).toHaveLength(2);
+    expect(screen.getByText("Inactive")).toBeTruthy();
     expect(screen.queryByRole("columnheader", { name: "Actions" })).toBeNull();
     expect(screen.queryByText("Adjustment unavailable")).toBeNull();
   });
@@ -266,7 +345,7 @@ describe("inventory management", () => {
     expect(
       screen.queryByRole("button", { name: "Actions for Flour" }),
     ).toBeNull();
-    expect(screen.getByText("2.500 kg")).toBeTruthy();
+    expect(screen.getByText("2.500")).toBeTruthy();
   });
 
   it("keeps commissary adjustments available when an assigned branch is inactive", () => {
@@ -294,7 +373,7 @@ describe("inventory management", () => {
     expect(
       screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
     ).toBe(
-      `/inventory?scope=BRANCH&branch_id=${branchId}&page=2&search=Flour&status=active&category=Dry+goods`,
+      `/inventory?page_size=25&scope=BRANCH&branch_id=${branchId}&page=2&search=Flour&status=active&category=Dry+goods`,
     );
   });
 
@@ -375,7 +454,7 @@ describe("inventory management", () => {
     );
 
     expect(push).toHaveBeenCalledWith(
-      `/inventory?scope=BRANCH&branch_id=${secondBranchId}&search=Flour&status=active&category=Dry+goods`,
+      `/inventory?page_size=25&scope=BRANCH&branch_id=${secondBranchId}&search=Flour&status=active&category=Dry+goods`,
       { scroll: false },
     );
     expect(screen.getByRole("status").textContent).toContain(
@@ -395,7 +474,7 @@ describe("inventory management", () => {
     expect(screen.queryByRole("combobox", { name: "Branch" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Branches" }));
     expect(push).toHaveBeenLastCalledWith(
-      `/inventory?scope=BRANCH&branch_id=${branchId}&search=Flour&status=active&category=Dry+goods`,
+      `/inventory?page_size=25&scope=BRANCH&branch_id=${branchId}&search=Flour&status=active&category=Dry+goods`,
       { scroll: false },
     );
     rerender(
@@ -420,7 +499,7 @@ describe("inventory management", () => {
     expect(push).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole("button", { name: "Commissary" }));
     expect(push).toHaveBeenLastCalledWith(
-      "/inventory?scope=COMMISSARY&search=Flour&status=active&category=Dry+goods",
+      "/inventory?page_size=25&scope=COMMISSARY&search=Flour&status=active&category=Dry+goods",
       { scroll: false },
     );
   });
@@ -436,7 +515,7 @@ describe("inventory management", () => {
     await user.click(screen.getByRole("combobox", { name: "Status" }));
     await user.click(await screen.findByRole("option", { name: "Inactive" }));
     expect(replace).toHaveBeenLastCalledWith(
-      "/inventory?scope=COMMISSARY&search=Flour&status=inactive",
+      "/inventory?page_size=25&scope=COMMISSARY&search=Flour&status=inactive",
       { scroll: false },
     );
 
@@ -459,7 +538,7 @@ describe("inventory management", () => {
     await user.click(await screen.findByRole("option", { name: "Dry goods" }));
 
     expect(replace).toHaveBeenLastCalledWith(
-      "/inventory?scope=COMMISSARY&search=Flour&status=inactive&category=Dry+goods",
+      "/inventory?page_size=25&scope=COMMISSARY&search=Flour&status=inactive&category=Dry+goods",
       { scroll: false },
     );
   });
@@ -478,7 +557,7 @@ describe("inventory management", () => {
       await screen.findByRole("option", { name: "All statuses" }),
     );
     expect(replace).toHaveBeenLastCalledWith(
-      "/inventory?scope=COMMISSARY&category=Dry+goods",
+      "/inventory?page_size=25&scope=COMMISSARY&category=Dry+goods",
       { scroll: false },
     );
 
@@ -500,9 +579,12 @@ describe("inventory management", () => {
     await user.click(
       await screen.findByRole("option", { name: "All categories" }),
     );
-    expect(replace).toHaveBeenLastCalledWith("/inventory?scope=COMMISSARY", {
-      scroll: false,
-    });
+    expect(replace).toHaveBeenLastCalledWith(
+      "/inventory?page_size=25&scope=COMMISSARY",
+      {
+        scroll: false,
+      },
+    );
   });
 
   it("debounces search by 350ms and exposes pending state while results load", async () => {
@@ -518,7 +600,7 @@ describe("inventory management", () => {
     act(() => vi.advanceTimersByTime(1));
 
     expect(replace).toHaveBeenCalledWith(
-      "/inventory?scope=COMMISSARY&search=Cooking+oil",
+      "/inventory?page_size=25&scope=COMMISSARY&search=Cooking+oil",
       { scroll: false },
     );
     expect(screen.getByRole("status").textContent).toContain(
@@ -538,7 +620,7 @@ describe("inventory management", () => {
 
     expect(replace).toHaveBeenCalledOnce();
     expect(replace).toHaveBeenCalledWith(
-      "/inventory?scope=COMMISSARY&search=Rice",
+      "/inventory?page_size=25&scope=COMMISSARY&search=Rice",
       { scroll: false },
     );
     expect((search as HTMLInputElement).value).toBe("Rice");
@@ -590,7 +672,7 @@ describe("inventory management", () => {
     fireEvent.keyDown(search, { key: "Enter", code: "Enter" });
 
     expect(replace).toHaveBeenCalledWith(
-      "/inventory?scope=COMMISSARY&search=Flour",
+      "/inventory?page_size=25&scope=COMMISSARY&search=Flour",
       { scroll: false },
     );
     expect(screen.getByRole("status")).toBeTruthy();
@@ -661,7 +743,7 @@ describe("inventory management", () => {
     await user.click(screen.getByRole("button", { name: "Clear filters" }));
 
     expect(replace).toHaveBeenCalledWith(
-      `/inventory?scope=BRANCH&branch_id=${branchId}`,
+      `/inventory?page_size=25&scope=BRANCH&branch_id=${branchId}`,
       { scroll: false },
     );
     expect(screen.getByRole("status").textContent).toContain(
@@ -681,12 +763,12 @@ describe("inventory management", () => {
       screen.getByRole("button", { name: "Remove Status: Inactive" }),
     );
     expect(replace).toHaveBeenLastCalledWith(
-      `/inventory?scope=BRANCH&branch_id=${branchId}&search=Flour&category=Dry+goods`,
+      `/inventory?page_size=25&scope=BRANCH&branch_id=${branchId}&search=Flour&category=Dry+goods`,
       { scroll: false },
     );
     await user.click(screen.getByRole("button", { name: "Clear all" }));
     expect(replace).toHaveBeenLastCalledWith(
-      `/inventory?scope=BRANCH&branch_id=${branchId}`,
+      `/inventory?page_size=25&scope=BRANCH&branch_id=${branchId}`,
       { scroll: false },
     );
   });
@@ -714,6 +796,6 @@ describe("inventory management", () => {
     expect(
       screen.getByText("No stock items have been set up yet."),
     ).toBeTruthy();
-    expect(screen.getByText("No movement history yet")).toBeTruthy();
+    expect(screen.getByText("No activity yet")).toBeTruthy();
   });
 });

@@ -121,6 +121,7 @@ export async function loadBranchProductsView(
     page = await getBranchProductPageData({
       branchId: selectedBranch.id,
       page: filters.page,
+      pageSize: filters.pageSize,
       search: filters.search,
       isAvailable: filters.isAvailable,
       ...(filters.serviceType ? { serviceType: filters.serviceType } : {}),
@@ -152,6 +153,7 @@ export async function loadBranchProductsView(
       href: createBranchProductsHref({
         branchId: selectedBranch.id,
         page: pageCount,
+        pageSize: filters.pageSize,
         search: filters.search,
         isAvailable: filters.isAvailable,
         serviceType: filters.serviceType,

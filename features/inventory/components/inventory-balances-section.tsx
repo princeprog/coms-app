@@ -48,10 +48,13 @@ export function InventoryBalancesSection({
       <CardHeader className="border-b px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex flex-col gap-1">
-            <CardTitle>
+            <CardTitle className="flex flex-wrap items-baseline gap-2">
               <h3 id="stock-balances-heading">Stock balances</h3>
+              <span className="text-sm font-normal text-muted-foreground">
+                {inventory.total} {inventory.total === 1 ? "item" : "items"}
+              </span>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="sr-only">
               Current quantities in each stock item&apos;s unit, listed A–Z.
             </CardDescription>
           </div>

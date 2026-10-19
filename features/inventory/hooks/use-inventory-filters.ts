@@ -16,6 +16,7 @@ export function useInventoryFilters({
   categoryFilter,
   branchName,
   page,
+  pageSize,
   onPendingChange,
 }: InventoryScopeFilterProps) {
   const router = useRouter();
@@ -26,6 +27,7 @@ export function useInventoryFilters({
     search,
     statusFilter ?? "",
     categoryFilter ?? "",
+    pageSize,
   ]);
   const [searchDraft, setSearchDraft] = useState({
     key: filterStateKey,
@@ -50,6 +52,7 @@ export function useInventoryFilters({
     statusFilter,
     categoryFilter,
     page,
+    pageSize,
     onPendingChange,
   ]);
 
@@ -105,6 +108,7 @@ export function useInventoryFilters({
       scope: nextScope,
       branchId: nextScope === "BRANCH" ? nextBranchId : undefined,
       page: 1,
+      pageSize,
       search: normalizedSearch,
       status: nextStatus,
       category: nextCategory,

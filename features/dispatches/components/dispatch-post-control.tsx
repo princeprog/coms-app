@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -22,19 +24,30 @@ export function DispatchPostControl({
   action: DispatchPostAction;
 }) {
   const router = useRouter();
-  const idempotencyKey = useRef<string | null>(null);
+  const retry = useRef<{ name: string; key: string } | null>(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [deliveredBy, setDeliveredBy] = useState("");
   const [error, setError] = useState("");
 
   async function confirm() {
     if (pending) return;
-    idempotencyKey.current ??= globalThis.crypto.randomUUID();
+    const name = deliveredBy.trim();
+    if (!name) {
+      setError("Enter who is delivering this dispatch.");
+      return;
+    }
+    if (retry.current?.name !== name)
+      retry.current = { name, key: globalThis.crypto.randomUUID() };
     setError("");
     setPending(true);
     let result: Awaited<ReturnType<DispatchPostAction>>;
     try {
-      result = await action(dispatchId, idempotencyKey.current);
+      result = await action(
+        dispatchId,
+        { delivered_by_name: name },
+        retry.current.key,
+      );
     } catch {
       result = {
         ok: false,
@@ -74,6 +87,23 @@ export function DispatchPostControl({
             deduct commissary inventory.
           </DialogDescription>
         </DialogHeader>
+        <Field>
+          <FieldLabel htmlFor={`delivered-by-${dispatchId}`}>
+            Delivered by
+          </FieldLabel>
+          <Input
+            id={`delivered-by-${dispatchId}`}
+            aria-required="true"
+            maxLength={120}
+            autoComplete="off"
+            disabled={pending}
+            value={deliveredBy}
+            onChange={(event) => setDeliveredBy(event.target.value)}
+          />
+          <FieldDescription>
+            The driver or runner who will hand the stock to the branch.
+          </FieldDescription>
+        </Field>
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}

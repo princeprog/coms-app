@@ -1,3 +1,4 @@
+import { TablePageSize } from "@/components/shared/table-page-size";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -64,46 +65,54 @@ export function CatalogDirectoryPagination({
         Showing {start}–{end} of {page.total}{" "}
         {page.total === 1 ? resourceName : `${resourceName}s`}
       </p>
-      <Pagination
-        aria-label={`${title} pages`}
-        className="mx-0 w-auto max-w-full"
-      >
-        <PaginationContent className="flex-wrap">
-          <PaginationItem>
-            {arrow(page.page - 1, "Previous page", page.page > 1, true)}
-          </PaginationItem>
-          {numbers.map((value) => (
-            <PaginationItem key={value}>
-              {value === page.page ? (
-                <Button
-                  size="icon-sm"
-                  aria-label={`Page ${value}`}
-                  aria-current="page"
-                >
-                  {value}
-                </Button>
-              ) : (
-                <Link
-                  aria-label={`Page ${value}`}
-                  href={createCatalogHref(routePath, {
-                    ...filters,
-                    page: value,
-                  })}
-                  className={buttonVariants({
-                    variant: "outline",
-                    size: "icon-sm",
-                  })}
-                >
-                  {value}
-                </Link>
-              )}
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-3 sm:gap-4">
+        {filters.pageSize && (
+          <TablePageSize
+            pageSize={page.page_size}
+            href={createCatalogHref(routePath, { ...filters, page: 1 })}
+          />
+        )}
+        <Pagination
+          aria-label={`${title} pages`}
+          className="mx-0 w-auto max-w-full"
+        >
+          <PaginationContent className="flex-wrap">
+            <PaginationItem>
+              {arrow(page.page - 1, "Previous page", page.page > 1, true)}
             </PaginationItem>
-          ))}
-          <PaginationItem>
-            {arrow(page.page + 1, "Next page", page.page < count, false)}
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+            {numbers.map((value) => (
+              <PaginationItem key={value}>
+                {value === page.page ? (
+                  <Button
+                    size="icon-sm"
+                    aria-label={`Page ${value}`}
+                    aria-current="page"
+                  >
+                    {value}
+                  </Button>
+                ) : (
+                  <Link
+                    aria-label={`Page ${value}`}
+                    href={createCatalogHref(routePath, {
+                      ...filters,
+                      page: value,
+                    })}
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "icon-sm",
+                    })}
+                  >
+                    {value}
+                  </Link>
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              {arrow(page.page + 1, "Next page", page.page < count, false)}
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
     </div>
   );
 }

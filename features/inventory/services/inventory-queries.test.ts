@@ -61,12 +61,12 @@ describe("inventory page queries", () => {
 
     expect(requestComsApi).toHaveBeenNthCalledWith(
       1,
-      `/inventory/branches/${id}?page=2&page_size=25&search=Flour&is_active=true&category=Dry+goods`,
+      `/inventory/branches/${id}?page=2&page_size=10&search=Flour&is_active=true&category=Dry+goods`,
       { cookieHeader: "coms_access=access-token" },
     );
     expect(requestComsApi).toHaveBeenNthCalledWith(
       2,
-      `/inventory/branches/${id}/movements?page=1&page_size=25`,
+      `/inventory/branches/${id}/movements?page=1&page_size=5`,
       { cookieHeader: "coms_access=access-token" },
     );
   });

@@ -1,5 +1,5 @@
 "use client";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -28,7 +28,10 @@ export function DispatchBranchField({
         disabled={disabled}
         onValueChange={(value) => onChange(value ?? "")}
       >
-        <SelectTrigger id="dispatch-branch" className="w-full">
+        <SelectTrigger
+          id="dispatch-branch"
+          className="w-full bg-background px-3 data-[size=default]:h-10"
+        >
           <SelectValue>
             {(value: unknown) =>
               branches.find((branch) => branch.id === value)?.branch_name ??
@@ -56,10 +59,6 @@ export function DispatchBranchField({
           </SelectGroup>
         </SelectContent>
       </Select>
-      <FieldDescription>
-        Dispatches can only be sent to active branches available to your
-        account.
-      </FieldDescription>
     </Field>
   );
 }

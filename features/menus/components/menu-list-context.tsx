@@ -55,6 +55,11 @@ export function MenuListContext({
                 <SelectGroup>
                   {context.options.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
+                      {context.icon && (
+                        <span aria-hidden="true" className="flex shrink-0">
+                          {context.icon}
+                        </span>
+                      )}
                       {option.label}
                     </SelectItem>
                   ))}

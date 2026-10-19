@@ -18,6 +18,7 @@ import {
   updateStockItemAction,
 } from "@/features/stock-items/services/stock-item-actions";
 import { getStockItemPageData } from "@/features/stock-items/services/stock-item-queries";
+import { parseTablePageSize } from "@/lib/table-pagination";
 import { ApiRequestError } from "@/services/api-services";
 
 function first(value: string | string[] | undefined) {
@@ -44,6 +45,7 @@ export default async function StockItemsPage({
 
   const params = await searchParams;
   const search = (first(params.search) ?? "").trim().slice(0, 160);
+  const pageSize = parseTablePageSize(params.page_size);
   const statusValue = first(params.is_active);
   const activeFilter =
     statusValue === "true" || statusValue === "false" ? statusValue : "all";
@@ -52,6 +54,7 @@ export default async function StockItemsPage({
     pageData = await getStockItemPageData({
       page: requestedPage(first(params.page)),
       search,
+      pageSize,
       active: activeFilter === "all" ? undefined : activeFilter === "true",
     });
   } catch (error) {
@@ -69,6 +72,7 @@ export default async function StockItemsPage({
     redirect(
       createCatalogHref(stockItemsEndpoint, {
         page: pageCount,
+        pageSize,
         search,
         active: activeFilter,
       }),

@@ -81,6 +81,7 @@ export function InventoryManagement({
           canViewBranch={canViewBranch}
           branchName={branchName}
           page={currentPage}
+          pageSize={inventory?.page_size}
           onPendingChange={setIsFetching}
         />
       )}
@@ -101,30 +102,39 @@ export function InventoryManagement({
             </Badge>
           )}
 
-          <InventoryBalancesSection
-            inventory={inventory}
-            scope={scope}
-            branchId={branchId}
-            search={search}
-            status={statusFilter}
-            category={categoryFilter}
-            page={currentPage}
-            isFetching={isFetching}
-            canAdjust={
-              canAdjust &&
-              (scope === "COMMISSARY" || selectedBranch?.status !== "inactive")
-            }
-            adjustAction={adjustAction}
-            onComplete={setStatusMessage}
-            onClearFilters={() => {
-              setIsFetching(true);
-              router.replace(
-                createInventoryHref({ scope, branchId, page: 1, search: "" }),
-                { scroll: false },
-              );
-            }}
-          />
-          <InventoryMovementsTable movements={movements} />
+          <div className="flex min-w-0 flex-col gap-6">
+            <InventoryBalancesSection
+              inventory={inventory}
+              scope={scope}
+              branchId={branchId}
+              search={search}
+              status={statusFilter}
+              category={categoryFilter}
+              page={currentPage}
+              isFetching={isFetching}
+              canAdjust={
+                canAdjust &&
+                (scope === "COMMISSARY" ||
+                  selectedBranch?.status !== "inactive")
+              }
+              adjustAction={adjustAction}
+              onComplete={setStatusMessage}
+              onClearFilters={() => {
+                setIsFetching(true);
+                router.replace(
+                  createInventoryHref({
+                    scope,
+                    branchId,
+                    page: 1,
+                    pageSize: inventory.page_size,
+                    search: "",
+                  }),
+                  { scroll: false },
+                );
+              }}
+            />
+            <InventoryMovementsTable movements={movements} />
+          </div>
         </>
       ) : (
         <OperationalLoadError

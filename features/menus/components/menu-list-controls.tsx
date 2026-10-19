@@ -1,4 +1,5 @@
 "use client";
+import type { ReactNode } from "react";
 import { LoaderCircle, Search, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ type Filter = {
   key: string;
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; icon?: ReactNode }[];
 };
 export function MenuListControls({
   route,
@@ -29,6 +30,7 @@ export function MenuListControls({
   searchPlaceholder = "Search products…",
   searchLabel = "Search",
   comfortable = false,
+  alignItemWithTrigger = true,
   context,
 }: {
   route: string;
@@ -36,6 +38,7 @@ export function MenuListControls({
   filters?: Filter[];
   preserveKeys?: string[];
   comfortable?: boolean;
+  alignItemWithTrigger?: boolean;
   searchPlaceholder?: string;
   searchLabel?: string;
   context?: MenuListContextValue;
@@ -109,6 +112,7 @@ export function MenuListControls({
             id={`${route}-${filter.key}`}
             label={filter.label}
             value={filter.value || "all"}
+            alignItemWithTrigger={alignItemWithTrigger}
             options={filter.options.map((option) => ({
               ...option,
               value: option.value || "all",

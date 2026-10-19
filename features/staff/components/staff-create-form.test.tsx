@@ -129,9 +129,7 @@ describe("staff creation", () => {
     await user.type(search, "south");
     expect(screen.queryByRole("checkbox", { name: "Manila North" })).toBeNull();
     await user.click(screen.getByRole("checkbox", { name: "Manila South" }));
-    expect(
-      screen.getByText("2 selected · Up to 100 active branches"),
-    ).toBeTruthy();
+    expect(screen.getByText("2 selected")).toBeTruthy();
 
     await user.clear(search);
     expect(

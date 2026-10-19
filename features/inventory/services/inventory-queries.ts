@@ -33,13 +33,15 @@ type InventoryPageRequest =
       pageSize?: number;
     };
 
+const RECENT_MOVEMENT_LIMIT = 5;
+
 export async function getInventoryPageData(
   request: InventoryPageRequest,
 ): Promise<{
   inventory: InventoryPage;
   movements: InventoryMovementPage;
 }> {
-  const { scope, page, search, pageSize = 25 } = request;
+  const { scope, page, search, pageSize = 10 } = request;
   const branchId = request.scope === "BRANCH" ? request.branchId : "";
   const balancePath =
     scope === "COMMISSARY"
@@ -62,7 +64,7 @@ export async function getInventoryPageData(
   }
   const movementParams = new URLSearchParams({
     page: "1",
-    page_size: String(pageSize),
+    page_size: String(RECENT_MOVEMENT_LIMIT),
   });
   const cookieHeader = (await cookies()).toString();
 

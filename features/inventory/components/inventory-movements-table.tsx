@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -7,40 +7,102 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { InventoryMovementPage } from "../types/inventory.types";
+import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
+import type {
+  InventoryMovement,
+  InventoryMovementPage,
+} from "../types/inventory.types";
 import { cn } from "@/lib/utils";
 
-const date = new Intl.DateTimeFormat("en-PH", {
-  dateStyle: "medium",
+const RECENT_ACTIVITY_LIMIT = 5;
+const activityDate = new Intl.DateTimeFormat("en-PH", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
   timeZone: "Asia/Manila",
 });
-const time = new Intl.DateTimeFormat("en-PH", {
-  timeStyle: "short",
+const activityTime = new Intl.DateTimeFormat("en-PH", {
+  hour: "numeric",
+  minute: "2-digit",
   timeZone: "Asia/Manila",
 });
+
 function movementLabel(value: string) {
+  if (value === "RECEIPT") return "Supplier receipt";
   const label = value.toLowerCase().replaceAll("_", " ");
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
+
 function RecordedAt({ value }: { value: string }) {
   const instant = new Date(value);
   return (
-    <time dateTime={value} className="flex flex-wrap gap-x-1 lg:flex-col">
-      <span>{date.format(instant)}</span>
-      <span className="text-xs text-muted-foreground">
-        {time.format(instant)} PHT
+    <time
+      dateTime={value}
+      className="whitespace-nowrap text-right tabular-nums"
+      title={`${activityDate.format(instant)}, ${activityTime.format(instant)} PHT`}
+    >
+      <span className="block">{activityDate.format(instant)}</span>
+      <span className="mt-1 block text-xs text-muted-foreground">
+        {activityTime.format(instant)}
       </span>
     </time>
+  );
+}
+
+function ActivityRow({ movement }: { movement: InventoryMovement }) {
+  const isDeduction = movement.quantity_delta.startsWith("-");
+  const quantity = isDeduction
+    ? movement.quantity_delta
+    : `+${movement.quantity_delta}`;
+  const Icon = isDeduction ? ArrowDown : ArrowUp;
+  const label = movementLabel(movement.movement_type);
+  const reason =
+    movement.movement_type !== "RECEIPT" && movement.reason !== label
+      ? movement.reason
+      : null;
+  return (
+    <TableRow>
+      <TableCell className="w-1/3 min-w-48 py-4 pl-4 font-medium whitespace-normal wrap-anywhere sm:pl-5">
+        {movement.stock_item_name}
+      </TableCell>
+      <TableCell className="min-w-44 py-4 whitespace-normal">
+        <span>{label}</span>
+        {reason && (
+          <p className="mt-1 max-w-sm text-xs text-muted-foreground wrap-anywhere">
+            {reason}
+          </p>
+        )}
+      </TableCell>
+      <TableCell className="py-4 text-right">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 font-medium tabular-nums",
+            isDeduction
+              ? "text-red-700 dark:text-red-300"
+              : "text-emerald-700 dark:text-emerald-300",
+          )}
+        >
+          <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+          <span className="sr-only">
+            {isDeduction ? "Stock deducted" : "Stock added"}
+          </span>
+          <span>
+            {quantity} {movement.unit}
+          </span>
+        </span>
+      </TableCell>
+      <TableCell className="py-4 pr-4 text-right sm:pr-5">
+        <RecordedAt value={movement.created_at} />
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -49,6 +111,7 @@ export function InventoryMovementsTable({
 }: {
   movements: InventoryMovementPage;
 }) {
+  const recentMovements = movements.items.slice(0, RECENT_ACTIVITY_LIMIT);
   return (
     <Card
       aria-labelledby="inventory-movements-heading"
@@ -56,125 +119,55 @@ export function InventoryMovementsTable({
     >
       <CardHeader className="border-b px-4 py-4 sm:px-5">
         <CardTitle>
-          <h3 id="inventory-movements-heading">Recent movements</h3>
+          <h3 id="inventory-movements-heading">Recent activity</h3>
         </CardTitle>
-        <CardDescription>
-          Latest stock changes for this location. Balance filters do not apply.
+        <CardDescription className="sr-only">
+          Latest changes for this location, newest first.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
-        {movements.items.length > 0 ? (
+        {recentMovements.length > 0 ? (
           <Table
-            aria-label="Recent movements"
-            className="min-w-80"
+            aria-label="Recent activity"
+            className="min-w-2xl"
             containerProps={{
               role: "region",
-              "aria-label": "Recent inventory movements table",
+              "aria-label": "Recent activity table",
               tabIndex: 0,
+              className:
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
             }}
           >
-            <TableCaption className="sr-only">
-              Recent inventory changes, newest first. Signed quantities show
-              additions and deductions in each item&apos;s unit. Times are in
-              Philippine Standard Time (Asia/Manila).
-            </TableCaption>
-            <TableHeader>
+            <TableHeader className="bg-muted/40">
               <TableRow>
-                <TableHead scope="col" className="pl-4 sm:pl-5">
-                  Stock item
-                </TableHead>
-                <TableHead scope="col" className="hidden md:table-cell">
-                  Movement
-                </TableHead>
-                <TableHead
-                  scope="col"
-                  className="pr-4 text-right sm:pr-5 lg:pr-2"
-                >
-                  Change
-                </TableHead>
-                <TableHead scope="col" className="hidden lg:table-cell">
-                  Recorded
-                </TableHead>
-                <TableHead
-                  scope="col"
-                  className="hidden pr-4 xl:table-cell sm:pr-5"
-                >
-                  Reason
+                <TableHead className="pl-4 sm:pl-5">Stock item</TableHead>
+                <TableHead>Activity</TableHead>
+                <TableHead className="text-right">Quantity change</TableHead>
+                <TableHead className="pr-4 text-right sm:pr-5">
+                  Recorded at
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {movements.items.map((movement) => (
-                <TableRow key={movement.id}>
-                  <TableCell className="max-w-72 py-3 pl-4 whitespace-normal sm:pl-5">
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="font-medium wrap-anywhere">
-                        {movement.stock_item_name}
-                      </span>
-                      <span className="md:hidden">
-                        <Badge
-                          variant="secondary"
-                          className="h-auto min-h-5 whitespace-normal"
-                        >
-                          {movementLabel(movement.movement_type)}
-                        </Badge>
-                      </span>
-                      <div className="text-xs text-muted-foreground lg:hidden">
-                        <RecordedAt value={movement.created_at} />
-                      </div>
-                      {movement.reason && (
-                        <span className="text-xs text-muted-foreground wrap-anywhere xl:hidden">
-                          {movement.reason}
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden py-3 md:table-cell">
-                    <Badge
-                      variant="secondary"
-                      className="h-auto min-h-5 whitespace-normal"
-                    >
-                      {movementLabel(movement.movement_type)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      "py-3 pr-4 text-right font-medium tabular-nums sm:pr-5 lg:pr-2",
-                      movement.quantity_delta.startsWith("-") &&
-                        "text-destructive",
-                    )}
-                  >
-                    {movement.quantity_delta.startsWith("-")
-                      ? movement.quantity_delta
-                      : "+" + movement.quantity_delta}{" "}
-                    {movement.unit}
-                  </TableCell>
-                  <TableCell className="hidden py-3 lg:table-cell">
-                    <RecordedAt value={movement.created_at} />
-                  </TableCell>
-                  <TableCell className="hidden max-w-72 py-3 pr-4 whitespace-normal xl:table-cell sm:pr-5">
-                    {movement.reason ?? (
-                      <span className="text-muted-foreground">
-                        Not provided
-                      </span>
-                    )}
-                  </TableCell>
-                </TableRow>
+              {recentMovements.map((movement) => (
+                <ActivityRow key={movement.id} movement={movement} />
               ))}
             </TableBody>
           </Table>
         ) : (
           <div className="px-4 py-8 sm:px-5">
             <OperationalEmptyState
-              title="No movement history yet"
+              title="No activity yet"
               description="Receipts, transfers, sales, and adjustments will appear here."
             />
           </div>
         )}
       </CardContent>
-      <CardFooter className="border-t px-4 py-3 text-sm text-muted-foreground sm:px-5">
-        Showing {movements.items.length} of {movements.total}{" "}
-        {movements.total === 1 ? "movement" : "movements"}
+      <CardFooter className="flex flex-wrap justify-between gap-2 border-t px-4 py-3 text-xs text-muted-foreground sm:px-5">
+        <span>Times shown in PHT</span>
+        <span>
+          Showing {recentMovements.length} of {movements.total}
+        </span>
       </CardFooter>
     </Card>
   );

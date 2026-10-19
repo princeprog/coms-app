@@ -3,8 +3,14 @@ import "server-only";
 import { cookies } from "next/headers";
 import { getBranchPageData } from "@/features/branches/services/branch-queries";
 import { getProductPageData } from "@/features/products/services/product-queries";
-import { branchProductsEndpoint } from "@/features/branch-products/constants";
-import { branchProductPageSchema } from "@/features/branch-products/schemas/branch-product.schema";
+import {
+  branchProductsEndpoint,
+  branchProductCategoriesEndpoint,
+} from "@/features/branch-products/constants";
+import {
+  branchProductPageSchema,
+  branchMenuCategoriesSchema,
+} from "@/features/branch-products/schemas/branch-product.schema";
 import type {
   BranchProductBranchOption,
   BranchProductPage,
@@ -16,22 +22,30 @@ import { requestComsApi } from "@/services/server-api-services";
 export async function getBranchProductPageData({
   branchId,
   page,
+  pageSize = 10,
   search,
   isAvailable,
   serviceType,
   eligibleOnly,
+  categoryId,
   sort,
 }: {
   branchId: string;
   page: number;
+  pageSize?: number;
   search: string;
   isAvailable?: boolean;
   serviceType?: "DINE_IN" | "TAKEAWAY";
   eligibleOnly?: boolean;
+  categoryId?: string;
   sort?: string;
 }): Promise<BranchProductPage> {
-  const params = new URLSearchParams({ page: String(page), page_size: "25" });
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
   if (search) params.set("search", search);
+  if (categoryId) params.set("category_id", categoryId);
   if (serviceType) params.set("service_type", serviceType);
   if (eligibleOnly) params.set("eligible_only", "true");
   if (sort) {
@@ -96,4 +110,20 @@ async function getAllPages<T>(
       502,
     );
   return items;
+}
+
+export async function getBranchMenuCategories(
+  branchId: string,
+  serviceType?: "DINE_IN" | "TAKEAWAY",
+) {
+  const params = new URLSearchParams();
+  if (serviceType) params.set("service_type", serviceType);
+  const payload = await requestComsApi<unknown>(
+    `${branchProductCategoriesEndpoint(branchId)}${params.size ? `?${params}` : ""}`,
+    { cookieHeader: (await cookies()).toString() },
+  );
+  const parsed = branchMenuCategoriesSchema.safeParse(payload);
+  if (!parsed.success)
+    throw new ApiRequestError("Invalid menu category response.", 502);
+  return parsed.data;
 }

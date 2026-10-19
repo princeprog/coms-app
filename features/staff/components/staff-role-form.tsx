@@ -96,7 +96,8 @@ export function StaffRoleForm({
           <>
             <Field className="w-full max-w-md">
               <FieldLabel htmlFor={`staff-${staff.id}-role`}>
-                Staff role for {staff.full_name}
+                Staff role
+                <span className="sr-only"> for {staff.full_name}</span>
               </FieldLabel>
               <Select
                 value={roleId}
@@ -115,7 +116,10 @@ export function StaffRoleForm({
                     }
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent data-coms-ui="operational">
+                <SelectContent
+                  data-coms-ui="operational"
+                  alignItemWithTrigger={false}
+                >
                   <SelectItem value={UNASSIGNED_ROLE_VALUE}>
                     Unassigned
                   </SelectItem>

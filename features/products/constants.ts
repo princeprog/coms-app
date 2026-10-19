@@ -9,6 +9,7 @@ export const productSetupEndpoint = (id?: string) =>
 
 export const productDisplayColumns: CatalogDisplayColumn[] = [
   { key: "product_name", label: "Product" },
+  { key: "category_name", label: "Category" },
   { key: "price", label: "Selling price", format: "currency" },
 ];
 

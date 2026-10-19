@@ -8,3 +8,9 @@ export const dispatchStatuses = [
   "RECEIVED",
   "CLOSED_WITH_SHORTAGE",
 ] as const;
+
+export const dispatchResolutionOutcomes = [
+  "LOST",
+  "NOT_LOADED",
+  "SURPLUS",
+] as const;

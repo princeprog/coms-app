@@ -26,6 +26,9 @@ const offer = {
   product_id: productId,
   product_name: "Chicken sandwich",
   description: null,
+  category_id: "aa000000-0000-4000-8000-000000000001",
+  category_name: "Rice meals",
+  category_is_active: true,
   product_is_active: true,
   price: "125.0000",
   is_available: true,
@@ -95,10 +98,11 @@ describe("branch product page loader", () => {
         name: "Assigned branch",
         status: "unknown",
       },
-      filters: { page: 1, search: "chicken", isAvailable: false },
+      filters: { page: 1, pageSize: 10, search: "chicken", isAvailable: false },
       canManage: false,
     });
     expect(getBranchProductPageData).toHaveBeenCalledWith({
+      pageSize: 10,
       branchId,
       page: 1,
       search: "chicken",
@@ -200,7 +204,7 @@ describe("branch product page loader", () => {
       branchOptions: [
         { id: branchId, name: "Assigned branch", status: "unknown" },
       ],
-      filters: { page: 1, search: "chicken" },
+      filters: { page: 1, pageSize: 10, search: "chicken" },
       message: "This branch is no longer available. Choose another branch.",
     });
 
@@ -214,7 +218,7 @@ describe("branch product page loader", () => {
     ).resolves.toMatchObject({
       status: "branch-products-error",
       selectedBranch: { id: branchId },
-      filters: { page: 1, search: "chicken" },
+      filters: { page: 1, pageSize: 10, search: "chicken" },
     });
   });
 

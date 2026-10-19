@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { productSetupInputSchema } from "./product-setup.schema";
 const product = {
+  category_id: "00000000-0000-4000-8000-000000000002",
   product_name: "Chicken meal",
   price: "55.00001",
   description: null,

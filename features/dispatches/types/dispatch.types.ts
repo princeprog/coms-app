@@ -4,17 +4,21 @@ import type {
   closeDispatchShortageSchema,
   dispatchDetailSchema,
   dispatchPageSchema,
-  reportDispatchDiscrepancySchema,
-  requestDispatchRecountSchema,
   receiveDispatchSchema,
+  sendDispatchSchema,
 } from "@/features/dispatches/schemas/dispatch.schema";
+import type { dispatchResolutionOutcomes } from "@/features/dispatches/constants";
 import type { Branch } from "@/features/branches/types/branch.types";
 import type { StockItem } from "@/features/stock-items/types/stock-item.types";
 
 export type Dispatch = z.infer<typeof dispatchDetailSchema>;
+export type DispatchItem = Dispatch["items"][number];
 export type DispatchPage = z.infer<typeof dispatchPageSchema>;
 export type DispatchListItem = DispatchPage["items"][number];
 export type CreateDispatchInput = z.infer<typeof createDispatchSchema>;
+export type SendDispatchInput = z.infer<typeof sendDispatchSchema>;
+export type DispatchResolutionOutcome =
+  (typeof dispatchResolutionOutcomes)[number];
 export type DispatchStockOption = Pick<
   StockItem,
   "id" | "stock_item_name" | "unit"
@@ -35,12 +39,6 @@ export type ReceiveDispatchInput = z.infer<typeof receiveDispatchSchema>;
 export type CloseDispatchShortageInput = z.infer<
   typeof closeDispatchShortageSchema
 >;
-export type ReportDispatchDiscrepancyInput = z.infer<
-  typeof reportDispatchDiscrepancySchema
->;
-export type RequestDispatchRecountInput = z.infer<
-  typeof requestDispatchRecountSchema
->;
 
 export type DispatchMutationResult =
   { ok: true; dispatch_id: string } | { ok: false; error: string };
@@ -52,6 +50,7 @@ export type DispatchCreateAction = (
 ) => Promise<DispatchMutationResult>;
 export type DispatchPostAction = (
   id: string,
+  input: unknown,
   idempotencyKey: string,
 ) => Promise<DispatchActionResult>;
 export type DispatchReceiveAction = (
@@ -64,9 +63,3 @@ export type DispatchShortageAction = (
   input: unknown,
   idempotencyKey: string,
 ) => Promise<DispatchActionResult>;
-export type DispatchDiscrepancyAction = (
-  id: string,
-  input: unknown,
-  idempotencyKey: string,
-) => Promise<DispatchActionResult>;
-export type DispatchRecountAction = DispatchDiscrepancyAction;

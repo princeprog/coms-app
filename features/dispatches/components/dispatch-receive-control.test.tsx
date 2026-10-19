@@ -15,43 +15,40 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 const dispatchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const flourLineId = "9a7a91d1-9c7f-4f30-a61b-4bbd039408f9";
 const sugarLineId = "f7d9c800-b53d-4d3e-b6a6-0ba1d42a7a3c";
-const idempotencyKeys = [
-  "d34b9dc6-135f-4bd0-9f25-43a9617c9e0a",
-  "20e44ac1-cf09-4f85-8e10-1ac05ba3b785",
-];
+const idempotencyKey = "d34b9dc6-135f-4bd0-9f25-43a9617c9e0a";
+const timestamp = "2026-09-24T01:30:00.000Z";
 
+const hiddenLine = {
+  stock_item_name: "Flour",
+  unit: "kg",
+  quantity_dispatched: null,
+  quantity_received: "0",
+  quantity_shortage_closed: "0",
+  quantity_in_transit: null,
+  quantity_outstanding: null,
+  quantity_variance: null,
+  awaiting_count: true,
+};
 const dispatch: Dispatch = {
   id: dispatchId,
   branch_id: dispatchId,
   branch_name: "Downtown",
-  status: "PARTIALLY_RECEIVED",
+  status: "IN_TRANSIT",
   created_by_user_id: dispatchId,
   created_by_name: "Commissary Staff",
   dispatched_by_user_id: dispatchId,
   dispatched_by_name: "Commissary Staff",
-  dispatched_at: "2026-09-24T01:30:00.000Z",
-  created_at: "2026-09-24T01:30:00.000Z",
-  updated_at: "2026-09-24T01:30:00.000Z",
+  dispatched_at: timestamp,
+  counted_at: null,
+  created_at: timestamp,
+  updated_at: timestamp,
   items: [
+    { ...hiddenLine, id: flourLineId, stock_item_id: flourLineId },
     {
-      id: flourLineId,
-      stock_item_id: flourLineId,
-      stock_item_name: "Flour",
-      unit: "kg",
-      quantity_dispatched: "8",
-      quantity_received: "2.5000",
-      quantity_shortage_closed: "1",
-      quantity_in_transit: "4.5000",
-    },
-    {
+      ...hiddenLine,
       id: sugarLineId,
       stock_item_id: sugarLineId,
       stock_item_name: "Sugar",
-      unit: "kg",
-      quantity_dispatched: "3",
-      quantity_received: "3",
-      quantity_shortage_closed: "0",
-      quantity_in_transit: "0",
     },
   ],
   receipts: [],
@@ -64,124 +61,72 @@ afterEach(() => {
   refresh.mockReset();
 });
 
-describe("dispatch receive control", () => {
-  it("uses an operational sheet and confirms discarding a partial receipt draft", async () => {
-    const user = userEvent.setup();
-    render(
-      <DispatchReceiveControl
-        dispatch={dispatch}
-        action={vi.fn<DispatchReceiveAction>().mockResolvedValue({ ok: true })}
-      />,
-    );
+async function openDialog(action: DispatchReceiveAction) {
+  const user = userEvent.setup();
+  render(<DispatchReceiveControl dispatch={dispatch} action={action} />);
+  await user.click(screen.getByRole("button", { name: "Count delivery" }));
+  return user;
+}
 
-    await user.click(screen.getByRole("button", { name: "Receive stock" }));
+describe("dispatch receive control", () => {
+  it("never shows sent quantities and requires a count for every line", async () => {
+    const action = vi.fn<DispatchReceiveAction>();
+    const user = await openDialog(action);
     expect(screen.getByRole("dialog").getAttribute("data-coms-ui")).toBe(
       "operational",
     );
-    const quantity = screen.getByLabelText("Flour received (kg)");
-    await user.type(quantity, "1.25");
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(
-      screen.getByRole("alertdialog", { name: "Discard receipt draft?" }),
-    ).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "Keep editing" }));
-    expect(screen.getByLabelText("Flour received (kg)")).toHaveProperty(
-      "value",
-      "1.25",
-    );
-
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await user.click(screen.getByRole("button", { name: "Discard receipt" }));
-    await user.click(screen.getByRole("button", { name: "Receive stock" }));
-    expect(screen.getByLabelText("Flour received (kg)")).toHaveProperty(
-      "value",
-      "",
-    );
-  });
-
-  it("records an exact partial receipt for in-transit lines", async () => {
-    vi.stubGlobal("crypto", {
-      randomUUID: vi.fn().mockReturnValue(idempotencyKeys[0]),
-    });
-    const user = userEvent.setup();
-    const action = vi
-      .fn<DispatchReceiveAction>()
-      .mockResolvedValue({ ok: true });
-    render(<DispatchReceiveControl dispatch={dispatch} action={action} />);
-
-    await user.click(screen.getByRole("button", { name: "Receive stock" }));
-    await user.type(screen.getByLabelText("Flour received (kg)"), "1.2345");
-    expect(screen.getByLabelText("Flour received (kg)")).toBeTruthy();
-    expect(screen.queryByLabelText("Sugar received (kg)")).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Confirm receipt" }));
-
-    await waitFor(() =>
-      expect(action).toHaveBeenCalledWith(
-        dispatchId,
-        {
-          items: [
-            { dispatch_item_id: flourLineId, quantity_received: "1.2345" },
-          ],
-        },
-        idempotencyKeys[0],
-      ),
-    );
-    expect(refresh).toHaveBeenCalledTimes(1);
-  });
-
-  it("requires a positive quantity and rejects amounts above remaining transit", async () => {
-    const user = userEvent.setup();
-    const action = vi
-      .fn<DispatchReceiveAction>()
-      .mockResolvedValue({ ok: true });
-    render(<DispatchReceiveControl dispatch={dispatch} action={action} />);
-
-    await user.click(screen.getByRole("button", { name: "Receive stock" }));
-    await user.click(screen.getByRole("button", { name: "Confirm receipt" }));
-    expect((await screen.findByRole("alert")).textContent).toMatch(
-      /enter at least one positive quantity/i,
-    );
-    expect(action).not.toHaveBeenCalled();
-
-    await user.type(screen.getByLabelText("Flour received (kg)"), "4.5001");
-    await user.click(screen.getByRole("button", { name: "Confirm receipt" }));
-    expect((await screen.findByRole("alert")).textContent).toMatch(
-      /cannot exceed 4.5000 kg remaining in transit/i,
-    );
+    expect(screen.queryByText(/in transit/i)).toBeNull();
+    await user.type(screen.getByLabelText("Flour counted (kg)"), "5");
+    await user.click(screen.getByRole("button", { name: "Review count" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Use 0/);
     expect(action).not.toHaveBeenCalled();
   });
 
-  it("keeps a retry key for unchanged input and rotates it when input changes", async () => {
-    vi.stubGlobal("crypto", {
-      randomUUID: vi
-        .fn()
-        .mockReturnValueOnce(idempotencyKeys[0])
-        .mockReturnValueOnce(idempotencyKeys[1]),
-    });
-    const user = userEvent.setup();
+  it("reviews the final count, then submits zero lines and the note once", async () => {
+    vi.stubGlobal("crypto", { randomUUID: vi.fn(() => idempotencyKey) });
     const action = vi
       .fn<DispatchReceiveAction>()
       .mockResolvedValueOnce({ ok: false, error: "Try again." })
-      .mockResolvedValueOnce({ ok: false, error: "Still unavailable." })
       .mockResolvedValueOnce({ ok: true });
-    render(<DispatchReceiveControl dispatch={dispatch} action={action} />);
+    const user = await openDialog(action);
+    await user.type(screen.getByLabelText("Flour counted (kg)"), "4.5");
+    await user.type(screen.getByLabelText("Sugar counted (kg)"), "0");
+    await user.type(
+      screen.getByLabelText("Condition or issues (optional)"),
+      "Sugar sack missing",
+    );
+    await user.click(screen.getByRole("button", { name: "Review count" }));
+    expect(screen.getByText(/final count can.t be changed/i)).toBeTruthy();
+    expect(action).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Receive stock" }));
-    const quantity = screen.getByLabelText("Flour received (kg)");
-    await user.type(quantity, "1.5");
-    await user.click(screen.getByRole("button", { name: "Confirm receipt" }));
+    await user.click(
+      screen.getByRole("button", { name: "Submit final count" }),
+    );
     await screen.findByRole("alert");
-    await user.click(screen.getByRole("button", { name: "Confirm receipt" }));
+    await user.click(
+      screen.getByRole("button", { name: "Submit final count" }),
+    );
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    const body = {
+      items: [
+        { dispatch_item_id: flourLineId, quantity_received: "4.5" },
+        { dispatch_item_id: sugarLineId, quantity_received: "0" },
+      ],
+      note: "Sugar sack missing",
+    };
+    expect(action.mock.calls[0]).toEqual([dispatchId, body, idempotencyKey]);
+    expect(action.mock.calls[1]).toEqual([dispatchId, body, idempotencyKey]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
 
-    const retryQuantity = screen.getByLabelText("Flour received (kg)");
-    await user.clear(retryQuantity);
-    await user.type(retryQuantity, "2.0");
-    await user.click(screen.getByRole("button", { name: "Confirm receipt" }));
-
-    await waitFor(() => expect(action).toHaveBeenCalledTimes(3));
-    expect(action.mock.calls[0]?.[2]).toBe(idempotencyKeys[0]);
-    expect(action.mock.calls[1]?.[2]).toBe(idempotencyKeys[0]);
-    expect(action.mock.calls[2]?.[2]).toBe(idempotencyKeys[1]);
+  it("returns to editing from the review step", async () => {
+    const user = await openDialog(vi.fn<DispatchReceiveAction>());
+    await user.type(screen.getByLabelText("Flour counted (kg)"), "1");
+    await user.type(screen.getByLabelText("Sugar counted (kg)"), "2");
+    await user.click(screen.getByRole("button", { name: "Review count" }));
+    await user.click(screen.getByRole("button", { name: "Back to edit" }));
+    expect(
+      (screen.getByLabelText("Flour counted (kg)") as HTMLInputElement).value,
+    ).toBe("1");
   });
 });

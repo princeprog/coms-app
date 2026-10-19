@@ -84,7 +84,7 @@ export function StaffProfileForm({
         <FieldGroup className="gap-4 sm:grid sm:grid-cols-2">
           <Field>
             <FieldLabel htmlFor={`staff-${staff.id}-full-name`}>
-              Full name for {staff.full_name}
+              Full name<span className="sr-only"> for {staff.full_name}</span>
             </FieldLabel>
             <Input
               id={`staff-${staff.id}-full-name`}
@@ -102,7 +102,7 @@ export function StaffProfileForm({
           </Field>
           <Field>
             <FieldLabel htmlFor={`staff-${staff.id}-email`}>
-              Email for {staff.full_name}
+              Email<span className="sr-only"> for {staff.full_name}</span>
             </FieldLabel>
             <Input
               id={`staff-${staff.id}-email`}
@@ -120,7 +120,8 @@ export function StaffProfileForm({
           </Field>
           <Field>
             <FieldLabel htmlFor={`staff-${staff.id}-contact`}>
-              Contact number for {staff.full_name}
+              Contact number
+              <span className="sr-only"> for {staff.full_name}</span>
             </FieldLabel>
             <Input
               id={`staff-${staff.id}-contact`}

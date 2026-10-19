@@ -1,5 +1,6 @@
 export type CatalogDirectoryFilters = {
   page: number;
+  pageSize?: number;
   search: string;
   active: "all" | "true" | "false";
 };
@@ -9,6 +10,8 @@ export function createCatalogHref(
   filters: CatalogDirectoryFilters,
 ) {
   const params = new URLSearchParams();
+  if (filters.pageSize && filters.pageSize !== 10)
+    params.set("page_size", String(filters.pageSize));
   if (filters.page > 1) params.set("page", String(filters.page));
   if (filters.search.trim()) params.set("search", filters.search.trim());
   if (filters.active !== "all") params.set("is_active", filters.active);

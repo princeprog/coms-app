@@ -7,8 +7,6 @@ import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-er
 import {
   closeDispatchShortageAction,
   postDispatchAction,
-  reportDispatchDiscrepancyAction,
-  requestDispatchRecountAction,
   receiveDispatchAction,
 } from "@/features/dispatches/services/dispatch-actions";
 import { DispatchDetailView } from "@/features/dispatches/components/dispatch-detail-view";
@@ -46,12 +44,8 @@ export default async function DispatchDetailPage({
         postAction={postDispatchAction}
         canReceive={view.canReceive}
         receiveAction={receiveDispatchAction}
-        canCloseShortage={view.canCloseShortage}
-        shortageAction={closeDispatchShortageAction}
-        canReportDiscrepancy={view.canReportDiscrepancy}
-        discrepancyAction={reportDispatchDiscrepancyAction}
-        canRequestRecount={view.canRequestRecount}
-        recountAction={requestDispatchRecountAction}
+        canResolve={view.canResolve}
+        resolveAction={closeDispatchShortageAction}
       />
     </AppPageShell>
   );

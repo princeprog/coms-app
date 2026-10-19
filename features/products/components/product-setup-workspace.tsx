@@ -126,6 +126,8 @@ export function ProductSetupWorkspace({
             Product details
           </FieldLegend>
           <ProductSetupInfo
+            category={draft.category}
+            onCategory={draft.setCategory}
             name={draft.name}
             price={draft.price}
             description={draft.description}

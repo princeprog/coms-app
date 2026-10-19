@@ -22,11 +22,8 @@ const time = new Intl.DateTimeFormat("en-PH", {
 function DispatchTimestamp({ value }: { value: string }) {
   const instant = new Date(value);
   return (
-    <time dateTime={value} className="flex flex-wrap gap-x-1 lg:flex-col">
-      <span>{date.format(instant)}</span>
-      <span className="text-xs text-muted-foreground">
-        {time.format(instant)} PHT
-      </span>
+    <time dateTime={value} className="whitespace-nowrap tabular-nums">
+      {date.format(instant)}, {time.format(instant)} PHT
     </time>
   );
 }
@@ -52,7 +49,7 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
           <TableHead scope="col" className="pl-4 sm:pl-5">
             Branch
           </TableHead>
-          <TableHead scope="col" className="hidden text-right sm:table-cell">
+          <TableHead scope="col" className="hidden sm:table-cell">
             Stock items
           </TableHead>
           <TableHead scope="col">Delivery status</TableHead>
@@ -70,7 +67,7 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
       <TableBody>
         {page.items.map((dispatch) => (
           <TableRow key={dispatch.id}>
-            <TableCell className="max-w-72 py-4 pl-4 whitespace-normal sm:pl-5">
+            <TableCell className="max-w-72 py-3 pl-4 whitespace-normal sm:pl-5">
               <div className="flex flex-col gap-1">
                 <span className="font-medium wrap-anywhere">
                   {dispatch.branch_name}
@@ -78,17 +75,6 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
                 <span className="text-xs text-muted-foreground sm:hidden">
                   {dispatch.item_count} stock{" "}
                   {dispatch.item_count === 1 ? "item" : "items"}
-                </span>
-                <span className="hidden text-xs text-muted-foreground lg:block">
-                  Created{" "}
-                  <time
-                    dateTime={dispatch.created_at}
-                    title={`${date.format(new Date(dispatch.created_at))}, ${time.format(new Date(dispatch.created_at))} PHT`}
-                  >
-                    {date.format(new Date(dispatch.created_at))}
-                    {" · "}
-                    {time.format(new Date(dispatch.created_at))}
-                  </time>
                 </span>
                 <div className="text-xs text-muted-foreground lg:hidden">
                   {dispatch.dispatched_at ? (
@@ -99,10 +85,10 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
                 </div>
               </div>
             </TableCell>
-            <TableCell className="hidden py-4 text-right tabular-nums sm:table-cell">
+            <TableCell className="hidden py-3 tabular-nums sm:table-cell">
               <span className="font-medium">{dispatch.item_count}</span>
             </TableCell>
-            <TableCell className="py-4 whitespace-normal">
+            <TableCell className="py-3 whitespace-normal">
               <div className="flex flex-col items-start gap-2">
                 <DispatchStatusBadge status={dispatch.status} />
                 {dispatch.discrepancy_status && (
@@ -115,16 +101,17 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
                 )}
               </div>
             </TableCell>
-            <TableCell className="hidden py-4 whitespace-normal md:table-cell">
+            <TableCell className="hidden py-3 whitespace-normal md:table-cell">
               {dispatch.discrepancy_status ? (
                 <DispatchStatusBadge status={dispatch.discrepancy_status} />
               ) : (
-                <span className="text-sm text-muted-foreground">
-                  Not reported
-                </span>
+                <DispatchStatusBadge
+                  status="NOT_REPORTED"
+                  label="Not reported"
+                />
               )}
             </TableCell>
-            <TableCell className="hidden py-4 lg:table-cell">
+            <TableCell className="hidden py-3 lg:table-cell">
               {dispatch.dispatched_at ? (
                 <DispatchTimestamp value={dispatch.dispatched_at} />
               ) : (
@@ -133,7 +120,7 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
                 </span>
               )}
             </TableCell>
-            <TableCell className="py-4 pr-4 text-right sm:pr-5">
+            <TableCell className="py-3 pr-4 text-right sm:pr-5">
               <DispatchRowActions
                 id={dispatch.id}
                 branchName={dispatch.branch_name}

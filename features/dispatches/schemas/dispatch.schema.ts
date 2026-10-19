@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { dispatchStatuses } from "@/features/dispatches/constants";
+import {
+  dispatchResolutionOutcomes,
+  dispatchStatuses,
+} from "@/features/dispatches/constants";
 
 const decimalText = z
   .string()
@@ -7,6 +10,11 @@ const decimalText = z
   .max(80);
 const positiveDecimalText = decimalText.refine((value) => /[1-9]/.test(value));
 const nonnegativeDecimalText = decimalText;
+const signedDecimalText = z
+  .string()
+  .regex(/^-?\d+(?:\.\d+)?$/)
+  .max(81);
+const deliveredByName = z.string().trim().min(1).max(120);
 
 const dispatchLineInputSchema = z
   .object({
@@ -21,7 +29,7 @@ const discrepancyStatusSchema = z.enum([
 ]);
 
 const receiveItemSchema = dispatchLineInputSchema.extend({
-  quantity_received: positiveDecimalText,
+  quantity_received: nonnegativeDecimalText,
 });
 
 const closeShortageItemSchema = dispatchLineInputSchema.extend({
@@ -36,7 +44,7 @@ function uniqueDispatchItems<T extends { dispatch_item_id: string }>(
   );
 }
 
-export const createDispatchSchema = z
+const dispatchDraftObject = z
   .object({
     branch_id: z.uuid(),
     items: z
@@ -51,28 +59,50 @@ export const createDispatchSchema = z
       .min(1)
       .max(100),
   })
-  .strict()
-  .refine(
-    ({ items }) =>
-      new Set(items.map((item) => item.stock_item_id)).size === items.length,
-    { message: "A stock item may appear only once per dispatch." },
-  );
+  .strict();
+
+function uniqueStockItems({
+  items,
+}: {
+  items: Array<{ stock_item_id: string }>;
+}) {
+  return new Set(items.map((item) => item.stock_item_id)).size === items.length;
+}
+
+export const createDispatchSchema = dispatchDraftObject.refine(
+  uniqueStockItems,
+  { message: "A stock item may appear only once per dispatch." },
+);
+
+export const sendDispatchSchema = dispatchDraftObject
+  .extend({ delivered_by_name: deliveredByName })
+  .refine(uniqueStockItems, {
+    message: "A stock item may appear only once per dispatch.",
+  });
+
+export const sendDispatchDraftSchema = z
+  .object({ delivered_by_name: deliveredByName })
+  .strict();
 
 export const receiveDispatchSchema = z
-  .object({ items: z.array(receiveItemSchema).min(1).max(100) })
+  .object({
+    items: z.array(receiveItemSchema).min(1).max(100),
+    note: z.string().trim().min(1).max(500).optional(),
+  })
   .strict()
   .refine(({ items }) => uniqueDispatchItems(items), {
-    message: "A dispatch item may appear only once per receipt.",
+    message: "A dispatch item may appear only once per count.",
   });
 
 export const closeDispatchShortageSchema = z
   .object({
+    outcome: z.enum(dispatchResolutionOutcomes),
     reason: z.string().trim().min(1).max(500),
     items: z.array(closeShortageItemSchema).min(1).max(100),
   })
   .strict()
   .refine(({ items }) => uniqueDispatchItems(items), {
-    message: "A dispatch item may appear only once per shortage closure.",
+    message: "A dispatch item may appear only once per resolution.",
   });
 
 const dispatchListItemSchema = z.object({
@@ -86,6 +116,7 @@ const dispatchListItemSchema = z.object({
   dispatched_by_user_id: z.uuid().nullable(),
   dispatched_by_name: z.string().min(1).nullable(),
   dispatched_at: z.iso.datetime().nullable(),
+  counted_at: z.iso.datetime().nullable().optional(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
   item_count: z.number().int().nonnegative(),
@@ -103,10 +134,14 @@ const dispatchItemSchema = z.object({
   stock_item_id: z.uuid(),
   stock_item_name: z.string().min(1),
   unit: z.string().min(1),
-  quantity_dispatched: positiveDecimalText,
+  quantity_dispatched: positiveDecimalText.nullable(),
   quantity_received: nonnegativeDecimalText,
   quantity_shortage_closed: nonnegativeDecimalText,
-  quantity_in_transit: nonnegativeDecimalText,
+  quantity_surplus_closed: nonnegativeDecimalText.optional(),
+  quantity_in_transit: nonnegativeDecimalText.nullable(),
+  quantity_outstanding: signedDecimalText.nullable().optional(),
+  quantity_variance: signedDecimalText.nullable().optional(),
+  awaiting_count: z.boolean().optional(),
 });
 
 const dispatchReceiptItemSchema = z.object({
@@ -115,13 +150,14 @@ const dispatchReceiptItemSchema = z.object({
   stock_item_id: z.uuid(),
   stock_item_name: z.string().min(1),
   unit: z.string().min(1),
-  quantity_received: positiveDecimalText,
+  quantity_received: nonnegativeDecimalText,
 });
 
 const dispatchReceiptSchema = z.object({
   id: z.uuid(),
   received_by_user_id: z.uuid(),
   receiver_name: z.string().min(1),
+  note: z.string().nullable().optional(),
   created_at: z.iso.datetime(),
   items: z.array(dispatchReceiptItemSchema),
 });
@@ -139,6 +175,7 @@ const dispatchShortageClosureSchema = z.object({
   id: z.uuid(),
   closed_by_user_id: z.uuid(),
   closer_name: z.string().min(1),
+  outcome: z.enum(dispatchResolutionOutcomes).optional(),
   reason: z.string().min(1),
   created_at: z.iso.datetime(),
   items: z.array(dispatchShortageItemSchema),
@@ -195,6 +232,10 @@ export const dispatchDetailSchema = z.object({
   dispatched_by_user_id: z.uuid().nullable(),
   dispatched_by_name: z.string().min(1).nullable(),
   dispatched_at: z.iso.datetime().nullable(),
+  delivered_by_name: z.string().min(1).nullable().optional(),
+  counted_by_user_id: z.uuid().nullable().optional(),
+  counted_by_name: z.string().min(1).nullable().optional(),
+  counted_at: z.iso.datetime().nullable().optional(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
   items: z.array(dispatchItemSchema),
@@ -204,11 +245,3 @@ export const dispatchDetailSchema = z.object({
   discrepancy: dispatchDiscrepancySchema.nullable().optional(),
   discrepancy_events: z.array(dispatchDiscrepancyEventSchema).optional(),
 });
-
-export const reportDispatchDiscrepancySchema = z
-  .object({ note: z.string().trim().min(1).max(500) })
-  .strict();
-
-export const requestDispatchRecountSchema = z
-  .object({ reason: z.string().trim().min(1).max(500) })
-  .strict();

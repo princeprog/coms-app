@@ -9,20 +9,28 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { DirectorySelect } from "@/components/shared/directory-select";
-import { useDirectoryQuery } from "@/hooks/use-directory-query";
-import { dispatchStatuses } from "../constants";
+import type { useDirectoryQuery } from "@/hooks/use-directory-query";
 import {
   createDispatchHref,
-  dispatchSortOptions,
   type DispatchPageFilters,
   type DispatchStatusFilter,
   type DispatchDiscrepancyFilter,
 } from "../services/dispatch-page-params";
 import { dispatchStatusLabel } from "./dispatch-status-badge";
+import {
+  dispatchStatusOptions,
+  dispatchDiscrepancyOptions,
+  dispatchSortOptionsWithIcons,
+} from "./dispatch-filter-options";
 
-export function DispatchFilter({ filters }: { filters: DispatchPageFilters }) {
-  const { search, pending, changeSearch, flushSearch, apply } =
-    useDirectoryQuery(filters, createDispatchHref);
+export function DispatchFilter({
+  filters,
+  query,
+}: {
+  filters: DispatchPageFilters;
+  query: ReturnType<typeof useDirectoryQuery<DispatchPageFilters>>;
+}) {
+  const { search, pending, changeSearch, flushSearch, apply } = query;
   const active = Boolean(
     filters.search ||
     filters.status !== "all" ||
@@ -32,22 +40,25 @@ export function DispatchFilter({ filters }: { filters: DispatchPageFilters }) {
     <form
       action="/dispatches"
       aria-label="Filter dispatches"
-      className="flex min-w-0 flex-col gap-3"
+      className="flex min-w-0 flex-col gap-3 [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:px-3 [&_[data-slot=select-trigger]]:text-sm"
       onSubmit={(event) => {
         event.preventDefault();
         flushSearch();
       }}
     >
-      <FieldGroup className="gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <Field className="min-w-0 sm:min-w-48 sm:flex-1">
-          <FieldLabel htmlFor="dispatch-search">Search branch</FieldLabel>
-          <InputGroup>
+      <FieldGroup className="gap-3 xl:flex-row xl:items-end">
+        <Field className="min-w-0 xl:flex-1">
+          <FieldLabel className="sr-only" htmlFor="dispatch-search">
+            Search branch
+          </FieldLabel>
+          <InputGroup className="h-10">
             <InputGroupInput
               id="dispatch-search"
               type="search"
+              className="h-full text-base md:text-sm"
               maxLength={100}
               value={search}
-              placeholder="Search by branch name…"
+              placeholder="Search branch"
               onChange={(event) => changeSearch(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -56,52 +67,46 @@ export function DispatchFilter({ filters }: { filters: DispatchPageFilters }) {
                 }
               }}
             />
-            <InputGroupAddon>
+            <InputGroupAddon className="pl-3">
               <Search aria-hidden="true" />
             </InputGroupAddon>
           </InputGroup>
         </Field>
         <DirectorySelect
-          id="dispatch-sort"
-          label="Sort by"
-          value={filters.sort ?? "newest"}
-          options={dispatchSortOptions}
-          onChange={(sort) => apply({ sort })}
-        />
-      </FieldGroup>
-      <FieldGroup className="gap-3 sm:flex-row sm:flex-wrap">
-        <DirectorySelect
           id="dispatch-status"
+          alignItemWithTrigger={false}
           label="Dispatch status"
+          hideLabel
+          className="sm:w-full xl:w-60"
           value={filters.status}
-          options={[
-            { value: "all", label: "All statuses" },
-            ...dispatchStatuses.map((value) => ({
-              value,
-              label: dispatchStatusLabel(value),
-            })),
-          ]}
+          options={dispatchStatusOptions}
           onChange={(status) =>
             apply({ status: status as DispatchStatusFilter })
           }
         />
         <DirectorySelect
           id="dispatch-discrepancy-status"
+          alignItemWithTrigger={false}
           label="Discrepancy"
+          hideLabel
+          className="sm:w-full xl:w-56"
           value={filters.discrepancyStatus}
-          options={[
-            { value: "all", label: "All discrepancies" },
-            { value: "NONE", label: "No discrepancy" },
-            ...["OPEN", "RECOUNT_REQUESTED", "RESOLVED"].map((value) => ({
-              value,
-              label: dispatchStatusLabel(value),
-            })),
-          ]}
+          options={dispatchDiscrepancyOptions}
           onChange={(discrepancyStatus) =>
             apply({
               discrepancyStatus: discrepancyStatus as DispatchDiscrepancyFilter,
             })
           }
+        />
+        <DirectorySelect
+          id="dispatch-sort"
+          alignItemWithTrigger={false}
+          label="Sort by"
+          hideLabel
+          className="sm:w-full xl:w-44"
+          value={filters.sort ?? "newest"}
+          options={dispatchSortOptionsWithIcons}
+          onChange={(sort) => apply({ sort })}
         />
       </FieldGroup>
       {active && (
@@ -157,7 +162,7 @@ export function DispatchFilter({ filters }: { filters: DispatchPageFilters }) {
           </Button>
         </div>
       )}
-      <span role="status" className="text-xs text-muted-foreground">
+      <span role="status" className="sr-only">
         {pending ? "Updating dispatches…" : "Search updates as you type."}
       </span>
     </form>

@@ -61,7 +61,10 @@ export function SupplierReceiptRangeFilters({
     <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
       <FieldGroup className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {(["received_from", "received_to"] as const).map((key) => (
-          <Field key={key}>
+          <Field
+            key={key}
+            className="min-w-0 [&_button]:h-10 [&_button]:px-3 [&_button_svg]:text-blue-600 dark:[&_button_svg]:text-blue-400"
+          >
             <FieldLabel htmlFor={`receipt-${key}`}>
               {key === "received_from" ? "Delivery from" : "Delivery to"}
             </FieldLabel>
@@ -81,6 +84,7 @@ export function SupplierReceiptRangeFilters({
             </FieldLabel>
             <Input
               id={`receipt-${key}`}
+              className="h-10 px-3 text-base md:text-sm"
               inputMode="decimal"
               maxLength={80}
               autoComplete="off"

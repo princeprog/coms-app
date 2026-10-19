@@ -1,24 +1,20 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   Dispatch,
   DispatchPostAction,
   DispatchReceiveAction,
   DispatchShortageAction,
-  DispatchDiscrepancyAction,
 } from "../types/dispatch.types";
+import { isDispatchComplete } from "../services/dispatch-completion-summary";
 import { DispatchActivity } from "./dispatch-activity";
+import { DispatchCompletedSummary } from "./dispatch-completed-summary";
+import { DispatchDeliveryFacts } from "./dispatch-delivery-facts";
 import { DispatchDetailHeader } from "./dispatch-detail-header";
 import { DispatchItemTable } from "./dispatch-item-table";
 import { DispatchMilestones } from "./dispatch-milestones";
 import { DispatchNextActions } from "./dispatch-next-actions";
-import { DispatchStatusBadge } from "./dispatch-status-badge";
+import styles from "./dispatch-detail.module.css";
 
 export type DispatchDetailViewProps = {
   dispatch: Dispatch;
@@ -26,58 +22,58 @@ export type DispatchDetailViewProps = {
   postAction: DispatchPostAction;
   canReceive: boolean;
   receiveAction: DispatchReceiveAction;
-  canCloseShortage: boolean;
-  shortageAction: DispatchShortageAction;
-  canReportDiscrepancy?: boolean;
-  discrepancyAction?: DispatchDiscrepancyAction;
-  canRequestRecount?: boolean;
-  recountAction?: DispatchDiscrepancyAction;
+  canResolve: boolean;
+  resolveAction: DispatchShortageAction;
 };
 
 export function DispatchDetailView(props: DispatchDetailViewProps) {
   const { dispatch } = props;
+  const completed = isDispatchComplete(dispatch);
   return (
-    <div data-coms-ui="operational" className="flex min-w-0 flex-col gap-6">
+    <div
+      data-coms-ui="operational"
+      className={`${styles.page} mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-7 pb-4`}
+    >
       <DispatchDetailHeader dispatch={dispatch} />
-      <DispatchMilestones dispatch={dispatch} />
-      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-        <DispatchActivity dispatch={dispatch} />
-        <Card className="min-w-0 [--card-spacing:--spacing(5)]">
-          <CardHeader>
-            <CardTitle>
-              <div className="flex flex-wrap items-center gap-3">
-                <h2 className="text-lg font-semibold">
-                  {dispatch.status === "DRAFT"
-                    ? "Planned stock items"
-                    : "Current item balances"}
-                </h2>
-                {dispatch.discrepancy && (
-                  <DispatchStatusBadge
-                    status={dispatch.discrepancy.status}
-                    label={
-                      dispatch.discrepancy.status === "OPEN"
-                        ? "Open discrepancy"
-                        : dispatch.discrepancy.status === "RESOLVED"
-                          ? "Discrepancy resolved"
-                          : "Recount requested"
-                    }
-                  />
-                )}
-              </div>
-            </CardTitle>
-            <CardDescription>
-              {dispatch.status === "DRAFT"
-                ? "Stock is deducted from the commissary only when this dispatch is sent."
-                : "In transit = dispatched − received − shortage closed. Receipt progress is shown for each item."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex min-w-0 flex-col gap-5">
-            <DispatchItemTable dispatch={dispatch} />
-            <Separator />
-            <DispatchNextActions {...props} />
+      {completed ? (
+        <DispatchCompletedSummary dispatch={dispatch} />
+      ) : (
+        <Card className="min-w-0 gap-0 rounded-2xl py-0 shadow-sm ring-foreground/10">
+          <CardContent className="grid min-w-0 p-0 xl:grid-cols-[16rem_minmax(0,1fr)]">
+            <DispatchDeliveryFacts dispatch={dispatch} />
+            <section
+              aria-labelledby="dispatch-stock-heading"
+              className="order-1 min-w-0 xl:order-2"
+            >
+              <DispatchMilestones dispatch={dispatch} />
+              <CardHeader className="flex flex-row items-center gap-2.5 px-6 py-6 sm:px-7">
+                <CardTitle>
+                  <h2
+                    id="dispatch-stock-heading"
+                    className="text-lg font-semibold"
+                  >
+                    {dispatch.status === "DRAFT"
+                      ? "Planned stock items"
+                      : dispatch.counted_at
+                        ? "Sent and counted"
+                        : "Stock items"}
+                  </h2>
+                </CardTitle>
+                <Badge
+                  variant="secondary"
+                  className="min-h-6 rounded-md text-sm tabular-nums transition-none"
+                  aria-label={`${dispatch.items.length} stock items`}
+                >
+                  {dispatch.items.length}
+                </Badge>
+              </CardHeader>
+              <DispatchItemTable dispatch={dispatch} />
+              <DispatchNextActions {...props} />
+            </section>
           </CardContent>
         </Card>
-      </div>
+      )}
+      <DispatchActivity dispatch={dispatch} collapsible />
     </div>
   );
 }

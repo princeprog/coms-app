@@ -1,17 +1,30 @@
 "use client";
 
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CircleCheck, CircleX, ListFilter, Tags, Tag } from "lucide-react";
+import { DirectorySelect } from "@/components/shared/directory-select";
+import { FieldGroup } from "@/components/ui/field";
 
 const ALL_CATEGORIES = "__all_categories__";
 const CATEGORY_VALUE_PREFIX = "CATEGORY:";
+const statusOptions = [
+  {
+    value: "all",
+    label: "All statuses",
+    icon: <ListFilter className="text-primary!" />,
+  },
+  {
+    value: "active",
+    label: "Active",
+    icon: <CircleCheck className="text-emerald-600! dark:text-emerald-400!" />,
+  },
+  {
+    value: "inactive",
+    label: "Inactive",
+    icon: <CircleX className="text-red-600! dark:text-red-400!" />,
+  },
+];
+const controlClassName =
+  "sm:w-full [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:px-3";
 
 export function InventoryBalanceFilterControls({
   statusFilter,
@@ -26,98 +39,58 @@ export function InventoryBalanceFilterControls({
   onStatusChange: (value: "active" | "inactive" | undefined) => void;
   onCategoryChange: (value: string | undefined) => void;
 }) {
-  const statusLabel =
-    statusFilter === "active"
-      ? "Active"
-      : statusFilter === "inactive"
-        ? "Inactive"
-        : "All statuses";
-
+  const categories =
+    categoryFilter && !availableCategories.includes(categoryFilter)
+      ? [...availableCategories, categoryFilter]
+      : availableCategories;
+  const categoryOptions = [
+    {
+      value: ALL_CATEGORIES,
+      label: "All categories",
+      icon: <Tags className="text-violet-600! dark:text-violet-400!" />,
+    },
+    ...categories.map((category) => ({
+      value: `${CATEGORY_VALUE_PREFIX}${category}`,
+      label: availableCategories.includes(category)
+        ? category
+        : `${category} (unavailable)`,
+      icon: <Tag className="text-violet-600! dark:text-violet-400!" />,
+    })),
+  ];
   return (
-    <FieldGroup className="grid min-w-0 gap-3 sm:max-w-lg sm:grid-cols-2">
-      <Field className="min-w-0">
-        <FieldLabel htmlFor="inventory-status">Status</FieldLabel>
-        <Select
-          value={statusFilter ?? "all"}
-          onValueChange={(value) =>
-            onStatusChange(
-              value === "active" || value === "inactive" ? value : undefined,
-            )
-          }
-        >
-          <SelectTrigger
-            id="inventory-status"
-            aria-label="Status"
-            className="w-full"
-          >
-            <SelectValue>{statusLabel}</SelectValue>
-          </SelectTrigger>
-          <SelectContent
-            side="bottom"
-            alignItemWithTrigger={false}
-            data-coms-ui="operational"
-          >
-            <SelectGroup>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </Field>
-
-      <Field className="min-w-0">
-        <FieldLabel htmlFor="inventory-category">Category</FieldLabel>
-        <Select
-          value={
-            categoryFilter
-              ? `${CATEGORY_VALUE_PREFIX}${categoryFilter}`
-              : ALL_CATEGORIES
-          }
-          onValueChange={(value) =>
-            onCategoryChange(
-              value === ALL_CATEGORIES
-                ? undefined
-                : value?.startsWith(CATEGORY_VALUE_PREFIX)
-                  ? value.slice(CATEGORY_VALUE_PREFIX.length)
-                  : undefined,
-            )
-          }
-        >
-          <SelectTrigger
-            id="inventory-category"
-            aria-label="Category"
-            className="w-full"
-          >
-            <SelectValue>{categoryFilter ?? "All categories"}</SelectValue>
-          </SelectTrigger>
-          <SelectContent
-            side="bottom"
-            alignItemWithTrigger={false}
-            data-coms-ui="operational"
-          >
-            <SelectGroup>
-              <SelectItem value={ALL_CATEGORIES}>All categories</SelectItem>
-              {availableCategories.map((category) => (
-                <SelectItem
-                  key={category}
-                  value={`${CATEGORY_VALUE_PREFIX}${category}`}
-                >
-                  {category}
-                </SelectItem>
-              ))}
-              {categoryFilter &&
-                !availableCategories.includes(categoryFilter) && (
-                  <SelectItem
-                    value={`${CATEGORY_VALUE_PREFIX}${categoryFilter}`}
-                  >
-                    {categoryFilter} (unavailable)
-                  </SelectItem>
-                )}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </Field>
+    <FieldGroup className="grid min-w-0 gap-3 sm:grid-cols-2">
+      <DirectorySelect
+        id="inventory-status"
+        label="Status"
+        value={statusFilter ?? "all"}
+        options={statusOptions}
+        alignItemWithTrigger={false}
+        className={controlClassName}
+        onChange={(value) =>
+          onStatusChange(
+            value === "active" || value === "inactive" ? value : undefined,
+          )
+        }
+      />
+      <DirectorySelect
+        id="inventory-category"
+        label="Category"
+        value={
+          categoryFilter
+            ? `${CATEGORY_VALUE_PREFIX}${categoryFilter}`
+            : ALL_CATEGORIES
+        }
+        options={categoryOptions}
+        alignItemWithTrigger={false}
+        className={controlClassName}
+        onChange={(value) =>
+          onCategoryChange(
+            value.startsWith(CATEGORY_VALUE_PREFIX)
+              ? value.slice(CATEGORY_VALUE_PREFIX.length)
+              : undefined,
+          )
+        }
+      />
     </FieldGroup>
   );
 }

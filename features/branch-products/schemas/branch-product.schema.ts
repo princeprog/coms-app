@@ -16,6 +16,9 @@ export const branchProductSchema = z.object({
   product_name: z.string().min(2).max(160),
   description: z.string().nullable(),
   product_is_active: z.boolean(),
+  category_id: z.uuid(),
+  category_name: z.string(),
+  category_is_active: z.boolean(),
   price: nonnegativeDecimalString,
   price_revision: z.number().int().nonnegative().optional(),
   service_types: z.array(serviceTypeSchema).optional(),
@@ -49,3 +52,10 @@ export const branchProductAvailabilitySchema = z
 export const branchProductServicesSchema = z
   .object({ service_types: serviceTypesSchema })
   .strict();
+
+export const branchMenuCategoriesSchema = z.array(
+  z.object({ id: z.uuid(), name: z.string().min(2).max(80) }),
+);
+export type BranchMenuCategory = z.infer<
+  typeof branchMenuCategoriesSchema
+>[number];

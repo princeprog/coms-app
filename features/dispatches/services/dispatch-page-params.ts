@@ -14,11 +14,14 @@ export type DispatchDiscrepancyFilter =
 
 export type DispatchPageFilters = {
   page: number;
+  pageSize?: number;
   status: DispatchStatusFilter;
   discrepancyStatus: DispatchDiscrepancyFilter;
   search?: string;
   sort?: string;
 };
+
+export const dispatchPageSizes = [10, 20, 30, 50] as const;
 
 export const dispatchSortOptions = [
   { value: "newest", label: "Newest first" },
@@ -31,6 +34,10 @@ export function parseDispatchPageFilters(
   params: DispatchPageSearchParams,
 ): DispatchPageFilters {
   const parsedPage = Number(first(params.page));
+  const pageSize =
+    dispatchPageSizes.find(
+      (size) => size === Number(first(params.page_size)),
+    ) ?? 10;
   const page =
     Number.isInteger(parsedPage) && parsedPage >= 1 && parsedPage <= 1_000_000
       ? parsedPage
@@ -51,6 +58,7 @@ export function parseDispatchPageFilters(
   const sort = first(params.sort);
   return {
     page,
+    pageSize,
     status,
     discrepancyStatus,
     ...(search ? { search } : {}),
@@ -65,6 +73,8 @@ export function parseDispatchPageFilters(
 export function createDispatchHref(filters: DispatchPageFilters) {
   const params = new URLSearchParams();
   if (filters.page > 1) params.set("page", String(filters.page));
+  if (filters.pageSize && filters.pageSize !== 10)
+    params.set("page_size", String(filters.pageSize));
   if (filters.status !== "all") params.set("status", filters.status);
   if (filters.discrepancyStatus !== "all")
     params.set("discrepancy_status", filters.discrepancyStatus);

@@ -1,33 +1,33 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Field,
-  FieldGroup,
-  FieldSet,
-  FieldLegend,
-  FieldLabel,
   FieldDescription,
+  FieldGroup,
+  FieldLegend,
+  FieldSet,
 } from "@/components/ui/field";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Empty,
+  EmptyContent,
   EmptyHeader,
   EmptyTitle,
-  EmptyContent,
 } from "@/components/ui/empty";
-import type { SetupBranch } from "../schemas/product-setup.schema";
+import { cn } from "@/lib/utils";
 import type { ServiceType } from "@/features/menus/schemas/menu.schema";
+import type { SetupBranch } from "../schemas/product-setup.schema";
 import { useProductBranches } from "../hooks/use-product-branches";
+import { getBranchAvailability } from "../product-branch-availability";
 import { ProductBranchRow } from "./product-branch-row";
 import { ProductBranchPagination } from "./product-branch-pagination";
+import { ProductBranchSelected } from "./product-branch-selected";
+import { ProductBranchToolbar } from "./product-branch-toolbar";
+
+const nameMap = (items: SetupBranch[]) =>
+  Object.fromEntries(items.map((branch) => [branch.id, branch.name]));
 
 export function ProductBranchSelection({
   branches,
@@ -47,6 +47,7 @@ export function ProductBranchSelection({
   readOnly: boolean;
 }) {
   const lookup = useProductBranches(branches, total, !readOnly);
+  const [seen, setSeen] = useState<Record<string, string>>({});
   if (readOnly) {
     const selected = branches.filter((b) => value.includes(b.id));
     return (
@@ -61,15 +62,34 @@ export function ProductBranchSelection({
     );
   }
   const data = lookup.data;
+  const items = data?.items ?? [];
   const pages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
+  const names = { ...nameMap(branches), ...seen, ...nameMap(items) };
+  const eligible = items
+    .filter((branch) => !getBranchAvailability(branch, services).reason)
+    .map((branch) => branch.id);
+  const pageSelected =
+    eligible.length > 0 && eligible.every((id) => value.includes(id));
+  const remember = (list: SetupBranch[]) =>
+    setSeen((current) => ({ ...current, ...nameMap(list) }));
   return (
-    <FieldSet className="gap-3">
+    <FieldSet className="min-w-0 gap-3">
       <FieldLegend className="mb-0 w-full">
-        <span className="flex items-baseline justify-between gap-3">
-          <span className="text-xl font-semibold">Available branches</span>
+        <span className="flex flex-wrap items-center justify-between gap-3">
+          <span className="flex items-center gap-2 text-xl font-semibold">
+            Available branches
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              Optional
+            </span>
+          </span>
           <span
-            className="text-sm font-normal text-muted-foreground"
             role="status"
+            className={cn(
+              "rounded-full px-2.5 py-1 text-xs font-medium tabular-nums",
+              value.length
+                ? "bg-primary/10 text-primary dark:bg-orange-400/10 dark:text-orange-400"
+                : "bg-muted text-muted-foreground",
+            )}
           >
             {value.length} selected
           </span>
@@ -78,28 +98,37 @@ export function ProductBranchSelection({
       <FieldDescription>
         Select the branches that can sell this product.
       </FieldDescription>
-      <Field>
-        <FieldLabel htmlFor="product-branch-search" className="sr-only">
-          Search branches
-        </FieldLabel>
-        <InputGroup className="h-10">
-          <InputGroupAddon>
-            <Search aria-hidden="true" />
-          </InputGroupAddon>
-          <InputGroupInput
-            id="product-branch-search"
-            value={lookup.search}
-            onChange={(event) => lookup.setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") event.preventDefault();
-            }}
-            placeholder="Search branches..."
-            maxLength={100}
-            disabled={disabled}
-          />
-        </InputGroup>
-      </Field>
-      <div aria-label="Branch choices" aria-busy={lookup.isFetching}>
+      <ProductBranchToolbar
+        search={lookup.search}
+        onSearch={lookup.setSearch}
+        disabled={disabled}
+        multiplePages={pages > 1}
+        pageSelected={pageSelected}
+        canSelect={eligible.length > 0 && !lookup.isFetching}
+        onTogglePage={() => {
+          remember(items);
+          onChange(
+            pageSelected
+              ? value.filter((id) => !eligible.includes(id))
+              : [...new Set([...value, ...eligible])],
+          );
+        }}
+      />
+      <ProductBranchSelected
+        ids={value}
+        names={names}
+        disabled={disabled}
+        onRemove={(id) => onChange(value.filter((item) => item !== id))}
+        onClear={() => onChange([])}
+      />
+      <div
+        aria-label="Branch choices"
+        aria-busy={lookup.isFetching}
+        className={cn(
+          "transition-opacity",
+          lookup.isFetching && data && "opacity-60",
+        )}
+      >
         {lookup.isError ? (
           <Alert variant="destructive">
             <AlertDescription>
@@ -116,28 +145,29 @@ export function ProductBranchSelection({
         ) : !data ? (
           <FieldGroup
             aria-label="Loading branches"
-            className="gap-3 rounded-lg border p-4"
+            className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
           >
-            {[1, 2, 3].map((row) => (
-              <Skeleton key={row} className="h-8 w-full" />
+            {[1, 2, 3, 4, 5, 6].map((card) => (
+              <Skeleton key={card} className="h-16 w-full rounded-lg" />
             ))}
           </FieldGroup>
-        ) : data.items.length ? (
-          <FieldGroup className="max-h-64 gap-0 divide-y overflow-y-auto rounded-lg border">
-            {data.items.map((branch) => (
+        ) : items.length ? (
+          <FieldGroup className="grid max-h-96 gap-2 overflow-y-auto p-0.5 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((branch) => (
               <ProductBranchRow
                 key={branch.id}
                 branch={branch}
                 checked={value.includes(branch.id)}
                 services={services}
                 disabled={disabled}
-                onChange={(checked) =>
+                onChange={(checked) => {
+                  remember([branch]);
                   onChange(
                     checked
                       ? [...new Set([...value, branch.id])]
                       : value.filter((id) => id !== branch.id),
-                  )
-                }
+                  );
+                }}
               />
             ))}
           </FieldGroup>
@@ -177,9 +207,6 @@ export function ProductBranchSelection({
           onPage={lookup.setPage}
         />
       )}
-      <FieldDescription>
-        You can choose branches now or add them later.
-      </FieldDescription>
     </FieldSet>
   );
 }

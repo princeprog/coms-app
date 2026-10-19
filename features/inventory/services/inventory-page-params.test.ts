@@ -11,7 +11,7 @@ describe("inventory page filters", () => {
   it("leaves an omitted scope unresolved and trims the search", () => {
     expect(
       parseInventoryPageFilters({ page: "invalid", search: "  Flour  " }),
-    ).toEqual({ page: 1, search: "Flour" });
+    ).toEqual({ page: 1, pageSize: 10, search: "Flour" });
   });
 
   it("accepts a valid branch scope and clamps the page range", () => {
@@ -24,6 +24,7 @@ describe("inventory page filters", () => {
       }),
     ).toEqual({
       page: 1,
+      pageSize: 10,
       scope: "BRANCH",
       requestedBranchId: branchId,
       search: "x".repeat(120),
@@ -39,6 +40,7 @@ describe("inventory page filters", () => {
       }),
     ).toEqual({
       page: 1,
+      pageSize: 10,
       search: "Flour",
       status: "inactive",
       category: "Dry goods",
@@ -51,6 +53,7 @@ describe("inventory page filters", () => {
       }),
     ).toEqual({
       page: 1,
+      pageSize: 10,
       search: "",
       category: "x".repeat(80),
     });
@@ -62,7 +65,7 @@ describe("inventory page filters", () => {
         scope: "BRANCH",
         branch_id: "not-a-uuid",
       }),
-    ).toEqual({ page: 1, scope: "BRANCH", search: "" });
+    ).toEqual({ page: 1, pageSize: 10, scope: "BRANCH", search: "" });
     expect(
       resolveInventoryBranchSelection({
         isSuperAdmin: false,

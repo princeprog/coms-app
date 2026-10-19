@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { EllipsisVertical } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Ellipsis, UserRound } from "lucide-react";
+import { StaffStatusBadge } from "./staff-status-badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -61,15 +61,34 @@ export function StaffDirectoryRow({
     <>
       <TableRow>
         <TableCell className="max-w-72">
-          <span className="block truncate font-medium" title={staff.full_name}>
-            {staff.full_name}
-          </span>
-          <span
-            className="block truncate text-xs text-muted-foreground"
-            title={staff.email}
-          >
-            {staff.email}
-          </span>
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground"
+            >
+              {staff.full_name
+                .trim()
+                .split(/\s+/)
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join("")
+                .toUpperCase()}
+            </span>
+            <div className="min-w-0 space-y-1">
+              <span
+                className="block truncate font-medium"
+                title={staff.full_name}
+              >
+                {staff.full_name}
+              </span>
+              <span
+                className="block truncate text-xs text-muted-foreground"
+                title={staff.email}
+              >
+                {staff.email}
+              </span>
+            </div>
+          </div>
         </TableCell>
         <TableCell>{staff.role_name ?? "Unassigned"}</TableCell>
         <TableCell className="max-w-72">
@@ -84,9 +103,7 @@ export function StaffDirectoryRow({
         </TableCell>
         <TableCell>{staff.contact_number}</TableCell>
         <TableCell>
-          <Badge variant={staff.is_active ? "secondary" : "destructive"}>
-            {staff.is_active ? "Active" : "Inactive"}
-          </Badge>
+          <StaffStatusBadge active={staff.is_active} />
         </TableCell>
         <TableCell>
           <div className="flex justify-end">
@@ -102,10 +119,14 @@ export function StaffDirectoryRow({
                   />
                 }
               >
-                <EllipsisVertical aria-hidden="true" />
+                <Ellipsis aria-hidden="true" />
               </DropdownMenuTrigger>
               <DropdownMenuContent data-coms-ui="operational" align="end">
                 <DropdownMenuItem onClick={() => setOpen(true)}>
+                  <UserRound
+                    aria-hidden="true"
+                    className="text-blue-600! dark:text-blue-400!"
+                  />
                   {canManage ? "Manage staff" : "View details"}
                 </DropdownMenuItem>
               </DropdownMenuContent>

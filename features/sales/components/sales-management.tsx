@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PosCheckoutSection } from "./pos-checkout-section";
@@ -42,7 +42,7 @@ export function SalesManagement({
     permissions:
       "Menu access is required to load products for checkout. Ask an administrator to update your role.",
     unavailable:
-      "Unable to load this branch's menu. Refresh the page to try again.",
+      "Products couldn’t be loaded. Your current order is preserved.",
     inactive:
       "This branch is inactive. Saved sales remain available, but new sales cannot be recorded.",
   };
@@ -87,7 +87,20 @@ export function SalesManagement({
         )}
         {view.menuIssue && (
           <Alert role={view.menuIssue === "inactive" ? "status" : "alert"}>
-            <AlertDescription>{messages[view.menuIssue]}</AlertDescription>
+            <AlertDescription>
+              {messages[view.menuIssue]}
+              {view.menuIssue === "unavailable" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-fit"
+                  onClick={() => router.refresh()}
+                >
+                  Retry products
+                </Button>
+              )}
+            </AlertDescription>
           </Alert>
         )}
         <TabsContent value="checkout" keepMounted>

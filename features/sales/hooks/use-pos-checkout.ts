@@ -19,6 +19,7 @@ export function usePosCheckout({
   branchActive,
   serviceTypes,
   appliedService,
+  onServiceChange,
   action,
   paymentMethod,
   paymentUnavailable,
@@ -28,6 +29,7 @@ export function usePosCheckout({
   branchActive: boolean;
   serviceTypes: ServiceType[];
   appliedService?: ServiceType;
+  onServiceChange?: (service: ServiceType) => void;
   action: SaleCreateAction;
   paymentMethod: PaymentMethodChoice | null;
   paymentUnavailable: boolean;
@@ -61,6 +63,10 @@ export function usePosCheckout({
   const service = selection.value;
   function setService(value: ServiceType) {
     setSelection({ applied: appliedService, value });
+    if (onServiceChange) {
+      onServiceChange(value);
+      return;
+    }
     const next = new URLSearchParams(params.toString());
     next.set("branch_id", branchId);
     next.set("service_type", value);

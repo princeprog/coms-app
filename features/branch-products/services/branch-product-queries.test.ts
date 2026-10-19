@@ -4,6 +4,7 @@ import {
   getActiveProductOptions,
   getBranchOptions,
   getBranchProductPageData,
+  getBranchMenuCategories,
 } from "./branch-product-queries";
 
 const { cookies, requestComsApi, getBranchPageData, getProductPageData } =
@@ -32,6 +33,9 @@ const offer = {
   product_id: productId,
   product_name: "Chicken sandwich",
   description: null,
+  category_id: "aa000000-0000-4000-8000-000000000001",
+  category_name: "Rice meals",
+  category_is_active: true,
   product_is_active: true,
   price: "125.0000",
   is_available: true,
@@ -102,10 +106,11 @@ describe("branch product queries", () => {
         page: 2,
         search: "chicken & egg",
         isAvailable: false,
+        categoryId: "aa000000-0000-4000-8000-000000000001",
       }),
     ).resolves.toMatchObject({ items: [{ price: "125.0000" }] });
     expect(requestComsApi).toHaveBeenCalledWith(
-      `/branches/${branchId}/products?page=2&page_size=25&search=chicken+%26+egg&is_available=false`,
+      `/branches/${branchId}/products?page=2&page_size=10&search=chicken+%26+egg&category_id=aa000000-0000-4000-8000-000000000001&is_available=false`,
       { cookieHeader: "coms_access=abc" },
     );
 
@@ -113,6 +118,24 @@ describe("branch product queries", () => {
     await expect(
       getBranchProductPageData({ branchId, page: 1, search: "" }),
     ).rejects.toBeInstanceOf(ApiRequestError);
+  });
+
+  it("loads validated branch-scoped category options independently of pagination", async () => {
+    const options = [
+      { id: "aa000000-0000-4000-8000-000000000001", name: "Rice meals" },
+    ];
+    requestComsApi.mockResolvedValueOnce(options);
+    await expect(
+      getBranchMenuCategories(branchId, "TAKEAWAY"),
+    ).resolves.toEqual(options);
+    expect(requestComsApi).toHaveBeenCalledWith(
+      `/branches/${branchId}/products/categories?service_type=TAKEAWAY`,
+      { cookieHeader: "coms_access=abc" },
+    );
+    requestComsApi.mockResolvedValueOnce([{ id: "bad", name: "Rice meals" }]);
+    await expect(getBranchMenuCategories(branchId)).rejects.toBeInstanceOf(
+      ApiRequestError,
+    );
   });
 
   it("loads every page of branches and active product choices", async () => {

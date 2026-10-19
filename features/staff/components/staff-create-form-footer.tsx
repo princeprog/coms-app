@@ -11,7 +11,7 @@ export function StaffCreateFormFooter({
   onCancel?: () => void;
 }) {
   return (
-    <DialogFooter className="mt-0 shrink-0 items-center border-t bg-muted/30 px-5 py-4 sm:px-8">
+    <DialogFooter className="mx-0 mt-0 mb-0 shrink-0 items-center border-t bg-muted/30 px-5 py-4 sm:px-8">
       <div className="flex w-full gap-2 sm:w-auto">
         <Button
           type="button"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Search, X } from "lucide-react";
+import { CircleCheck, CircleX, ListFilter, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
@@ -11,10 +11,33 @@ import {
 } from "@/components/ui/input-group";
 import { DirectorySelect } from "@/components/shared/directory-select";
 import { useDirectoryQuery } from "@/hooks/use-directory-query";
+import { cn } from "@/lib/utils";
 import {
   createCatalogHref,
   type CatalogDirectoryFilters,
 } from "../services/catalog-page-params";
+
+const statusOptions = [
+  {
+    value: "all",
+    label: "All statuses",
+    icon: <ListFilter className="text-primary!" />,
+  },
+  {
+    value: "true",
+    label: "Active",
+    icon: <CircleCheck className="text-emerald-600! dark:text-emerald-400!" />,
+  },
+  {
+    value: "false",
+    label: "Inactive",
+    icon: <CircleX className="text-red-600! dark:text-red-400!" />,
+  },
+];
+const plainStatusOptions = statusOptions.map(({ value, label }) => ({
+  value,
+  label,
+}));
 
 export function CatalogDirectoryFilter({
   title,
@@ -32,16 +55,25 @@ export function CatalogDirectoryFilter({
   const { search, changeSearch, flushSearch, apply, pending } =
     useDirectoryQuery(filters, (next) => createCatalogHref(routePath, next));
   const prefix = resourceName.replaceAll(" ", "-");
+  const expandedControls =
+    resourceName === "product" ||
+    resourceName === "stock item" ||
+    resourceName === "supplier";
   const hasFilters = Boolean(filters.search) || filters.active !== "all";
   useEffect(() => onPendingChange(pending), [pending, onPendingChange]);
   function clear(change: Partial<CatalogDirectoryFilters>, field: string) {
+    if (field === "search") changeSearch(change.search ?? "");
     document.getElementById(`${prefix}-${field}`)?.focus();
     apply(change);
   }
   return (
     <form
       aria-label={`Filter ${title.toLowerCase()}`}
-      className="flex min-w-0 flex-col gap-3"
+      className={cn(
+        "flex min-w-0 flex-col gap-3",
+        expandedControls &&
+          "[&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:px-3 [&_[data-slot=select-trigger]]:text-sm",
+      )}
       onSubmit={(event) => {
         event.preventDefault();
         flushSearch();
@@ -52,10 +84,13 @@ export function CatalogDirectoryFilter({
           <FieldLabel htmlFor={`${prefix}-search`}>
             Search {title.toLowerCase()}
           </FieldLabel>
-          <InputGroup>
+          <InputGroup className={expandedControls ? "h-10" : undefined}>
             <InputGroupInput
               id={`${prefix}-search`}
               type="search"
+              className={
+                expandedControls ? "h-full text-base md:text-sm" : undefined
+              }
               maxLength={160}
               value={search}
               placeholder={
@@ -65,7 +100,7 @@ export function CatalogDirectoryFilter({
               }
               onChange={(event) => changeSearch(event.target.value)}
             />
-            <InputGroupAddon>
+            <InputGroupAddon className={expandedControls ? "pl-3" : undefined}>
               <Search aria-hidden="true" />
             </InputGroupAddon>
           </InputGroup>
@@ -74,11 +109,8 @@ export function CatalogDirectoryFilter({
           id={`${prefix}-status`}
           label="Status"
           value={filters.active}
-          options={[
-            { value: "all", label: "All statuses" },
-            { value: "true", label: "Active" },
-            { value: "false", label: "Inactive" },
-          ]}
+          alignItemWithTrigger={!expandedControls}
+          options={expandedControls ? statusOptions : plainStatusOptions}
           onChange={(value) =>
             apply({ active: value as CatalogDirectoryFilters["active"] })
           }
@@ -136,9 +168,11 @@ export function CatalogDirectoryFilter({
           </Button>
         </div>
       )}
-      <p className="text-xs text-muted-foreground">
-        Search updates as you type. Status filters apply immediately.
-      </p>
+      {!expandedControls && (
+        <p className="text-xs text-muted-foreground">
+          Search updates as you type. Status filters apply immediately.
+        </p>
+      )}
     </form>
   );
 }

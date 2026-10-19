@@ -30,8 +30,44 @@ const dispatch = {
 describe("dispatch queries", () => {
   beforeEach(() => requestComsApi.mockReset());
 
+  it.each([10, 20, 30, 50])(
+    "requests %i rows from the API with search and sorting",
+    async (pageSize) => {
+      requestComsApi.mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 1,
+        page_size: pageSize,
+      });
+      await getDispatchPageData({
+        page: 1,
+        pageSize,
+        status: "all",
+        discrepancyStatus: "all",
+        search: "Main",
+        sort: "oldest",
+      });
+      expect(requestComsApi).toHaveBeenCalledWith(
+        `/dispatches?page=1&page_size=${pageSize}&search=Main&sort=oldest`,
+        expect.anything(),
+      );
+    },
+  );
+
+  it("rejects a response for a different page size", async () => {
+    requestComsApi.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 25,
+    });
+    await expect(
+      getDispatchPageData({ page: 1, status: "all", discrepancyStatus: "all" }),
+    ).rejects.toMatchObject({ status: 502 });
+  });
+
   it("loads and validates a paginated dispatch response", async () => {
-    const page = { items: [dispatch], total: 1, page: 2, page_size: 25 };
+    const page = { items: [dispatch], total: 1, page: 2, page_size: 10 };
     requestComsApi.mockResolvedValue(page);
 
     await expect(
@@ -42,13 +78,13 @@ describe("dispatch queries", () => {
       }),
     ).resolves.toEqual(page);
     expect(requestComsApi).toHaveBeenCalledWith(
-      "/dispatches?page=2&page_size=25&status=IN_TRANSIT",
+      "/dispatches?page=2&page_size=10&status=IN_TRANSIT",
       { cookieHeader: "coms_access=access-token" },
     );
   });
 
   it("sends a discrepancy filter with the other list filters", async () => {
-    const page = { items: [], total: 0, page: 1, page_size: 25 };
+    const page = { items: [], total: 0, page: 1, page_size: 10 };
     requestComsApi.mockResolvedValue(page);
 
     await expect(
@@ -59,7 +95,7 @@ describe("dispatch queries", () => {
       }),
     ).resolves.toEqual(page);
     expect(requestComsApi).toHaveBeenCalledWith(
-      "/dispatches?page=1&page_size=25&discrepancy_status=RECOUNT_REQUESTED",
+      "/dispatches?page=1&page_size=10&discrepancy_status=RECOUNT_REQUESTED",
       { cookieHeader: "coms_access=access-token" },
     );
   });

@@ -17,6 +17,7 @@ describe("branch product page parameters", () => {
       }),
     ).toEqual({
       page: 1,
+      pageSize: 10,
       search: "chicken",
       isAvailable: false,
     });

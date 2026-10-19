@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { FieldGroup, FieldSet, FieldLegend } from "@/components/ui/field";
-import { Plus } from "lucide-react";
+import { FieldGroup } from "@/components/ui/field";
+import { ArrowRightIcon } from "lucide-react";
 import { DialogFooter } from "@/components/ui/dialog";
 import type {
   DispatchCreateAction,
@@ -32,17 +32,21 @@ export function DispatchCreateForm({
   const {
     pending,
     error,
+    quantityErrors,
     branchId,
     setBranchId,
     lines,
     setLines,
     review,
     setReview,
+    deliveredBy,
+    setDeliveredBy,
     setError,
     updateLine,
     submit,
     nextLineKey,
   } = useDispatchSendForm({
+    availabilityVisible: options.availabilityVisible === true,
     action,
     onPendingChange,
     onDirtyChange,
@@ -54,6 +58,7 @@ export function DispatchCreateForm({
       onSubmit={submit}
       className="flex min-h-0 flex-1 flex-col"
       aria-label="Create dispatch"
+      aria-busy={pending}
     >
       {review ? (
         <DispatchSendReview
@@ -63,8 +68,10 @@ export function DispatchCreateForm({
               ?.branch_name ?? ""
           }
           stockItems={lines.flatMap((line) => (line.stock ? [line.stock] : []))}
+          deliveredBy={deliveredBy}
           pending={pending}
           error={error}
+          onDeliveredByChange={setDeliveredBy}
           onBack={() => {
             setReview(null);
             setError("");
@@ -72,21 +79,19 @@ export function DispatchCreateForm({
         />
       ) : (
         <>
-          <FieldGroup className="min-h-0 flex-1 gap-5 overflow-y-auto p-4 sm:p-6">
-            <FieldSet className="gap-3">
-              <FieldLegend variant="label">Destination</FieldLegend>
-              <DispatchBranchField
-                branches={options.branches}
-                branchId={branchId}
-                disabled={pending}
-                onChange={(value) => {
-                  setBranchId(value);
-                  onDirtyChange(true);
-                }}
-              />
-            </FieldSet>
+          <FieldGroup className="min-h-0 flex-1 gap-6 overflow-y-auto px-5 pb-6 sm:px-6">
+            <DispatchBranchField
+              branches={options.branches}
+              branchId={branchId}
+              disabled={pending}
+              onChange={(value) => {
+                setBranchId(value);
+                onDirtyChange(true);
+              }}
+            />
             <DispatchCreateLineFields
               lines={lines}
+              quantityErrors={quantityErrors}
               availabilityVisible={options.availabilityVisible === true}
               onStockSelect={(key, stock) => {
                 setLines((current) =>
@@ -103,19 +108,7 @@ export function DispatchCreateForm({
                 onDirtyChange(true);
               }}
               disabled={pending}
-              onChange={updateLine}
-              onRemove={(key) => {
-                setLines((current) =>
-                  current.filter((line) => line.key !== key),
-                );
-                onDirtyChange(true);
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={pending || lines.length >= 100}
-              onClick={() => {
+              onAdd={() => {
                 setLines((current) => [
                   ...current,
                   {
@@ -126,36 +119,37 @@ export function DispatchCreateForm({
                 ]);
                 onDirtyChange(true);
               }}
-            >
-              <Plus data-icon="inline-start" />
-              Add stock item
-            </Button>
+              onChange={updateLine}
+              onRemove={(key) => {
+                setLines((current) =>
+                  current.filter((line) => line.key !== key),
+                );
+                onDirtyChange(true);
+              }}
+            />
             {error && (
               <p role="alert" className="text-sm text-destructive">
                 {error}
               </p>
             )}
-            <p className="text-xs text-muted-foreground">
-              {options.availabilityVisible
-                ? "Available quantities are advisory. Stock is checked again when sending."
-                : "Availability is checked when sending. Your account does not have commissary inventory visibility."}
-            </p>
           </FieldGroup>
-          <DialogFooter className="mx-0 mb-0 shrink-0 border-t bg-background p-4 sm:p-6">
-            <p className="flex-1 text-sm text-muted-foreground sm:mr-auto">
-              {lines.length} {lines.length === 1 ? "item" : "items"} · Review
-              before sending
-            </p>
+          <DialogFooter className="m-0 shrink-0 gap-3 rounded-b-2xl bg-muted/20 px-5 py-4 sm:items-center sm:px-6">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
+              className="min-h-11 px-4 sm:min-h-10"
               disabled={pending}
               onClick={onCancel}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button
+              type="submit"
+              className="min-h-11 gap-2 px-4 sm:min-h-10"
+              disabled={pending}
+            >
               Review &amp; send
+              <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
             </Button>
           </DialogFooter>
         </>

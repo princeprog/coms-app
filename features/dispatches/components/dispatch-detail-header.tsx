@@ -1,68 +1,47 @@
-import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { isDispatchComplete } from "../services/dispatch-completion-summary";
+import { ArrowLeft, PackageCheck, Truck } from "lucide-react";
 import Link from "next/link";
-import { dispatchTimestamp } from "../services/dispatch-detail-presentation";
 import type { Dispatch } from "../types/dispatch.types";
 import { DispatchStatusBadge } from "./dispatch-status-badge";
 
 export function DispatchDetailHeader({ dispatch }: { dispatch: Dispatch }) {
+  const completed = isDispatchComplete(dispatch);
+  const Icon = completed ? PackageCheck : Truck;
   return (
-    <header className="flex min-w-0 flex-col gap-4">
+    <header className="flex min-w-0 flex-col gap-5">
       <Link
         href="/dispatches"
-        className="inline-flex w-fit items-center gap-2 rounded-sm text-sm font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+        className="dispatch-press inline-flex min-h-9 w-fit items-center gap-2 rounded-md px-1 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ArrowLeft className="size-4" aria-hidden="true" /> Back to dispatches
       </Link>
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="min-w-0 text-2xl font-semibold tracking-tight wrap-anywhere lg:text-3xl">
-            Dispatch to {dispatch.branch_name}
-          </h1>
-          <DispatchStatusBadge status={dispatch.status} size="lg" />
-        </div>
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <span className="text-muted-foreground">
-            From{" "}
-            <strong className="ml-1 font-medium text-foreground">
-              Commissary
-            </strong>
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-card text-foreground shadow-sm ring-1 ring-foreground/10">
+            <Icon className="size-5" aria-hidden="true" />
           </span>
-          <ArrowRight
-            className="size-4 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <span className="min-w-0 text-muted-foreground">
-            To{" "}
-            <strong className="ml-1 font-medium text-foreground wrap-anywhere">
-              {dispatch.branch_name}
-            </strong>
-          </span>
-        </p>
-        <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-1">
-            <dt>Created</dt>
-            <dd className="min-w-0 wrap-anywhere">
-              <time dateTime={dispatch.created_at}>
-                {dispatchTimestamp(dispatch.created_at)}
-              </time>{" "}
-              <span>by {dispatch.created_by_name}</span>
-            </dd>
+          <div className="flex min-w-0 flex-col gap-1">
+            <h1 className="text-2xl font-semibold tracking-tight text-balance wrap-anywhere sm:text-3xl">
+              Dispatch to {dispatch.branch_name}
+            </h1>
+            <p className="text-sm text-muted-foreground">From Commissary</p>
           </div>
-          {dispatch.dispatched_at && (
-            <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-1">
-              <dt>Dispatched</dt>
-              <dd className="min-w-0 wrap-anywhere">
-                <time dateTime={dispatch.dispatched_at}>
-                  {dispatchTimestamp(dispatch.dispatched_at)}
-                </time>{" "}
-                <span>by {dispatch.dispatched_by_name ?? "Not recorded"}</span>
-              </dd>
-            </div>
-          )}
-        </dl>
+        </div>
+        {completed ? (
+          <Badge
+            className={`h-auto min-h-8 max-w-full shrink-0 self-start rounded-md px-2.5 py-1 text-sm whitespace-normal text-white transition-none sm:self-center ${dispatch.status === "RECEIVED" ? "bg-emerald-700" : "bg-slate-600"}`}
+          >
+            {dispatch.status === "RECEIVED"
+              ? "Completed"
+              : "Completed with resolved discrepancies"}
+          </Badge>
+        ) : (
+          <div className="[&_[data-slot=badge]]:min-h-8 [&_[data-slot=badge]]:rounded-md [&_[data-slot=badge]]:text-sm [&_[data-slot=badge]]:px-2.5 [&_[data-slot=badge]]:transition-none">
+            <DispatchStatusBadge status={dispatch.status} />
+          </div>
+        )}
       </div>
-      <Separator />
     </header>
   );
 }
