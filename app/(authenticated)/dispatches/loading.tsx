@@ -11,20 +11,16 @@ export default function DispatchesLoading() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <Skeleton className="h-8 w-44 max-w-full" />
-          <Skeleton className="h-4 w-full max-w-2xl" />
         </div>
         <Skeleton className="h-9 w-44 max-w-full" />
       </div>
+      <Skeleton className="h-12 w-full max-w-xl" />
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_15rem_14rem_11rem]">
         {Array.from({ length: 4 }, (_, index) => (
           <Skeleton key={index} className="h-10 w-full" />
         ))}
       </div>
       <div className="min-w-0 overflow-hidden rounded-xl border">
-        <div className="flex flex-col gap-2 border-b px-4 py-4 sm:px-5">
-          <Skeleton className="h-5 w-36 max-w-full" />
-          <Skeleton className="h-4 w-72 max-w-full" />
-        </div>
         <DispatchTableSkeleton />
         <div className="border-t px-4 py-3 sm:px-5">
           <Skeleton className="h-8 w-full" />

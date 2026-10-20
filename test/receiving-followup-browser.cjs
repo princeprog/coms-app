@@ -96,23 +96,32 @@ const freePort = () =>
 
   await page.waitForURL("**/pos");
   await page.goto(`${baseUrl}/dispatches`);
-  const pending = page.getByRole("region", { name: "Pending receiving" });
-  await pending.getByRole("link", { name: "Count delivery" }).first().waitFor();
-  await pending.getByRole("combobox", { name: "Receiving status" }).click();
-  await page.getByRole("option", { name: "Overdue", exact: true }).click();
-  await pending
-    .locator("[data-slot=badge]")
-    .filter({ hasText: "Overdue" })
-    .first()
-    .waitFor();
-  const overdueHref = await pending
-    .getByRole("link", { name: "Count delivery" })
-    .first()
+  const views = page.getByRole("navigation", { name: "Dispatch views" });
+  const table = page.getByRole("table", { name: "Dispatches", exact: true });
+  await table.waitFor();
+  assert.equal(await page.getByRole("table").count(), 1);
+  assert.equal(
+    await page
+      .getByText("Track delivery progress and reported discrepancies.")
+      .count(),
+    0,
+  );
+  await views.getByRole("link", { name: "Overdue", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await page.waitForURL("**/dispatches?receiving_status=OVERDUE");
+  await table.getByText("Overdue", { exact: true }).first().waitFor();
+  assert.equal(
+    await table.getByText("Awaiting count", { exact: true }).count(),
+    0,
+  );
+  await page.getByRole("combobox", { name: "Rows per page" }).click();
+  await page.getByRole("option", { name: "30", exact: true }).click();
+  await page.waitForURL("**page_size=30");
+  await table.getByRole("button").first().click();
+  const overdueHref = await page
+    .getByRole("menuitem", { name: "View dispatch" })
     .getAttribute("href");
-  await pending
-    .getByRole("combobox", { name: "Pending deliveries per page" })
-    .click();
-  await page.getByRole("option", { name: "30 per page", exact: true }).click();
+  await page.keyboard.press("Escape");
   await page.goto(`${baseUrl}${overdueHref}`);
   await page
     .getByRole("button", { name: "Count delivery", exact: true })
@@ -152,9 +161,14 @@ const freePort = () =>
     .getByRole("button", { name: "Discard count", exact: true })
     .click();
   await page.goto(`${baseUrl}/dispatches`);
-  await pending.getByRole("combobox", { name: "Receiving status" }).click();
-  await page.getByRole("option", { name: "Under review", exact: true }).click();
-  await pending.getByRole("link", { name: "View review" }).first().click();
+  await views.getByRole("link", { name: "Count review", exact: true }).click();
+  await page.waitForURL("**/dispatches?receiving_status=REVIEW");
+  await table
+    .getByText("Late count under review", { exact: true })
+    .first()
+    .waitFor();
+  await table.getByRole("button").first().click();
+  await page.getByRole("menuitem", { name: "View dispatch" }).click();
   await page
     .getByText(
       "Approved report requires correction. This count remains on hold.",
@@ -201,20 +215,45 @@ const freePort = () =>
     fullPage: true,
   });
   await page.goto(`${baseUrl}/dispatches`);
-  await pending.getByRole("link").first().waitFor();
-  assert.equal(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-    true,
-  );
+  await table.waitFor();
+  await page.evaluate(() => document.documentElement.classList.remove("dark"));
+  for (const width of [1440, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      true,
+      `directory overflow at ${width}`,
+    );
+    await page.screenshot({
+      path: `test-results/receiving-followup/directory-${width}.png`,
+      fullPage: true,
+    });
+  }
+  await page.evaluate(() => document.documentElement.classList.add("dark"));
   await page.screenshot({
-    path: "test-results/receiving-followup/pending-mobile.png",
+    path: "test-results/receiving-followup/directory-dark.png",
     fullPage: true,
   });
+  await views
+    .getByRole("link", { name: "Pending receiving", exact: true })
+    .click();
+  await page.waitForURL("**/dispatches?receiving_status=pending");
+  await table.waitFor();
+  assert.equal(await table.getByText("Received", { exact: true }).count(), 0);
+  const search = page.getByRole("searchbox", { name: "Search branch" });
+  await search.fill("No matching dispatch branch");
+  await page.getByText("No dispatches match these filters.").waitFor();
+  await page.getByRole("button", { name: "Clear all", exact: true }).click();
+  await table.waitFor();
+  assert.equal(
+    new URL(page.url()).searchParams.get("receiving_status"),
+    "pending",
+  );
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: pending list, filters/page size, overdue count validation, focus, preserved draft/review, approved-report hold, return reason, responsive/dark layouts. Synthetic UI data only.",
+    "PASS: single directory, receiving views, filters/page size, overdue count validation, focus, preserved draft/review, approved-report hold, return reason, responsive/dark layouts. Synthetic UI data only.",
   );
 })()
   .catch(async (error) => {

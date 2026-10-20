@@ -5,9 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import { DispatchManagement } from "./dispatch-management";
 
-vi.mock("../services/pending-receiving-actions", () => ({
-  getPendingReceivingAction: vi.fn(),
-}));
 vi.mock("../services/dispatch-stock-actions", () => ({
   searchDispatchStock: vi.fn(),
 }));
@@ -22,7 +19,7 @@ vi.mock("next/link", () => ({
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
-  useRouter: () => ({ push: vi.fn(), replace }),
+  useRouter: () => ({ push: vi.fn(), replace, refresh: vi.fn() }),
 }));
 
 const id = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
@@ -191,7 +188,7 @@ describe("dispatch management", () => {
     ]);
   });
 
-  it("uses badges for unreported discrepancies and keeps one-page navigation visible", () => {
+  it("omits unnecessary discrepancy badges and keeps one-page navigation visible", () => {
     const dispatchPage: DispatchPage = {
       ...page,
       total: 1,
@@ -215,9 +212,8 @@ describe("dispatch management", () => {
 
     render(<DispatchManagement {...baseProps} page={dispatchPage} />);
 
-    expect(screen.getByText("Not reported").getAttribute("data-slot")).toBe(
-      "badge",
-    );
+    expect(screen.queryByText("Not reported")).toBeNull();
+    expect(screen.getAllByRole("table")).toHaveLength(1);
     expect(
       screen.getByRole("link", { name: "Page 1" }).getAttribute("aria-current"),
     ).toBe("page");
@@ -235,6 +231,74 @@ describe("dispatch management", () => {
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
+  });
+
+  it("switches receiving views through the server query and resets conflicting filters", async () => {
+    const user = userEvent.setup();
+    render(
+      <DispatchManagement
+        {...baseProps}
+        filters={{
+          ...baseProps.filters,
+          page: 3,
+          pageSize: 30,
+          search: "Main",
+          status: "RECEIVED",
+          discrepancyStatus: "RESOLVED",
+          branchId: id,
+        }}
+      />,
+    );
+    await user.click(
+      screen.getByRole("link", { name: "Overdue", exact: true }),
+    );
+    expect(replace).toHaveBeenLastCalledWith(
+      `/dispatches?receiving_status=OVERDUE&branch_id=${id}&page_size=30&search=Main`,
+      { scroll: false },
+    );
+  });
+
+  it("preserves the receiving view through pagination and renders each status once", async () => {
+    const user = userEvent.setup();
+    const row = {
+      id,
+      branch_id: id,
+      branch_name: "Main",
+      status: "IN_TRANSIT" as const,
+      created_by_user_id: id,
+      created_by_name: "Sender",
+      dispatched_by_user_id: id,
+      dispatched_by_name: "Sender",
+      dispatched_at: "2026-10-20T02:00:00.000Z",
+      created_at: "2026-10-20T01:00:00.000Z",
+      updated_at: "2026-10-20T02:00:00.000Z",
+      item_count: 2,
+      receiving_status: "OVERDUE" as const,
+      receive_by: "2026-10-20T04:00:00.000Z",
+    };
+    render(
+      <DispatchManagement
+        {...baseProps}
+        filters={{ ...baseProps.filters, receivingStatus: "OVERDUE" }}
+        page={{ ...page, total: 15, items: [row] }}
+      />,
+    );
+    const table = screen.getByRole("table", { name: "Dispatches" });
+    expect(within(table).getAllByText("Overdue")).toHaveLength(1);
+    expect(within(table).queryByText("Awaiting count")).toBeNull();
+    expect(
+      screen
+        .getByRole("link", { name: "Overdue", exact: true })
+        .getAttribute("aria-current"),
+    ).toBe("page");
+    expect(
+      screen.getByRole("link", { name: "Next page" }).getAttribute("href"),
+    ).toBe("/dispatches?receiving_status=OVERDUE&page=2");
+    expect(
+      screen.queryByRole("combobox", { name: "Dispatch status" }),
+    ).toBeNull();
+    await user.click(screen.getByRole("link", { name: "All dispatches" }));
+    expect(replace).toHaveBeenLastCalledWith("/dispatches", { scroll: false });
   });
 
   it("explains when the current filters have no matching dispatches", () => {

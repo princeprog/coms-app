@@ -32,6 +32,7 @@ export function DispatchFilter({
 }) {
   const { search, pending, changeSearch, flushSearch, apply } = query;
   const active = Boolean(
+    filters.branchId ||
     filters.search ||
     filters.status !== "all" ||
     filters.discrepancyStatus !== "all",
@@ -46,8 +47,8 @@ export function DispatchFilter({
         flushSearch();
       }}
     >
-      <FieldGroup className="gap-3 xl:flex-row xl:items-end">
-        <Field className="min-w-0 xl:flex-1">
+      <FieldGroup className="grid gap-3 sm:grid-cols-2 xl:flex xl:flex-row xl:items-end">
+        <Field className="min-w-0 sm:col-span-2 xl:flex-1">
           <FieldLabel className="sr-only" htmlFor="dispatch-search">
             Search branch
           </FieldLabel>
@@ -72,18 +73,20 @@ export function DispatchFilter({
             </InputGroupAddon>
           </InputGroup>
         </Field>
-        <DirectorySelect
-          id="dispatch-status"
-          alignItemWithTrigger={false}
-          label="Dispatch status"
-          hideLabel
-          className="sm:w-full xl:w-60"
-          value={filters.status}
-          options={dispatchStatusOptions}
-          onChange={(status) =>
-            apply({ status: status as DispatchStatusFilter })
-          }
-        />
+        {!filters.receivingStatus && (
+          <DirectorySelect
+            id="dispatch-status"
+            alignItemWithTrigger={false}
+            label="Dispatch status"
+            hideLabel
+            className="sm:w-full xl:w-60"
+            value={filters.status}
+            options={dispatchStatusOptions}
+            onChange={(status) =>
+              apply({ status: status as DispatchStatusFilter })
+            }
+          />
+        )}
         <DirectorySelect
           id="dispatch-discrepancy-status"
           alignItemWithTrigger={false}
@@ -114,6 +117,18 @@ export function DispatchFilter({
           aria-label="Active dispatch filters"
           className="flex flex-wrap items-center gap-2"
         >
+          {filters.branchId && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-label="Clear branch filter"
+              onClick={() => apply({ branchId: undefined })}
+            >
+              Selected branch
+              <X aria-hidden="true" />
+            </Button>
+          )}
           {(["search", "status", "discrepancyStatus"] as const)
             .filter((key) => filters[key] && filters[key] !== "all")
             .map((key) => (
@@ -151,6 +166,7 @@ export function DispatchFilter({
             onClick={() => {
               changeSearch("");
               apply({
+                branchId: undefined,
                 search: "",
                 status: "all",
                 discrepancyStatus: "all",

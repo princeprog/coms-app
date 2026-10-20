@@ -413,3 +413,20 @@ Implemented receiving deadlines, persistent paginated tasks, actual-date/late-re
 Production browser fixture: `node test/receiving-followup-browser.cjs` passed against synthetic loopback data. Verified task status and page-size dropdowns, late-reason validation/focus, count review and preserved inputs, discard confirmation, approved-report hold with disabled posting, required return reason/focus, and responsive layouts at 1440/768/390/320px plus narrow dark mode. No page errors or document overflow. Reviewed desktop and 390px captures; tightened units, review-status wording and no-blocker copy. Captures are ignored under `test-results/receiving-followup/`.
 
 Automated evidence: 32 scoped files / 146 tests, 24 operational fixture tests, and 18 final detail/permission tests passed. Changed-file lint, types and build passed. API integration evidence is separate: browser fixtures simulate data and make no live operational writes. No native screen-reader or physical-device test. Historical approved-report correction remains intentionally unavailable; affected counts stay on hold. Solo author review; no subagents.
+
+
+## 2026-10-20 - Dispatch directory simplification
+
+Applied the Emil design engineering guidance to the user's screenshots: one directory, clear hierarchy, restrained color and immediate view switching without decorative animation.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Receiving list above a second table | One table with All dispatches, Pending receiving, Overdue and Count review views | Eliminates duplicate records and competing pagination |
+| Two Awaiting count badges | One receiving/lifecycle badge per row | Each row communicates one clear status |
+| Repeated page/table descriptions | Title and creation action above one compact workspace | Prioritizes operational data |
+| Unreported discrepancy badges on every row | Discrepancy filtering remains; details carry secondary history | Reduces visual noise |
+| Deadline visible only in separate list | Receive by column and mobile row metadata | Makes follow-up timing available in the same table |
+
+The views, filters and pagination share the existing server-query URL. View changes reset the page and conflicting lifecycle/discrepancy filters while retaining search, branch and page size. Receiving notification links remain supported. One directory refresh replaces the duplicate client query, with visible 30-second/focus refresh paused during navigation/search. No backend, migration or dependency changes.
+
+Verification: 16 dispatch test files / 94 tests passed, including duplicate-status prevention and receiving-view pagination/filter preservation. Changed-file ESLint, formatting and production build/typecheck passed. The production loopback browser fixture passed single-table layout, keyboard view selection, page size, empty state/reset, count review/discard, required field focus and approved-report hold. Captures in ignored test-results/receiving-followup/directory-{1440,768,390,320}.png and directory-dark.png; desktop/mobile screenshots inspected. No page errors or horizontal document overflow at those widths. Fixed a malformed dash found during visual review. Synthetic data only; no live operational writes, native screen-reader or physical-device testing.

@@ -33,7 +33,7 @@ export function DispatchReceivingFollowup({
       {dispatch.delivery_date && (
         <p className="text-sm">
           Actual delivery: <strong>{dispatch.delivery_date}</strong>
-          {dispatch.late_reason ? ` � ${dispatch.late_reason}` : ""}
+          {dispatch.late_reason ? ` \u00b7 ${dispatch.late_reason}` : ""}
         </p>
       )}
       {count && (

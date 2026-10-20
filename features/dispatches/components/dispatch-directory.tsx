@@ -1,14 +1,9 @@
 "use client";
 
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { DispatchViews } from "./dispatch-views";
+import { useDispatchDirectoryRefresh } from "../hooks/use-dispatch-directory-refresh";
 import { useDirectoryQuery } from "@/hooks/use-directory-query";
 import {
   createDispatchHref,
@@ -30,23 +25,31 @@ export function DispatchDirectory({
   const query = useDirectoryQuery(filters, createDispatchHref);
   const loading =
     query.pending || query.search.trim() !== (filters.search ?? "");
+  useDispatchDirectoryRefresh(loading);
   const hasFilters =
+    Boolean(filters.receivingStatus || filters.branchId) ||
     Boolean(filters.search) ||
     filters.status !== "all" ||
     filters.discrepancyStatus !== "all";
 
   return (
     <>
-      <DispatchFilter filters={filters} query={query} />
-      <Card className="min-w-0 gap-0 overflow-hidden py-0">
-        <CardHeader className="border-b px-4 py-4 sm:px-5">
-          <CardTitle>
-            <h3>Branch deliveries</h3>
-          </CardTitle>
-          <CardDescription>
-            Track delivery progress and reported discrepancies.
-          </CardDescription>
-        </CardHeader>
+      <Card className="min-w-0 gap-0 overflow-hidden py-0 shadow-none">
+        <div className="border-b px-4 pt-2 sm:px-5">
+          <DispatchViews
+            filters={filters}
+            onChange={(receivingStatus) =>
+              query.apply({
+                receivingStatus,
+                status: "all",
+                discrepancyStatus: "all",
+              })
+            }
+          />
+        </div>
+        <div className="p-4 sm:p-5">
+          <DispatchFilter filters={filters} query={query} />
+        </div>
         <CardContent
           className="p-0"
           aria-busy={loading}
@@ -64,7 +67,7 @@ export function DispatchDirectory({
               description={
                 hasFilters
                   ? "Change or clear the filters to see more dispatches."
-                  : "Choose a branch, stock items, and quantities, then review and confirm sending. Commissary stock is deducted only on confirmation."
+                  : "Create a dispatch to get started."
               }
             />
           ) : (

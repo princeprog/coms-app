@@ -10,11 +10,12 @@ export function ReceivingStatusBadge({ status }: { status?: string }) {
   return (
     <Badge
       className={
-        status === "OVERDUE"
+        "h-auto max-w-full whitespace-normal text-center " +
+        (status === "OVERDUE"
           ? "bg-red-700 text-white"
           : status === "REVIEW"
             ? "bg-violet-700 text-white"
-            : "bg-amber-700 text-white"
+            : "bg-amber-700 text-white")
       }
     >
       {label}
