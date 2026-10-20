@@ -47,7 +47,7 @@ export function PosPaymentMethodPicker({
             }
           </SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent alignItemWithTrigger={false}>
           {missing && (
             <SelectItem value={selected.id} disabled>
               {selected.name} — unavailable
