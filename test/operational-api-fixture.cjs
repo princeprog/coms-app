@@ -1,4 +1,7 @@
-const {seedReceivingFollowup} = require("./fixtures/receiving-followup-fixture.cjs");
+const { handlePurchaseRequest } = require("./fixtures/purchases-fixture.cjs");
+const {
+  seedReceivingFollowup,
+} = require("./fixtures/receiving-followup-fixture.cjs");
 const {
   createNotificationSeed,
   handleNotifications,
@@ -666,6 +669,7 @@ function createOperationalApiFixture({
             branchProductView(state, offer),
           ),
           recipes: state.recipes,
+          purchases: state.purchases ?? [],
           receipts: state.receipts.map(receiptDetail),
           commissaryBalances: state.commissaryBalances,
           commissaryMovements: state.commissaryMovements,
@@ -813,6 +817,15 @@ function createOperationalApiFixture({
       });
       if (dailyReportResponse !== false) return dailyReportResponse;
 
+      const purchaseResponse = handlePurchaseRequest({
+        request,
+        response,
+        url,
+        body,
+        state,
+        seed,
+      });
+      if (purchaseResponse !== false) return purchaseResponse;
       const inventoryResponse = handleInventoryRequest({
         request,
         response,

@@ -6,6 +6,11 @@ import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { InventoryManagement } from "./inventory-management";
 
+vi.mock("@/features/direct-purchases/services/purchase-actions", () => ({
+  createPurchaseAction: vi.fn(),
+  searchPurchaseStock: vi.fn(),
+}));
+
 const { refresh, push, replace } = vi.hoisted(() => ({
   refresh: vi.fn(),
   push: vi.fn(),

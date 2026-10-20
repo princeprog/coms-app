@@ -49,7 +49,9 @@ function formatDecimal({ digits: rawDigits, scale }: DecimalParts) {
   return `${normalizedWhole}${fraction ? `.${fraction}` : ""}`;
 }
 
-export function calculateSupplierReceiptTotal(input: CreateSupplierReceipt) {
+export function calculateSupplierReceiptTotal<
+  T extends Pick<CreateSupplierReceipt, "items">,
+>(input: T) {
   const products = input.items.map((item) =>
     multiplyDecimalParts(item.quantity_received, item.unit_cost),
   );

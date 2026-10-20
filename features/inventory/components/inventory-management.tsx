@@ -1,5 +1,6 @@
 "use client";
 
+import { PurchaseActions } from "@/features/direct-purchases/components/purchase-actions";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,8 @@ import type {
 } from "@/features/inventory/types/inventory.types";
 
 export function InventoryManagement({
+  canReadPurchases = false,
+  canCreatePurchases = false,
   inventory,
   movements,
   scope,
@@ -34,6 +37,8 @@ export function InventoryManagement({
   branchUnavailableMessage = "No branch is assigned to this account.",
   page,
 }: {
+  canReadPurchases?: boolean;
+  canCreatePurchases?: boolean;
   inventory: InventoryPage | null;
   movements: InventoryMovementPage | null;
   scope: "COMMISSARY" | "BRANCH";
@@ -62,11 +67,19 @@ export function InventoryManagement({
   const branchName = selectedBranch?.name ?? "Assigned branch";
   return (
     <div data-coms-ui="operational" className="flex min-w-0 flex-col gap-6">
-      <InventoryPageHeading
-        isAssignedBranchView={isAssignedBranchView}
-        selectedBranchId={selectedBranchId}
-        branchName={branchName}
-      />
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <InventoryPageHeading
+          isAssignedBranchView={isAssignedBranchView}
+          selectedBranchId={selectedBranchId}
+          branchName={branchName}
+        />
+        {scope === "COMMISSARY" && (
+          <PurchaseActions
+            canRead={canReadPurchases}
+            canCreate={canCreatePurchases}
+          />
+        )}
+      </div>
 
       {!branchUnavailable && (
         <InventoryScopeFilter
@@ -133,7 +146,10 @@ export function InventoryManagement({
                 );
               }}
             />
-            <InventoryMovementsTable movements={movements} />
+            <InventoryMovementsTable
+              movements={movements}
+              canReadPurchases={canReadPurchases}
+            />
           </div>
         </>
       ) : (

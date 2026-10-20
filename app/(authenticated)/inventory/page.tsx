@@ -1,3 +1,4 @@
+import { hasPermission } from "@/features/auth/permissions";
 import { notFound, redirect } from "next/navigation";
 import { AppPageShell } from "@/components/layout/app-page-shell";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
@@ -65,6 +66,11 @@ export default async function InventoryPage({
   return (
     <AppPageShell user={session.user}>
       <InventoryManagement
+        canReadPurchases={hasPermission(session.user, "supplier_receipts.read")}
+        canCreatePurchases={
+          hasPermission(session.user, "supplier_receipts.create") &&
+          hasPermission(session.user, "stock_items.read")
+        }
         inventory={view.inventory}
         movements={view.movements}
         scope={view.scope}

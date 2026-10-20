@@ -31,6 +31,11 @@ export const inventoryMovementSchema = z
     stock_item_id: z.uuid(),
     stock_item_name: z.string().min(1),
     unit: z.string().min(1),
+    receipt_id: z.uuid().nullable().optional(),
+    receipt_kind: z
+      .enum(["SUPPLIER_DELIVERY", "DIRECT_PURCHASE"])
+      .nullable()
+      .optional(),
     movement_type: z.enum([
       "RECEIPT",
       "ADJUSTMENT",
