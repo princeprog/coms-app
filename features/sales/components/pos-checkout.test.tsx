@@ -1,6 +1,8 @@
 import { render } from "@/test/pos-render";
 // @vitest-environment jsdom
 import { fireEvent, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { SaleMutationResult } from "../types/sale.types";
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/features/sales/services/sales-price-actions", () => ({
   refreshCartPricesAction: vi.fn(),
@@ -300,7 +302,7 @@ describe("POS checkout", () => {
     fireEvent.click(screen.getByRole("button", { name: "Complete sale" }));
     await waitFor(() =>
       expect(
-        screen.getByText("Sale recorded. Confirmed total: 9.25"),
+        screen.getByRole("heading", { name: "Sale completed" }),
       ).toBeTruthy(),
     );
     expect(createAction).toHaveBeenNthCalledWith(2, branchId, input, key);
@@ -377,12 +379,14 @@ describe("POS checkout", () => {
       target: { value: "10" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Complete sale" }));
-    await screen.findByText("Sale recorded. Confirmed total: 9.25");
+    const confirmation = await screen.findByRole("heading", {
+      name: "Sale completed",
+    });
+    expect(document.activeElement).toBe(confirmation);
+    expect(screen.getByLabelText("Confirmed total").textContent).toBe("₱9.25");
     expect(screen.getByLabelText("Change due").textContent).toBe("₱0.75");
-    expect(screen.getByLabelText("Amount received")).toHaveProperty(
-      "value",
-      "10",
-    );
+    expect(screen.getByLabelText("Amount received").textContent).toBe("₱10.00");
+    expect(screen.queryByRole("button", { name: "Complete sale" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Add Iced tea" }));
     expect(screen.getByLabelText("Amount received")).toHaveProperty(
       "value",
@@ -392,6 +396,104 @@ describe("POS checkout", () => {
     expect(
       screen.getByRole("button", { name: "Complete sale" }),
     ).toHaveProperty("disabled", true);
+  });
+
+  it("shows pending feedback until the server confirms and starts a fresh sale by keyboard", async () => {
+    const user = userEvent.setup();
+    let resolveSale!: (value: SaleMutationResult) => void;
+    const action = vi.fn(
+      () =>
+        new Promise<SaleMutationResult>((resolve) => {
+          resolveSale = resolve;
+        }),
+    );
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        serviceTypes={["TAKEAWAY"]}
+        menuPage={menuPage}
+        action={action}
+      />,
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Exact amount" }));
+    await user.click(screen.getByRole("button", { name: "Complete sale" }));
+    expect(
+      await screen.findByRole("button", { name: "Completing sale…" }),
+    ).toHaveProperty("disabled", true);
+    expect(
+      screen.queryByRole("heading", { name: "Sale completed" }),
+    ).toBeNull();
+    fireEvent.submit(screen.getByRole("form", { name: "POS checkout" }));
+    expect(action).toHaveBeenCalledTimes(1);
+    resolveSale({
+      ok: true,
+      sale: {
+        id: teaId,
+        branch_id: branchId,
+        cashier_user_id: branchId,
+        idempotency_key: key,
+        created_at: timestamp,
+        items: [],
+        events: [],
+        status: "COMPLETED",
+        total_amount: "9.25",
+        tender_method: "Cash",
+        service_type: "TAKEAWAY",
+      },
+    });
+    await screen.findByRole("heading", { name: "Sale completed" });
+    expect(screen.getByLabelText("Change due").textContent).toBe("₱0.00");
+    expect(screen.getByText("Cash")).toBeTruthy();
+    expect(screen.getByText("Takeout")).toBeTruthy();
+    await user.tab();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "New sale" }),
+    );
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(
+      screen.getByRole("heading", { name: "Branch menu" }),
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Sale completed" }),
+    ).toBeNull();
+    expect(screen.getByLabelText("Amount received")).toHaveProperty(
+      "value",
+      "",
+    );
+    expect(screen.getByLabelText("Estimated total").textContent).toBe("₱0.00");
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not celebrate a retry of an already voided sale", async () => {
+    const action = vi.fn().mockResolvedValue({
+      ok: true,
+      sale: { id: teaId, status: "VOIDED", total_amount: "9.25" },
+    });
+    render(
+      <PosCheckout
+        branchId={branchId}
+        branchActive
+        serviceTypes={["TAKEAWAY"]}
+        menuPage={menuPage}
+        action={action}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Exact amount" }));
+    fireEvent.click(screen.getByRole("button", { name: "Complete sale" }));
+    await screen.findByText(
+      "This retry matched a sale that has already been voided.",
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Sale completed" }),
+    ).toBeNull();
+    expect(screen.getByLabelText("Change due").textContent).toBe("—");
   });
 
   it("requires confirmation to clear an order and resets its payment", async () => {

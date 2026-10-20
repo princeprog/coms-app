@@ -34,7 +34,11 @@ export function PosProductMenu({
       className="flex min-w-0 flex-col gap-5"
     >
       <div className="flex flex-wrap items-baseline gap-3">
-        <h2 id="pos-menu-heading" className="text-xl font-semibold">
+        <h2
+          id="pos-menu-heading"
+          tabIndex={-1}
+          className="rounded-sm text-xl font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           Branch menu
         </h2>
         <p className="text-sm text-muted-foreground">

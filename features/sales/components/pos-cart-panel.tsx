@@ -1,5 +1,5 @@
 import type { FormEventHandler, ReactNode } from "react";
-import { ArrowRight, ShoppingBag } from "lucide-react";
+import { ArrowRight, LoaderCircle, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatProductPrice } from "@/lib/format-currency";
 import { addSaleDecimals } from "../services/sale-decimal";
@@ -8,6 +8,7 @@ import type { Sale, SalesMenuPage } from "../types/sale.types";
 import { PosCashPayment } from "./pos-cash-payment";
 import { PosClearOrder } from "./pos-clear-order";
 import { PosCartItem } from "./pos-cart-item";
+import { PosSaleCompleted } from "./pos-sale-completed";
 
 export type PosCartLine = {
   product: SalesMenuPage["items"][number];
@@ -50,7 +51,7 @@ export function PosCartPanel({
   servicePicker: ReactNode;
 }) {
   const completed = cart.length === 0 && lastSale?.status === "COMPLETED";
-  const total = completed ? lastSale.total_amount : estimatedTotal;
+  const total = estimatedTotal;
   const cashValid =
     !cash || calculateCashChange(amountReceived, total).change !== null;
   const validQuantities = cart.every(({ quantity }) =>
@@ -59,6 +60,16 @@ export function PosCartPanel({
   const count = validQuantities
     ? addSaleDecimals(cart.map(({ quantity }) => quantity))
     : "—";
+  if (completed) {
+    return (
+      <PosSaleCompleted
+        sale={lastSale}
+        cash={cash}
+        amountReceived={amountReceived}
+        onNewSale={onClear}
+      />
+    );
+  }
   return (
     <section
       id="pos-cart-panel"
@@ -83,16 +94,13 @@ export function PosCartPanel({
       <form
         className="flex flex-col gap-4"
         aria-label="POS checkout"
+        aria-busy={pending}
         onSubmit={onSubmit}
       >
         {cart.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-6 text-center text-muted-foreground">
             <ShoppingBag aria-hidden="true" className="size-7" />
-            <p className="text-sm">
-              {completed
-                ? "Ready for the next order."
-                : "Add products to begin a sale."}
-            </p>
+            <p className="text-sm">Add products to begin a sale.</p>
           </div>
         ) : (
           <ul
@@ -111,9 +119,7 @@ export function PosCartPanel({
           </ul>
         )}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-          <span className="text-lg font-semibold">
-            {completed ? "Sale total" : "Total to pay"}
-          </span>
+          <span className="text-lg font-semibold">Total to pay</span>
           <output
             aria-label="Estimated total"
             className="break-all text-3xl font-semibold tracking-tight tabular-nums"
@@ -128,7 +134,7 @@ export function PosCartPanel({
           <PosCashPayment
             amount={lastSale?.status === "VOIDED" ? "" : amountReceived}
             total={total}
-            disabled={pending || Boolean(completed) || !cart.length}
+            disabled={pending || !cart.length}
             onChange={onAmountChange}
           />
         )}
@@ -137,11 +143,14 @@ export function PosCartPanel({
             {error}
           </p>
         )}
-        {lastSale && (
+        {lastSale?.status === "VOIDED" && (
           <p role="status" className="text-sm font-medium">
-            {lastSale.status === "VOIDED"
-              ? "This retry matched a sale that has already been voided."
-              : `Sale recorded. Confirmed total: ${lastSale.total_amount}`}
+            This retry matched a sale that has already been voided.
+          </p>
+        )}
+        {pending && (
+          <p role="status" className="sr-only">
+            Completing sale…
           </p>
         )}
         <Button
@@ -156,8 +165,16 @@ export function PosCartPanel({
             !cashValid
           }
         >
-          {pending ? "Recording sale…" : "Complete sale"}
-          <ArrowRight aria-hidden="true" data-icon="inline-end" />
+          {pending ? "Completing sale…" : "Complete sale"}
+          {pending ? (
+            <LoaderCircle
+              aria-hidden="true"
+              data-icon="inline-end"
+              className="motion-safe:animate-spin"
+            />
+          ) : (
+            <ArrowRight aria-hidden="true" data-icon="inline-end" />
+          )}
         </Button>
       </form>
     </section>

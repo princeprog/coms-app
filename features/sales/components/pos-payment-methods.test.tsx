@@ -121,6 +121,31 @@ it("keeps the cart and total when no payment methods are enabled", async () => {
     "1",
   );
 });
+it("shows a confirmed non-cash sale without cash received or change", async () => {
+  const action = setup(
+    vi.fn().mockResolvedValue({
+      ok: true,
+      sale: {
+        id,
+        status: "COMPLETED",
+        total_amount: "20",
+        tender_method: "GCash",
+        service_type: "TAKEAWAY",
+      },
+    }),
+  );
+  const user = userEvent.setup();
+  await screen.findByLabelText("Amount received");
+  await user.click(screen.getByRole("combobox", { name: "Payment method" }));
+  await user.click(screen.getByRole("option", { name: "GCash" }));
+  await user.click(screen.getByRole("button", { name: "Complete sale" }));
+  await screen.findByRole("heading", { name: "Sale completed" });
+  expect(screen.getByLabelText("Confirmed total").textContent).toBe("₱20.00");
+  expect(screen.getByText("GCash")).toBeTruthy();
+  expect(screen.queryByLabelText("Amount received")).toBeNull();
+  expect(screen.queryByLabelText("Change due")).toBeNull();
+  expect(action).toHaveBeenCalledTimes(1);
+});
 it("refreshes disabled methods after a server conflict without switching tender or losing the order", async () => {
   const action = setup(
     vi.fn().mockResolvedValue({

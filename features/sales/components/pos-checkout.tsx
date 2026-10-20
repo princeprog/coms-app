@@ -178,6 +178,7 @@ export function PosCheckout({
           onClear={() => {
             clearCart();
             setAmountReceived("");
+            if (lastSale) document.getElementById("pos-menu-heading")?.focus();
           }}
           onQuantityChange={updateQuantity}
           onRemove={(id) => {
