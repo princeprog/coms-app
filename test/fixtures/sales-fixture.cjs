@@ -80,6 +80,7 @@ function createSalesSeed({ branches, products, branchProducts, seed }) {
     }
     return {
       id: saleId,
+      sale_reference: `S-${String(index + 1).padStart(6, "0")}`,
       branch_id: branch.id,
       cashier_user_id: seed.user.id,
       cashier_name:
@@ -211,8 +212,31 @@ function handleSalesRequest({ request, response, url, body, state, seed }) {
   const action = route[3];
 
   if (request.method === "GET" && !saleId) {
-    const sales = state.sales
+    const search = (url.searchParams.get("search") ?? "").toLowerCase();
+    const from = url.searchParams.get("date_from");
+    const to = url.searchParams.get("date_to");
+    const status = url.searchParams.get("status");
+    const tender = url.searchParams.get("tender_method");
+    const branchSales = state.sales.filter(
+      (sale) => sale.branch_id === branch.id,
+    );
+    const sales = branchSales
       .filter((sale) => sale.branch_id === branch.id)
+      .filter((sale) => {
+        const day = new Date(Date.parse(sale.created_at) + 8 * 60 * 60 * 1000)
+          .toISOString()
+          .slice(0, 10);
+        return (
+          (!from || day >= from) &&
+          (!to || day <= to) &&
+          (!status || sale.status === status) &&
+          (!tender || sale.tender_method === tender) &&
+          (!search ||
+            (/^s-\d+$/i.test(search)
+              ? sale.sale_reference?.toLowerCase() === search
+              : sale.cashier_name.toLowerCase().includes(search)))
+        );
+      })
       .sort(
         (left, right) =>
           right.created_at.localeCompare(left.created_at) ||
@@ -221,6 +245,18 @@ function handleSalesRequest({ request, response, url, body, state, seed }) {
     const page = pageItems(sales, url);
     return send(response, 200, {
       ...page,
+      summary: {
+        net_sales: sum(
+          sales
+            .filter((s) => s.status === "COMPLETED")
+            .map((s) => s.total_amount),
+        ),
+        completed_sales: sales.filter((s) => s.status === "COMPLETED").length,
+        voided_sales: sales.filter((s) => s.status === "VOIDED").length,
+      },
+      payment_methods: [
+        ...new Set(branchSales.map((s) => s.tender_method)),
+      ].sort(),
       items: page.items.map(listItem),
     });
   }
@@ -283,6 +319,8 @@ function handleSalesRequest({ request, response, url, body, state, seed }) {
     }
     const sale = {
       id: uuid("65000000", state.sales.length + 1),
+      sale_reference: `S-${String(state.sales.length + 1).padStart(6, "0")}`,
+      service_type: body.service_type ?? null,
       branch_id: branch.id,
       cashier_user_id: seed.user.id,
       cashier_name: seed.user.full_name,

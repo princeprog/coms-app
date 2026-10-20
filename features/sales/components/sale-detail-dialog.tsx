@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { format, parseISO } from "date-fns";
+import { formatSaleTime } from "../services/sales-history-filters";
 import { ReceiptTextIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +73,9 @@ export function SaleDetailDialog({
               </MenuStatusBadge>
             </div>
             <DialogDescription className="tabular-nums">
-              {format(parseISO(sale.created_at), "MMM d, yyyy · h:mm a")}
+              {sale.sale_reference && `${sale.sale_reference} · `}
+              {formatSaleTime(sale.created_at, true)} ·{" "}
+              {formatSaleTime(sale.created_at)}
             </DialogDescription>
           </div>
           <Button
@@ -95,6 +97,7 @@ export function SaleDetailDialog({
             <SaleVoidControl
               branchId={branchId}
               saleId={sale.id}
+              saleReference={sale.sale_reference}
               inventoryDeducted={sale.inventory_deducted ?? true}
               action={voidAction}
             />

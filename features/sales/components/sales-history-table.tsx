@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { MoreHorizontal } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Eye, MoreHorizontal, Ban } from "lucide-react";
 import { MenuStatusBadge } from "@/features/menus/components/menu-status-badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -20,161 +20,142 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { SalePage } from "@/features/sales/types/sale.types";
+import { formatProductPrice } from "@/lib/format-currency";
+import type { SalePage, SaleListItem } from "../types/sale.types";
 import {
   createSalesHref,
   type SalesPageFilters,
-} from "@/features/sales/services/sales-page-params";
+} from "../services/sales-page-params";
+import { formatSaleTime } from "../services/sales-history-filters";
 
 export function SalesHistoryTable({
   page,
   filters,
+  onVoid,
 }: {
   page: SalePage;
   filters: SalesPageFilters;
+  onVoid?: (sale: SaleListItem) => void;
 }) {
-  const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));
-
   return (
-    <section
-      aria-labelledby="sales-history-heading"
-      className="flex flex-col gap-3"
+    <div
+      role="region"
+      aria-label="Sales history results"
+      tabIndex={0}
+      className="w-full overflow-x-auto rounded-xl border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 id="sales-history-heading" className="text-lg font-semibold">
-          Sales history
-        </h2>
-        <p className="text-sm text-muted-foreground">{page.total} total</p>
-      </div>
-      {page.items.length === 0 ? (
-        <div className="rounded-lg border bg-card p-6 text-center">
-          <p className="font-medium">
-            No sales have been recorded for this branch.
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Completed sales will appear here with their saved tender and total.
-          </p>
-        </div>
-      ) : (
-        <div
-          role="region"
-          aria-label="Sales history results"
-          tabIndex={0}
-          className="w-full overflow-x-auto rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Table aria-label="Sales history">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>Cashier</TableHead>
-                <TableHead>Tender</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {page.items.map((sale) => (
-                <TableRow key={sale.id}>
-                  <TableCell>
-                    {format(parseISO(sale.created_at), "PP p")}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {sale.cashier_name}
-                  </TableCell>
-                  <TableCell>{sale.tender_method}</TableCell>
-                  <TableCell>
-                    {sale.service_type === "DINE_IN"
-                      ? "Dine-in"
-                      : sale.service_type === "TAKEAWAY"
-                        ? "Takeout"
-                        : "Not recorded"}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    ₱{sale.total_amount}
-                  </TableCell>
-                  <TableCell>
-                    <MenuStatusBadge
-                      status={
-                        sale.status === "COMPLETED" ? "active" : "inactive"
+      <Table aria-label="Sales history">
+        <TableHeader className="bg-muted/60">
+          <TableRow>
+            <TableHead className="pl-4">Sale</TableHead>
+            <TableHead>Cashier</TableHead>
+            <TableHead>Service</TableHead>
+            <TableHead>Payment</TableHead>
+            <TableHead className="pr-8 text-right">Total</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="pr-4 text-right">
+              <span className="sr-only">Actions</span>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {page.items.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={7}
+                className="h-32 text-center text-muted-foreground"
+              >
+                No sales match these filters.
+              </TableCell>
+            </TableRow>
+          ) : (
+            page.items.map((sale) => (
+              <TableRow key={sale.id}>
+                <TableCell className="py-4 pl-4">
+                  <div className="font-medium tabular-nums">
+                    {sale.sale_reference ?? "Sale"}
+                  </div>
+                  <time
+                    dateTime={sale.created_at}
+                    className="text-xs text-muted-foreground"
+                  >
+                    {formatSaleTime(sale.created_at, true)} ·{" "}
+                    {formatSaleTime(sale.created_at)}
+                  </time>
+                </TableCell>
+                <TableCell
+                  className="max-w-48 truncate"
+                  title={sale.cashier_name}
+                >
+                  {sale.cashier_name}
+                </TableCell>
+                <TableCell>
+                  {sale.service_type === "DINE_IN"
+                    ? "Dine-in"
+                    : sale.service_type === "TAKEAWAY"
+                      ? "Takeout"
+                      : "Not recorded"}
+                </TableCell>
+                <TableCell>{sale.tender_method}</TableCell>
+                <TableCell className="pr-8 text-right font-medium tabular-nums">
+                  {formatProductPrice(sale.total_amount)}
+                </TableCell>
+                <TableCell>
+                  <MenuStatusBadge
+                    status={sale.status === "COMPLETED" ? "active" : "inactive"}
+                  >
+                    {sale.status === "COMPLETED" ? "Completed" : "Voided"}
+                  </MenuStatusBadge>
+                </TableCell>
+                <TableCell className="pr-4 text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Actions for ${sale.sale_reference ?? `sale by ${sale.cashier_name}`}`}
+                        />
                       }
                     >
-                      {sale.status === "COMPLETED" ? "Completed" : "Voided"}
-                    </MenuStatusBadge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`Actions for sale by ${sale.cashier_name}`}
-                          />
-                        }
-                      >
-                        <MoreHorizontal aria-hidden="true" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuGroup>
-                          <DropdownMenuItem
-                            render={
-                              <Link
-                                href={createSalesHref({
-                                  ...filters,
-                                  saleId: sale.id,
-                                })}
-                              />
-                            }
-                          >
-                            View sale
-                          </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-      {pageCount > 1 && (
-        <nav
-          aria-label="Sales history pages"
-          className="flex justify-between gap-3"
-        >
-          {page.page > 1 ? (
-            <Link
-              className={buttonVariants({ variant: "outline" })}
-              href={createSalesHref({
-                ...filters,
-                historyPage: page.page - 1,
-                saleId: undefined,
-              })}
-            >
-              Previous sales page
-            </Link>
-          ) : (
-            <span />
+                      <MoreHorizontal aria-hidden="true" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem
+                          render={
+                            <Link
+                              href={createSalesHref({
+                                ...filters,
+                                saleId: sale.id,
+                              })}
+                            />
+                          }
+                        >
+                          <Eye aria-hidden="true" />
+                          View details
+                        </DropdownMenuItem>
+                        {onVoid && sale.status === "COMPLETED" && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => onVoid(sale)}
+                            >
+                              <Ban aria-hidden="true" />
+                              Void sale
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
           )}
-          {page.page < pageCount && (
-            <Link
-              className={buttonVariants({ variant: "outline" })}
-              href={createSalesHref({
-                ...filters,
-                historyPage: page.page + 1,
-                saleId: undefined,
-              })}
-            >
-              Next sales page
-            </Link>
-          )}
-        </nav>
-      )}
-    </section>
+        </TableBody>
+      </Table>
+    </div>
   );
 }

@@ -22,21 +22,35 @@ export function SaleVoidControl({
   saleId,
   action,
   inventoryDeducted = true,
+  controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
+  saleReference,
 }: {
   branchId: string;
   saleId: string;
   action: SaleVoidAction;
   inventoryDeducted?: boolean;
+  controlledOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+  saleReference?: string;
 }) {
   const router = useRouter();
   const retry = useRef<{ reason: string; key: string } | null>(null);
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen ?? localOpen;
+  function setOpen(value: boolean) {
+    setLocalOpen(value);
+    onOpenChange?.(value);
+  }
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
   async function confirmVoid(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
+    if (pending) return;
     const normalizedReason = reason.trim();
     if (!normalizedReason) {
       setError("Enter a reason to void this sale.");
@@ -87,20 +101,24 @@ export function SaleVoidControl({
         }
       }}
     >
-      <AlertDialogTrigger
-        render={
-          <Button
-            type="button"
-            variant="destructive"
-            className="min-h-11 px-4 sm:min-h-10"
-          />
-        }
-      >
-        Void sale
-      </AlertDialogTrigger>
+      {!hideTrigger && (
+        <AlertDialogTrigger
+          render={
+            <Button
+              type="button"
+              variant="destructive"
+              className="min-h-11 px-4 sm:min-h-10"
+            />
+          }
+        >
+          Void sale
+        </AlertDialogTrigger>
+      )}
       <AlertDialogContent data-coms-ui="operational">
         <AlertDialogHeader>
-          <AlertDialogTitle>Void this sale?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {saleReference ? `Void ${saleReference}?` : "Void this sale?"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
             {inventoryDeducted
               ? "Saved stock deductions will be reversed."

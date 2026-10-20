@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PosCheckoutSection } from "./pos-checkout-section";
 import { PosBranchSelector } from "./pos-branch-selector";
 import { SaleDetailDialog } from "./sale-detail-dialog";
-import { SalesHistoryTable } from "./sales-history-table";
+import { SalesHistorySection } from "./sales-history-section";
 import { createSalesHref } from "../services/sales-page-params";
 import type { SalesViewResult } from "../services/sales-page-loader";
 import type { SaleCreateAction, SaleVoidAction } from "../types/sale.types";
@@ -107,17 +107,16 @@ export function SalesManagement({
           <PosCheckoutSection view={view} createAction={createAction} />
         </TabsContent>
         <TabsContent value="history" keepMounted>
-          {view.historyIssue === "unavailable" && (
-            <Alert variant="destructive">
-              <AlertDescription>
-                Unable to load sales history. Refresh the page to try again.
-              </AlertDescription>
-            </Alert>
-          )}
-          {view.salesPage && (
-            <SalesHistoryTable
+          {view.canRead && (
+            <SalesHistorySection
               page={view.salesPage}
-              filters={{ ...filters, view: "history" }}
+              filters={{
+                ...filters,
+                branchId: selectedBranch.id,
+                view: "history",
+              }}
+              canVoid={view.canVoid}
+              voidAction={voidAction}
             />
           )}
         </TabsContent>

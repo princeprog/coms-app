@@ -43,7 +43,7 @@ describe("sales queries", () => {
       { items: [{ total_amount: "12.50" }], page: 2 },
     );
     expect(requestComsApi).toHaveBeenCalledWith(
-      `/branches/${branchId}/sales?page=2&page_size=25`,
+      `/branches/${branchId}/sales?page=2&page_size=10`,
       { cookieHeader: "coms_access=abc" },
     );
   });

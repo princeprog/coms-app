@@ -11,6 +11,13 @@ export type SalesPageFilters = {
   categoryId?: string;
   page: number;
   historyPage: number;
+  historyPageSize?: number;
+  historySearch?: string;
+  historyStatus?: "COMPLETED" | "VOIDED";
+  historyTender?: string;
+  historyPeriod?: "today" | "all" | "custom";
+  historyFrom?: string;
+  historyTo?: string;
   search: string;
   saleId?: string;
   serviceType?: "DINE_IN" | "TAKEAWAY";
@@ -23,7 +30,35 @@ export function parseSalesPageFilters(
   const branchId = z.uuid().safeParse(first(params.branch_id));
   const categoryId = z.uuid().safeParse(first(params.category_id));
   const saleId = z.uuid().safeParse(first(params.sale_id));
+  const period = first(params.history_period);
+  const from = z.iso.date().safeParse(first(params.history_from));
+  const to = z.iso.date().safeParse(first(params.history_to));
+  const status = first(params.history_status);
+  const size = Number(first(params.history_page_size));
   return {
+    ...([10, 30, 50].includes(size) ? { historyPageSize: size } : {}),
+    ...(first(params.history_search)?.trim()
+      ? { historySearch: first(params.history_search)!.trim().slice(0, 100) }
+      : {}),
+    ...(status === "COMPLETED" || status === "VOIDED"
+      ? { historyStatus: status }
+      : {}),
+    ...(first(params.history_tender)
+      ? { historyTender: first(params.history_tender)!.slice(0, 40) }
+      : {}),
+    ...(period === "all" || period === "today"
+      ? { historyPeriod: period }
+      : {}),
+    ...(period === "custom" &&
+    from.success &&
+    to.success &&
+    from.data <= to.data
+      ? {
+          historyPeriod: "custom" as const,
+          historyFrom: from.data,
+          historyTo: to.data,
+        }
+      : {}),
     page: parsePage(first(params.page)),
     historyPage: parsePage(first(params.history_page)),
     search: (first(params.search) ?? "").trim().slice(0, 100),
@@ -52,6 +87,20 @@ export function createSalesHref(filters: SalesPageFilters): string {
   if (filters.saleId) params.set("sale_id", filters.saleId);
   if (filters.serviceType) params.set("service_type", filters.serviceType);
   if (filters.view) params.set("view", filters.view);
+  if (filters.historyPageSize && filters.historyPageSize !== 10)
+    params.set("history_page_size", String(filters.historyPageSize));
+  if (filters.historySearch)
+    params.set("history_search", filters.historySearch);
+  if (filters.historyStatus)
+    params.set("history_status", filters.historyStatus);
+  if (filters.historyTender)
+    params.set("history_tender", filters.historyTender);
+  if (filters.historyPeriod)
+    params.set("history_period", filters.historyPeriod);
+  if (filters.historyPeriod === "custom") {
+    if (filters.historyFrom) params.set("history_from", filters.historyFrom);
+    if (filters.historyTo) params.set("history_to", filters.historyTo);
+  }
   const query = params.toString();
   return query ? `${salesRoute}?${query}` : salesRoute;
 }

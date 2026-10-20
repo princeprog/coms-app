@@ -216,7 +216,15 @@ describe("POS page loader", () => {
       isAvailable: true,
       eligibleOnly: true,
     });
-    expect(getSalePageData).toHaveBeenCalledWith({ branchId, page: 1 });
+    expect(getSalePageData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        branchId,
+        page: 1,
+        pageSize: 10,
+        dateFrom: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        dateTo: expect.any(String),
+      }),
+    );
   });
 
   it("keeps sale history available when the menu read grant is missing", async () => {

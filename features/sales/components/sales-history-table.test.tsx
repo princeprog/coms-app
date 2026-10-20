@@ -41,7 +41,7 @@ describe("sales history table", () => {
 
     expect(screen.getByRole("table", { name: "Sales history" })).toBeTruthy();
     expect(screen.getByText("Mina Cashier")).toBeTruthy();
-    expect(screen.getByText("₱12.5000")).toBeTruthy();
+    expect(screen.getByText("₱12.50")).toBeTruthy();
     expect(screen.getByText("Not recorded")).toBeTruthy();
     expect(screen.getByText("Completed")).toBeTruthy();
     screen
@@ -49,20 +49,12 @@ describe("sales history table", () => {
       .focus();
     await user.keyboard("{Enter}");
     expect(
-      screen.getByRole("menuitem", { name: "View sale" }).getAttribute("href"),
+      screen
+        .getByRole("menuitem", { name: "View details" })
+        .getAttribute("href"),
     ).toBe(
       `/pos?branch_id=${branchId}&page=3&history_page=2&search=chicken&sale_id=${saleId}`,
     );
-    expect(
-      screen
-        .getByRole("link", { name: "Previous sales page" })
-        .getAttribute("href"),
-    ).toBe(`/pos?branch_id=${branchId}&page=3&search=chicken`);
-    expect(
-      screen
-        .getByRole("link", { name: "Next sales page" })
-        .getAttribute("href"),
-    ).toBe(`/pos?branch_id=${branchId}&page=3&history_page=3&search=chicken`);
   });
 
   it("explains when there are no recorded sales", () => {
@@ -72,8 +64,6 @@ describe("sales history table", () => {
         filters={{ branchId, page: 1, historyPage: 1, search: "" }}
       />,
     );
-    expect(
-      screen.getByText("No sales have been recorded for this branch."),
-    ).toBeTruthy();
+    expect(screen.getByText("No sales match these filters.")).toBeTruthy();
   });
 });

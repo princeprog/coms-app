@@ -14,16 +14,36 @@ import { requestComsApi } from "@/services/server-api-services";
 export async function getSalePageData({
   branchId,
   page,
+  pageSize = 10,
+  search,
+  status,
+  tenderMethod,
+  dateFrom,
+  dateTo,
 }: {
   branchId: string;
   page: number;
+  pageSize?: number;
+  search?: string;
+  status?: "COMPLETED" | "VOIDED";
+  tenderMethod?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }): Promise<SalePage> {
   if (!z.uuid().safeParse(branchId).success)
     throw new ApiRequestError("Sale history not found.", 404);
   if (!Number.isInteger(page) || page < 1 || page > 1_000_000)
     throw new ApiRequestError("Invalid sale history page.", 400);
 
-  const params = new URLSearchParams({ page: String(page), page_size: "25" });
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (search) params.set("search", search);
+  if (status) params.set("status", status);
+  if (tenderMethod) params.set("tender_method", tenderMethod);
+  if (dateFrom) params.set("date_from", dateFrom);
+  if (dateTo) params.set("date_to", dateTo);
   const payload = await requestComsApi<unknown>(
     `${salesEndpoint(branchId)}?${params}`,
     { cookieHeader: (await cookies()).toString() },

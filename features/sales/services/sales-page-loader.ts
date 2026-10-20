@@ -1,4 +1,5 @@
 import "server-only";
+import { salesHistoryDates } from "./sales-history-filters";
 
 import { hasBranchScope, hasPermission } from "@/features/auth/permissions";
 import type { User } from "@/features/auth/types/auth.types";
@@ -100,6 +101,11 @@ export async function loadSalesView(
             getSalePageData({
               branchId: selectedBranch.id,
               page: filters.historyPage,
+              pageSize: filters.historyPageSize ?? 10,
+              search: filters.historySearch,
+              status: filters.historyStatus,
+              tenderMethod: filters.historyTender,
+              ...salesHistoryDates(filters),
             }),
           )
         : Promise.resolve({ data: null } as Captured<SalePage | null>),

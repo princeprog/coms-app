@@ -45,6 +45,11 @@ export function PosSaleCompleted({
         >
           Sale completed
         </h2>
+        {sale.sale_reference && (
+          <p className="text-sm font-medium text-emerald-800 tabular-nums dark:text-emerald-200">
+            {sale.sale_reference}
+          </p>
+        )}
       </header>
       <div className="flex flex-col gap-5 p-5 sm:p-6">
         <div className="flex flex-col gap-1 text-center">

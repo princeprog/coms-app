@@ -10,6 +10,10 @@ const positiveDecimalStringSchema = decimalStringSchema.refine((value) =>
 );
 
 const saleHeaderSchema = z.object({
+  sale_reference: z
+    .string()
+    .regex(/^S-\d{6,}$/)
+    .optional(),
   inventory_deducted: z.boolean().optional(),
   service_type: serviceTypeSchema.nullable().optional(),
   id: z.uuid(),
@@ -24,6 +28,14 @@ const saleHeaderSchema = z.object({
 });
 
 export const salePageSchema = z.object({
+  summary: z
+    .object({
+      net_sales: decimalStringSchema,
+      completed_sales: z.number().int().nonnegative(),
+      voided_sales: z.number().int().nonnegative(),
+    })
+    .optional(),
+  payment_methods: z.array(z.string().min(1).max(40)).optional(),
   items: z.array(saleHeaderSchema.extend({ cashier_name: z.string().min(1) })),
   total: z.number().int().nonnegative(),
   page: z.number().int().positive(),
