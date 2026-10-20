@@ -60,7 +60,7 @@ export function DispatchSendReview({
             <p className="font-semibold wrap-anywhere">{branchName}</p>
           </div>
         </div>
-        <fieldset className="grid min-w-0 gap-4 sm:grid-cols-2 sm:items-start">
+        <fieldset className="flex min-w-0 flex-col gap-4">
           <legend className="sr-only">Delivery details</legend>
           <Field data-invalid={!!deliveredByError}>
             <FieldLabel htmlFor="dispatch-delivered-by">

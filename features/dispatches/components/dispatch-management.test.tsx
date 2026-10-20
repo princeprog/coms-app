@@ -249,9 +249,7 @@ describe("dispatch management", () => {
         }}
       />,
     );
-    await user.click(
-      screen.getByRole("link", { name: "Overdue", exact: true }),
-    );
+    await user.click(screen.getByRole("link", { name: "Overdue" }));
     expect(replace).toHaveBeenLastCalledWith(
       `/dispatches?receiving_status=OVERDUE&branch_id=${id}&page_size=30&search=Main`,
       { scroll: false },
@@ -288,7 +286,7 @@ describe("dispatch management", () => {
     expect(within(table).queryByText("Awaiting count")).toBeNull();
     expect(
       screen
-        .getByRole("link", { name: "Overdue", exact: true })
+        .getByRole("link", { name: "Overdue" })
         .getAttribute("aria-current"),
     ).toBe("page");
     expect(

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { CalendarDays } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -17,6 +18,10 @@ export function DatePicker({
   value,
   disabled = false,
   clearable = false,
+  className,
+  invalid = false,
+  describedBy,
+  captionLayout = "dropdown",
   onChange,
 }: {
   id: string;
@@ -24,6 +29,10 @@ export function DatePicker({
   value: string;
   disabled?: boolean;
   clearable?: boolean;
+  className?: string;
+  invalid?: boolean;
+  describedBy?: string;
+  captionLayout?: "label" | "dropdown";
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -39,7 +48,12 @@ export function DatePicker({
             variant="outline"
             disabled={disabled}
             aria-label={`${label}: ${selectedLabel}`}
-            className="w-full justify-start font-normal"
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            className={cn(
+              "w-full min-w-0 justify-start font-normal",
+              className,
+            )}
           />
         }
       >
@@ -55,7 +69,7 @@ export function DatePicker({
           mode="single"
           selected={selected}
           defaultMonth={selected}
-          captionLayout="dropdown"
+          captionLayout={captionLayout}
           autoFocus
           onSelect={(date) => {
             if (date) {

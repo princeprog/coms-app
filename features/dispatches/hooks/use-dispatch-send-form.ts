@@ -108,7 +108,11 @@ export function useDispatchSendForm({
     if (!deadline || new Date(deadline).getTime() <= Date.now()) {
       setDeadlineError("Choose an estimated arrival in the future.");
       event.currentTarget
-        .querySelector<HTMLInputElement>("#dispatch-receive-by")
+        .querySelector<HTMLElement>(
+          receiveBy.split("T")[1]
+            ? "#dispatch-receive-by"
+            : "#dispatch-arrival-time",
+        )
         ?.focus();
       return;
     }

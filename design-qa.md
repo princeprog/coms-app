@@ -442,3 +442,15 @@ Verification: 16 dispatch test files / 94 tests passed, including duplicate-stat
 | Repeated review heading and long inventory copy | Accessible hidden review heading and one short confirmation note | Keeps the modal concise while retaining the consequential action notice |
 
 The API/storage field remains receive_by; default timing and receiving safeguards are unchanged. 23 focused creation/posting/hook tests passed, along with changed-file lint and production build/typecheck. The production loopback browser fixture now checks the create modal: missing courier and estimated-arrival errors/focus, preserved fields through Back to edit, discard, 1440/768/390/320px and dark layouts, and no modal overflow. Desktop/mobile captures inspected under ignored test-results/dispatch-modal/. Existing receiving/directory browser checks also passed, with no page errors. Synthetic data only: the modal probe never submits a valid dispatch. No live stock changes, native screen-reader or physical-device testing.
+
+
+## 2026-10-20 - Estimated arrival shadcn picker
+
+| Before | After | Why |
+| --- | --- | --- |
+| Native combined date/time input | Existing shadcn Calendar + Popover date picker and separate time input | Consistent calendar styling and clear time entry |
+| Arrival compressed beside courier | Courier row followed by date/time row, stacked on mobile | Room for a readable date and comfortable controls |
+
+Used the shadcn skill and official Base UI date-picker/calendar/popover documentation. Reused the shared DatePicker with optional validation, sizing and calendar-caption settings; existing consumers retain their defaults. Both create review and draft sending use the new arrival field. Future-date validation and the receive_by/PHT conversion are unchanged. Clearing time preserves date, selecting another date preserves time, and incomplete time focuses its input on create confirmation.
+
+Verification: 25 focused form/picker/hook tests plus 9 dispatch-directory tests passed; the 2 picker tests also passed with TZ=America/Los_Angeles. Corrected two existing unsupported Testing Library role-query options exposed by typecheck. Changed-file lint, production build and separate typecheck passed. The production loopback browser fixture passed calendar month/day selection, keyboard Enter/Escape and focus return, missing-time validation/focus, draft retention, receiving regressions and 1440/768/390/320px/dark layouts. Inspected desktop review/mobile calendar captures in ignored test-results/dispatch-modal/. Synthetic UI data only, no valid dispatch submission or live stock changes. No native screen-reader or physical-device test.

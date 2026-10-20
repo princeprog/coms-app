@@ -21,8 +21,36 @@ async function checkDispatchCreateModal(page) {
     .getByRole("button", { name: "Review & send", exact: true })
     .click();
   await dialog.getByText("Destination branch", { exact: true }).waitFor();
-  const arrival = dialog.getByLabel("Estimated arrival (PHT)", { exact: true });
-  const initialArrival = await arrival.inputValue();
+  const arrival = dialog.getByRole("button", {
+    name: /Estimated arrival date/,
+  });
+  const time = dialog.getByLabel("Estimated arrival time (PHT)", {
+    exact: true,
+  });
+  const initialTime = await time.inputValue();
+  await arrival.click();
+  const calendar = page.getByRole("grid");
+  await calendar.waitFor();
+  await page.keyboard.press("Escape");
+  await calendar.waitFor({ state: "hidden" });
+  assert.equal(await page.getByRole("alertdialog").count(), 0);
+  assert.equal(
+    await arrival.evaluate((el) => el === document.activeElement),
+    true,
+  );
+  await arrival.click();
+  await page.getByRole("button", { name: "Go to the Next Month" }).click();
+  await calendar.getByRole("button", { name: /15/ }).click();
+  await calendar.waitFor({ state: "hidden" });
+  assert.equal(await time.inputValue(), initialTime);
+  await arrival.press("Enter");
+  await calendar.waitFor({ timeout: 5000 });
+  const selectedDay = calendar.getByRole("button", { name: /15/ });
+  await selectedDay.press("ArrowRight");
+  await calendar.getByRole("button", { name: /16/ }).press("Enter");
+  await calendar.waitFor({ state: "hidden", timeout: 5000 });
+  assert.match(await arrival.textContent(), /16/);
+  const selectedDate = await arrival.textContent();
   assert.equal(await dialog.getByLabel(/Receive by/).count(), 0);
   await dialog
     .getByRole("button", { name: "Confirm dispatch", exact: true })
@@ -37,7 +65,7 @@ async function checkDispatchCreateModal(page) {
   await dialog
     .getByLabel("Delivered by", { exact: true })
     .fill("Juan Dela Cruz");
-  await arrival.fill("");
+  await time.fill("");
   await dialog
     .getByRole("button", { name: "Confirm dispatch", exact: true })
     .click();
@@ -45,10 +73,10 @@ async function checkDispatchCreateModal(page) {
     .getByText("Choose an estimated arrival in the future.")
     .waitFor();
   assert.equal(
-    await arrival.evaluate((el) => el === document.activeElement),
+    await time.evaluate((el) => el === document.activeElement),
     true,
   );
-  await arrival.fill(initialArrival);
+  await time.fill(initialTime);
   fs.mkdirSync("test-results/dispatch-modal", { recursive: true });
   for (const width of [1440, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
@@ -65,6 +93,19 @@ async function checkDispatchCreateModal(page) {
     await dialog.screenshot({
       path: `test-results/dispatch-modal/review-${width}.png`,
     });
+    await arrival.click();
+    await calendar.waitFor();
+    const calendarBounds = await calendar.boundingBox();
+    assert.ok(
+      calendarBounds.x >= 0 && calendarBounds.x + calendarBounds.width <= width,
+      `calendar overflow at ${width}`,
+    );
+    await page.screenshot({
+      path: `test-results/dispatch-modal/calendar-${width}.png`,
+      animations: "disabled",
+    });
+    await page.keyboard.press("Escape");
+    await calendar.waitFor({ state: "hidden" });
   }
   await page.evaluate(() => document.documentElement.classList.add("dark"));
   await dialog.screenshot({
@@ -85,7 +126,8 @@ async function checkDispatchCreateModal(page) {
     await dialog.getByLabel("Delivered by", { exact: true }).inputValue(),
     "Juan Dela Cruz",
   );
-  assert.equal(await arrival.inputValue(), initialArrival);
+  assert.equal(await arrival.textContent(), selectedDate);
+  assert.equal(await time.inputValue(), initialTime);
   await dialog
     .getByRole("button", { name: "Close Create dispatch", exact: true })
     .click();

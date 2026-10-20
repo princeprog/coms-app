@@ -171,8 +171,13 @@ describe("direct dispatch creation", () => {
       await screen.findByText("Enter who is delivering this dispatch."),
     ).toBeTruthy();
     expect(
-      screen.getByLabelText(/Estimated arrival/).getAttribute("type"),
-    ).toBe("datetime-local");
+      screen.getByRole("button", { name: /Estimated arrival date/ }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByLabelText("Estimated arrival time (PHT)")
+        .getAttribute("type"),
+    ).toBe("time");
     expect(screen.queryByLabelText(/Receive by/)).toBeNull();
     const deliveryInput = screen.getByLabelText("Delivered by");
     const deliveryError = screen.getByRole("alert");
