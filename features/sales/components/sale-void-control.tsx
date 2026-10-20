@@ -88,7 +88,13 @@ export function SaleVoidControl({
       }}
     >
       <AlertDialogTrigger
-        render={<Button type="button" variant="destructive" />}
+        render={
+          <Button
+            type="button"
+            variant="destructive"
+            className="min-h-11 px-4 sm:min-h-10"
+          />
+        }
       >
         Void sale
       </AlertDialogTrigger>
@@ -97,9 +103,9 @@ export function SaleVoidControl({
           <AlertDialogTitle>Void this sale?</AlertDialogTitle>
           <AlertDialogDescription>
             {inventoryDeducted
-              ? "COMS will reverse this historical sale's saved stock deductions and record your reason."
-              : "COMS will void this sale and record your reason. Inventory will remain unchanged."}{" "}
-            Payment and refunds are handled outside COMS.
+              ? "Saved stock deductions will be reversed."
+              : "Inventory won't change."}{" "}
+            Handle any refund outside COMS.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex flex-col gap-2">
@@ -131,6 +137,7 @@ export function SaleVoidControl({
           <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             type="button"
+            variant="destructive"
             disabled={pending || !reason.trim()}
             onClick={confirmVoid}
           >

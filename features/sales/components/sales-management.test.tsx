@@ -299,7 +299,7 @@ describe("POS management", () => {
     expect(screen.getByLabelText("Estimated total").textContent).toBe("₱0.00");
   });
 
-  it("opens selected sale details in a sheet and closes only that query selection", async () => {
+  it("opens selected sale details in a dialog and closes only that query selection", async () => {
     const user = userEvent.setup();
     const view: Extract<SalesViewResult, { status: "ready" }> = {
       ...baseView,

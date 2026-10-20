@@ -41,7 +41,7 @@ describe("sale void control", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Void sale" }));
-    expect(screen.getByText(/Inventory will remain unchanged/)).toBeTruthy();
+    expect(screen.getByText(/Inventory won't change/)).toBeTruthy();
     const confirm = screen.getByRole("button", { name: "Confirm void" });
     expect((confirm as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(screen.getByLabelText("Void reason"), {

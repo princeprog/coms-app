@@ -45,11 +45,13 @@ export const saleEventSchema = z.object({
   id: z.uuid(),
   event_type: z.enum(["COMPLETED", "VOIDED"]),
   actor_user_id: z.uuid(),
+  actor_name: z.string().min(1).nullable().optional(),
   reason: z.string().nullable(),
   created_at: z.iso.datetime(),
 });
 
 export const saleDetailSchema = saleHeaderSchema.extend({
+  cashier_name: z.string().min(1).nullable().optional(),
   items: z.array(saleItemSchema),
   events: z.array(saleEventSchema),
 });

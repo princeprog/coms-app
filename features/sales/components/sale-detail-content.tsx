@@ -1,137 +1,99 @@
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import type { Sale, SaleVoidAction } from "@/features/sales/types/sale.types";
-import { SaleVoidControl } from "./sale-void-control";
+import { formatProductPrice } from "@/lib/format-currency";
+import type { Sale } from "@/features/sales/types/sale.types";
 
-export function SaleDetailContent({
-  sale,
-  branchId,
-  canVoid,
-  voidAction,
-}: {
-  sale: Sale;
-  branchId: string;
-  canVoid: boolean;
-  voidAction: SaleVoidAction;
-}) {
+const serviceLabels = { DINE_IN: "Dine-in", TAKEAWAY: "Takeout" } as const;
+
+export function SaleDetailContent({ sale }: { sale: Sale }) {
+  const voided = sale.status === "VOIDED";
+  const voidEvent = sale.events.findLast(
+    (event) => event.event_type === "VOIDED",
+  );
+  const facts = [
+    { label: "Cashier", value: sale.cashier_name ?? "Staff member" },
+    { label: "Payment", value: sale.tender_method },
+    {
+      label: "Service",
+      value: sale.service_type
+        ? serviceLabels[sale.service_type]
+        : "Not recorded",
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Badge variant="outline">{sale.status}</Badge>
-        {canVoid && sale.status === "COMPLETED" && (
-          <SaleVoidControl
-            branchId={branchId}
-            saleId={sale.id}
-            inventoryDeducted={sale.inventory_deducted ?? true}
-            action={voidAction}
-          />
-        )}
-      </div>
-
-      <dl className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2">
-        <div>
-          <dt className="text-xs text-muted-foreground">Service type</dt>
-          <dd className="text-sm">
-            {sale.service_type === "DINE_IN"
-              ? "Dine-in"
-              : sale.service_type === "TAKEAWAY"
-                ? "Takeout"
-                : "Not recorded"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Sale ID</dt>
-          <dd className="break-all font-mono text-sm">{sale.id}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Cashier account</dt>
-          <dd className="break-all font-mono text-sm">
-            {sale.cashier_user_id}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Recorded total</dt>
-          <dd className="font-semibold tabular-nums">{sale.total_amount}</dd>
-        </div>
+    <div className="flex flex-col gap-6">
+      <dl className="grid grid-cols-1 divide-y rounded-xl border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        {facts.map((fact) => (
+          <div
+            key={fact.label}
+            className="flex min-w-0 flex-col gap-1 px-4 py-3"
+          >
+            <dt className="text-xs text-muted-foreground">{fact.label}</dt>
+            <dd className="truncate text-sm font-medium" title={fact.value}>
+              {fact.value}
+            </dd>
+          </div>
+        ))}
       </dl>
 
-      <section
-        aria-labelledby="sale-items-heading"
-        className="flex flex-col gap-2"
-      >
-        <h3 id="sale-items-heading" className="font-semibold">
-          Sale items
-        </h3>
-        <div
-          role="region"
-          aria-label="Sale item details"
-          tabIndex={0}
-          className="w-full overflow-x-auto rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      <section aria-labelledby="sale-items-heading" className="flex flex-col">
+        <h3
+          id="sale-items-heading"
+          className="pb-2 text-xs font-medium text-muted-foreground"
         >
-          <Table aria-label="Sale items">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Unit price</TableHead>
-                <TableHead className="text-right">Line total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sale.items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">
-                    {item.product_name_snapshot}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {item.quantity}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {item.unit_price}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {item.line_total}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          Items ({sale.items.length})
+        </h3>
+        <ul className="divide-y border-y">
+          {sale.items.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-start justify-between gap-4 py-3"
+            >
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="font-medium wrap-anywhere">
+                  {item.product_name_snapshot}
+                </span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {item.quantity} × {formatProductPrice(item.unit_price)}
+                </span>
+              </div>
+              <span className="shrink-0 font-medium tabular-nums">
+                {formatProductPrice(item.line_total)}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="flex items-baseline justify-between gap-4 pt-4">
+          <span className="text-base font-semibold">Total</span>
+          <span
+            className={
+              voided
+                ? "text-2xl font-semibold tracking-tight text-muted-foreground tabular-nums line-through"
+                : "text-2xl font-semibold tracking-tight tabular-nums"
+            }
+          >
+            {formatProductPrice(sale.total_amount)}
+          </span>
         </div>
       </section>
 
-      <section
-        aria-labelledby="sale-events-heading"
-        className="flex flex-col gap-2"
-      >
-        <h3 id="sale-events-heading" className="font-semibold">
-          History
-        </h3>
-        <ol className="flex flex-col gap-3">
-          {sale.events.map((event) => (
-            <li key={event.id} className="rounded-lg border p-3">
-              <p className="font-medium">
-                {event.event_type === "COMPLETED"
-                  ? "Sale completed"
-                  : "Sale voided"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {format(parseISO(event.created_at), "PP p")} · Recorded by staff
-              </p>
-              {event.reason && (
-                <p className="mt-2 text-sm">Reason: {event.reason}</p>
-              )}
-            </li>
-          ))}
-        </ol>
-      </section>
+      {voided && (
+        <section
+          aria-label="Void details"
+          className="flex flex-col gap-1 rounded-xl border border-red-200 bg-red-50 p-4 text-sm dark:border-red-900/60 dark:bg-red-950/30"
+        >
+          <p className="font-medium text-red-800 dark:text-red-200">
+            Voided
+            {voidEvent &&
+              ` by ${voidEvent.actor_name ?? "a staff member"} · ${format(parseISO(voidEvent.created_at), "MMM d, h:mm a")}`}
+          </p>
+          {voidEvent?.reason && (
+            <p className="text-red-900/80 wrap-anywhere dark:text-red-100/80">
+              {voidEvent.reason}
+            </p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

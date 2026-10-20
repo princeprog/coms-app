@@ -108,9 +108,17 @@ function createSalesSeed({ branches, products, branchProducts, seed }) {
 }
 
 function detail(sale) {
-  const value = { ...sale };
-  delete value.cashier_name;
-  return value;
+  return {
+    ...sale,
+    events: sale.events.map((event) => ({
+      ...event,
+      actor_name:
+        event.actor_name ??
+        (event.actor_user_id === sale.cashier_user_id
+          ? sale.cashier_name
+          : null),
+    })),
+  };
 }
 
 function listItem(sale) {
@@ -325,6 +333,7 @@ function handleSalesRequest({ request, response, url, body, state, seed }) {
       id: uuid("68000000", state.saleActionKeys.length * 2 + 200),
       event_type: "VOIDED",
       actor_user_id: seed.user.id,
+      actor_name: seed.user.full_name,
       reason,
       created_at: "2026-09-25T05:01:00.000Z",
     });

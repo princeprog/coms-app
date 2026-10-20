@@ -1,21 +1,22 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { SaleDetailContent } from "./sale-detail-content";
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const saleId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
 const productId = "3fa85f64-5717-4562-b3fc-2c963f66afa8";
 const timestamp = "2026-09-24T01:30:00.000Z";
-const action = vi.fn();
 
 const sale = {
   id: saleId,
   branch_id: branchId,
   cashier_user_id: branchId,
+  cashier_name: "Maria Santos",
   status: "VOIDED" as const,
-  tender_method: "cash",
-  total_amount: "12.50",
+  service_type: "DINE_IN" as const,
+  tender_method: "GCash",
+  total_amount: "1250.5",
   idempotency_key: saleId,
   created_at: timestamp,
   items: [
@@ -23,9 +24,9 @@ const sale = {
       id: productId,
       product_id: productId,
       product_name_snapshot: "Chicken sandwich",
-      quantity: "1",
-      unit_price: "12.50",
-      line_total: "12.50",
+      quantity: "2",
+      unit_price: "625.25",
+      line_total: "1250.5",
       created_at: timestamp,
     },
   ],
@@ -34,13 +35,15 @@ const sale = {
       id: branchId,
       event_type: "COMPLETED" as const,
       actor_user_id: branchId,
+      actor_name: "Maria Santos",
       reason: null,
       created_at: timestamp,
     },
     {
       id: productId,
       event_type: "VOIDED" as const,
-      actor_user_id: branchId,
+      actor_user_id: saleId,
+      actor_name: "Jose Reyes",
       reason: "Cashier selected the wrong product",
       created_at: timestamp,
     },
@@ -48,21 +51,34 @@ const sale = {
 };
 
 describe("sale detail content", () => {
-  it("shows sale snapshots and the reason from void history", () => {
+  it("shows readable sale facts, priced items and who voided the sale", () => {
+    render(<SaleDetailContent sale={sale} />);
+    expect(screen.getByText("Maria Santos")).toBeTruthy();
+    expect(screen.getByText("GCash")).toBeTruthy();
+    expect(screen.getByText("Dine-in")).toBeTruthy();
+    expect(screen.queryByText(branchId)).toBeNull();
+    expect(screen.getByText("Chicken sandwich")).toBeTruthy();
+    expect(screen.getByText("2 × ₱625.25")).toBeTruthy();
+    expect(screen.getAllByText("₱1,250.50")).toHaveLength(2);
+    const notice = screen.getByRole("region", { name: "Void details" });
+    expect(notice.textContent).toContain("Voided by Jose Reyes");
+    expect(notice.textContent).toContain("Cashier selected the wrong product");
+  });
+
+  it("omits the void notice and falls back when names are unavailable", () => {
     render(
       <SaleDetailContent
-        sale={sale}
-        branchId={branchId}
-        canVoid
-        voidAction={action}
+        sale={{
+          ...sale,
+          status: "COMPLETED",
+          cashier_name: undefined,
+          service_type: null,
+          events: [sale.events[0]],
+        }}
       />,
     );
-    expect(screen.getByRole("heading", { name: "Sale items" })).toBeTruthy();
-    expect(screen.getByText("Chicken sandwich")).toBeTruthy();
-    expect(
-      screen.getByText(/Reason: Cashier selected the wrong product/),
-    ).toBeTruthy();
-    expect(screen.getByText("VOIDED")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Void sale" })).toBeNull();
+    expect(screen.getByText("Staff member")).toBeTruthy();
+    expect(screen.getByText("Not recorded")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Void details" })).toBeNull();
   });
 });

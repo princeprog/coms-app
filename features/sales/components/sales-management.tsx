@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PosCheckoutSection } from "./pos-checkout-section";
 import { PosBranchSelector } from "./pos-branch-selector";
-import { SaleDetailSheet } from "./sale-detail-sheet";
+import { SaleDetailDialog } from "./sale-detail-dialog";
 import { SalesHistoryTable } from "./sales-history-table";
 import { createSalesHref } from "../services/sales-page-params";
 import type { SalesViewResult } from "../services/sales-page-loader";
@@ -134,7 +134,7 @@ export function SalesManagement({
         </Alert>
       )}
       {view.selectedSale && (
-        <SaleDetailSheet
+        <SaleDetailDialog
           sale={view.selectedSale}
           branchId={selectedBranch.id}
           filters={filters}
