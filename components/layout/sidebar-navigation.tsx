@@ -6,6 +6,8 @@ import type { User } from "@/features/auth/types/auth.types";
 
 import {
   BoxesIcon,
+  CalendarClockIcon,
+  ClockIcon,
   CreditCardIcon,
   Building2Icon,
   ClipboardListIcon,
@@ -25,6 +27,11 @@ export const navItems = [
     title: "Payment methods",
     url: "/payment-methods",
     icon: <CreditCardIcon />,
+  },
+  {
+    title: "Business day",
+    url: "/business-day",
+    icon: <CalendarClockIcon />,
   },
   {
     title: "Dashboard",
@@ -81,6 +88,12 @@ export const navItems = [
     icon: <StoreIcon />,
   },
   {
+    title: "Shifts",
+    url: "/shifts",
+    permission: "shifts.read",
+    icon: <ClockIcon />,
+  },
+  {
     title: "Daily Reports",
     url: "/reports",
     permission: "daily_reports.read",
@@ -109,7 +122,10 @@ export const navItems = [
 export function getAppSidebarNavigation(user: User) {
   const contextualItems = isProtectedSuperAdmin(user)
     ? navItems.filter((item) => item.url !== "/pos")
-    : navItems.filter((item) => item.url !== "/payment-methods");
+    : navItems.filter(
+        (item) =>
+          item.url !== "/payment-methods" && item.url !== "/business-day",
+      );
   const allowed = filterNavigationForUser(user, contextualItems);
   const productRoutes = ["/products"];
   const menuRoutes = ["/branch-products"];
@@ -142,11 +158,17 @@ export const sidebarNavigationGroups = [
   },
   {
     title: "Products & Sales",
-    urls: ["/products", "/branch-products", "/pos", "/reports"],
+    urls: ["/products", "/branch-products", "/pos", "/shifts", "/reports"],
   },
   {
     title: "Administration",
-    urls: ["/branches", "/staff", "/roles", "/payment-methods"],
+    urls: [
+      "/branches",
+      "/staff",
+      "/roles",
+      "/payment-methods",
+      "/business-day",
+    ],
   },
 ];
 

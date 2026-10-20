@@ -214,5 +214,8 @@ export async function loadSalesView(
     canCreate: canCreateAtBranch && canReadMenu,
     canRead,
     canVoid,
+    currentUserId: user.id,
+    canOperateShift: hasPermission(user, "shifts.operate"),
+    canReviewShift: hasPermission(user, "shifts.review"),
   };
 }

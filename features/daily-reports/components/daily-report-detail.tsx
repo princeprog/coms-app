@@ -17,6 +17,7 @@ import { DailyReportHistory } from "./daily-report-history";
 import { DailyReportItemEditor } from "./daily-report-item-editor";
 import { DailyReportReviewControls } from "./daily-report-review-controls";
 import { DailyReportSalesSummary } from "./daily-report-sales-summary";
+import { DailyReportShifts } from "./daily-report-shifts";
 
 const manilaTime = new Intl.DateTimeFormat("en-PH", {
   dateStyle: "medium",
@@ -101,6 +102,7 @@ export function DailyReportDetail({
         )}
       </dl>
       <DailyReportSalesSummary report={report} />
+      <DailyReportShifts branchId={branchId} report={report} />
       {report.return_reason && (
         <p
           role="status"

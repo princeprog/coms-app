@@ -36,6 +36,8 @@ const routeTitles: Record<string, string> = {
   "/stock-items": "Stock Items",
   "/suppliers": "Suppliers",
   "/payment-methods": "Payment methods",
+  "/shifts": "Shifts",
+  "/business-day": "Business day",
 };
 
 function getPageTitle(pathname: string): string {

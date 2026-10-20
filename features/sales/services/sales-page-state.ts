@@ -29,6 +29,9 @@ export type SalesViewResult =
       canCreate: boolean;
       canRead: boolean;
       canVoid: boolean;
+      currentUserId: string;
+      canOperateShift: boolean;
+      canReviewShift: boolean;
     };
 
 export function getAccessFailure(

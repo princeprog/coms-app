@@ -6,6 +6,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/features/sales/services/sales-price-actions", () => ({
   refreshCartPricesAction: vi.fn(),
 }));
+vi.mock("@/features/shifts/services/shift-actions", () => ({
+  getCurrentShiftAction: vi.fn(async () => ({
+    ok: true,
+    data: {
+      id: "3fa85f64-5717-4562-b3fc-2c963f66afb1",
+      shift_number: 1,
+      opened_by_user_id: "cashier-1",
+      opened_by_name: "Test cashier",
+      opened_at: "2026-09-24T01:00:00.000Z",
+      business_day_ended: false,
+    },
+  })),
+}));
 import { SalesManagement } from "./sales-management";
 import type { SalesViewResult } from "@/features/sales/services/sales-page-loader";
 
@@ -100,6 +113,9 @@ const baseView: Extract<SalesViewResult, { status: "ready" }> = {
   canCreate: true,
   canRead: true,
   canVoid: true,
+  currentUserId: "cashier-1",
+  canOperateShift: true,
+  canReviewShift: false,
 };
 
 describe("POS management", () => {

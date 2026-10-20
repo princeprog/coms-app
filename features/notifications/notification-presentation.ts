@@ -12,11 +12,18 @@ export const notificationTitle: Record<NotificationKind, string> = {
   REPORT_SUBMITTED: "Daily report ready for review",
   REPORT_RETURNED: "Daily report returned",
   REPORT_APPROVED: "Daily report approved",
+  SHIFT_NEEDS_REVIEW: "Shift needs review",
 };
 export function notificationHref(
-  item: Pick<Notification, "id" | "dispatch_id" | "report_id" | "branch_id">,
+  item: Pick<Notification, "id" | "dispatch_id" | "report_id" | "branch_id"> &
+    Partial<Pick<Notification, "shift_id">>,
 ) {
   const params = new URLSearchParams();
+  if (item.shift_id) {
+    params.set("branch", item.branch_id);
+    params.set("notification_id", item.id);
+    return `/shifts/${item.shift_id}?${params}`;
+  }
   if (!item.dispatch_id && !item.report_id) {
     params.set("branch_id", item.branch_id);
     params.set("receiving_status", "OVERDUE");
@@ -38,7 +45,10 @@ export function parseNotificationFilters(
   const type = params.get("type");
   return {
     status: params.get("status") === "unread" ? "unread" : "all",
-    type: type === "dispatches" || type === "reports" ? type : "all",
+    type:
+      type === "dispatches" || type === "reports" || type === "shifts"
+        ? type
+        : "all",
     page: Number.isInteger(page) && page > 0 && page <= 1000000 ? page : 1,
     page_size: size === 30 || size === 50 ? size : 10,
   };
@@ -67,6 +77,8 @@ export const notificationTimestamp = (value: string) =>
 export const notificationContext = (item: Notification) =>
   item.kind === "DISPATCH_OVERDUE"
     ? `${item.overdue_count ?? "Pending"} overdue deliveries`
-    : item.business_date
-      ? `Daily report · ${businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`))}`
-      : "Dispatch";
+    : item.kind === "SHIFT_NEEDS_REVIEW"
+      ? `Shift ${item.shift_number ?? ""} · ${item.business_date ? businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`)) : ""}`
+      : item.business_date
+        ? `Daily report · ${businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`))}`
+        : "Dispatch";

@@ -1,4 +1,5 @@
 const { handlePurchaseRequest } = require("./fixtures/purchases-fixture.cjs");
+const { handleShiftRequest } = require("./fixtures/shifts-fixture.cjs");
 const {
   seedReceivingFollowup,
 } = require("./fixtures/receiving-followup-fixture.cjs");
@@ -612,6 +613,7 @@ function createOperationalApiFixture({
   stockItemCount = 26,
   notificationCount = 0,
   receivingFollowup = false,
+  openShifts = true,
 }) {
   if (!gatewaySecret || !/^[a-f0-9]{64}$/i.test(gatewaySecret)) {
     throw new Error(
@@ -816,6 +818,17 @@ function createOperationalApiFixture({
         seed,
       });
       if (dailyReportResponse !== false) return dailyReportResponse;
+
+      const shiftResponse = handleShiftRequest({
+        request,
+        response,
+        url,
+        body,
+        state,
+        authUser,
+        openShifts,
+      });
+      if (shiftResponse !== false) return shiftResponse;
 
       const purchaseResponse = handlePurchaseRequest({
         request,

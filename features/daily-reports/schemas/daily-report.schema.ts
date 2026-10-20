@@ -149,4 +149,22 @@ export const dailyReportDetailSchema = dailyReportHeaderSchema.extend({
     .optional(),
   items: z.array(dailyReportItemSchema),
   events: z.array(dailyReportEventSchema),
+  shifts: z
+    .array(
+      z.object({
+        id: z.uuid(),
+        shift_number: z.number().int().positive(),
+        status: z.enum(["OPEN", "CLOSED", "REVIEWED"]),
+        close_type: z.enum(["CASHIER", "FORCED"]).nullable(),
+        cashier_name: z.string(),
+        opened_at: z.string(),
+        closed_at: z.string().nullable(),
+        sales_count: z.number().int().nonnegative(),
+        net_cash_sales: z.string().nullable(),
+        non_cash_sales: z.string().nullable(),
+        cash_difference: z.string().nullable(),
+        opening_difference: z.string().nullable(),
+      }),
+    )
+    .optional(),
 });

@@ -19,7 +19,12 @@ export type SaleMutationResult =
   | {
       ok: false;
       error: string;
-      code?: "PRICE_CHANGED" | "PAYMENT_METHOD_UNAVAILABLE";
+      code?:
+        | "PRICE_CHANGED"
+        | "PAYMENT_METHOD_UNAVAILABLE"
+        | "SHIFT_REQUIRED"
+        | "SHIFT_OWNED_BY_OTHER"
+        | "SHIFT_DAY_ENDED";
     };
 export type SaleVoidResult = { ok: true } | { ok: false; error: string };
 export type SaleCreateAction = (

@@ -1,4 +1,6 @@
 "use client";
+import { useQueryClient } from "@tanstack/react-query";
+import { shiftKeys } from "@/features/shifts/query-keys";
 import type { PaymentMethodChoice } from "@/features/payment-methods/schemas/payment-method.schema";
 import type { BranchProduct } from "@/features/branch-products/types/branch-product.types";
 import { useMenuMutation } from "@/features/menus/hooks/use-menu-mutation";
@@ -36,6 +38,7 @@ export function usePosCheckout({
   refreshPaymentMethods: () => unknown;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const params = useSearchParams();
   const saleMutation = useMenuMutation(
     (input: { payload: unknown; key: string }) =>
@@ -245,6 +248,8 @@ export function usePosCheckout({
           setUpdatedPrices(null);
           await refreshPrices();
         }
+        if (result.code?.startsWith("SHIFT_"))
+          await queryClient.invalidateQueries({ queryKey: shiftKeys.all });
         return;
       }
       setCompletedCash(paymentMethod?.kind === "CASH");

@@ -13,7 +13,8 @@ import type {
   DailyReportPage,
 } from "@/features/daily-reports/types/daily-report.types";
 import { ApiRequestError } from "@/services/api-services";
-import { getTodayManilaDate } from "./manila-date";
+import { getBusinessToday } from "@/features/business-day/services/business-day-queries";
+import { blockingReportShifts } from "./report-shift-blocks";
 import {
   createDailyReportHref,
   parseDailyReportPageFilters,
@@ -108,6 +109,7 @@ export async function loadDailyReportsView(
     : branchOptions[0];
   if (!selectedBranch) return { status: "forbidden" };
 
+  const businessToday = await getBusinessToday();
   const [pageResult, detailResult] = await Promise.all([
     capture(() =>
       getDailyReportPageData({
@@ -177,7 +179,11 @@ export async function loadDailyReportsView(
     selectedReport.items.every(
       (item) => item.physical_closing_quantity !== null,
     ) &&
-    selectedReport.business_date < getTodayManilaDate() &&
+    selectedReport.business_date < businessToday &&
+    (() => {
+      const blocked = blockingReportShifts(selectedReport);
+      return !blocked.open.length && !blocked.unreviewed.length;
+    })() &&
     selectedBranch.status !== "inactive" &&
     hasPermission(user, "daily_reports.submit");
   const canReview =
@@ -192,7 +198,7 @@ export async function loadDailyReportsView(
     page: pageResult.data,
     selectedReport,
     detailIssue,
-    todayManila: getTodayManilaDate(),
+    todayManila: businessToday,
     canCreate,
     canUpdate,
     canSubmit: Boolean(canSubmit),

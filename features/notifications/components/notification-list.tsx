@@ -8,6 +8,7 @@ import {
   FilePenLine,
   TriangleAlert,
   Truck,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,6 +59,10 @@ const appearance = {
     icon: FileCheck2,
     color:
       "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  },
+  SHIFT_NEEDS_REVIEW: {
+    icon: Wallet,
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
   },
 } satisfies Record<NotificationKind, { icon: typeof Truck; color: string }>;
 

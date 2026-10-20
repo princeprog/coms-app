@@ -18,6 +18,30 @@ import type {
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
 
+const shiftCodes = [
+  "SHIFT_REQUIRED",
+  "SHIFT_OWNED_BY_OTHER",
+  "SHIFT_DAY_ENDED",
+  "SHIFT_REQUIRED_FOR_REFUND",
+] as const;
+
+/** Register-shift conflicts carry a message staff can act on directly. */
+function shiftConflict(error: unknown) {
+  if (
+    error instanceof ApiRequestError &&
+    error.status === 409 &&
+    typeof error.payload === "object" &&
+    error.payload !== null &&
+    "code" in error.payload &&
+    shiftCodes.includes(error.payload.code as (typeof shiftCodes)[number])
+  )
+    return {
+      code: error.payload.code as (typeof shiftCodes)[number],
+      error: error.message,
+    };
+  return null;
+}
+
 function getActionError(error: unknown) {
   if (error instanceof ApiRequestError) {
     if (error.status === 401) return "Your session expired. Sign in again.";
@@ -133,6 +157,9 @@ export async function createSaleAction(
           "Prices changed. Review the updated prices before completing this sale.",
         code: "PRICE_CHANGED",
       };
+    const shift = shiftConflict(error);
+    if (shift && shift.code !== "SHIFT_REQUIRED_FOR_REFUND")
+      return { ok: false, error: shift.error, code: shift.code };
     return { ok: false, error: getActionError(error) };
   }
 }
@@ -174,6 +201,8 @@ export async function voidSaleAction(
     revalidatePath(salesRoute);
     return { ok: true };
   } catch (error) {
+    const shift = shiftConflict(error);
+    if (shift) return { ok: false, error: shift.error };
     return { ok: false, error: getActionError(error) };
   }
 }

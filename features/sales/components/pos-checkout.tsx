@@ -22,6 +22,7 @@ import { PosMenuPanel } from "./pos-menu-panel";
 export function PosCheckout({
   branchId,
   branchActive,
+  sellBlocked = null,
   serviceTypes = ["DINE_IN", "TAKEAWAY"],
   appliedService,
   onServiceChange,
@@ -35,6 +36,8 @@ export function PosCheckout({
 }: {
   branchId: string;
   branchActive: boolean;
+  /** Register-shift reason that prevents completing a sale, if any. */
+  sellBlocked?: string | null;
   serviceTypes?: ServiceType[];
   appliedService?: ServiceType;
   onServiceChange?: (service: ServiceType) => void;
@@ -150,6 +153,7 @@ export function PosCheckout({
           branchActive={branchActive}
           blocked={
             !service ||
+            Boolean(sellBlocked) ||
             menuUnavailable ||
             needsPriceReview ||
             incompatible.length > 0 ||

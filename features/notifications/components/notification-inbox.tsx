@@ -1,7 +1,14 @@
 "use client";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bell, CheckCheck, FileText, LoaderCircle, Truck } from "lucide-react";
+import {
+  Bell,
+  CheckCheck,
+  FileText,
+  LoaderCircle,
+  Truck,
+  Wallet,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DirectorySelect } from "@/components/shared/directory-select";
 import {
@@ -123,6 +130,11 @@ export function NotificationInbox({ userId }: { userId: string }) {
               value: "reports",
               label: "Daily reports",
               icon: <FileText className="text-violet-600" />,
+            },
+            {
+              value: "shifts",
+              label: "Shifts",
+              icon: <Wallet className="text-amber-600" />,
             },
           ]}
           onChange={(type) =>
