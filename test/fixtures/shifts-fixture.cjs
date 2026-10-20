@@ -26,6 +26,9 @@ function blankShift(state, branchId, user, openingFloat) {
   return {
     id: randomUUID(),
     branch_id: branchId,
+    branch_name:
+      state.branches.find((branch) => branch.id === branchId)?.branch_name ??
+      "Branch",
     business_date: today,
     shift_number: number,
     status: "OPEN",
@@ -134,6 +137,17 @@ function handleShiftRequest({
   ) {
     state.businessDayScheduled = null;
     return send(response, 200, businessDay(state));
+  }
+  if (url.pathname === "/shifts/mine" && request.method === "GET") {
+    seedShifts(state, authUser, openShifts);
+    const own = state.shifts.find(
+      (shift) =>
+        shift.status === "OPEN" && shift.opened_by_user_id === authUser.id,
+    );
+    const reviewer =
+      authUser.role?.code === "SUPER_ADMIN" ||
+      (authUser.permissions ?? []).includes("shifts.review");
+    return send(response, 200, { shift: own ? detail(own, !reviewer) : null });
   }
   const route = url.pathname.match(
     /^\/branches\/([0-9a-f-]{36})\/shifts(?:\/(current|[0-9a-f-]{36}))?(?:\/(cash-movements|close|force-close|explanation|review))?$/i,

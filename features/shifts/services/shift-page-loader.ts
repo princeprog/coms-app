@@ -24,6 +24,7 @@ export type ShiftPageAccess =
       selectedBranchId: string;
       currentUserId: string;
       canReview: boolean;
+      canOperate: boolean;
       superAdmin: boolean;
     };
 
@@ -57,6 +58,8 @@ export async function loadShiftPageAccess(
     selectedBranchId: selected.id,
     currentUserId: user.id,
     canReview: hasPermission(user, "shifts.review"),
+    canOperate:
+      hasPermission(user, "shifts.operate") && !isProtectedSuperAdmin(user),
     superAdmin: isProtectedSuperAdmin(user),
   };
 }

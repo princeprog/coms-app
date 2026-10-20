@@ -8,6 +8,7 @@ export const shiftStatusSchema = z.enum(["OPEN", "CLOSED", "REVIEWED"]);
 export const shiftSchema = z.object({
   id: z.uuid(),
   branch_id: z.uuid(),
+  branch_name: z.string().default(""),
   business_date: z.iso.date(),
   shift_number: z.number().int().positive(),
   status: shiftStatusSchema,

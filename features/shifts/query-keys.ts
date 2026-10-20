@@ -1,5 +1,6 @@
 export const shiftKeys = {
   all: ["shifts"] as const,
+  mine: ["shifts", "mine"] as const,
   current: (branchId: string) => ["shifts", "current", branchId] as const,
   list: (branchId: string, query: object) =>
     ["shifts", "list", branchId, query] as const,

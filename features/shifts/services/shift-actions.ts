@@ -93,6 +93,22 @@ export async function getCurrentShiftAction(
   );
 }
 
+/** The signed-in user's own open shift at any branch they can access. */
+export async function getMyShiftAction(): Promise<
+  ShiftResult<ShiftDetail | null>
+> {
+  const session = await getCurrentUserFromServer();
+  if (session.status !== "authenticated")
+    return { ok: false, error: "Your session expired. Sign in again." };
+  if (!hasPermission(session.user, "shifts.read"))
+    return { ok: true, data: null };
+  return call(
+    "/shifts/mine",
+    (value) =>
+      z.object({ shift: shiftDetailSchema.nullable() }).parse(value).shift,
+  );
+}
+
 export async function listShiftsAction(
   branchId: unknown,
   query: unknown,

@@ -124,9 +124,12 @@ async function noOverflow(label) {
       reducedMotion: "reduce",
     })
   ).newPage();
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) =>
+    errors.push(`${new URL(page.url()).pathname}: ${error.message}`),
+  );
   page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
+    if (message.type() === "error")
+      errors.push(`${new URL(page.url()).pathname}: ${message.text()}`);
   });
   await page.goto(baseUrl);
   await page
@@ -142,6 +145,7 @@ async function noOverflow(label) {
     await page.goto(`${baseUrl}/business-day`);
     await page
       .getByRole("heading", { name: "Business day", level: 1 })
+      .last()
       .waitFor();
     await page.getByText("12:00 AM", { exact: true }).first().waitFor();
     await page.getByRole("combobox", { name: "Day starts at" }).click();
@@ -170,24 +174,49 @@ async function noOverflow(label) {
   }
 
   await page.goto(`${baseUrl}/pos`);
-  const bar = page.getByRole("region", { name: "Register shift" });
-  await bar.getByText("No open shift", { exact: true }).waitFor();
-  await bar
-    .getByText("Open a shift to start selling.", { exact: true })
+  const gate = page.getByRole("region", { name: "Register" });
+  await gate
+    .getByRole("heading", { name: "Start your shift to use the register" })
+    .waitFor();
+  assert.equal(
+    await page.getByLabel("Search products").count(),
+    0,
+    "The register must stay hidden without a shift",
+  );
+  await page
+    .locator("header")
+    .first()
+    .getByRole("link", { name: "Start shift", exact: true })
     .waitFor();
   await noOverflow("pos-no-shift");
 
-  await bar.getByRole("button", { name: "Open shift", exact: true }).click();
-  let dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Open shift", exact: true }).click();
-  await dialog.getByText("Enter an amount", { exact: true }).waitFor();
-  await page.keyboard.type("1,000");
+  await gate.getByRole("link", { name: "Start shift", exact: true }).click();
+  await page.waitForURL((url) => url.pathname === "/shifts/start");
+  await page
+    .getByRole("heading", { name: "Start shift", level: 1 })
+    .last()
+    .waitFor();
+  const startButton = page.getByRole("button", {
+    name: "Start shift",
+    exact: true,
+  });
+  await startButton.click();
+  await page.getByText("Enter an amount", { exact: false }).first().waitFor();
+  await page
+    .getByRole("radio", { name: "Count bills & coins", exact: true })
+    .click();
+  await page.getByLabel("Number of ₱500").fill("2");
+  await page.locator("[aria-live=polite]", { hasText: "₱1,000.00" }).waitFor();
+  await noOverflow("start-shift");
   await page.keyboard.press("Enter");
-  await page.getByText("Shift 1 opened", { exact: true }).waitFor();
-  await bar.getByText("Shift 1 · You", { exact: true }).waitFor();
+  await page.waitForURL((url) => url.pathname === "/pos");
+  await page.getByText("Shift 1 started", { exact: true }).waitFor();
+  await page.getByLabel("Search products").waitFor();
 
-  await bar.getByRole("button", { name: "Cash in/out", exact: true }).click();
-  dialog = page.getByRole("dialog");
+  const shiftMenu = page.getByRole("button", { name: /^Shift 1 at / });
+  await shiftMenu.click();
+  await page.getByRole("menuitem", { name: "Cash in / out" }).click();
+  let dialog = page.getByRole("dialog");
   await dialog.getByLabel("Amount").fill("100");
   await dialog.getByLabel("Reason").fill("Bought ice");
   await dialog
@@ -197,47 +226,43 @@ async function noOverflow(label) {
     .getByText("Cash out of ₱100.00 recorded", { exact: true })
     .waitFor();
 
-  await bar.getByRole("button", { name: "Close shift", exact: true }).click();
-  dialog = page.getByRole("dialog");
-  await dialog
-    .getByText("Expected cash appears after you submit.", { exact: false })
+  await shiftMenu.click();
+  await page.getByRole("menuitem", { name: "End shift" }).click();
+  await page.waitForURL((url) => url.pathname === "/shifts/end");
+  const form = page.locator("main form");
+  await form.getByText("Bought ice", { exact: true }).waitFor();
+  await form
+    .getByText("Expected cash appears after you submit", { exact: false })
     .waitFor();
   assert.equal(
-    await dialog.getByText("₱900.00").count(),
+    await page.getByText("₱900.00").count(),
     0,
     "Expected cash must stay hidden before the count",
   );
-  await dialog.getByLabel("Counted cash").fill("890");
-  await dialog.getByLabel("Leave in drawer").fill("900");
-  await dialog
-    .getByRole("button", { name: "Review count", exact: true })
-    .click();
-  await dialog
+  await noOverflow("end-shift-review");
+  await form.getByRole("button", { name: "Count drawer", exact: true }).click();
+  await form.getByRole("textbox", { name: "Cash in drawer" }).fill("890");
+  await form.getByRole("textbox", { name: "Leave for next shift" }).fill("900");
+  await form.getByRole("button", { name: "Review count", exact: true }).click();
+  await form
     .getByText("Cannot be more than the counted cash", { exact: true })
     .waitFor();
-  await dialog.getByLabel("Leave in drawer").fill("500");
-  await dialog
-    .getByRole("button", { name: "Review count", exact: true })
-    .click();
-  await dialog.getByText("₱390.00", { exact: true }).waitFor();
-  await page.screenshot({
-    path: path.join(output, "close-confirm.png"),
-    fullPage: true,
-  });
-  await dialog
-    .getByRole("button", { name: "Close shift", exact: true })
-    .click();
-  await dialog.getByText("Short ₱10.00", { exact: true }).waitFor();
-  await dialog.getByText("₱900.00", { exact: true }).waitFor();
-  await page.screenshot({
-    path: path.join(output, "close-result.png"),
-    fullPage: true,
-  });
-  await dialog.getByLabel(/What happened/).fill("Gave extra change");
-  await dialog
+  await form.getByRole("textbox", { name: "Leave for next shift" }).fill("500");
+  await form.getByRole("button", { name: "Review count", exact: true }).click();
+  await form.getByText("₱390.00", { exact: true }).waitFor();
+  await noOverflow("end-shift-confirm");
+  await form.getByRole("button", { name: "End shift", exact: true }).click();
+  await form.getByText("Short ₱10.00", { exact: true }).waitFor();
+  await form.getByText("₱900.00", { exact: true }).waitFor();
+  await noOverflow("end-shift-result");
+  await form.getByLabel(/What happened/).fill("Gave extra change");
+  await form
     .getByRole("button", { name: "Save and finish", exact: true })
     .click();
-  await bar.getByText("No open shift", { exact: true }).waitFor();
+  await page.waitForURL((url) => url.pathname === "/pos");
+  await gate
+    .getByRole("heading", { name: "Start your shift to use the register" })
+    .waitFor();
 
   await page.goto(`${baseUrl}/shifts`);
   const table = page.getByRole("table", { name: "Register shifts" });
@@ -276,7 +301,7 @@ async function noOverflow(label) {
   }
   assert.deepEqual(errors, []);
   console.log(
-    "PASS shifts: blocked checkout without a shift, keyboard open, cash out, blind close with shortfall and explanation, list and detail, self-review guard, responsive layouts",
+    "PASS shifts: POS gate without a shift, start page with bills-and-coins count, header cash out, stepped blind end with shortfall and explanation, return to gate, list and detail, self-review guard, responsive layouts",
   );
 })()
   .catch(async (error) => {

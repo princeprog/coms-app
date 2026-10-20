@@ -132,12 +132,12 @@ describe("POS management", () => {
     expect(screen.queryByLabelText("Branch")).toBeNull();
     expect(screen.getByText("Downtown")).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+      await screen.findByRole("button", { name: "Add Chicken sandwich" }),
     ).toBeTruthy();
     expect(screen.getByLabelText("Search products")).toBeTruthy();
     expect(screen.queryByRole("table", { name: "Sales history" })).toBeNull();
     await user.click(
-      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+      await screen.findByRole("button", { name: "Add Chicken sandwich" }),
     );
     await user.click(screen.getByRole("tab", { name: "Sales history" }));
     expect(
@@ -169,7 +169,7 @@ describe("POS management", () => {
       />,
     );
     await user.click(
-      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+      await screen.findByRole("button", { name: "Add Chicken sandwich" }),
     );
     await user.type(screen.getByLabelText("Amount received"), "100");
     await user.click(screen.getByRole("button", { name: "Rice meals" }));
@@ -218,7 +218,7 @@ describe("POS management", () => {
       />,
     );
     await user.click(
-      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+      await screen.findByRole("button", { name: "Add Chicken sandwich" }),
     );
     await user.type(screen.getByLabelText("Amount received"), "100");
     rerender(
@@ -282,7 +282,7 @@ describe("POS management", () => {
     );
 
     await user.click(
-      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+      await screen.findByRole("button", { name: "Add Chicken sandwich" }),
     );
     expect(screen.getByLabelText("Quantity for Chicken sandwich")).toBeTruthy();
 
@@ -312,7 +312,9 @@ describe("POS management", () => {
     );
 
     expect(screen.queryByLabelText("Quantity for Chicken sandwich")).toBeNull();
-    expect(screen.getByLabelText("Estimated total").textContent).toBe("₱0.00");
+    expect((await screen.findByLabelText("Estimated total")).textContent).toBe(
+      "₱0.00",
+    );
   });
 
   it("opens selected sale details in a dialog and closes only that query selection", async () => {
@@ -371,7 +373,7 @@ describe("POS management", () => {
     );
 
     await user.click(
-      screen.getByRole("button", { name: "Add Chicken sandwich" }),
+      await screen.findByRole("button", { name: "Add Chicken sandwich" }),
     );
     expect(
       (

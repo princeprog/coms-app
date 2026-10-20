@@ -5,6 +5,11 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import { NotificationArrival } from "@/features/notifications/components/notification-arrival";
+import { ShiftHeaderControl } from "@/features/shifts/components/shift-header-control";
+import {
+  hasPermission,
+  isProtectedSuperAdmin,
+} from "@/features/auth/permissions";
 import type { User } from "@/features/auth/types/auth.types";
 import Link from "next/link";
 import {
@@ -36,6 +41,8 @@ const routeTitles: Record<string, string> = {
   "/stock-items": "Stock Items",
   "/suppliers": "Suppliers",
   "/payment-methods": "Payment methods",
+  "/shifts/start": "Start shift",
+  "/shifts/end": "End shift",
   "/shifts": "Shifts",
   "/business-day": "Business day",
 };
@@ -84,7 +91,9 @@ export function SiteHeader({ user }: { user?: User }) {
           <h1 className="text-base font-medium">{getPageTitle(pathname)}</h1>
         )}
         {user?.role?.isActive && (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            {hasPermission(user, "shifts.operate") &&
+              !isProtectedSuperAdmin(user) && <ShiftHeaderControl />}
             <NotificationBell key={pathname} userId={user.id} />
             <NotificationArrival userId={user.id} />
           </div>

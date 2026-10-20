@@ -35,6 +35,7 @@ export default async function ShiftsPage({
           canReview={access.canReview}
           currentUserId={access.currentUserId}
           superAdmin={access.superAdmin}
+          canOperate={access.canOperate}
         />
       ) : access.status === "branch-unavailable" ? (
         <OperationalEmptyState
