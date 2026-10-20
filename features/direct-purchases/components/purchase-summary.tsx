@@ -10,76 +10,93 @@ import { stockUnitLabel } from "@/features/inventory/stock-unit-label";
 import { formatSupplierReceiptCost as cost } from "@/features/supplier-receipts/services/supplier-receipt-total";
 import { purchaseDateLabel } from "../services/purchase-date";
 import type { PurchaseDetail } from "../schemas/purchase.schema";
+
+type SummaryItem = Omit<PurchaseDetail["items"][number], "id"> & {
+  /** Commissary balance after this purchase; shown during review only. */
+  stock_after?: string | null;
+};
 type Summary = Pick<
   PurchaseDetail,
   "purchase_date" | "store_name" | "receipt_number" | "notes" | "total_cost"
-> & { items: Omit<PurchaseDetail["items"][number], "id">[] };
-export function PurchaseSummary({ purchase }: { purchase: Summary }) {
+> & { items: SummaryItem[] };
+
+export function PurchaseSummary({
+  purchase,
+  showTotal = true,
+}: {
+  purchase: Summary;
+  showTotal?: boolean;
+}) {
+  const facts = [
+    ["Purchase date", purchaseDateLabel(purchase.purchase_date)],
+    ["Location", "Commissary"],
+    ["Store", purchase.store_name],
+    ["Receipt number", purchase.receipt_number],
+  ].filter((fact): fact is [string, string] => Boolean(fact[1]));
   return (
-    <div className="space-y-6">
-      <dl className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <dt className="text-muted-foreground">Purchase date</dt>
-          <dd className="mt-1 font-medium">
-            {purchaseDateLabel(purchase.purchase_date)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Location</dt>
-          <dd className="mt-1 font-medium">Commissary</dd>
-        </div>
-        {purchase.store_name && (
-          <div>
-            <dt className="text-muted-foreground">Store</dt>
-            <dd className="mt-1 break-words">{purchase.store_name}</dd>
+    <div className="space-y-5">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border bg-muted/25 p-4 text-sm sm:grid-cols-4">
+        {facts.map(([label, value]) => (
+          <div key={label} className="min-w-0">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="mt-1 font-medium wrap-anywhere">{value}</dd>
           </div>
-        )}
-        {purchase.receipt_number && (
-          <div>
-            <dt className="text-muted-foreground">Receipt number</dt>
-            <dd className="mt-1 break-words">{purchase.receipt_number}</dd>
-          </div>
-        )}
+        ))}
       </dl>
-      <Table aria-label="Purchase stock items">
-        <TableHeader className="bg-muted/40">
-          <TableRow>
-            <TableHead>Stock item</TableHead>
-            <TableHead className="text-right">Quantity</TableHead>
-            <TableHead className="text-right">Unit cost</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {purchase.items.map((item) => (
-            <TableRow key={item.stock_item_id}>
-              <TableCell className="min-w-40 whitespace-normal">
-                {item.stock_item_name}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {item.quantity_received}
-                <span className="block text-xs text-muted-foreground">
-                  {stockUnitLabel(item.unit)}
-                </span>
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {cost(item.unit_cost)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {cost(item.line_total)}
-              </TableCell>
+      <div className="overflow-hidden rounded-xl border">
+        <Table aria-label="Purchase stock items">
+          <TableHeader className="bg-muted/40">
+            <TableRow>
+              <TableHead className="pl-4">Stock item</TableHead>
+              <TableHead className="text-right">Quantity</TableHead>
+              <TableHead className="text-right">Unit cost</TableHead>
+              <TableHead className="pr-4 text-right">Amount</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <div className="flex justify-between border-t pt-4 font-semibold">
-        <span>Total (PHP)</span>
-        <span className="tabular-nums">{cost(purchase.total_cost)}</span>
+          </TableHeader>
+          <TableBody>
+            {purchase.items.map((item) => (
+              <TableRow key={item.stock_item_id}>
+                <TableCell className="min-w-40 py-3 pl-4 whitespace-normal">
+                  <span className="font-medium">{item.stock_item_name}</span>
+                  {item.stock_after && (
+                    <span className="block text-xs text-muted-foreground tabular-nums">
+                      Stock after:{" "}
+                      <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                        {item.stock_after} {stockUnitLabel(item.unit)}
+                      </span>
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="py-3 text-right tabular-nums">
+                  {item.quantity_received}
+                  <span className="block text-xs text-muted-foreground">
+                    {stockUnitLabel(item.unit)}
+                  </span>
+                </TableCell>
+                <TableCell className="py-3 text-right tabular-nums">
+                  ₱{cost(item.unit_cost)}
+                </TableCell>
+                <TableCell className="py-3 pr-4 text-right font-medium tabular-nums">
+                  ₱{cost(item.line_total)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
+      {showTotal && (
+        <div className="flex justify-between border-t pt-4 font-semibold">
+          <span>Total</span>
+          <span className="tabular-nums">₱{cost(purchase.total_cost)}</span>
+        </div>
+      )}
       {purchase.notes && (
-        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-          {purchase.notes}
-        </p>
+        <div className="text-sm">
+          <p className="text-xs text-muted-foreground">Note</p>
+          <p className="mt-1 whitespace-pre-wrap wrap-anywhere">
+            {purchase.notes}
+          </p>
+        </div>
       )}
     </div>
   );

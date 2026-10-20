@@ -124,7 +124,7 @@ async function freePort() {
   await page.getByRole("button", { name: "Restock", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog
-    .getByRole("button", { name: "Review purchase", exact: true })
+    .getByRole("button", { name: "Review restock", exact: true })
     .click();
   await dialog.getByText("Choose a stock item", { exact: true }).waitFor();
   assert((await dialog.locator('[aria-invalid="true"]').count()) > 0);
@@ -135,8 +135,15 @@ async function freePort() {
   await page.getByRole("option").first().waitFor();
   await picker.press("ArrowDown");
   await picker.press("Enter");
+  // Choosing an item moves straight to its quantity.
+  await page.waitForFunction(() =>
+    document.activeElement?.id.endsWith("-quantity_received"),
+  );
   await dialog.getByLabel(/^Quantity/).fill("2.5");
   await dialog.getByLabel("Unit cost (PHP)").fill("13.25");
+  // On-hand preview: fixture Flour starts at 20.25 kg.
+  await dialog.getByText("22.75", { exact: true }).waitFor();
+  await dialog.getByText("₱33.125", { exact: true }).first().waitFor();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await page
     .getByRole("alertdialog")
@@ -157,9 +164,10 @@ async function freePort() {
     });
   }
   await dialog
-    .getByRole("button", { name: "Review purchase", exact: true })
+    .getByRole("button", { name: "Review restock", exact: true })
     .click();
-  await dialog.getByText("33.125", { exact: true }).first().waitFor();
+  await dialog.getByText("₱33.125", { exact: true }).first().waitFor();
+  await dialog.getByText("22.75 Kilograms", { exact: true }).waitFor();
   await page.screenshot({
     path: path.join(output, "review.png"),
     fullPage: true,
@@ -175,7 +183,7 @@ async function freePort() {
     }),
   });
   await dialog
-    .getByRole("button", { name: "Confirm purchase", exact: true })
+    .getByRole("button", { name: "Confirm restock", exact: true })
     .click();
   await dialog.getByRole("alert").waitFor();
   assert.equal(
@@ -186,11 +194,37 @@ async function freePort() {
     .getByText("Purchase recorded. Commissary stock updated.", { exact: true })
     .waitFor();
   await dialog
-    .getByRole("button", { name: "Confirm purchase", exact: true })
+    .getByRole("button", { name: "Confirm restock", exact: true })
     .click();
   await successToast;
   await dialog.waitFor({ state: "hidden" });
   await page.getByText("Purchase received", { exact: true }).waitFor();
+  // Restock from a stock balance row opens with that item already chosen.
+  const flourActions = page.getByRole("button", {
+    name: "Actions for Flour",
+    exact: true,
+  });
+  await flourActions.click();
+  await page.getByRole("menuitem", { name: "Restock", exact: true }).click();
+  await dialog.getByRole("heading", { name: "Restock", exact: true }).waitFor();
+  assert.equal(
+    await dialog.getByRole("combobox").first().inputValue(),
+    "Flour",
+  );
+  await dialog.getByText("On hand 22.75 Kilograms", { exact: true }).waitFor();
+  await page.screenshot({
+    path: path.join(output, "row-restock.png"),
+    fullPage: true,
+  });
+  // An untouched prefilled form closes without a discard prompt.
+  await page.keyboard.press("Escape");
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(await page.getByRole("alertdialog").count(), 0);
+  await page.waitForFunction(
+    () =>
+      document.activeElement?.getAttribute("aria-label") ===
+      "Actions for Flour",
+  );
   const recorded = await (
     await fetch(`${fixture.baseUrl}/__fixture/state`)
   ).json();
@@ -216,7 +250,7 @@ async function freePort() {
     .waitFor();
   await page
     .getByRole("dialog")
-    .getByText("33.125", { exact: true })
+    .getByText("₱33.125", { exact: true })
     .first()
     .waitFor();
   await page.keyboard.press("Escape");

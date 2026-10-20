@@ -16,6 +16,11 @@ import {
   type InventoryAdjustmentAction,
 } from "./inventory-adjustment-dialog";
 import type { InventoryItem } from "../types/inventory.types";
+import { useRestock } from "@/features/direct-purchases/components/restock-provider";
+import {
+  RestockRowMenu,
+  purchaseStockFromBalance,
+} from "@/features/direct-purchases/components/restock-row-menu";
 
 const updatedAt = new Intl.DateTimeFormat("en-PH", {
   month: "short",
@@ -77,6 +82,9 @@ export function InventoryBalanceTable({
   adjustAction: InventoryAdjustmentAction;
   onComplete: (message: string) => void;
 }) {
+  const restock = useRestock();
+  const canRestock = scope === "COMMISSARY" && restock !== null;
+  const showActions = canAdjust || canRestock;
   const target =
     scope === "COMMISSARY"
       ? { scope: "COMMISSARY" as const }
@@ -140,7 +148,7 @@ export function InventoryBalanceTable({
           <TableHead scope="col" className="hidden xl:table-cell">
             Updated
           </TableHead>
-          {canAdjust && (
+          {showActions && (
             <TableHead scope="col" className="w-12 pr-4 text-right sm:pr-5">
               <span className="sr-only">Actions</span>
             </TableHead>
@@ -175,15 +183,26 @@ export function InventoryBalanceTable({
             <TableCell className="hidden py-3 text-muted-foreground xl:table-cell">
               <UpdatedAt value={item.updated_at} />
             </TableCell>
-            {canAdjust && (
+            {showActions && (
               <TableCell className="py-3 pr-4 text-right sm:pr-5">
-                {item.is_active ? (
+                {item.is_active && canAdjust ? (
                   <InventoryAdjustmentDialog
                     item={item}
                     target={target}
                     action={adjustAction}
                     onComplete={onComplete}
+                    onRestock={
+                      canRestock
+                        ? (trigger) =>
+                            restock.openRestock(
+                              purchaseStockFromBalance(item),
+                              trigger,
+                            )
+                        : undefined
+                    }
                   />
+                ) : item.is_active ? (
+                  <RestockRowMenu stock={purchaseStockFromBalance(item)} />
                 ) : (
                   <span className="text-muted-foreground">
                     <span aria-hidden="true">-</span>

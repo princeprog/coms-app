@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, LoaderCircle, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,10 +25,34 @@ import {
   calculateSupplierReceiptLineTotal as lineTotal,
 } from "@/features/supplier-receipts/services/supplier-receipt-total";
 import { usePurchaseForm } from "../hooks/use-purchase-form";
+import type { PurchaseStock } from "../schemas/purchase.schema";
+import {
+  addPurchaseQuantity,
+  isPurchaseDecimal,
+  purchaseAmount,
+} from "../services/purchase-totals";
 import { PurchaseEntry } from "./purchase-entry";
 import { PurchaseSummary } from "./purchase-summary";
-export function PurchaseCreateDialog({ onClose }: { onClose: () => void }) {
-  const form = usePurchaseForm(onClose);
+import styles from "./purchase-create.module.css";
+
+function ReviewHeading() {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), []);
+  return (
+    <h3 ref={heading} tabIndex={-1} className="sr-only outline-none">
+      Review restock
+    </h3>
+  );
+}
+
+export function PurchaseCreateDialog({
+  onClose,
+  initialStock = null,
+}: {
+  onClose: () => void;
+  initialStock?: PurchaseStock | null;
+}) {
+  const form = usePurchaseForm(onClose, initialStock);
   const [discard, setDiscard] = useState(false);
   function close() {
     if (form.pending) return;
@@ -36,6 +60,13 @@ export function PurchaseCreateDialog({ onClose }: { onClose: () => void }) {
     else onClose();
   }
   const review = form.review;
+  const completeLines = form.lines.filter(
+    (line) =>
+      isPurchaseDecimal(line.quantity_received) &&
+      isPurchaseDecimal(line.unit_cost),
+  );
+  const runningTotal = purchaseAmount(completeLines) ?? "0.00";
+  const itemCount = form.lines.filter((line) => line.stock).length;
   return (
     <Dialog
       open
@@ -45,93 +76,142 @@ export function PurchaseCreateDialog({ onClose }: { onClose: () => void }) {
     >
       <DialogContent
         data-coms-ui="operational"
-        className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl motion-reduce:animate-none"
-        showCloseButton={!form.pending}
+        showCloseButton={false}
+        overlayClassName={`${styles.overlay} bg-black/30 supports-backdrop-filter:backdrop-blur-xs`}
+        className={`${styles.modal} flex max-h-[min(90dvh,48rem)] min-h-0 w-full flex-col gap-0 overflow-clip rounded-2xl p-0 shadow-xl sm:max-w-3xl`}
       >
-        <DialogHeader className="shrink-0 border-b px-6 py-5">
-          <DialogTitle>
-            {review ? "Review purchase" : "Direct purchase"}
+        <DialogHeader className="relative shrink-0 px-5 pt-6 pb-5 pr-16 sm:px-6 sm:pr-16">
+          <DialogTitle className="text-xl leading-tight font-semibold tracking-tight">
+            {review ? "Review restock" : "Restock"}
           </DialogTitle>
-          <DialogDescription className={review ? "text-sm" : "sr-only"}>
+          <DialogDescription
+            className={review ? "text-sm text-muted-foreground" : "sr-only"}
+          >
             {review
               ? "Confirming adds these quantities to commissary stock."
               : "Record stock bought directly from a store."}
           </DialogDescription>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 text-muted-foreground"
+            aria-label="Close Restock"
+            disabled={form.pending}
+            onClick={close}
+          >
+            <XIcon aria-hidden="true" />
+          </Button>
         </DialogHeader>
         <form
           onSubmit={form.submit}
           className="flex min-h-0 flex-1 flex-col"
+          aria-busy={form.pending}
           noValidate
         >
-          <div className="min-h-0 overflow-y-auto px-6 py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 sm:px-6">
             {review ? (
-              <PurchaseSummary
-                purchase={{
-                  ...review,
-                  store_name: review.store_name || null,
-                  receipt_number: review.receipt_number || null,
-                  notes: review.notes || null,
-                  total_cost: total(review),
-                  items: review.items.map((item, index) => ({
-                    ...item,
-                    stock_item_name: form.lines[index].stock!.stock_item_name,
-                    unit: form.lines[index].stock!.unit,
-                    line_total: lineTotal(
-                      item.quantity_received,
-                      item.unit_cost,
-                    ),
-                  })),
-                }}
-              />
+              <>
+                <ReviewHeading />
+                <PurchaseSummary
+                  showTotal={false}
+                  purchase={{
+                    ...review,
+                    store_name: review.store_name || null,
+                    receipt_number: review.receipt_number || null,
+                    notes: review.notes || null,
+                    total_cost: total(review),
+                    items: review.items.map((item, index) => {
+                      const stock = form.lines[index].stock!;
+                      return {
+                        ...item,
+                        stock_item_name: stock.stock_item_name,
+                        unit: stock.unit,
+                        line_total: lineTotal(
+                          item.quantity_received,
+                          item.unit_cost,
+                        ),
+                        stock_after:
+                          stock.quantity_on_hand === null
+                            ? null
+                            : addPurchaseQuantity(
+                                stock.quantity_on_hand,
+                                item.quantity_received,
+                              ),
+                      };
+                    }),
+                  }}
+                />
+              </>
             ) : (
               <PurchaseEntry form={form} />
-            )}{" "}
+            )}
             {form.error && (
-              <p role="alert" className="mt-4 text-sm text-destructive">
+              <p
+                role="alert"
+                className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive"
+              >
                 {form.error}
               </p>
             )}
           </div>
-          <DialogFooter className="m-0 shrink-0 border-t px-6 py-4">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={form.pending}
-              onClick={() => (review ? form.setReview(null) : close())}
-            >
-              {review ? "Back to edit" : "Cancel"}
-            </Button>
-            {review ? (
+          <DialogFooter className="m-0 shrink-0 flex-row flex-wrap items-center justify-between gap-3 rounded-b-2xl bg-muted/20 px-5 py-4 sm:flex-row sm:justify-between sm:px-6">
+            <div aria-live="polite" className="min-w-0">
+              <p className="text-xs text-muted-foreground">
+                {itemCount} {itemCount === 1 ? "item" : "items"} · Total
+              </p>
+              <p className="text-lg leading-tight font-semibold tabular-nums">
+                ₱{review ? purchaseAmount(review.items) : runningTotal}
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
               <Button
                 type="button"
+                variant="ghost"
+                className="min-h-11 px-4"
                 disabled={form.pending}
-                onClick={form.confirm}
+                onClick={() => (review ? form.setReview(null) : close())}
               >
-                {form.pending && (
-                  <Loader2
-                    className="animate-spin motion-reduce:animate-none"
-                    aria-hidden="true"
-                  />
-                )}
-                {form.pending ? "Recording purchase..." : "Confirm purchase"}
+                {review ? "Back to edit" : "Cancel"}
               </Button>
-            ) : (
-              <Button type="submit">Review purchase</Button>
-            )}
+              {review ? (
+                <Button
+                  type="button"
+                  className="min-h-11 gap-2 px-4"
+                  disabled={form.pending}
+                  onClick={form.confirm}
+                >
+                  {form.pending && (
+                    <LoaderCircle
+                      className="animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {form.pending ? "Restocking…" : "Confirm restock"}
+                </Button>
+              ) : (
+                <Button type="submit" className="min-h-11 gap-2 px-4">
+                  Review restock
+                  <ArrowRight data-icon="inline-end" aria-hidden="true" />
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
       <AlertDialog open={discard} onOpenChange={setDiscard}>
-        <AlertDialogContent>
+        <AlertDialogContent data-coms-ui="operational">
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard purchase?</AlertDialogTitle>
+            <AlertDialogTitle>Discard restock?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your unsaved purchase details will be lost.
+              The items you entered will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep editing</AlertDialogCancel>
-            <AlertDialogAction onClick={onClose}>Discard</AlertDialogAction>
+            <AlertDialogAction variant="destructive" onClick={onClose}>
+              Discard
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

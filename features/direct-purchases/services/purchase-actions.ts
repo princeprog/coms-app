@@ -7,6 +7,8 @@ import { hasPermission } from "@/features/auth/permissions";
 import { requestComsApi } from "@/services/server-api-services";
 import { stockItemPageSchema } from "@/features/stock-items/schemas/stock-item.schema";
 import { stockItemsEndpoint } from "@/features/stock-items/constants";
+import { inventoryEndpoints } from "@/features/inventory/constants";
+import { inventoryPageSchema } from "@/features/inventory/schemas/inventory.schema";
 import { purchasesEndpoint } from "../constants";
 import {
   purchaseInputSchema,
@@ -14,6 +16,7 @@ import {
   purchaseDetailSchema,
   purchaseQuerySchema,
   type PurchaseQuery,
+  type PurchaseStock,
 } from "../schemas/purchase.schema";
 async function authorize(permission: string) {
   const session = await getCurrentUserFromServer();
@@ -27,9 +30,12 @@ async function authorize(permission: string) {
 export async function searchPurchaseStock(input: {
   search: string;
   page: number;
-}) {
-  await authorize("supplier_receipts.create");
-  await authorize("stock_items.read");
+}): Promise<{ items: PurchaseStock[]; total: number; page: number }> {
+  const user = await authorize("supplier_receipts.create");
+  // Commissary readers see current balances; others fall back to the catalog.
+  const withBalances = hasPermission(user, "inventory.commissary_read");
+  if (!withBalances && !hasPermission(user, "stock_items.read"))
+    throw new Error("You do not have permission to access purchases.");
   const parsed = z
     .object({ search: z.string().max(100), page: z.number().int().positive() })
     .parse(input);
@@ -40,10 +46,24 @@ export async function searchPurchaseStock(input: {
     is_active: "true",
   });
   const result = await requestComsApi<unknown>(
-    `${stockItemsEndpoint}?${query}`,
+    `${withBalances ? inventoryEndpoints.commissary : stockItemsEndpoint}?${query}`,
     { cookieHeader: (await cookies()).toString() },
   );
-  return stockItemPageSchema.parse(result);
+  const page = withBalances
+    ? inventoryPageSchema.parse(result)
+    : stockItemPageSchema.parse(result);
+  return {
+    total: page.total,
+    page: page.page,
+    items: page.items.map((item) => ({
+      id: item.id,
+      stock_item_name: item.stock_item_name,
+      unit: item.unit,
+      is_active: item.is_active,
+      quantity_on_hand:
+        "quantity_on_hand" in item ? String(item.quantity_on_hand) : null,
+    })),
+  };
 }
 export async function getPurchasePage(input: PurchaseQuery) {
   await authorize("supplier_receipts.read");

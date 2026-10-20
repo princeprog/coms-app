@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, PackagePlus, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,11 +40,14 @@ export function InventoryAdjustmentDialog({
   target,
   action,
   onComplete,
+  onRestock,
 }: {
   item: InventoryItem;
   target: InventoryAdjustmentTarget;
   action: InventoryAdjustmentAction;
   onComplete: (message: string) => void;
+  /** Opens Restock prefilled with this item when the user may restock. */
+  onRestock?: (trigger: HTMLElement | null) => void;
 }) {
   const router = useRouter();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -141,7 +144,14 @@ export function InventoryAdjustmentDialog({
         </DropdownMenuTrigger>
         <DropdownMenuContent data-coms-ui="operational" align="end">
           <DropdownMenuGroup>
+            {onRestock && (
+              <DropdownMenuItem onClick={() => onRestock(triggerRef.current)}>
+                <PackagePlus aria-hidden="true" />
+                Restock
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => setOpen(true)}>
+              <SlidersHorizontal aria-hidden="true" />
               Adjust stock
             </DropdownMenuItem>
           </DropdownMenuGroup>

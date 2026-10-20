@@ -1,5 +1,7 @@
 # Direct purchase restocking
 
+Restock modal (2026-10-20 refresh): date, store and receipt share one row; each stock line shows item, quantity with its unit, unit cost in ₱ and the exact amount, with a running total in the footer. Roles with commissary read access see each item's on-hand balance and the balance after restocking, in the picker, on the line and in the review. Choosing an item moves focus to its quantity; adding a line focuses its picker. Notes sit behind **Add note**. Commissary stock rows offer **Restock** in their ⋯ menu, opening the modal with that item chosen; an untouched prefilled modal closes without a discard prompt. Restock requires receiving create permission plus stock read or commissary inventory read.
+
 Open **Inventory → Commissary → Restock** to record stock bought from a grocery or other store. Select the purchase date, optionally identify the store/receipt, choose active stock, enter quantities and unit costs, review, and confirm. The date defaults to today in Manila; stock posts when confirmed. The form uses the item's existing unit and exact decimal totals in PHP.
 
 **View purchases** opens `/inventory/purchases`, with server search by store/receipt, inclusive date filters, newest/oldest order and 10/30/50 rows. Each three-dot menu opens a URL-addressable read-only detail modal. Inventory activity identifies these movements as **Purchase received**; the detail action is shown only with receiving read permission.

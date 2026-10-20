@@ -69,7 +69,8 @@ export default async function InventoryPage({
         canReadPurchases={hasPermission(session.user, "supplier_receipts.read")}
         canCreatePurchases={
           hasPermission(session.user, "supplier_receipts.create") &&
-          hasPermission(session.user, "stock_items.read")
+          (hasPermission(session.user, "stock_items.read") ||
+            hasPermission(session.user, "inventory.commissary_read"))
         }
         inventory={view.inventory}
         movements={view.movements}

@@ -17,14 +17,17 @@ export type PurchaseLine = {
   quantity_received: string;
   unit_cost: string;
 };
-export function usePurchaseForm(onComplete: () => void) {
+export function usePurchaseForm(
+  onComplete: () => void,
+  initialStock: PurchaseStock | null = null,
+) {
   const [initialDate] = useState(purchaseToday);
   const [purchase_date, setDate] = useState(initialDate);
   const [store_name, setStore] = useState("");
   const [receipt_number, setReceipt] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<PurchaseLine[]>([
-    { key: 1, stock: null, quantity_received: "", unit_cost: "" },
+    { key: 1, stock: initialStock, quantity_received: "", unit_cost: "" },
   ]);
   const next = useRef(2);
   const [review, setReview] = useState<PurchaseInput | null>(null);
@@ -46,7 +49,12 @@ export function usePurchaseForm(onComplete: () => void) {
     notes ||
     purchase_date !== initialDate ||
     lines.length > 1 ||
-    lines.some((line) => line.stock || line.quantity_received || line.unit_cost)
+    lines.some(
+      (line) =>
+        line.stock?.id !== initialStock?.id ||
+        line.quantity_received ||
+        line.unit_cost,
+    )
   );
   function changeLine(key: number, patch: Partial<PurchaseLine>) {
     setLines((current) =>
@@ -125,16 +133,20 @@ export function usePurchaseForm(onComplete: () => void) {
     lines,
     changeLine,
     addLine: () => {
+      const key = next.current++;
       setLines((current) => [
         ...current,
         {
-          key: next.current++,
+          key,
           stock: null,
           quantity_received: "",
           unit_cost: "",
         },
       ]);
       setErrors({});
+      requestAnimationFrame(() =>
+        document.getElementById(`purchase-line-${key}-stock`)?.focus(),
+      );
     },
     removeLine: (key: number) => {
       setLines((current) => current.filter((line) => line.key !== key));

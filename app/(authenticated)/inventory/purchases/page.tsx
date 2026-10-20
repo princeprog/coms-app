@@ -17,7 +17,8 @@ export default async function PurchasesPage() {
       <PurchaseHistory
         canCreate={
           hasPermission(session.user, "supplier_receipts.create") &&
-          hasPermission(session.user, "stock_items.read")
+          (hasPermission(session.user, "stock_items.read") ||
+            hasPermission(session.user, "inventory.commissary_read"))
         }
       />
     </AppPageShell>

@@ -91,4 +91,6 @@ export type PurchaseStock = {
   stock_item_name: string;
   unit: string;
   is_active: boolean;
+  /** Current commissary balance; null when the role cannot view balances. */
+  quantity_on_hand: string | null;
 };

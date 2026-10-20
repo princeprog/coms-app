@@ -1,21 +1,19 @@
 "use client";
-import { useRef, useState } from "react";
 import Link from "next/link";
-import { purchasesRoute } from "../routes";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PurchaseCreateDialog } from "./purchase-create-dialog";
+import { purchasesRoute } from "../routes";
+import { useRestock } from "./restock-provider";
+
 export function PurchaseActions({
-  canCreate,
   canRead,
   showHistory = true,
 }: {
-  canCreate: boolean;
   canRead: boolean;
   showHistory?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const trigger = useRef<HTMLButtonElement>(null);
+  const restock = useRestock();
+  if (!restock && !(canRead && showHistory)) return null;
   return (
     <div className="flex shrink-0 flex-wrap gap-2">
       {canRead && showHistory && (
@@ -23,19 +21,13 @@ export function PurchaseActions({
           View purchases
         </Button>
       )}
-      {canCreate && (
-        <Button ref={trigger} onClick={() => setOpen(true)}>
+      {restock && (
+        <Button
+          onClick={(event) => restock.openRestock(null, event.currentTarget)}
+        >
           <Plus aria-hidden="true" />
           Restock
         </Button>
-      )}
-      {open && (
-        <PurchaseCreateDialog
-          onClose={() => {
-            setOpen(false);
-            requestAnimationFrame(() => trigger.current?.focus());
-          }}
-        />
       )}
     </div>
   );

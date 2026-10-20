@@ -102,4 +102,43 @@ describe("purchase server authorization", () => {
     ).toBe(false);
     expect(api).not.toHaveBeenCalled();
   });
+  it("shows commissary balances only to roles that can read them", async () => {
+    const stock = {
+      id,
+      stock_item_name: "Flour",
+      category: "Dry goods",
+      unit: "kg",
+      is_active: true,
+      created_at: "2026-10-01T00:00:00.000Z",
+      updated_at: "2026-10-01T00:00:00.000Z",
+    };
+    api.mockResolvedValue({ items: [stock], total: 1, page: 1, page_size: 25 });
+    const catalog = await searchPurchaseStock({ search: "Flo", page: 1 });
+    expect(api).toHaveBeenLastCalledWith(
+      expect.stringMatching(/^\/stock-items\?/),
+      expect.anything(),
+    );
+    expect(catalog.items[0].quantity_on_hand).toBeNull();
+
+    session.mockResolvedValue({
+      status: "authenticated",
+      user: {
+        ...authTestSessionUser,
+        permissions: ["supplier_receipts.create", "inventory.commissary_read"],
+      },
+    });
+    api.mockResolvedValue({
+      items: [{ ...stock, quantity_on_hand: "20.25" }],
+      total: 1,
+      page: 1,
+      page_size: 25,
+      available_categories: [],
+    });
+    const balances = await searchPurchaseStock({ search: "Flo", page: 1 });
+    expect(api).toHaveBeenLastCalledWith(
+      "/inventory/commissary?search=Flo&page=1&page_size=25&is_active=true",
+      expect.anything(),
+    );
+    expect(balances.items[0].quantity_on_hand).toBe("20.25");
+  });
 });

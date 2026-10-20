@@ -1,6 +1,7 @@
 "use client";
 
 import { PurchaseActions } from "@/features/direct-purchases/components/purchase-actions";
+import { RestockProvider } from "@/features/direct-purchases/components/restock-provider";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -66,108 +67,107 @@ export function InventoryManagement({
   const isAssignedBranchView = scope === "BRANCH" && !canViewCommissary;
   const branchName = selectedBranch?.name ?? "Assigned branch";
   return (
-    <div data-coms-ui="operational" className="flex min-w-0 flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <InventoryPageHeading
-          isAssignedBranchView={isAssignedBranchView}
-          selectedBranchId={selectedBranchId}
-          branchName={branchName}
-        />
-        {scope === "COMMISSARY" && (
-          <PurchaseActions
-            canRead={canReadPurchases}
-            canCreate={canCreatePurchases}
+    <RestockProvider enabled={canCreatePurchases && scope === "COMMISSARY"}>
+      <div data-coms-ui="operational" className="flex min-w-0 flex-col gap-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <InventoryPageHeading
+            isAssignedBranchView={isAssignedBranchView}
+            selectedBranchId={selectedBranchId}
+            branchName={branchName}
+          />
+          {scope === "COMMISSARY" && (
+            <PurchaseActions canRead={canReadPurchases} />
+          )}
+        </div>
+
+        {!branchUnavailable && (
+          <InventoryScopeFilter
+            scope={scope}
+            branchOptions={branchOptions}
+            selectedBranchId={branchId}
+            search={search}
+            statusFilter={statusFilter}
+            categoryFilter={categoryFilter}
+            availableCategories={inventory?.available_categories ?? []}
+            canViewCommissary={canViewCommissary}
+            canViewBranch={canViewBranch}
+            branchName={branchName}
+            page={currentPage}
+            pageSize={inventory?.page_size}
+            onPendingChange={setIsFetching}
           />
         )}
+
+        {scope === "BRANCH" && branchUnavailable ? (
+          <OperationalEmptyState
+            title="Branch inventory is unavailable"
+            description={branchUnavailableMessage}
+          />
+        ) : inventory && movements ? (
+          <>
+            {scope === "BRANCH" && selectedBranch?.status === "inactive" && (
+              <Badge
+                variant="outline"
+                className="h-auto min-h-5 max-w-full whitespace-normal"
+              >
+                Inactive · adjustments disabled
+              </Badge>
+            )}
+
+            <div className="flex min-w-0 flex-col gap-6">
+              <InventoryBalancesSection
+                inventory={inventory}
+                scope={scope}
+                branchId={branchId}
+                search={search}
+                status={statusFilter}
+                category={categoryFilter}
+                page={currentPage}
+                isFetching={isFetching}
+                canAdjust={
+                  canAdjust &&
+                  (scope === "COMMISSARY" ||
+                    selectedBranch?.status !== "inactive")
+                }
+                adjustAction={adjustAction}
+                onComplete={setStatusMessage}
+                onClearFilters={() => {
+                  setIsFetching(true);
+                  router.replace(
+                    createInventoryHref({
+                      scope,
+                      branchId,
+                      page: 1,
+                      pageSize: inventory.page_size,
+                      search: "",
+                    }),
+                    { scroll: false },
+                  );
+                }}
+              />
+              <InventoryMovementsTable
+                movements={movements}
+                canReadPurchases={canReadPurchases}
+              />
+            </div>
+          </>
+        ) : (
+          <OperationalLoadError
+            title="inventory"
+            description="COMS could not load inventory data. Try again in a moment."
+          />
+        )}
+
+        {statusMessage && (
+          <p
+            role="status"
+            aria-live="polite"
+            className="text-sm text-muted-foreground"
+          >
+            {statusMessage}
+          </p>
+        )}
       </div>
-
-      {!branchUnavailable && (
-        <InventoryScopeFilter
-          scope={scope}
-          branchOptions={branchOptions}
-          selectedBranchId={branchId}
-          search={search}
-          statusFilter={statusFilter}
-          categoryFilter={categoryFilter}
-          availableCategories={inventory?.available_categories ?? []}
-          canViewCommissary={canViewCommissary}
-          canViewBranch={canViewBranch}
-          branchName={branchName}
-          page={currentPage}
-          pageSize={inventory?.page_size}
-          onPendingChange={setIsFetching}
-        />
-      )}
-
-      {scope === "BRANCH" && branchUnavailable ? (
-        <OperationalEmptyState
-          title="Branch inventory is unavailable"
-          description={branchUnavailableMessage}
-        />
-      ) : inventory && movements ? (
-        <>
-          {scope === "BRANCH" && selectedBranch?.status === "inactive" && (
-            <Badge
-              variant="outline"
-              className="h-auto min-h-5 max-w-full whitespace-normal"
-            >
-              Inactive · adjustments disabled
-            </Badge>
-          )}
-
-          <div className="flex min-w-0 flex-col gap-6">
-            <InventoryBalancesSection
-              inventory={inventory}
-              scope={scope}
-              branchId={branchId}
-              search={search}
-              status={statusFilter}
-              category={categoryFilter}
-              page={currentPage}
-              isFetching={isFetching}
-              canAdjust={
-                canAdjust &&
-                (scope === "COMMISSARY" ||
-                  selectedBranch?.status !== "inactive")
-              }
-              adjustAction={adjustAction}
-              onComplete={setStatusMessage}
-              onClearFilters={() => {
-                setIsFetching(true);
-                router.replace(
-                  createInventoryHref({
-                    scope,
-                    branchId,
-                    page: 1,
-                    pageSize: inventory.page_size,
-                    search: "",
-                  }),
-                  { scroll: false },
-                );
-              }}
-            />
-            <InventoryMovementsTable
-              movements={movements}
-              canReadPurchases={canReadPurchases}
-            />
-          </div>
-        </>
-      ) : (
-        <OperationalLoadError
-          title="inventory"
-          description="COMS could not load inventory data. Try again in a moment."
-        />
-      )}
-
-      {statusMessage && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="text-sm text-muted-foreground"
-        >
-          {statusMessage}
-        </p>
-      )}
-    </div>
+    </RestockProvider>
   );
 }

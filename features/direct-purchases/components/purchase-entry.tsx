@@ -1,25 +1,34 @@
-import { purchaseAmount } from "../services/purchase-totals";
-import { Plus } from "lucide-react";
+"use client";
+import { useState } from "react";
+import { Plus, StickyNote } from "lucide-react";
 import { DatePicker } from "@/components/shared/date-picker";
 import {
   Field,
-  FieldGroup,
   FieldLabel,
   FieldError,
+  FieldSet,
+  FieldLegend,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { PurchaseLineFields } from "./purchase-line-fields";
+import { PurchaseLineFields, PURCHASE_LINE_GRID } from "./purchase-line-fields";
 import type { usePurchaseForm } from "../hooks/use-purchase-form";
+
+function Optional() {
+  return <span className="font-normal text-muted-foreground">(optional)</span>;
+}
+
 export function PurchaseEntry({
   form,
 }: {
   form: ReturnType<typeof usePurchaseForm>;
 }) {
+  const [showNotes, setShowNotes] = useState(false);
+  const notesVisible = showNotes || form.notes.length > 0;
   return (
-    <FieldGroup className="gap-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Field data-invalid={!!form.errors.purchase_date}>
           <FieldLabel htmlFor="purchase-date">Purchase date</FieldLabel>
           <DatePicker
@@ -41,33 +50,47 @@ export function PurchaseEntry({
         </Field>
         <Field>
           <FieldLabel htmlFor="purchase-store">
-            Store <span className="text-muted-foreground">(optional)</span>
+            Store <Optional />
           </FieldLabel>
           <Input
             id="purchase-store"
             value={form.store_name}
-            onChange={(e) => form.setStore(e.target.value)}
+            onChange={(event) => form.setStore(event.target.value)}
             maxLength={160}
+            autoComplete="off"
             placeholder="e.g. Puregold"
             className="h-11"
           />
         </Field>
         <Field>
           <FieldLabel htmlFor="purchase-receipt">
-            Receipt number{" "}
-            <span className="text-muted-foreground">(optional)</span>
+            Receipt number <Optional />
           </FieldLabel>
           <Input
             id="purchase-receipt"
             value={form.receipt_number}
-            onChange={(e) => form.setReceipt(e.target.value)}
+            onChange={(event) => form.setReceipt(event.target.value)}
             maxLength={100}
+            autoComplete="off"
+            placeholder="e.g. OR-10234"
             className="h-11"
           />
         </Field>
       </div>
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium">Stock items</h3>
+      <FieldSet className="gap-0">
+        <FieldLegend variant="label" className="mb-3">
+          Stock items
+        </FieldLegend>
+        <div
+          aria-hidden="true"
+          className={`hidden gap-3 border-b border-border/60 pb-2 text-xs font-medium text-muted-foreground sm:grid ${PURCHASE_LINE_GRID}`}
+        >
+          <span>Item</span>
+          <span>Quantity</span>
+          <span>Unit cost</span>
+          <span className="text-right">Amount</span>
+          <span />
+        </div>
         {form.lines.map((line, index) => (
           <PurchaseLineFields
             key={line.key}
@@ -87,37 +110,46 @@ export function PurchaseEntry({
           />
         ))}
         {form.errors.items && (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="pt-2 text-sm text-destructive">
             {form.errors.items}
           </p>
         )}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={form.addLine}
-            disabled={form.lines.length >= 100}
-          >
-            <Plus aria-hidden="true" />
-            Add stock item
-          </Button>
-          <p className="text-sm font-medium tabular-nums">
-            Total (PHP): {purchaseAmount(form.lines) ?? "—"}
-          </p>
-        </div>
-      </div>
-      <Field>
-        <FieldLabel htmlFor="purchase-notes">
-          Notes <span className="text-muted-foreground">(optional)</span>
-        </FieldLabel>
-        <Textarea
-          id="purchase-notes"
-          value={form.notes}
-          onChange={(e) => form.setNotes(e.target.value)}
-          maxLength={1000}
-          rows={2}
-        />
-      </Field>
-    </FieldGroup>
+        <Button
+          type="button"
+          variant="ghost"
+          className="mt-2 min-h-10 w-fit gap-2 px-2 text-primary hover:text-primary"
+          onClick={form.addLine}
+          disabled={form.lines.length >= 100}
+        >
+          <Plus data-icon="inline-start" aria-hidden="true" />
+          Add stock item
+        </Button>
+      </FieldSet>
+      {notesVisible ? (
+        <Field>
+          <FieldLabel htmlFor="purchase-notes">
+            Note <Optional />
+          </FieldLabel>
+          <Textarea
+            id="purchase-notes"
+            value={form.notes}
+            onChange={(event) => form.setNotes(event.target.value)}
+            maxLength={1000}
+            rows={2}
+            autoFocus={showNotes && form.notes.length === 0}
+          />
+        </Field>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          className="-mt-2 min-h-10 w-fit gap-2 px-2 text-muted-foreground"
+          onClick={() => setShowNotes(true)}
+        >
+          <StickyNote data-icon="inline-start" aria-hidden="true" />
+          Add note
+        </Button>
+      )}
+    </div>
   );
 }
