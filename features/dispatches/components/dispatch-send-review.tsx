@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { LoaderCircleIcon } from "lucide-react";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type {
   CreateDispatchInput,
@@ -16,6 +16,7 @@ export function DispatchSendReview({
   branchName,
   stockItems,
   deliveredBy,
+  deliveredByError,
   pending,
   error,
   onDeliveredByChange,
@@ -25,6 +26,7 @@ export function DispatchSendReview({
   branchName: string;
   stockItems: DispatchStockOption[];
   deliveredBy: string;
+  deliveredByError: string;
   pending: boolean;
   error: string;
   onDeliveredByChange: (value: string) => void;
@@ -51,13 +53,17 @@ export function DispatchSendReview({
               {branchName}
             </p>
           </div>
-          <Field>
+          <Field data-invalid={!!deliveredByError}>
             <FieldLabel htmlFor="dispatch-delivered-by">
               Delivered by
             </FieldLabel>
             <Input
               id="dispatch-delivered-by"
               aria-required="true"
+              aria-invalid={!!deliveredByError}
+              aria-describedby={
+                deliveredByError ? "dispatch-delivered-by-error" : undefined
+              }
               maxLength={120}
               autoComplete="off"
               placeholder="Driver or courier name"
@@ -66,6 +72,11 @@ export function DispatchSendReview({
               value={deliveredBy}
               onChange={(event) => onDeliveredByChange(event.target.value)}
             />
+            {deliveredByError && (
+              <FieldError id="dispatch-delivered-by-error">
+                {deliveredByError}
+              </FieldError>
+            )}
           </Field>
         </div>
         <ul className="divide-y divide-border/60" aria-label="Items to send">

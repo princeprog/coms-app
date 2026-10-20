@@ -35,9 +35,20 @@ describe("dispatch post control", () => {
     ).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
-    expect(await screen.findByRole("alert")).toBeTruthy();
+    const deliveryError = await screen.findByRole("alert");
+    const deliveryInput = screen.getByLabelText("Delivered by");
+    expect(deliveryInput.getAttribute("aria-invalid")).toBe("true");
+    expect(deliveryInput.getAttribute("aria-describedby")).toBe(
+      deliveryError.id,
+    );
+    expect(
+      deliveryInput.closest('[data-slot="field"]')?.contains(deliveryError),
+    ).toBe(true);
+    expect(document.activeElement).toBe(deliveryInput);
     expect(action).not.toHaveBeenCalled();
     await user.type(screen.getByLabelText("Delivered by"), " Juan Dela Cruz ");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(deliveryInput.getAttribute("aria-invalid")).toBe("false");
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
 
     await waitFor(() =>

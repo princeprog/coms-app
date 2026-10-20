@@ -36,6 +36,7 @@ export function useDispatchSendForm({
   ]);
   const [review, setReview] = useState<CreateDispatchInput | null>(null);
   const [deliveredBy, setDeliveredBy] = useState("");
+  const [deliveredByError, setDeliveredByError] = useState("");
   const submitting = useRef(false);
   const nextLineKey = useRef(2);
   const keyForRetry = useRef<{ fingerprint: string; key: string } | null>(null);
@@ -105,9 +106,13 @@ export function useDispatchSendForm({
       delivered_by_name: deliveredBy,
     });
     if (!sendInput.success) {
-      setError("Enter who is delivering this dispatch.");
+      setDeliveredByError("Enter who is delivering this dispatch.");
+      event.currentTarget
+        .querySelector<HTMLInputElement>("#dispatch-delivered-by")
+        ?.focus();
       return;
     }
+    setDeliveredByError("");
     // Compare the submitted meaning, not intermediate edits or decimal formatting.
     const fingerprint = JSON.stringify({
       branch_id: parsed.data.branch_id,
@@ -170,7 +175,11 @@ export function useDispatchSendForm({
     review,
     setReview,
     deliveredBy,
-    setDeliveredBy,
+    deliveredByError,
+    setDeliveredBy: (value: string) => {
+      setDeliveredBy(value);
+      if (value.trim()) setDeliveredByError("");
+    },
     setError,
     updateLine,
     submit,

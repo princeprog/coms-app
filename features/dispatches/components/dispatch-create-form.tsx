@@ -40,6 +40,7 @@ export function DispatchCreateForm({
     review,
     setReview,
     deliveredBy,
+    deliveredByError,
     setDeliveredBy,
     setError,
     updateLine,
@@ -69,6 +70,7 @@ export function DispatchCreateForm({
           }
           stockItems={lines.flatMap((line) => (line.stock ? [line.stock] : []))}
           deliveredBy={deliveredBy}
+          deliveredByError={deliveredByError}
           pending={pending}
           error={error}
           onDeliveredByChange={setDeliveredBy}

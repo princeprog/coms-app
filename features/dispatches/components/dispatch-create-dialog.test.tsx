@@ -170,8 +170,23 @@ describe("direct dispatch creation", () => {
     expect(
       await screen.findByText("Enter who is delivering this dispatch."),
     ).toBeTruthy();
+    const deliveryInput = screen.getByLabelText("Delivered by");
+    const deliveryError = screen.getByRole("alert");
+    expect(deliveryInput.getAttribute("aria-invalid")).toBe("true");
+    expect(deliveryInput.getAttribute("aria-describedby")).toBe(
+      deliveryError.id,
+    );
+    expect(
+      deliveryInput.closest('[data-slot="field"]')?.contains(deliveryError),
+    ).toBe(true);
+    expect(document.activeElement).toBe(deliveryInput);
+    await user.type(deliveryInput, "   ");
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("alert")).toBe(deliveryError);
     expect(action).not.toHaveBeenCalled();
     await user.type(screen.getByLabelText("Delivered by"), "Juan Dela Cruz");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(deliveryInput.getAttribute("aria-invalid")).toBe("false");
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
     expect(await screen.findByText("Temporary failure.")).toBeTruthy();
 
