@@ -396,3 +396,11 @@ Findings and iteration:
 Verification: 123 frontend test files / 547 tests passed; focused sales suite 13 files / 44 tests; feature ESLint, TypeScript, formatting and production build passed. Browser fixtures are disposable and do not write to the application database.
 
 final result: passed
+
+## 2026-10-20 — Notification bell and inbox
+
+- Added a below-trigger header popover with the latest 10 notifications, unread count, Mark all as read and View all. The dedicated inbox uses concise event titles, colored icons with text, branch/date context, All/Unread and type filters, and server 10/30/50 pagination beside Previous/Next.
+- Browser checks passed against the production build using synthetic loopback data: keyboard open/Escape focus return, below-trigger placement, report and dispatch links, dirty-form cancellation/confirmation, failed-read feedback/retry, mark-all, filtered/empty states and no page errors. Inspected screenshots at 1440/768/390/320 CSS pixels plus dark mode; no horizontal overflow. Artifacts: ignored test-results/notifications/.
+- Fixed during verification: error feedback initially used an unmounted toast library; switched to the app's Base UI toast and added a visible-message regression. A shared count query could finish before the streamed inbox hydrated; retained its server snapshot until hydration and reproduced/fixed the race in a focused test.
+- Validation: full frontend suite 142 files / 658 tests passed before the final hydration regression; the final notification suite has 4 files / 13 passing tests. Typecheck, scoped lint, formatting and production build pass. API recipient/transaction verification is separate from the synthetic browser fixture.
+- Review: author performed a separate architecture/accessibility/React review, following the user's no-subagent preference. No native screen-reader or physical-device run. No production deployment or live workflow mutations.

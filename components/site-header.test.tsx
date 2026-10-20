@@ -42,3 +42,9 @@ describe("SiteHeader route titles", () => {
     expect(screen.getByRole("heading", { name: title })).toBeTruthy();
   });
 });
+
+vi.mock("@/features/notifications/services/notification-actions", () => ({
+  getNotificationCountAction: vi.fn(),
+  getNotificationsAction: vi.fn(),
+  markNotificationReadAction: vi.fn(),
+}));

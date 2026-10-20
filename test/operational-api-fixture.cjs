@@ -1,3 +1,7 @@
+const {
+  createNotificationSeed,
+  handleNotifications,
+} = require("./fixtures/notifications-fixture.cjs");
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
@@ -602,6 +606,7 @@ function createOperationalApiFixture({
   gatewaySecret,
   authUser = seed.user,
   stockItemCount = 26,
+  notificationCount = 0,
 }) {
   if (!gatewaySecret || !/^[a-f0-9]{64}$/i.test(gatewaySecret)) {
     throw new Error(
@@ -610,6 +615,7 @@ function createOperationalApiFixture({
   }
 
   let state = createState({ stockItemCount });
+  let notificationItems = createNotificationSeed(state, notificationCount);
   const server = http.createServer(async (request, response) => {
     const url = new URL(request.url, "http://127.0.0.1");
 
@@ -618,6 +624,7 @@ function createOperationalApiFixture({
 
       if (url.pathname === "/__fixture/reset" && request.method === "POST") {
         state = createState({ stockItemCount });
+        notificationItems = createNotificationSeed(state, notificationCount);
         return send(response, 204);
       }
       if (
@@ -640,6 +647,7 @@ function createOperationalApiFixture({
       }
       if (url.pathname === "/__fixture/state" && request.method === "GET") {
         return send(response, 200, {
+          notifications: notificationItems,
           roles: state.roles,
           branches: state.branches,
           staff: state.staff,
@@ -747,6 +755,16 @@ function createOperationalApiFixture({
       if (!isAuthenticated) {
         return send(response, 401, { message: "Unauthorized." });
       }
+      if (
+        handleNotifications({
+          request,
+          response,
+          url,
+          items: notificationItems,
+          send,
+        })
+      )
+        return;
 
       if (
         url.pathname === "/payment-methods/available" &&

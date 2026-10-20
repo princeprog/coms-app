@@ -3,6 +3,9 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
+import { NotificationArrival } from "@/features/notifications/components/notification-arrival";
+import type { User } from "@/features/auth/types/auth.types";
 import Link from "next/link";
 import {
   Breadcrumb,
@@ -14,6 +17,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 const routeTitles: Record<string, string> = {
+  "/notifications": "Notifications",
   "/branch-products": "Branch Menu",
   "/branch-prices": "Branch Menu",
   "/menu-requests": "Branch Menu",
@@ -43,7 +47,7 @@ function getPageTitle(pathname: string): string {
   return route ? routeTitles[route] : "COMS";
 }
 
-export function SiteHeader() {
+export function SiteHeader({ user }: { user?: User }) {
   const pathname = usePathname();
   const productFormTitle =
     pathname === "/products/new"
@@ -76,6 +80,12 @@ export function SiteHeader() {
           </Breadcrumb>
         ) : (
           <h1 className="text-base font-medium">{getPageTitle(pathname)}</h1>
+        )}
+        {user?.role?.isActive && (
+          <div className="ml-auto">
+            <NotificationBell key={pathname} userId={user.id} />
+            <NotificationArrival userId={user.id} />
+          </div>
         )}
       </div>
     </header>

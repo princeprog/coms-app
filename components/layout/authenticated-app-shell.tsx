@@ -26,7 +26,7 @@ export function AuthenticatedAppShell({
     >
       <AppSidebar variant="inset" user={user} />
       <SidebarInset>
-        <SiteHeader />
+        <SiteHeader user={user} />
         <AuthQuerySeed user={user} />
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>

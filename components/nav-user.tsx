@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -91,7 +92,7 @@ export function NavUser({
                 <CreditCardIcon />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/notifications" />}>
                 <BellIcon />
                 Notifications
               </DropdownMenuItem>
