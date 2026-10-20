@@ -9,6 +9,9 @@ const { chromium } = require("playwright");
 const {
   createOperationalApiFixture,
 } = require("./operational-api-fixture.cjs");
+const {
+  checkDispatchCreateModal,
+} = require("./fixtures/check-dispatch-create-modal.cjs");
 const seed = require("./fixtures/operational-api.json");
 let fixture,
   server,
@@ -99,6 +102,7 @@ const freePort = () =>
   const views = page.getByRole("navigation", { name: "Dispatch views" });
   const table = page.getByRole("table", { name: "Dispatches", exact: true });
   await table.waitFor();
+  await checkDispatchCreateModal(page);
   assert.equal(await page.getByRole("table").count(), 1);
   assert.equal(
     await page

@@ -20,7 +20,9 @@ export function DispatchTableSkeleton({ rows = 10 }: { rows?: number }) {
           <TableHead className="hidden sm:table-cell">Stock items</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="hidden lg:table-cell">Dispatched</TableHead>
-          <TableHead className="hidden md:table-cell">Receive by</TableHead>
+          <TableHead className="hidden md:table-cell">
+            Estimated arrival
+          </TableHead>
           <TableHead className="w-12">
             <span className="sr-only">Actions</span>
           </TableHead>

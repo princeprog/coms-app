@@ -430,3 +430,15 @@ Applied the Emil design engineering guidance to the user's screenshots: one dire
 The views, filters and pagination share the existing server-query URL. View changes reset the page and conflicting lifecycle/discrepancy filters while retaining search, branch and page size. Receiving notification links remain supported. One directory refresh replaces the duplicate client query, with visible 30-second/focus refresh paused during navigation/search. No backend, migration or dependency changes.
 
 Verification: 16 dispatch test files / 94 tests passed, including duplicate-status prevention and receiving-view pagination/filter preservation. Changed-file ESLint, formatting and production build/typecheck passed. The production loopback browser fixture passed single-table layout, keyboard view selection, page size, empty state/reset, count review/discard, required field focus and approved-report hold. Captures in ignored test-results/receiving-followup/directory-{1440,768,390,320}.png and directory-dark.png; desktop/mobile screenshots inspected. No page errors or horizontal document overflow at those widths. Fixed a malformed dash found during visual review. Synthetic data only; no live operational writes, native screen-reader or physical-device testing.
+
+
+## 2026-10-20 - Create dispatch modal organization
+
+| Before | After | Why |
+| --- | --- | --- |
+| Branch text beside courier input, with timing on a separate row | Destination summary followed by aligned courier/arrival inputs | Separates fixed context from editable delivery details |
+| Receive by wording | Estimated arrival (PHT) in forms, table and details | Uses the user's requested vocabulary consistently |
+| Loose stock rows | Bordered list with muted headers and right-aligned quantities | Makes the final stock review easy to scan |
+| Repeated review heading and long inventory copy | Accessible hidden review heading and one short confirmation note | Keeps the modal concise while retaining the consequential action notice |
+
+The API/storage field remains receive_by; default timing and receiving safeguards are unchanged. 23 focused creation/posting/hook tests passed, along with changed-file lint and production build/typecheck. The production loopback browser fixture now checks the create modal: missing courier and estimated-arrival errors/focus, preserved fields through Back to edit, discard, 1440/768/390/320px and dark layouts, and no modal overflow. Desktop/mobile captures inspected under ignored test-results/dispatch-modal/. Existing receiving/directory browser checks also passed, with no page errors. Synthetic data only: the modal probe never submits a valid dispatch. No live stock changes, native screen-reader or physical-device testing.

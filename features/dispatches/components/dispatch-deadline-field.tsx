@@ -16,7 +16,7 @@ export function DispatchDeadlineField({
   return (
     <Field data-invalid={!!error}>
       <FieldLabel htmlFor="dispatch-receive-by">
-        Receive by{" "}
+        Estimated arrival{" "}
         <span className="font-normal text-muted-foreground">(PHT)</span>
       </FieldLabel>
       <Input
@@ -25,7 +25,7 @@ export function DispatchDeadlineField({
         aria-required="true"
         aria-invalid={!!error}
         aria-describedby={error ? "dispatch-deadline-error" : undefined}
-        className="h-10"
+        className="h-11 min-w-0 w-full bg-background px-3"
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}

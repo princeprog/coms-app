@@ -88,7 +88,7 @@ export function DispatchCreateDialog({
         overlayClassName={`${styles.overlay} bg-black/30 supports-backdrop-filter:backdrop-blur-xs`}
         className={`${styles.modal} flex max-h-[min(90dvh,44rem)] min-h-0 w-full flex-col gap-0 overflow-clip rounded-2xl p-0 shadow-xl sm:max-w-2xl`}
       >
-        <DialogHeader className="relative shrink-0 px-5 pt-6 pb-5 pr-16 sm:px-6 sm:pr-16">
+        <DialogHeader className="relative shrink-0 px-5 pt-6 pb-6 pr-16 sm:px-6 sm:pr-16">
           <DialogTitle className="text-xl leading-tight font-semibold tracking-tight">
             Create dispatch
           </DialogTitle>

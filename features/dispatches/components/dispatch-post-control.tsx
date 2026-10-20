@@ -53,7 +53,7 @@ export function DispatchPostControl({
     setDeliveredByError("");
     const deadline = receiveByIso(receiveBy);
     if (!deadline || new Date(deadline).getTime() <= Date.now()) {
-      setDeadlineError("Choose a future receiving deadline.");
+      setDeadlineError("Choose an estimated arrival in the future.");
       return;
     }
     setDeadlineError("");

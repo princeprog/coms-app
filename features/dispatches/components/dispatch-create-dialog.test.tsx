@@ -170,6 +170,10 @@ describe("direct dispatch creation", () => {
     expect(
       await screen.findByText("Enter who is delivering this dispatch."),
     ).toBeTruthy();
+    expect(
+      screen.getByLabelText(/Estimated arrival/).getAttribute("type"),
+    ).toBe("datetime-local");
+    expect(screen.queryByLabelText(/Receive by/)).toBeNull();
     const deliveryInput = screen.getByLabelText("Delivered by");
     const deliveryError = screen.getByRole("alert");
     expect(deliveryInput.getAttribute("aria-invalid")).toBe("true");

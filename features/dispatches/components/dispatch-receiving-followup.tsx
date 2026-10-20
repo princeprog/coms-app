@@ -24,7 +24,7 @@ export function DispatchReceivingFollowup({
           <h2 className="font-semibold">Receiving</h2>
           {dispatch.receive_by && (
             <p className="text-sm text-muted-foreground">
-              Receive by {receivingTime(dispatch.receive_by)} PHT
+              Estimated arrival {receivingTime(dispatch.receive_by)} PHT
             </p>
           )}
         </div>

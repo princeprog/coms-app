@@ -145,7 +145,7 @@ export function DispatchCreateForm({
             <Button
               type="button"
               variant="ghost"
-              className="min-h-11 px-4 sm:min-h-10"
+              className="min-h-11 px-4"
               disabled={pending}
               onClick={onCancel}
             >
@@ -153,7 +153,7 @@ export function DispatchCreateForm({
             </Button>
             <Button
               type="submit"
-              className="min-h-11 gap-2 px-4 sm:min-h-10"
+              className="min-h-11 gap-2 px-4"
               disabled={pending}
             >
               Review &amp; send

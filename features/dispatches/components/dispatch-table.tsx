@@ -44,8 +44,8 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
       }}
     >
       <TableCaption className="sr-only">
-        Dispatches and receiving deadlines. Stock item counts represent distinct
-        lines, not total units. All times are Philippine Standard Time.
+        Dispatches and estimated arrival times. Stock item counts represent
+        distinct lines, not total units. All times are Philippine Standard Time.
       </TableCaption>
       <TableHeader className="bg-muted/50">
         <TableRow className="hover:bg-transparent">
@@ -62,7 +62,7 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
             Dispatched
           </TableHead>
           <TableHead scope="col" className="hidden md:table-cell">
-            Receive by
+            Estimated arrival
           </TableHead>
           <TableHead scope="col" className="w-12 pr-4 sm:pr-5">
             <span className="sr-only">Actions</span>
@@ -127,7 +127,7 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
                 ) : (
                   <span
                     className="text-muted-foreground"
-                    aria-label="No pending receiving deadline"
+                    aria-label="No pending arrival estimate"
                   >
                     &mdash;
                   </span>
