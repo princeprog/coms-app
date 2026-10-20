@@ -1,5 +1,6 @@
 "use client";
 
+import { DailyReportDeliveries } from "./daily-report-deliveries";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,10 @@ export function DailyReportReviewControls({
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
+  const [deliveryReasons, setDeliveryReasons] = useState<
+    Record<string, string>
+  >({});
+  const [attempted, setAttempted] = useState(false);
   const [error, setError] = useState("");
   const isEditable = report.status === "DRAFT" || report.status === "RETURNED";
   const isReviewable = report.status === "SUBMITTED";
@@ -68,7 +73,25 @@ export function DailyReportReviewControls({
   }
 
   async function submit() {
-    await runAction(() => submitAction(branchId, report.id));
+    setAttempted(true);
+    const deliveries = report.pending_deliveries ?? [];
+    const missing = deliveries.find(
+      (item) => !deliveryReasons[item.id]?.trim(),
+    );
+    if (missing) {
+      document.getElementById(`delivery-exception-${missing.id}`)?.focus();
+      return;
+    }
+    await runAction(() =>
+      deliveries.length
+        ? submitAction(branchId, report.id, {
+            delivery_exceptions: deliveries.map((item) => ({
+              dispatch_id: item.id,
+              reason: deliveryReasons[item.id].trim(),
+            })),
+          })
+        : submitAction(branchId, report.id),
+    );
   }
 
   async function returnForCorrection(event: React.FormEvent<HTMLFormElement>) {
@@ -102,6 +125,17 @@ export function DailyReportReviewControls({
       aria-label="Report actions"
       className="flex flex-col gap-3 rounded-lg border bg-card p-4"
     >
+      {submitAvailable && (
+        <DailyReportDeliveries
+          report={report}
+          reasons={deliveryReasons}
+          attempted={attempted}
+          pending={pending}
+          onChange={(id, value) =>
+            setDeliveryReasons((current) => ({ ...current, [id]: value }))
+          }
+        />
+      )}
       <div className="flex flex-wrap gap-2">
         {submitAvailable && (
           <Button

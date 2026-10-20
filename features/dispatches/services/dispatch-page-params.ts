@@ -13,6 +13,8 @@ export type DispatchDiscrepancyFilter =
   "all" | "NONE" | "OPEN" | "RECOUNT_REQUESTED" | "RESOLVED";
 
 export type DispatchPageFilters = {
+  receivingStatus?: string;
+  branchId?: string;
   page: number;
   pageSize?: number;
   status: DispatchStatusFilter;
@@ -59,6 +61,12 @@ export function parseDispatchPageFilters(
   return {
     page,
     pageSize,
+    ...(["pending", "AWAITING_COUNT", "OVERDUE", "REVIEW"].includes(
+      first(params.receiving_status) ?? "",
+    )
+      ? { receivingStatus: first(params.receiving_status) }
+      : {}),
+    ...(first(params.branch_id) ? { branchId: first(params.branch_id) } : {}),
     status,
     discrepancyStatus,
     ...(search ? { search } : {}),
@@ -72,6 +80,9 @@ export function parseDispatchPageFilters(
 
 export function createDispatchHref(filters: DispatchPageFilters) {
   const params = new URLSearchParams();
+  if (filters.receivingStatus)
+    params.set("receiving_status", filters.receivingStatus);
+  if (filters.branchId) params.set("branch_id", filters.branchId);
   if (filters.page > 1) params.set("page", String(filters.page));
   if (filters.pageSize && filters.pageSize !== 10)
     params.set("page_size", String(filters.pageSize));

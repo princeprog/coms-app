@@ -6,7 +6,10 @@ import { useDispatchSendForm } from "./use-dispatch-send-form";
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const stockItemId = "9a7a91d1-9c7f-4f30-a61b-4bbd039408f9";
-const event = { preventDefault() {} } as FormEvent<HTMLFormElement>;
+const event = {
+  preventDefault() {},
+  currentTarget: document.createElement("form"),
+} as FormEvent<HTMLFormElement>;
 afterEach(() => vi.unstubAllGlobals());
 
 describe("uncertain dispatch sending", () => {
@@ -41,7 +44,7 @@ describe("uncertain dispatch sending", () => {
       expect(saved.size).toBe(0);
       await act(() => result.current.submit(event));
       expect(saved.size).toBe(0);
-      expect(result.current.error).toMatch(/who is delivering/);
+      expect(result.current.deliveredByError).toMatch(/who is delivering/);
       act(() => result.current.setDeliveredBy("Juan Dela Cruz"));
       await act(() => result.current.submit(event));
       expect(saved.size).toBe(1);

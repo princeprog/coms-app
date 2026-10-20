@@ -1,3 +1,4 @@
+import { ReceivingStatusBadge } from "./receiving-status-badge";
 import {
   Table,
   TableBody,
@@ -91,6 +92,7 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
             <TableCell className="py-3 whitespace-normal">
               <div className="flex flex-col items-start gap-2">
                 <DispatchStatusBadge status={dispatch.status} />
+                <ReceivingStatusBadge status={dispatch.receiving_status} />
                 {dispatch.discrepancy_status && (
                   <div className="flex flex-col items-start gap-1 md:hidden">
                     <span className="text-xs text-muted-foreground">

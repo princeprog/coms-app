@@ -3,6 +3,7 @@ import { isDispatchComplete } from "../services/dispatch-completion-summary";
 import { ArrowLeft, PackageCheck, Truck } from "lucide-react";
 import Link from "next/link";
 import type { Dispatch } from "../types/dispatch.types";
+import { ReceivingStatusBadge } from "./receiving-status-badge";
 import { DispatchStatusBadge } from "./dispatch-status-badge";
 
 export function DispatchDetailHeader({ dispatch }: { dispatch: Dispatch }) {
@@ -38,7 +39,11 @@ export function DispatchDetailHeader({ dispatch }: { dispatch: Dispatch }) {
           </Badge>
         ) : (
           <div className="[&_[data-slot=badge]]:min-h-8 [&_[data-slot=badge]]:rounded-md [&_[data-slot=badge]]:text-sm [&_[data-slot=badge]]:px-2.5 [&_[data-slot=badge]]:transition-none">
-            <DispatchStatusBadge status={dispatch.status} />
+            {dispatch.receiving_status === "REVIEW" ? (
+              <ReceivingStatusBadge status="REVIEW" />
+            ) : (
+              <DispatchStatusBadge status={dispatch.status} />
+            )}
           </div>
         )}
       </div>

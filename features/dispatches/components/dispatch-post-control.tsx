@@ -1,5 +1,7 @@
 "use client";
 
+import { defaultReceiveBy, receiveByIso } from "../services/receiving-time";
+import { DispatchDeadlineField } from "./dispatch-deadline-field";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,8 @@ export function DispatchPostControl({
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [deliveredBy, setDeliveredBy] = useState("");
+  const [receiveBy, setReceiveBy] = useState(defaultReceiveBy);
+  const [deadlineError, setDeadlineError] = useState("");
   const [error, setError] = useState("");
   const [deliveredByError, setDeliveredByError] = useState("");
   const deliveredByInput = useRef<HTMLInputElement>(null);
@@ -47,15 +51,25 @@ export function DispatchPostControl({
       return;
     }
     setDeliveredByError("");
-    if (retry.current?.name !== name)
-      retry.current = { name, key: globalThis.crypto.randomUUID() };
+    const deadline = receiveByIso(receiveBy);
+    if (!deadline || new Date(deadline).getTime() <= Date.now()) {
+      setDeadlineError("Choose a future receiving deadline.");
+      return;
+    }
+    setDeadlineError("");
+    const fingerprint = `${name}|${deadline}`;
+    if (retry.current?.name !== fingerprint)
+      retry.current = {
+        name: fingerprint,
+        key: globalThis.crypto.randomUUID(),
+      };
     setError("");
     setPending(true);
     let result: Awaited<ReturnType<DispatchPostAction>>;
     try {
       result = await action(
         dispatchId,
-        { delivered_by_name: name },
+        { delivered_by_name: name, receive_by: deadline },
         retry.current.key,
       );
     } catch {
@@ -130,6 +144,15 @@ export function DispatchPostControl({
             The driver or runner who will hand the stock to the branch.
           </FieldDescription>
         </Field>
+        <DispatchDeadlineField
+          value={receiveBy}
+          error={deadlineError}
+          disabled={pending}
+          onChange={(value) => {
+            setReceiveBy(value);
+            setDeadlineError("");
+          }}
+        />
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}

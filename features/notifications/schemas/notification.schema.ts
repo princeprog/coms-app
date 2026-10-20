@@ -6,6 +6,8 @@ export const notificationKindSchema = z.enum([
   "REPORT_SUBMITTED",
   "REPORT_RETURNED",
   "REPORT_APPROVED",
+  "DISPATCH_OVERDUE",
+  "DISPATCH_LATE_COUNT",
 ]);
 export const notificationSchema = z.object({
   id: z.uuid(),
@@ -15,6 +17,7 @@ export const notificationSchema = z.object({
   dispatch_id: z.uuid().nullable(),
   report_id: z.uuid().nullable(),
   business_date: z.string().nullable(),
+  overdue_count: z.number().int().nonnegative().nullable().optional(),
   created_at: z.string(),
   read_at: z.string().nullable(),
 });

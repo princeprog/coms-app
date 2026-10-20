@@ -199,6 +199,7 @@ describe("direct dispatch creation", () => {
         branch_id: branchId,
         items: [{ stock_item_id: stockItemId, quantity_dispatched: "12.50" }],
         delivered_by_name: "Juan Dela Cruz",
+        receive_by: expect.any(String),
       },
       retryKey,
     ]);
@@ -280,6 +281,7 @@ describe("direct dispatch creation", () => {
         branch_id: branchId,
         items: [{ stock_item_id: stockItemId, quantity_dispatched: "10.125" }],
         delivered_by_name: "Juan",
+        receive_by: expect.any(String),
       },
       nextKey,
     ]);

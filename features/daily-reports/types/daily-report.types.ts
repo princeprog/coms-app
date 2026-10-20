@@ -41,6 +41,9 @@ export type DailyReportUpdateAction = (
 export type DailyReportTransitionAction = (
   branchId: string,
   reportId: string,
+  input?: {
+    delivery_exceptions: Array<{ dispatch_id: string; reason: string }>;
+  },
 ) => Promise<DailyReportActionResult>;
 export type DailyReportReturnAction = (
   branchId: string,

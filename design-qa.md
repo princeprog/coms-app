@@ -404,3 +404,12 @@ final result: passed
 - Fixed during verification: error feedback initially used an unmounted toast library; switched to the app's Base UI toast and added a visible-message regression. A shared count query could finish before the streamed inbox hydrated; retained its server snapshot until hydration and reproduced/fixed the race in a focused test.
 - Validation: full frontend suite 142 files / 658 tests passed before the final hydration regression; the final notification suite has 4 files / 13 passing tests. Typecheck, scoped lint, formatting and production build pass. API recipient/transaction verification is separate from the synthetic browser fixture.
 - Review: author performed a separate architecture/accessibility/React review, following the user's no-subagent preference. No native screen-reader or physical-device run. No production deployment or live workflow mutations.
+
+
+## 2026-10-20 — Dispatch receiving follow-up
+
+Implemented receiving deadlines, persistent paginated tasks, actual-date/late-reason entry, saved count review and report delivery exceptions using the current COMS controls. No new design system or external assets.
+
+Production browser fixture: `node test/receiving-followup-browser.cjs` passed against synthetic loopback data. Verified task status and page-size dropdowns, late-reason validation/focus, count review and preserved inputs, discard confirmation, approved-report hold with disabled posting, required return reason/focus, and responsive layouts at 1440/768/390/320px plus narrow dark mode. No page errors or document overflow. Reviewed desktop and 390px captures; tightened units, review-status wording and no-blocker copy. Captures are ignored under `test-results/receiving-followup/`.
+
+Automated evidence: 32 scoped files / 146 tests, 24 operational fixture tests, and 18 final detail/permission tests passed. Changed-file lint, types and build passed. API integration evidence is separate: browser fixtures simulate data and make no live operational writes. No native screen-reader or physical-device test. Historical approved-report correction remains intentionally unavailable; affected counts stay on hold. Solo author review; no subagents.

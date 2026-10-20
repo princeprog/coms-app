@@ -24,6 +24,15 @@ import type {
 } from "../schemas/notification.schema";
 
 const appearance = {
+  DISPATCH_OVERDUE: {
+    icon: TriangleAlert,
+    color: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
+  },
+  DISPATCH_LATE_COUNT: {
+    icon: FileClock,
+    color:
+      "bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
+  },
   DISPATCH_SENT: {
     icon: Truck,
     color: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",

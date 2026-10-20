@@ -1,5 +1,6 @@
 "use client";
 
+import { DailyReportDeliveryHistory } from "./daily-report-deliveries";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -127,6 +128,7 @@ export function DailyReportDetail({
         />
       )}
 
+      <DailyReportDeliveryHistory report={report} />
       <DailyReportReviewControls
         branchId={branchId}
         report={report}

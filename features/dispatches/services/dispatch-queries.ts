@@ -22,6 +22,9 @@ export async function getDispatchPageData(
     page: String(filters.page),
     page_size: String(filters.pageSize ?? 10),
   });
+  if (filters.receivingStatus)
+    params.set("receiving_status", filters.receivingStatus);
+  if (filters.branchId) params.set("branch_id", filters.branchId);
   if (filters.status !== "all") params.set("status", filters.status);
   if (filters.discrepancyStatus !== "all")
     params.set("discrepancy_status", filters.discrepancyStatus);

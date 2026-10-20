@@ -1,5 +1,6 @@
 "use client";
 
+import { DispatchDeadlineField } from "./dispatch-deadline-field";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { LoaderCircleIcon } from "lucide-react";
@@ -17,6 +18,9 @@ export function DispatchSendReview({
   stockItems,
   deliveredBy,
   deliveredByError,
+  receiveBy,
+  deadlineError,
+  onReceiveByChange,
   pending,
   error,
   onDeliveredByChange,
@@ -27,6 +31,9 @@ export function DispatchSendReview({
   stockItems: DispatchStockOption[];
   deliveredBy: string;
   deliveredByError: string;
+  receiveBy: string;
+  deadlineError: string;
+  onReceiveByChange: (value: string) => void;
   pending: boolean;
   error: string;
   onDeliveredByChange: (value: string) => void;
@@ -79,6 +86,12 @@ export function DispatchSendReview({
             )}
           </Field>
         </div>
+        <DispatchDeadlineField
+          value={receiveBy}
+          error={deadlineError}
+          disabled={pending}
+          onChange={onReceiveByChange}
+        />
         <ul className="divide-y divide-border/60" aria-label="Items to send">
           <li
             aria-hidden="true"

@@ -32,8 +32,7 @@ function getActionError(error: unknown) {
     if (error.status === 404)
       return "This dispatch, branch, or stock item is no longer available.";
     if (error.status === 409)
-      return error.message &&
-        !error.message.startsWith("Idempotency key")
+      return error.message && !error.message.startsWith("Idempotency key")
         ? error.message
         : "The workflow changed or this retry key was already used. Refresh and try again.";
     if (error.status === 400)
@@ -67,7 +66,12 @@ async function submitDispatchAction(
     if (!parsedDispatch.success)
       throw new ApiRequestError("Invalid dispatch action response.", 502);
     revalidateDispatchRoutes(id);
-    return { ok: true };
+    return {
+      ok: true,
+      ...(parsedDispatch.data.receiving_outcome
+        ? { receiving_outcome: parsedDispatch.data.receiving_outcome }
+        : {}),
+    };
   } catch (error) {
     return { ok: false, error: getActionError(error) };
   }
@@ -192,5 +196,30 @@ export async function closeDispatchShortageAction(
     parsedId.data,
     parsedInput.data,
     parsedKey.data,
+  );
+}
+
+export async function reviewLateCountAction(
+  id: string,
+  caseId: string,
+  input: { action: "POST" | "RETURN"; reason?: string },
+): Promise<DispatchActionResult> {
+  const body = z
+    .object({
+      action: z.enum(["POST", "RETURN"]),
+      reason: z.string().trim().max(500).optional(),
+    })
+    .safeParse(input);
+  if (
+    !z.uuid().safeParse(id).success ||
+    !z.uuid().safeParse(caseId).success ||
+    !body.success
+  )
+    return { ok: false, error: "Check the review action and reason." };
+  return submitDispatchAction(
+    `${dispatchesEndpoint}/${id}/late-counts/${caseId}/review`,
+    id,
+    body.data,
+    globalThis.crypto.randomUUID(),
   );
 }

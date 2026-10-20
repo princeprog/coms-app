@@ -42,7 +42,9 @@ export type CloseDispatchShortageInput = z.infer<
 
 export type DispatchMutationResult =
   { ok: true; dispatch_id: string } | { ok: false; error: string };
-export type DispatchActionResult = { ok: true } | { ok: false; error: string };
+export type DispatchActionResult =
+  | { ok: true; receiving_outcome?: "POSTED" | "REVIEW_REQUIRED" }
+  | { ok: false; error: string };
 
 export type DispatchCreateAction = (
   input: unknown,

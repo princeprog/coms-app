@@ -1,3 +1,4 @@
+import { PendingReceiving } from "./pending-receiving";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import type { DispatchPageFilters } from "@/features/dispatches/services/dispatch-page-params";
 import { DispatchDirectory } from "./dispatch-directory";
@@ -8,6 +9,8 @@ import type {
 } from "@/features/dispatches/types/dispatch.types";
 
 export function DispatchManagement({
+  userId,
+  canReceive,
   page,
   filters,
   canCreate,
@@ -15,6 +18,8 @@ export function DispatchManagement({
   createOptionsIssue,
   createAction,
 }: {
+  userId?: string;
+  canReceive?: boolean;
   page: DispatchPage;
   filters: DispatchPageFilters;
   canCreate: boolean;
@@ -53,6 +58,15 @@ export function DispatchManagement({
           Creating a new dispatch requires both dispatch creation and sending
           permissions. Ask an administrator to review your role.
         </p>
+      )}
+      {userId && (
+        <PendingReceiving
+          key={`${filters.branchId ?? "all"}:${filters.receivingStatus ?? "pending"}`}
+          userId={userId}
+          canReceive={canReceive}
+          branchId={filters.branchId}
+          initialStatus={filters.receivingStatus}
+        />
       )}
       <DispatchDirectory page={page} filters={filters} />
     </div>

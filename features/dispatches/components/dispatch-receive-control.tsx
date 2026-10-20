@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "@/components/ui/toast";
+import { DispatchCountTiming, useCountTiming } from "./dispatch-count-timing";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -24,6 +26,7 @@ export function DispatchReceiveControl({
   primary?: boolean;
 }) {
   const router = useRouter();
+  const timing = useCountTiming(dispatch);
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -34,11 +37,15 @@ export function DispatchReceiveControl({
   const [error, setError] = useState("");
   const items = dispatch.items.filter((item) => item.awaiting_count);
 
-  if (items.length === 0) return null;
+  if (items.length === 0 || dispatch.receiving_status === "REVIEW") return null;
 
   function requestClose() {
     if (pending) return;
-    if (note || Object.values(quantities).some((value) => value.length > 0)) {
+    if (
+      timing.reason ||
+      note ||
+      Object.values(quantities).some((value) => value.length > 0)
+    ) {
       setConfirmDiscard(true);
       return;
     }
@@ -46,6 +53,7 @@ export function DispatchReceiveControl({
   }
 
   function discardDraft() {
+    timing.reset();
     setQuantities({});
     setNote("");
     setError("");
@@ -58,7 +66,13 @@ export function DispatchReceiveControl({
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    if (!timing.validate(event.currentTarget)) {
+      setConfirming(false);
+      return;
+    }
     const parsed = receiveDispatchSchema.safeParse({
+      delivery_date: timing.date,
+      ...(timing.reason.trim() ? { late_reason: timing.reason.trim() } : {}),
       items: items.map((item) => ({
         dispatch_item_id: item.id,
         quantity_received: (quantities[item.id] ?? "").trim(),
@@ -97,6 +111,12 @@ export function DispatchReceiveControl({
       return;
     }
     retry.current = null;
+    toast.add({
+      title:
+        result.receiving_outcome === "REVIEW_REQUIRED"
+          ? "Count saved for review"
+          : "Delivery count recorded",
+    });
     setOpen(false);
     router.refresh();
   }
@@ -123,6 +143,11 @@ export function DispatchReceiveControl({
         onCancel={() => (confirming ? setConfirming(false) : requestClose())}
         onSubmit={submit}
       >
+        <DispatchCountTiming
+          timing={timing}
+          disabled={pending}
+          confirming={confirming}
+        />
         {confirming ? (
           <DispatchCountReview
             items={items}

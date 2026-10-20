@@ -12,6 +12,9 @@ import {
   type DispatchDetailViewProps,
 } from "./dispatch-detail-view";
 
+vi.mock("../services/dispatch-actions", () => ({
+  reviewLateCountAction: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: React.ComponentProps<"a">) => (

@@ -125,6 +125,28 @@ export const dailyReportPageSchema = z.object({
 });
 
 export const dailyReportDetailSchema = dailyReportHeaderSchema.extend({
+  pending_deliveries: z
+    .array(
+      z.object({
+        id: z.uuid(),
+        dispatched_at: z.string().nullable(),
+        receive_by: z.string().nullable(),
+        receiving_status: z.string(),
+      }),
+    )
+    .optional(),
+  delivery_exceptions: z
+    .array(
+      z.object({
+        dispatch_id: z.uuid(),
+        reason: z.string(),
+        actor_user_id: z.uuid(),
+        created_at: z.string(),
+        counted_at: z.string().nullable(),
+        report_event_id: z.uuid(),
+      }),
+    )
+    .optional(),
   items: z.array(dailyReportItemSchema),
   events: z.array(dailyReportEventSchema),
 });

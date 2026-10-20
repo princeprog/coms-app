@@ -215,6 +215,37 @@ describe("dispatch page loader", () => {
     });
   });
 
+  it("allows independent review of a held count before stock is posted", async () => {
+    const held = {
+      ...detail,
+      receiving_status: "REVIEW",
+      late_counts: [
+        { id: senderId, status: "PENDING", counted_by_user_id: senderId },
+      ],
+    };
+    getDispatchDetail.mockResolvedValue(held);
+    await expect(
+      loadDispatchDetailView(
+        user(["dispatches.read", "dispatches.shortage_close"]),
+        id,
+      ),
+    ).resolves.toMatchObject({ canResolve: true });
+    getDispatchDetail.mockResolvedValue({
+      ...held,
+      late_counts: [{ ...held.late_counts[0], counted_by_user_id: id }],
+    });
+    await expect(
+      loadDispatchDetailView(
+        user(["dispatches.read", "dispatches.shortage_close"]),
+        id,
+      ),
+    ).resolves.toMatchObject({ canResolve: false });
+    getDispatchDetail.mockResolvedValue(held);
+    await expect(
+      loadDispatchDetailView(user(["dispatches.read"]), id),
+    ).resolves.toMatchObject({ canResolve: false });
+  });
+
   it("hides counting and resolution actions for a draft", async () => {
     getDispatchDetail.mockResolvedValue({ ...detail, status: "DRAFT" });
     await expect(

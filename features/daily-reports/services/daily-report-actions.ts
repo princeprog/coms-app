@@ -36,6 +36,11 @@ function getActionError(error: unknown) {
       return "You do not have permission to perform this report action at the selected branch.";
     if (error.status === 404)
       return "The selected branch or report is no longer available.";
+    if (
+      error.status === 409 &&
+      /deliver|count awaiting review|late delivery/i.test(error.message)
+    )
+      return error.message;
     if (error.status === 409)
       return "The report changed or cannot transition from its current state. Refresh and review it.";
     if (error.status === 400)
@@ -232,12 +237,31 @@ async function postReportTransition(
 export async function submitDailyReportAction(
   branchId: unknown,
   reportId: unknown,
+  input?: unknown,
 ): Promise<DailyReportActionResult> {
+  const body = z
+    .object({
+      delivery_exceptions: z
+        .array(
+          z.object({
+            dispatch_id: z.uuid(),
+            reason: z.string().trim().min(1).max(500),
+          }),
+        )
+        .max(1000),
+    })
+    .safeParse(input ?? { delivery_exceptions: [] });
+  if (!body.success)
+    return {
+      ok: false,
+      error: "Explain why each pending delivery had not arrived.",
+    };
   return postReportTransition(
     branchId,
     reportId,
     "submit",
     "daily_reports.submit",
+    input === undefined ? undefined : body.data,
   );
 }
 

@@ -1,4 +1,5 @@
 "use client";
+import { defaultReceiveBy, receiveByIso } from "../services/receiving-time";
 import { useRef, useState, type FormEvent } from "react";
 import {
   createDispatchSchema,
@@ -36,6 +37,8 @@ export function useDispatchSendForm({
   ]);
   const [review, setReview] = useState<CreateDispatchInput | null>(null);
   const [deliveredBy, setDeliveredBy] = useState("");
+  const [receiveBy, setReceiveBy] = useState(defaultReceiveBy);
+  const [deadlineError, setDeadlineError] = useState("");
   const [deliveredByError, setDeliveredByError] = useState("");
   const submitting = useRef(false);
   const nextLineKey = useRef(2);
@@ -101,7 +104,17 @@ export function useDispatchSendForm({
       setReview(parsed.data);
       return;
     }
+    const deadline = receiveByIso(receiveBy);
+    if (!deadline || new Date(deadline).getTime() <= Date.now()) {
+      setDeadlineError("Choose a future receiving deadline.");
+      event.currentTarget
+        .querySelector<HTMLInputElement>("#dispatch-receive-by")
+        ?.focus();
+      return;
+    }
+    setDeadlineError("");
     const sendInput = sendDispatchSchema.safeParse({
+      receive_by: deadline,
       ...parsed.data,
       delivered_by_name: deliveredBy,
     });
@@ -115,6 +128,7 @@ export function useDispatchSendForm({
     setDeliveredByError("");
     // Compare the submitted meaning, not intermediate edits or decimal formatting.
     const fingerprint = JSON.stringify({
+      receive_by: deadline,
       branch_id: parsed.data.branch_id,
       delivered_by_name: sendInput.data.delivered_by_name,
       items: parsed.data.items
@@ -176,6 +190,13 @@ export function useDispatchSendForm({
     setReview,
     deliveredBy,
     deliveredByError,
+    receiveBy,
+    deadlineError,
+    setReceiveBy: (value: string) => {
+      setReceiveBy(value);
+      setDeadlineError("");
+      onDirtyChange(true);
+    },
     setDeliveredBy: (value: string) => {
       setDeliveredBy(value);
       if (value.trim()) setDeliveredByError("");

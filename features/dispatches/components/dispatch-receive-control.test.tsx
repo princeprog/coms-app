@@ -113,6 +113,7 @@ describe("dispatch receive control", () => {
         { dispatch_item_id: sugarLineId, quantity_received: "0" },
       ],
       note: "Sugar sack missing",
+      delivery_date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
     };
     expect(action.mock.calls[0]).toEqual([dispatchId, body, idempotencyKey]);
     expect(action.mock.calls[1]).toEqual([dispatchId, body, idempotencyKey]);

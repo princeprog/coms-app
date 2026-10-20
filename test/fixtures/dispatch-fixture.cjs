@@ -575,7 +575,8 @@ function handleDispatchRequest({ request, response, url, body, state, seed }) {
     const matches = state.dispatches
       .filter(
         (dispatch) =>
-          (!status || dispatch.status === status) &&
+          (!url.searchParams.get("receiving_status") || (url.searchParams.get("receiving_status") === "pending" ? ["AWAITING_COUNT","OVERDUE","REVIEW"].includes(dispatch.receiving_status) : dispatch.receiving_status === url.searchParams.get("receiving_status"))) &&
+        (!status || dispatch.status === status) &&
           (!branchId || dispatch.branch_id === branchId) &&
           (!search || dispatch.branch_name.toLowerCase().includes(search)) &&
           (!discrepancy ||

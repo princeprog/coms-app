@@ -54,7 +54,7 @@ describe("dispatch post control", () => {
     await waitFor(() =>
       expect(action).toHaveBeenCalledWith(
         dispatchId,
-        { delivered_by_name: "Juan Dela Cruz" },
+        { delivered_by_name: "Juan Dela Cruz", receive_by: expect.any(String) },
         idempotencyKey,
       ),
     );
@@ -79,7 +79,7 @@ describe("dispatch post control", () => {
     await user.click(screen.getByRole("button", { name: "Confirm dispatch" }));
 
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
-    const body = { delivered_by_name: "Juan" };
+    const body = { delivered_by_name: "Juan", receive_by: expect.any(String) };
     expect(action.mock.calls[0]).toEqual([dispatchId, body, idempotencyKey]);
     expect(action.mock.calls[1]).toEqual([dispatchId, body, idempotencyKey]);
   });

@@ -4,6 +4,8 @@ import type {
   NotificationKind,
 } from "./schemas/notification.schema";
 export const notificationTitle: Record<NotificationKind, string> = {
+  DISPATCH_OVERDUE: "Overdue deliveries",
+  DISPATCH_LATE_COUNT: "Late delivery count needs review",
   DISPATCH_SENT: "Delivery on the way",
   DISPATCH_DISCREPANCY: "Dispatch needs review",
   DISPATCH_RESOLVED: "Dispatch discrepancy resolved",
@@ -15,6 +17,12 @@ export function notificationHref(
   item: Pick<Notification, "id" | "dispatch_id" | "report_id" | "branch_id">,
 ) {
   const params = new URLSearchParams();
+  if (!item.dispatch_id && !item.report_id) {
+    params.set("branch_id", item.branch_id);
+    params.set("receiving_status", "OVERDUE");
+    params.set("notification_id", item.id);
+    return `/dispatches?${params}`;
+  }
   if (!item.dispatch_id) {
     params.set("branch_id", item.branch_id);
     params.set("report_id", item.report_id!);
@@ -57,6 +65,8 @@ const businessDate = new Intl.DateTimeFormat("en-PH", {
 export const notificationTimestamp = (value: string) =>
   `${exactDate.format(new Date(value))} PHT`;
 export const notificationContext = (item: Notification) =>
-  item.business_date
-    ? `Daily report · ${businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`))}`
-    : "Dispatch";
+  item.kind === "DISPATCH_OVERDUE"
+    ? `${item.overdue_count ?? "Pending"} overdue deliveries`
+    : item.business_date
+      ? `Daily report · ${businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`))}`
+      : "Dispatch";

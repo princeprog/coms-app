@@ -38,6 +38,57 @@ const report = {
 };
 
 describe("daily report review controls", () => {
+  it("requires a not-arrived reason and preserves it after a failed submission", async () => {
+    const controls = await getReviewControls();
+    if (!controls) throw new Error("Report controls unavailable");
+    const action = vi.fn().mockResolvedValue({
+      ok: false,
+      error: "Delivery state changed. Review and retry.",
+    });
+    render(
+      <controls.DailyReportReviewControls
+        branchId={branchId}
+        report={{
+          ...report,
+          status: "DRAFT",
+          pending_deliveries: [
+            {
+              id: reportId,
+              dispatched_at: report.created_at,
+              receive_by: report.created_at,
+              receiving_status: "OVERDUE",
+            },
+          ],
+        }}
+        canSubmit
+        canReturn={false}
+        canApprove={false}
+        hasUnsavedChanges={false}
+        submitAction={action}
+        returnAction={vi.fn()}
+        approveAction={vi.fn()}
+        onReportChange={vi.fn()}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Submit for review" }));
+    expect(action).not.toHaveBeenCalled();
+    const reason = screen.getByLabelText("Not arrived by day-end — reason");
+    expect(document.activeElement).toBe(reason);
+    await user.type(reason, "Courier delayed until tomorrow");
+    await user.click(screen.getByRole("button", { name: "Submit for review" }));
+    expect(action).toHaveBeenCalledWith(branchId, reportId, {
+      delivery_exceptions: [
+        { dispatch_id: reportId, reason: "Courier delayed until tomorrow" },
+      ],
+    });
+    expect((reason as HTMLTextAreaElement).value).toBe(
+      "Courier delayed until tomorrow",
+    );
+    expect(
+      await screen.findByText("Delivery state changed. Review and retry."),
+    ).toBeTruthy();
+  });
   it("blocks status changes while count edits are unsaved", async () => {
     const controlsModule = await getReviewControls();
     expect(controlsModule).not.toBeNull();

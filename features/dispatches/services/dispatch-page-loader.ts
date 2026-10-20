@@ -145,6 +145,9 @@ export async function loadDispatchDetailView(
       dispatch.status === "IN_TRANSIT" ||
       dispatch.status === "PARTIALLY_RECEIVED";
     const counted = Boolean(dispatch.counted_at);
+    const pendingCount = dispatch.late_counts?.find(
+      (count) => count.status === "PENDING",
+    );
     return {
       status: "ready",
       dispatch,
@@ -160,8 +163,8 @@ export async function loadDispatchDetailView(
         hasPermission(user, "dispatches.receive"),
       canResolve:
         open &&
-        counted &&
-        dispatch.counted_by_user_id !== user.id &&
+        ((counted && dispatch.counted_by_user_id !== user.id) ||
+          (!!pendingCount && pendingCount.counted_by_user_id !== user.id)) &&
         hasPermission(user, "dispatches.shortage_close"),
     };
   } catch (error) {

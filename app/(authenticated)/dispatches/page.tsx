@@ -1,3 +1,7 @@
+import {
+  hasPermission,
+  isProtectedSuperAdmin,
+} from "@/features/auth/permissions";
 import { notFound, redirect } from "next/navigation";
 import { AppPageShell } from "@/components/layout/app-page-shell";
 import { AuthServiceError } from "@/features/auth/components/auth-service-error";
@@ -36,6 +40,11 @@ export default async function DispatchesPage({
   return (
     <AppPageShell user={session.user}>
       <DispatchManagement
+        userId={session.user.id}
+        canReceive={
+          !isProtectedSuperAdmin(session.user) &&
+          hasPermission(session.user, "dispatches.receive")
+        }
         page={view.page}
         filters={view.filters}
         canCreate={view.canCreate}

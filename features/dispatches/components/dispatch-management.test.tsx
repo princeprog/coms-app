@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import { DispatchManagement } from "./dispatch-management";
 
+vi.mock("../services/pending-receiving-actions", () => ({
+  getPendingReceivingAction: vi.fn(),
+}));
 vi.mock("../services/dispatch-stock-actions", () => ({
   searchDispatchStock: vi.fn(),
 }));

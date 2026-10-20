@@ -75,17 +75,25 @@ export const createDispatchSchema = dispatchDraftObject.refine(
 );
 
 export const sendDispatchSchema = dispatchDraftObject
-  .extend({ delivered_by_name: deliveredByName })
+  .extend({
+    delivered_by_name: deliveredByName,
+    receive_by: z.iso.datetime().optional(),
+  })
   .refine(uniqueStockItems, {
     message: "A stock item may appear only once per dispatch.",
   });
 
 export const sendDispatchDraftSchema = z
-  .object({ delivered_by_name: deliveredByName })
+  .object({
+    delivered_by_name: deliveredByName,
+    receive_by: z.iso.datetime().optional(),
+  })
   .strict();
 
 export const receiveDispatchSchema = z
   .object({
+    delivery_date: z.iso.date().optional(),
+    late_reason: z.string().trim().min(1).max(500).optional(),
     items: z.array(receiveItemSchema).min(1).max(100),
     note: z.string().trim().min(1).max(500).optional(),
   })
@@ -117,6 +125,10 @@ const dispatchListItemSchema = z.object({
   dispatched_by_name: z.string().min(1).nullable(),
   dispatched_at: z.iso.datetime().nullable(),
   counted_at: z.iso.datetime().nullable().optional(),
+  receive_by: z.iso.datetime().nullable().optional(),
+  receiving_status: z
+    .enum(["NONE", "COUNTED", "AWAITING_COUNT", "OVERDUE", "REVIEW"])
+    .optional(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
   item_count: z.number().int().nonnegative(),
@@ -222,7 +234,29 @@ const dispatchDiscrepancyEventSchema = z.object({
   created_at: z.iso.datetime(),
 });
 
+const lateCountSchema = z.object({
+  id: z.uuid(),
+  counted_by_user_id: z.uuid(),
+  status: z.enum(["PENDING", "RETURNED", "POSTED"]),
+  delivery_date: z.string(),
+  late_reason: z.string(),
+  review_reason: z.string().nullable(),
+  created_at: z.string(),
+  reviewed_at: z.string().nullable(),
+  items: z.array(
+    z.object({ dispatch_item_id: z.uuid(), quantity: z.string() }),
+  ),
+});
 export const dispatchDetailSchema = z.object({
+  delivery_date: z.string().nullable().optional(),
+  late_reason: z.string().nullable().optional(),
+  receiving_outcome: z.enum(["POSTED", "REVIEW_REQUIRED"]).optional(),
+  late_counts: z.array(lateCountSchema).optional(),
+  late_count_blockers: z
+    .array(
+      z.object({ id: z.uuid(), business_date: z.string(), status: z.string() }),
+    )
+    .optional(),
   id: z.uuid(),
   branch_id: z.uuid(),
   branch_name: z.string().min(1),
@@ -236,6 +270,10 @@ export const dispatchDetailSchema = z.object({
   counted_by_user_id: z.uuid().nullable().optional(),
   counted_by_name: z.string().min(1).nullable().optional(),
   counted_at: z.iso.datetime().nullable().optional(),
+  receive_by: z.iso.datetime().nullable().optional(),
+  receiving_status: z
+    .enum(["NONE", "COUNTED", "AWAITING_COUNT", "OVERDUE", "REVIEW"])
+    .optional(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
   items: z.array(dispatchItemSchema),

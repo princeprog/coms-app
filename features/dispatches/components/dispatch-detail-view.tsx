@@ -15,6 +15,7 @@ import { DispatchItemTable } from "./dispatch-item-table";
 import { DispatchMilestones } from "./dispatch-milestones";
 import { DispatchNextActions } from "./dispatch-next-actions";
 import styles from "./dispatch-detail.module.css";
+import { DispatchReceivingFollowup } from "./dispatch-receiving-followup";
 
 export type DispatchDetailViewProps = {
   dispatch: Dispatch;
@@ -35,6 +36,10 @@ export function DispatchDetailView(props: DispatchDetailViewProps) {
       className={`${styles.page} mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-7 pb-4`}
     >
       <DispatchDetailHeader dispatch={dispatch} />
+      <DispatchReceivingFollowup
+        dispatch={dispatch}
+        canReview={props.canResolve}
+      />
       {completed ? (
         <DispatchCompletedSummary dispatch={dispatch} />
       ) : (

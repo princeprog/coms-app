@@ -1,3 +1,4 @@
+const {seedReceivingFollowup} = require("./fixtures/receiving-followup-fixture.cjs");
 const {
   createNotificationSeed,
   handleNotifications,
@@ -607,6 +608,7 @@ function createOperationalApiFixture({
   authUser = seed.user,
   stockItemCount = 26,
   notificationCount = 0,
+  receivingFollowup = false,
 }) {
   if (!gatewaySecret || !/^[a-f0-9]{64}$/i.test(gatewaySecret)) {
     throw new Error(
@@ -615,6 +617,7 @@ function createOperationalApiFixture({
   }
 
   let state = createState({ stockItemCount });
+  if (receivingFollowup) seedReceivingFollowup(state);
   let notificationItems = createNotificationSeed(state, notificationCount);
   const server = http.createServer(async (request, response) => {
     const url = new URL(request.url, "http://127.0.0.1");
@@ -624,6 +627,7 @@ function createOperationalApiFixture({
 
       if (url.pathname === "/__fixture/reset" && request.method === "POST") {
         state = createState({ stockItemCount });
+        if (receivingFollowup) seedReceivingFollowup(state);
         notificationItems = createNotificationSeed(state, notificationCount);
         return send(response, 204);
       }
