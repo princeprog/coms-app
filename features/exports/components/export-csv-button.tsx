@@ -19,12 +19,14 @@ export function ExportCsvButton({
   params,
   label = "Export CSV",
   icon = <Download data-icon="inline-start" aria-hidden="true" />,
+  variant = "outline",
   className,
 }: {
   kind: ExportKind;
   params?: ExportParams;
   label?: string;
   icon?: ReactNode;
+  variant?: "outline" | "default";
   className?: string;
 }) {
   const [pending, setPending] = useState(false);
@@ -71,7 +73,7 @@ export function ExportCsvButton({
   return (
     <Button
       type="button"
-      variant="outline"
+      variant={variant}
       className={className}
       disabled={pending}
       aria-busy={pending}

@@ -129,28 +129,38 @@ beforeEach(() => {
 describe("sales report", () => {
   it("shows headline numbers with their comparison", async () => {
     mount("period=week&date=2026-10-14");
-    expect(await screen.findByText("₱500.00", { selector: "dd" })).toBeTruthy();
+    const hero = await screen.findByRole("region", { name: "Net sales" });
+    expect(within(hero).getByText("₱500.00")).toBeTruthy();
+    expect(within(hero).getByText("Last week: ₱400.00")).toBeTruthy();
     expect(getSalesReportAction).toHaveBeenCalledWith({
       period: "week",
       date: "2026-10-14",
       branch_id: undefined,
     });
-    expect(screen.getByText("+25%").className).toContain("emerald");
+    expect(within(hero).getByText("+25%").className).toContain("emerald");
     // Rising food cost is bad news.
     expect(screen.getByText("+2.1 pts").className).toContain("red");
     expect(screen.getByText("No earlier sales")).toBeTruthy();
-    expect(screen.getByText("Food cost covers 90% of net sales")).toBeTruthy();
+    const profit = screen.getByRole("region", { name: "Gross profit" });
+    expect(within(profit).getByText("₱323.00")).toBeTruthy();
+    expect(
+      within(profit).getByText("Food cost covers 90% of net sales."),
+    ).toBeTruthy();
+    expect(
+      within(profit).getByRole("img", {
+        name: "Food cost is 35.4% of net sales",
+      }),
+    ).toBeTruthy();
     expect(screen.getByText("All branches · vs previous week")).toBeTruthy();
-    const payments = screen.getByRole("region", {
-      name: "Payment methods table",
-    });
+    const payments = screen.getByRole("list", { name: "Payment methods" });
     expect(within(payments).getByText("GCash")).toBeTruthy();
+    expect(within(payments).getByText("30%")).toBeTruthy();
   });
 
   it("steps between periods through the URL", async () => {
     const user = userEvent.setup();
     mount("period=week&date=2026-10-14");
-    await screen.findByText("Oct 12 – Oct 18, 2026");
+    await screen.findByText("Oct 12 – 18, 2026");
     await user.click(screen.getByRole("button", { name: "Previous period" }));
     expect(replace).toHaveBeenLastCalledWith(
       "/sales-report?period=week&date=2026-10-05",
@@ -161,7 +171,7 @@ describe("sales report", () => {
       "/sales-report?period=month&date=2026-10-14",
       { scroll: false },
     );
-    await user.click(screen.getByRole("button", { name: "Today" }));
+    await user.click(screen.getByRole("button", { name: "This week" }));
     expect(replace).toHaveBeenLastCalledWith("/sales-report?period=week", {
       scroll: false,
     });
@@ -183,8 +193,9 @@ describe("sales report", () => {
     });
     mount();
     expect(await screen.findByText("No sales in this period")).toBeTruthy();
-    expect(screen.queryByText("Gross profit")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Gross profit" })).toBeNull();
     expect(screen.queryByText("Waste value")).toBeNull();
+    expect(screen.getByRole("region", { name: "Daily reports" })).toBeTruthy();
   });
 
   it("downloads the PDF for the shown period and recovers from errors", async () => {
