@@ -608,6 +608,104 @@ function branchProductView(state, offer) {
   };
 }
 
+function dashboardTodayFixture() {
+  const today = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+  const day = (offset) =>
+    new Date(Date.parse(today + "T00:00:00Z") - offset * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+  const branchA = "10000000-0000-4000-8000-000000000001";
+  const branchB = "10000000-0000-4000-8000-000000000002";
+  return {
+    business_date: today,
+    as_of: new Date().toISOString(),
+    scope_label: "All branches",
+    branch_options: [
+      { id: branchB, name: "Cebu Branch", status: "active" },
+      { id: branchA, name: "Manila - Ermita", status: "active" },
+    ],
+    show_costs: true,
+    today: {
+      net_sales: "6840.00",
+      sales_count: 38,
+      average_sale: "180.00",
+      items_sold: "86",
+      void_count: 1,
+      food_cost: "2667.60",
+      gross_profit: "4172.40",
+    },
+    yesterday_same_time: { net_sales: "6120.00", sales_count: 35 },
+    changes: { net_sales: "11.8", sales_count: "8.6" },
+    attention: [
+      { key: "deliveries_overdue", count: 1 },
+      { key: "open_discrepancies", count: 1 },
+      { key: "shifts_open_past_day", count: 0 },
+      { key: "cash_shortages", count: 1 },
+      { key: "stock_below_zero", count: 3 },
+      { key: "reports_missing", count: 1 },
+      { key: "reports_returned", count: 0 },
+      { key: "reports_to_review", count: 2 },
+      { key: "late_counts_to_review", count: 0 },
+      { key: "shifts_to_review", count: 1 },
+      { key: "deliveries_in_transit", count: 2 },
+      { key: "products_incomplete_costs", count: 1 },
+    ],
+    branches: [
+      {
+        branch_id: branchA,
+        branch_name: "Manila - Ermita",
+        status: "active",
+        shift_number: 2,
+        cashier_name: "Ana Cruz",
+        opened_at: new Date(Date.now() - 5 * 3600_000).toISOString(),
+        sales_count: 24,
+        net_sales: "4320.00",
+        last_sale_at: new Date(Date.now() - 6 * 60_000).toISOString(),
+        yesterday_report_status: "SUBMITTED",
+      },
+      {
+        branch_id: branchB,
+        branch_name: "Cebu Branch",
+        status: "active",
+        shift_number: 1,
+        cashier_name: "Ben Reyes",
+        opened_at: new Date(Date.now() - 4 * 3600_000).toISOString(),
+        sales_count: 14,
+        net_sales: "2520.00",
+        last_sale_at: new Date(Date.now() - 21 * 60_000).toISOString(),
+        yesterday_report_status: "MISSING",
+      },
+    ],
+    last_7_days: [6, 5, 4, 3, 2, 1, 0].map((offset, index) => ({
+      date: day(offset),
+      sales_count: 30 + index,
+      net_sales: String(8200 + ((index * 1370) % 2600)) + ".00",
+      food_cost: "3100.00",
+      gross_profit: "5100.00",
+    })),
+    top_products_today: [
+      {
+        product_id: "20000000-0000-4000-8000-000000000001",
+        name: "Tapsilog",
+        quantity: "11",
+        net_sales: "1859.00",
+      },
+      {
+        product_id: "20000000-0000-4000-8000-000000000002",
+        name: "Chicken Inasal Rice Meal",
+        quantity: "8",
+        net_sales: "1432.00",
+      },
+      {
+        product_id: "20000000-0000-4000-8000-000000000003",
+        name: "Bangsilog",
+        quantity: "6",
+        net_sales: "1074.00",
+      },
+    ],
+  };
+}
+
 function salesReportFixture(query) {
   const period = ["day", "week", "month"].includes(query.get("period"))
     ? query.get("period")
@@ -1568,6 +1666,9 @@ function createOperationalApiFixture({
       }
       if (url.pathname === "/reports/sales" && request.method === "GET") {
         return send(response, 200, salesReportFixture(url.searchParams));
+      }
+      if (url.pathname === "/dashboard/today" && request.method === "GET") {
+        return send(response, 200, dashboardTodayFixture());
       }
       if (url.pathname === "/reports/sales/pdf" && request.method === "GET") {
         response.writeHead(200, {
