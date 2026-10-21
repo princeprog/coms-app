@@ -10,6 +10,7 @@ export const auditAreaValues = [
   "business_day",
   "staff",
   "role",
+  "export",
 ] as const;
 
 export const auditEventSchema = z.object({

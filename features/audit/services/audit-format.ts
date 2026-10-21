@@ -10,6 +10,7 @@ export const auditAreaLabels: Record<AuditArea, string> = {
   business_day: "Business day",
   staff: "Staff",
   role: "Roles",
+  export: "Exports",
 };
 
 const recordNouns: Record<string, string> = {
@@ -22,6 +23,7 @@ const recordNouns: Record<string, string> = {
   business_day: "business day rule",
   staff: "staff account",
   role: "role",
+  export: "export",
 };
 
 const namedActions: Record<string, string> = {
@@ -34,6 +36,7 @@ const namedActions: Record<string, string> = {
   "stock_item.cost_set": "Set stock cost",
   "product.recipe_updated": "Changed recipe",
   "product.availability_updated": "Changed branch availability",
+  "export.downloaded": "Downloaded CSV export",
 };
 
 const fieldLabels: Record<string, string> = {
@@ -156,6 +159,9 @@ const metadataLabels: Record<string, string> = {
   revoked: "Revoked",
   reason: "Reason",
   email: "Email used",
+  file: "File",
+  rows: "Rows",
+  filters: "Filters",
 };
 
 function permissionLabel(key: string) {
@@ -168,6 +174,12 @@ function permissionLabel(key: string) {
 export function metadataEntries(event: AuditEvent) {
   return Object.entries(event.metadata).flatMap(([key, value]) => {
     const label = metadataLabels[key] ?? humanize(key);
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const items = Object.entries(value).map(
+        ([name, item]) => `${fieldLabel(name)}: ${formatAuditValue(item)}`,
+      );
+      return [{ key, label, items: items.length ? items : ["None"] }];
+    }
     if (Array.isArray(value)) {
       if (!value.length) return [];
       const items = value.map((item) =>

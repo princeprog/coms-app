@@ -2,6 +2,7 @@ import {
   Building2,
   CalendarClock,
   CreditCard,
+  Download,
   Factory,
   Folder,
   Layers,
@@ -24,6 +25,7 @@ const areaIcons: Record<AuditArea, ReactNode> = {
   business_day: <CalendarClock className="text-violet-600!" />,
   staff: <Users className="text-blue-600!" />,
   role: <ShieldCheck className="text-rose-600!" />,
+  export: <Download className="text-slate-600!" />,
 };
 
 export const auditAreaOptions = [

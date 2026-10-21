@@ -78,5 +78,16 @@ describe("audit format", () => {
         }),
       ),
     ).toEqual([{ key: "granted", label: "Granted", items: ["Costs: manage"] }]);
+    expect(
+      metadataEntries(
+        event({
+          action: "export.downloaded",
+          metadata: { rows: 12, filters: { date_from: "2026-10-01" } },
+        }),
+      ),
+    ).toEqual([
+      { key: "rows", label: "Rows", items: ["12"] },
+      { key: "filters", label: "Filters", items: ["Date from: 2026-10-01"] },
+    ]);
   });
 });
