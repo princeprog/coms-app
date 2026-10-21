@@ -115,6 +115,27 @@ export async function assignStaffBranchesAction(
   );
 }
 
+export async function resetStaffPasswordAction(
+  id: string,
+  branchId: string | undefined,
+): Promise<
+  { ok: true; temporaryPassword: string } | { ok: false; error: string }
+> {
+  if (!isValidTarget(id, branchId))
+    return { ok: false, error: "Check the selected staff account." };
+  try {
+    const result = await requestComsApi<{ temporary_password?: unknown }>(
+      scopedEndpoint(staffEndpoints.passwordReset(id), branchId),
+      { cookieHeader: (await cookies()).toString(), method: "POST" },
+    );
+    if (typeof result.temporary_password !== "string")
+      return { ok: false, error: "COMS returned an invalid reset response." };
+    return { ok: true, temporaryPassword: result.temporary_password };
+  } catch (error) {
+    return { ok: false, error: getActionError(error) };
+  }
+}
+
 export async function deactivateStaffAction(
   id: string,
   branchId: string | undefined,

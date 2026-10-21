@@ -211,6 +211,21 @@ export async function loginAction(
   return { ok: true, data: result.data };
 }
 
+// Signs out other sessions; the API returns fresh cookies for this browser.
+export async function changePasswordAction(input: {
+  current_password: string;
+  new_password: string;
+}): Promise<AuthActionResult<AuthResponse>> {
+  const result = await callAuthEndpoint<AuthResponse>(authEndpoints.password, {
+    method: "POST",
+    body: input,
+    cookie: await selectedCookieHeader(ACCESS_COOKIE_NAMES),
+  });
+  if (!result.ok) return result;
+  await relayResponseCookies(result.response);
+  return { ok: true, data: result.data };
+}
+
 export async function logoutAction(): Promise<AuthActionResult<void>> {
   const result = await callAuthEndpoint<void>(authEndpoints.logout, {
     method: "POST",

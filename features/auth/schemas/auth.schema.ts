@@ -14,6 +14,7 @@ export const authUserSchema = z.object({
   email: z.string().email(),
   full_name: z.string().min(1),
   contact_number: z.string(),
+  must_change_password: z.boolean().optional(),
   role: authRoleSchema.nullable().optional(),
   permissions: z.array(z.string()).optional(),
   branch_ids: z.array(z.string().uuid()).optional(),

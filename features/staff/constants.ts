@@ -4,6 +4,7 @@ export const staffEndpoints = {
   role: (id: string) => `/staff/${id}/role`,
   branches: (id: string) => `/staff/${id}/branches`,
   deactivate: (id: string) => `/staff/${id}/deactivate`,
+  passwordReset: (id: string) => `/staff/${id}/password-reset`,
 };
 
 export const UNASSIGNED_ROLE_VALUE = "__unassigned__";

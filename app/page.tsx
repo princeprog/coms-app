@@ -10,6 +10,7 @@ export default async function Page() {
   const session = await getCurrentUserFromServer();
 
   if (session.status === "authenticated") {
+    if (session.user.must_change_password) redirect("/change-password");
     redirect(getAuthorizedLandingPath(session.user));
   }
 

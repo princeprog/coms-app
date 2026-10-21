@@ -3,4 +3,5 @@ export const authEndpoints = {
   me: "/auth/me",
   refresh: "/auth/refresh",
   logout: "/auth/logout",
+  password: "/auth/password",
 } as const;

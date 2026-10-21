@@ -22,6 +22,7 @@ import {
   CircleUserRoundIcon,
   CreditCardIcon,
   BellIcon,
+  KeyRoundIcon,
 } from "lucide-react";
 import { LogoutMenuItem } from "@/features/auth/components/logout-menu-item";
 
@@ -95,6 +96,10 @@ export function NavUser({
               <DropdownMenuItem render={<Link href="/notifications" />}>
                 <BellIcon />
                 Notifications
+              </DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/change-password" />}>
+                <KeyRoundIcon />
+                Change password
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

@@ -86,6 +86,10 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
               "staff.branch_assign",
             ),
             canDeactivate: hasPermission(session.user, "staff.deactivate"),
+            canResetPassword: hasPermission(
+              session.user,
+              "staff.password_reset",
+            ),
             canReadRoles: hasPermission(session.user, "roles.read"),
             canReadBranches: hasPermission(session.user, "branches.read"),
           }}

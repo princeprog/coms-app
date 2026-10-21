@@ -17,6 +17,7 @@ export default async function AuthenticatedLayout({
   if (session.status === "unavailable") {
     return <AuthServiceError context="dashboard" />;
   }
+  if (session.user.must_change_password) redirect("/change-password");
 
   return (
     <AuthenticatedAppShell user={session.user}>

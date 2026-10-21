@@ -15,6 +15,7 @@ export type StaffManagementPermissions = {
   canAssignRole: boolean;
   canAssignBranches: boolean;
   canDeactivate: boolean;
+  canResetPassword?: boolean;
   canReadRoles: boolean;
   canReadBranches: boolean;
 };

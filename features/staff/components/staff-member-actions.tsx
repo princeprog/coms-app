@@ -2,6 +2,7 @@
 
 import { StaffBranchAssignmentForm } from "@/features/staff/components/staff-branch-assignment-form";
 import { StaffDeactivateControl } from "@/features/staff/components/staff-deactivate-control";
+import { StaffPasswordResetControl } from "@/features/staff/components/staff-password-reset-control";
 import { StaffProfileForm } from "@/features/staff/components/staff-profile-form";
 import { StaffRoleForm } from "@/features/staff/components/staff-role-form";
 import type { Role } from "@/features/roles/types/role.types";
@@ -50,6 +51,8 @@ export function StaffMemberActions({
   const canManageRole = permissions.canAssignRole && canManageTarget;
   const canDeactivate =
     permissions.canDeactivate && canManageTarget && staff.is_active;
+  const canResetPassword =
+    Boolean(permissions.canResetPassword) && canManageTarget && staff.is_active;
   const showBranchNotice =
     permissions.canAssignBranches && canManageTarget && !canEditBranches;
 
@@ -58,7 +61,8 @@ export function StaffMemberActions({
     !canManageRole &&
     !canEditBranches &&
     !showBranchNotice &&
-    !canDeactivate
+    !canDeactivate &&
+    !canResetPassword
   ) {
     return null;
   }
@@ -104,6 +108,9 @@ export function StaffMemberActions({
         <p role="status" className="text-sm text-muted-foreground">
           Branch changes require access to read active branches.
         </p>
+      )}
+      {canResetPassword && (
+        <StaffPasswordResetControl staff={staff} branchId={branchId} />
       )}
       {canDeactivate && (
         <StaffDeactivateControl staff={staff} branchId={branchId} />
