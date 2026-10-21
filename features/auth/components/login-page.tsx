@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { cn } from "cn";
 
-import { LoginForm } from "@/features/auth/components/login-form";
+import { LoginForm } from "@/features/auth/components/login-form/login-form";
 import {
   Card,
   CardContent,
@@ -11,6 +12,11 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+
+// One-time page entrance: sections rise in with a short stagger. Reduced
+// motion keeps the fade and drops the movement.
+const enterClassName =
+  "animate-in fill-mode-both duration-500 ease-out-quint fade-in-0 motion-safe:slide-in-from-bottom-2";
 
 export function LoginPage() {
   return (
@@ -25,22 +31,37 @@ export function LoginPage() {
         className="object-cover object-center"
       />
 
-      <Card className="relative z-10 w-full max-w-md bg-card/95 shadow-lg backdrop-blur-sm">
-        <CardHeader className="items-center px-6 pt-8 text-center sm:px-12 sm:pt-12">
+      <Card
+        className={cn(
+          "relative z-10 w-full max-w-md bg-card/95 shadow-xl shadow-foreground/5 backdrop-blur-sm motion-safe:zoom-in-98",
+          enterClassName,
+        )}
+      >
+        <CardHeader
+          className={cn(
+            "items-center gap-2 px-6 pt-8 text-center delay-75 sm:px-12 sm:pt-10",
+            enterClassName,
+          )}
+        >
           <Image
             src="/images/emmas%20chicken%20house%20logo.png"
             alt="Emma's Chicken House"
             width={390}
             height={170}
             priority
-            className="mx-auto mb-2 h-auto w-full max-w-md object-contain"
+            className="mx-auto mb-3 h-auto w-full max-w-64 object-contain"
           />
-          <CardDescription className="text-base sm:text-lg">
+          <h1 className="font-heading text-xl font-semibold tracking-tight text-balance">
+            Welcome back
+          </h1>
+          <CardDescription className="text-sm sm:text-base">
             Sign in to continue
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="px-6 sm:px-12">
+        <CardContent
+          className={cn("px-6 pt-2 delay-150 sm:px-12", enterClassName)}
+        >
           <div className="mx-auto w-full max-w-xl">
             <LoginForm />
           </div>
