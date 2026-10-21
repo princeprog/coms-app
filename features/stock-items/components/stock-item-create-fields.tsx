@@ -58,7 +58,10 @@ export function StockItemCreateFields({
             <SelectTrigger id="catalog-create-category" className="h-11 w-full">
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
-            <SelectContent data-coms-ui="operational">
+            <SelectContent
+              data-coms-ui="operational"
+              alignItemWithTrigger={false}
+            >
               <SelectGroup>
                 {stockItemCategories.map((category) => (
                   <SelectItem key={category} value={category}>
