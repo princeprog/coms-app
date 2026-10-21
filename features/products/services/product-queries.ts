@@ -35,18 +35,7 @@ export async function getProductPageData({
   if (!parsed.success) {
     throw new ApiRequestError("Invalid product catalog response.", 502);
   }
-  return {
-    ...parsed.data,
-    items: parsed.data.items.map((product) => ({
-      ...product,
-      recipe_summary: recipeSummary(product.recipe_line_count),
-    })),
-  };
-}
-
-function recipeSummary(count: number) {
-  if (count === 0) return "No recipe";
-  return count === 1 ? "1 stock item" : `${count} stock items`;
+  return parsed.data;
 }
 
 export async function getProductDetailData(id: string) {
