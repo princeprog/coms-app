@@ -55,7 +55,10 @@ export function StockItemCreateFields({
             disabled={pending}
             onValueChange={(value) => onChange("category", value ?? "")}
           >
-            <SelectTrigger id="catalog-create-category" className="h-11 w-full">
+            <SelectTrigger
+              id="catalog-create-category"
+              className="w-full data-[size=default]:h-11"
+            >
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent
