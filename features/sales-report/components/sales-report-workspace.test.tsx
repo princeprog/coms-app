@@ -130,8 +130,13 @@ describe("sales report", () => {
   it("shows headline numbers with their comparison", async () => {
     mount("period=week&date=2026-10-14");
     const hero = await screen.findByRole("region", { name: "Net sales" });
-    expect(within(hero).getByText("₱500.00")).toBeTruthy();
+    expect(within(hero).getAllByText("₱500.00").length).toBeGreaterThan(0);
     expect(within(hero).getByText("Last week: ₱400.00")).toBeTruthy();
+    // Without a day-by-day chart, the hero compares the two periods.
+    const comparison = within(hero).getByRole("list", {
+      name: "Net sales comparison",
+    });
+    expect(within(comparison).getByText("₱400.00")).toBeTruthy();
     expect(getSalesReportAction).toHaveBeenCalledWith({
       period: "week",
       date: "2026-10-14",
@@ -160,7 +165,9 @@ describe("sales report", () => {
   it("steps between periods through the URL", async () => {
     const user = userEvent.setup();
     mount("period=week&date=2026-10-14");
-    await screen.findByText("Oct 12 – 18, 2026");
+    expect(
+      (await screen.findAllByText("Oct 12 – 18, 2026")).length,
+    ).toBeGreaterThan(0);
     await user.click(screen.getByRole("button", { name: "Previous period" }));
     expect(replace).toHaveBeenLastCalledWith(
       "/sales-report?period=week&date=2026-10-05",
