@@ -8,6 +8,7 @@ import {
   BoxesIcon,
   CalendarClockIcon,
   ClockIcon,
+  CoinsIcon,
   CreditCardIcon,
   Building2Icon,
   ClipboardListIcon,
@@ -38,6 +39,12 @@ export const navItems = [
     url: "/dashboard",
     permission: ["dashboard.read", "dashboard.global_read"],
     icon: <LayoutDashboardIcon />,
+  },
+  {
+    title: "Costs & profit",
+    url: "/costs",
+    permission: "costs.read",
+    icon: <CoinsIcon />,
   },
   {
     title: "Inventory",
@@ -145,7 +152,7 @@ export function getAppSidebarNavigation(user: User) {
 }
 
 export const sidebarNavigationGroups = [
-  { title: "Overview", urls: ["/dashboard"] },
+  { title: "Overview", urls: ["/dashboard", "/costs"] },
   {
     title: "Supply & Inventory",
     urls: [
