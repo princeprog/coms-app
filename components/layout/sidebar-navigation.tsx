@@ -14,6 +14,7 @@ import {
   ClipboardListIcon,
   FactoryIcon,
   FileChartColumnIcon,
+  HistoryIcon,
   LayoutDashboardIcon,
   PackageIcon,
   SendIcon,
@@ -124,6 +125,12 @@ export const navItems = [
     permission: "roles.read",
     icon: <ShieldCheckIcon />,
   },
+  {
+    title: "Audit log",
+    url: "/audit-log",
+    permission: "audit.read",
+    icon: <HistoryIcon />,
+  },
 ];
 
 export function getAppSidebarNavigation(user: User) {
@@ -175,6 +182,7 @@ export const sidebarNavigationGroups = [
       "/roles",
       "/payment-methods",
       "/business-day",
+      "/audit-log",
     ],
   },
 ];

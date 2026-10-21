@@ -608,6 +608,67 @@ function branchProductView(state, offer) {
   };
 }
 
+const auditEvent = (index, patch) => ({
+  id: `00000000-0000-4000-8000-${String(900000000000 + index)}`,
+  occurred_at: new Date(Date.UTC(2026, 9, 21, 13, 30 - index * 7)).toISOString(),
+  actor_user_id: "00000000-0000-4000-8000-000000000101",
+  actor_name: "Maria Santos",
+  entity_id: null,
+  branch_id: null,
+  changes: {},
+  metadata: {},
+  ...patch,
+});
+const auditEventSeed = [
+  auditEvent(1, {
+    action: "product.updated",
+    entity_type: "product",
+    entity_label: "Tapsilog",
+    changes: {
+      price: { from: "150.00", to: "169.00" },
+      category_id: { from: "Rice meals", to: "Silog meals" },
+    },
+  }),
+  auditEvent(2, {
+    action: "stock_item.cost_set",
+    entity_type: "stock_item",
+    entity_label: "Boneless Bangus",
+    changes: { average_unit_cost: { from: "88.0000", to: "95.0000" } },
+    metadata: { reason: "New supplier price list" },
+  }),
+  auditEvent(3, {
+    action: "role.permissions_updated",
+    entity_type: "role",
+    entity_label: "Branch Manager",
+    metadata: { granted: ["costs.read", "audit.read"], revoked: [] },
+  }),
+  auditEvent(4, {
+    action: "product.recipe_updated",
+    entity_type: "product",
+    entity_label: "Bangsilog",
+    metadata: { added: ["Garlic 0.01 kg"], removed: ["Garlic 0.02 kg"] },
+  }),
+  auditEvent(5, {
+    action: "auth.sign_in_failed",
+    entity_type: "staff",
+    entity_label: "Juan Dela Cruz",
+    actor_user_id: null,
+    actor_name: null,
+    metadata: { email: "juan@example.com" },
+  }),
+  auditEvent(6, {
+    action: "supplier.updated",
+    entity_type: "supplier",
+    entity_label: "Fresh Catch Trading",
+    changes: { is_active: { from: true, to: false } },
+  }),
+  auditEvent(7, {
+    action: "staff.password_reset",
+    entity_type: "staff",
+    entity_label: "Juan Dela Cruz",
+  }),
+];
+
 function createOperationalApiFixture({
   gatewaySecret,
   authUser = seed.user,
@@ -1340,6 +1401,26 @@ function createOperationalApiFixture({
       }
       if (url.pathname === "/roles/permissions" && request.method === "GET") {
         return send(response, 200, seed.permissions);
+      }
+      if (url.pathname === "/audit-events" && request.method === "GET") {
+        const area = url.searchParams.get("entity_type");
+        const search = (url.searchParams.get("search") ?? "").toLowerCase();
+        const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+        const pageSize = Number(url.searchParams.get("page_size")) || 10;
+        const items = auditEventSeed.filter(
+          (event) =>
+            (!area || event.entity_type === area) &&
+            (!search ||
+              [event.actor_name, event.entity_label, event.action].some(
+                (value) => value?.toLowerCase().includes(search),
+              )),
+        );
+        return send(response, 200, {
+          items: items.slice((page - 1) * pageSize, page * pageSize),
+          total: items.length,
+          page,
+          page_size: pageSize,
+        });
       }
       if (url.pathname === "/branches" && request.method === "GET") {
         const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
