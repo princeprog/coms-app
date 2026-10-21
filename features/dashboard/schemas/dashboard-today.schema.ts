@@ -11,6 +11,7 @@ export const attentionKeys = [
   "reports_to_review",
   "late_counts_to_review",
   "shifts_to_review",
+  "dispatches_draft",
   "deliveries_in_transit",
   "products_incomplete_costs",
 ] as const;
@@ -34,6 +35,11 @@ export const dashboardTodaySchema = z.object({
     void_count: z.number().int(),
     food_cost: nullableMoney,
     gross_profit: nullableMoney,
+    cost_coverage_percent: z.string().nullable(),
+  }),
+  last_week_same_time: z.object({
+    net_sales: money,
+    sales_count: z.number().int(),
   }),
   yesterday_same_time: z.object({
     net_sales: money,
@@ -42,6 +48,7 @@ export const dashboardTodaySchema = z.object({
   changes: z.object({
     net_sales: z.string().nullable(),
     sales_count: z.string().nullable(),
+    net_sales_vs_yesterday: z.string().nullable(),
   }),
   attention: z.array(
     z.object({ key: z.enum(attentionKeys), count: z.number().int() }),
@@ -77,6 +84,14 @@ export const dashboardTodaySchema = z.object({
       name: z.string(),
       quantity: z.string(),
       net_sales: money,
+    }),
+  ),
+  hourly: z.array(
+    z.object({
+      hour: z.string(),
+      sales_count: z.number().int(),
+      net_sales: money,
+      last_week_net_sales: money,
     }),
   ),
 });

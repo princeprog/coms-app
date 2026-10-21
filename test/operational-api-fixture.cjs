@@ -633,9 +633,15 @@ function dashboardTodayFixture() {
       void_count: 1,
       food_cost: "2667.60",
       gross_profit: "4172.40",
+      cost_coverage_percent: "96.4",
     },
+    last_week_same_time: { net_sales: "6480.00", sales_count: 36 },
     yesterday_same_time: { net_sales: "6120.00", sales_count: 35 },
-    changes: { net_sales: "11.8", sales_count: "8.6" },
+    changes: {
+      net_sales: "5.6",
+      sales_count: "5.6",
+      net_sales_vs_yesterday: "11.8",
+    },
     attention: [
       { key: "deliveries_overdue", count: 1 },
       { key: "open_discrepancies", count: 1 },
@@ -647,6 +653,7 @@ function dashboardTodayFixture() {
       { key: "reports_to_review", count: 2 },
       { key: "late_counts_to_review", count: 0 },
       { key: "shifts_to_review", count: 1 },
+      { key: "dispatches_draft", count: 2 },
       { key: "deliveries_in_transit", count: 2 },
       { key: "products_incomplete_costs", count: 1 },
     ],
@@ -703,6 +710,20 @@ function dashboardTodayFixture() {
         net_sales: "1074.00",
       },
     ],
+    // A lunch and dinner rush across the day, with last week slightly lower.
+    hourly: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19].map((hour) => {
+      const rush = [11, 12, 18].includes(hour)
+        ? 3
+        : [13, 19].includes(hour)
+          ? 2
+          : 1;
+      return {
+        hour: String(hour).padStart(2, "0") + ":00",
+        sales_count: rush * 2,
+        net_sales: (rush * 360).toFixed(2),
+        last_week_net_sales: (rush * 330 + (hour % 3) * 40).toFixed(2),
+      };
+    }),
   };
 }
 

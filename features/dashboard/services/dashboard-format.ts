@@ -18,6 +18,20 @@ export function businessDayLabel(date: string) {
 }
 
 /** "just now", "3 min ago", "2 hr ago". */
+export function weekdayShort(date: string) {
+  return new Intl.DateTimeFormat("en-PH", {
+    timeZone: "UTC",
+    weekday: "short",
+  }).format(new Date(`${date}T00:00:00.000Z`));
+}
+
+/** "13:00" → "1 PM". */
+export function hourLabel(value: string) {
+  const hour = Number(value.slice(0, 2));
+  return `${hour % 12 || 12} ${hour < 12 ? "AM" : "PM"}`;
+}
+
+/** "just now", "3 min ago", "2 hr ago". */
 export function updatedAgo(value: string, now = Date.now()) {
   const minutes = Math.floor((now - new Date(value).getTime()) / 60_000);
   if (minutes < 1) return "just now";

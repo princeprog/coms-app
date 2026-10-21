@@ -8,6 +8,7 @@ import {
   Clock,
   FileClock,
   FileWarning,
+  FilePen,
   PackageMinus,
   Truck,
   Undo2,
@@ -37,6 +38,7 @@ const icons: Record<AttentionKey, ReactNode> = {
   reports_to_review: <FileClock />,
   late_counts_to_review: <ClipboardCheck />,
   shifts_to_review: <UserCheck />,
+  dispatches_draft: <FilePen />,
   deliveries_in_transit: <Truck />,
   products_incomplete_costs: <UtensilsCrossed />,
 };

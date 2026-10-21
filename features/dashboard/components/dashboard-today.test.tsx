@@ -20,6 +20,9 @@ vi.mock("../services/dashboard-today-actions", () => ({
   getDashboardTodayAction,
 }));
 vi.mock("./week-trend", () => ({ WeekTrend: () => <div>Week chart</div> }));
+vi.mock("./hourly-trend", () => ({
+  HourlyTrend: () => <div>Hourly chart</div>,
+}));
 
 const branch = "00000000-0000-4000-8000-000000000001";
 function today(patch: Partial<DashboardToday> = {}): DashboardToday {
@@ -44,13 +47,20 @@ function today(patch: Partial<DashboardToday> = {}): DashboardToday {
       void_count: 1,
       food_cost: "112.00",
       gross_profit: "338.00",
+      cost_coverage_percent: "66.7",
     },
+    last_week_same_time: { net_sales: "300.00", sales_count: 2 },
     yesterday_same_time: { net_sales: "150.00", sales_count: 1 },
-    changes: { net_sales: "200", sales_count: "200" },
+    changes: {
+      net_sales: "50",
+      sales_count: "50",
+      net_sales_vs_yesterday: "200",
+    },
     attention: [
       { key: "deliveries_overdue", count: 2 },
       { key: "open_discrepancies", count: 0 },
       { key: "reports_to_review", count: 1 },
+      { key: "dispatches_draft", count: 2 },
       { key: "deliveries_in_transit", count: 1 },
     ],
     branches: [
@@ -74,6 +84,14 @@ function today(patch: Partial<DashboardToday> = {}): DashboardToday {
         name: "Tapsilog",
         quantity: "2",
         net_sales: "338.00",
+      },
+    ],
+    hourly: [
+      {
+        hour: "10:00",
+        sales_count: 1,
+        net_sales: "150.00",
+        last_week_net_sales: "100.00",
       },
     ],
     ...patch,
@@ -109,12 +127,23 @@ describe("dashboard today", () => {
     mount();
     const hero = await screen.findByRole("region", { name: "Today so far" });
     expect(within(hero).getByText("₱450.00")).toBeTruthy();
-    expect(within(hero).getAllByText("+200%")[0].className).toContain(
-      "emerald",
-    );
+    // 2026-10-22 is a Thursday: compare with last Thursday.
+    expect(within(hero).getAllByText("+50%")[0].className).toContain("emerald");
     expect(
-      within(hero).getByText("Yesterday at this time: ₱150.00"),
+      within(hero).getByText("Last Thu at this time: ₱300.00"),
     ).toBeTruthy();
+    expect(
+      within(hero).getByText("Yesterday at this time: ₱150.00 (+200%)"),
+    ).toBeTruthy();
+    expect(
+      within(hero).getByText("Food cost covers 66.7% of today's sales."),
+    ).toBeTruthy();
+    expect(
+      within(hero)
+        .getByRole("tab", { name: "By hour" })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(within(hero).getByText("Hourly chart")).toBeTruthy();
     expect(within(hero).getByText("₱338.00")).toBeTruthy();
     expect(
       within(hero)
@@ -127,6 +156,7 @@ describe("dashboard today", () => {
     expect(links.map((link) => link.textContent)).toEqual([
       "Deliveries overdue for counting2",
       "Daily report to review1",
+      "Dispatches drafted but not sent2",
       "Delivery on the way1",
     ]);
     expect(links[0].getAttribute("href")).toBe(
@@ -144,7 +174,12 @@ describe("dashboard today", () => {
       ok: true,
       data: today({
         show_costs: false,
-        today: { ...today().today, food_cost: null, gross_profit: null },
+        today: {
+          ...today().today,
+          food_cost: null,
+          gross_profit: null,
+          cost_coverage_percent: null,
+        },
         attention: [{ key: "deliveries_overdue", count: 0 }],
       }),
     });
@@ -152,6 +187,7 @@ describe("dashboard today", () => {
     expect(await screen.findByText("All clear")).toBeTruthy();
     expect(getDashboardTodayAction).toHaveBeenCalledWith(branch);
     expect(screen.queryByText("Gross profit")).toBeNull();
+    expect(screen.queryByRole("note")).toBeNull();
     await user.click(screen.getByRole("combobox", { name: "Branch" }));
     await user.click(
       await screen.findByRole("option", { name: "All branches" }),

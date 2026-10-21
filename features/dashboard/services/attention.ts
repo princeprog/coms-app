@@ -104,6 +104,17 @@ export const attentionConfig: Record<AttentionKey, AttentionConfig> = {
     path: "/shifts?status=CLOSED",
     branchParam: "branch",
   },
+  dispatches_draft: {
+    label: (n) =>
+      plural(
+        n,
+        "Dispatch drafted but not sent",
+        "Dispatches drafted but not sent",
+      ),
+    tone: "warning",
+    path: "/dispatches?status=DRAFT",
+    branchParam: "branch_id",
+  },
   deliveries_in_transit: {
     label: (n) => plural(n, "Delivery on the way", "Deliveries on the way"),
     tone: "info",
