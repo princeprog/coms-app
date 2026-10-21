@@ -14,6 +14,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DispatchCreateDialog } from "./dispatch-create-dialog";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+const { getRestockSuggestions } = vi.hoisted(() => ({
+  getRestockSuggestions: vi.fn(async (): Promise<unknown[]> => []),
+}));
+vi.mock("../services/dispatch-restock-actions", () => ({
+  getRestockSuggestions,
+}));
 vi.mock("../services/dispatch-stock-actions", () => ({
   searchDispatchStock: async () => ({
     items: options.stockItems,
@@ -84,6 +90,74 @@ afterEach(() => {
 });
 
 describe("direct dispatch creation", () => {
+  it("adds suggested restock lines for the chosen branch", async () => {
+    const user = userEvent.setup();
+    getRestockSuggestions.mockResolvedValueOnce([
+      {
+        stock_item_id: stockItemId,
+        stock_item_name: "Flour",
+        unit: "kg",
+        on_hand: "2",
+        on_the_way: "0",
+        reorder_level: "5",
+        target_level: "20",
+        suggested_quantity: "18",
+        quantity_to_send: "12.5",
+        commissary_available: "12.5",
+      },
+      {
+        stock_item_id: "0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d",
+        stock_item_name: "Rice",
+        unit: "kg",
+        on_hand: "-1",
+        on_the_way: "0",
+        reorder_level: "2",
+        target_level: "10",
+        suggested_quantity: "11",
+        quantity_to_send: "0",
+        commissary_available: "0",
+      },
+    ]);
+    render(
+      <DispatchCreateDialog
+        canCreate
+        options={{ ...options, availabilityVisible: true }}
+        optionsIssue={null}
+        action={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Create dispatch" }));
+    await user.click(screen.getByRole("combobox", { name: "Branch" }));
+    await user.click(
+      await screen.findByRole("option", { name: "Banilad Branch" }),
+    );
+
+    expect(
+      await screen.findByText("2 items need restocking at Banilad Branch"),
+    ).toBeTruthy();
+    expect(getRestockSuggestions).toHaveBeenCalledWith(branchId);
+    expect(screen.getByText("Not enough at commissary: Rice")).toBeTruthy();
+    await user.click(
+      screen.getByRole("button", { name: "Add 1 suggested item" }),
+    );
+
+    expect(screen.getByLabelText("Quantity (kg)")).toHaveProperty(
+      "value",
+      "12.5",
+    );
+    expect(
+      screen.getByText(
+        "Suggested 18 kg · on hand 2 · target 20 · only 12.5 at commissary",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("All suggested items are on this dispatch."),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByRole("combobox", { name: /^Stock item/ }),
+    ).toHaveLength(1);
+  });
+
   it("keeps an over-stock quantity in entry, focuses its error, and reviews after correction", async () => {
     const user = userEvent.setup();
     const action = vi.fn();

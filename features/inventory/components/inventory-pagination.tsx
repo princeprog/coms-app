@@ -15,6 +15,7 @@ export function InventoryPagination({
   search,
   status,
   category,
+  stock,
   page,
   pageCount,
   total,
@@ -25,6 +26,7 @@ export function InventoryPagination({
   search: string;
   status?: "active" | "inactive";
   category?: string;
+  stock?: "low";
   page: number;
   pageCount: number;
   total: number;
@@ -44,6 +46,7 @@ export function InventoryPagination({
       search,
       status,
       category,
+      stock,
     });
 
   return (

@@ -128,7 +128,7 @@ describe("purchase server authorization", () => {
       },
     });
     api.mockResolvedValue({
-      items: [{ ...stock, quantity_on_hand: "20.25" }],
+      items: [{ ...stock, quantity_on_hand: "20.25", stock_status: "IN_STOCK" }],
       total: 1,
       page: 1,
       page_size: 25,

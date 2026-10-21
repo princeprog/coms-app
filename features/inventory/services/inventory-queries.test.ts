@@ -31,6 +31,7 @@ describe("inventory page queries", () => {
             created_at: timestamp,
             updated_at: timestamp,
             quantity_on_hand: "2.500",
+            stock_status: "IN_STOCK",
           },
         ],
         total: 1,

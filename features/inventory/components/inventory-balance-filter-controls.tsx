@@ -1,6 +1,14 @@
 "use client";
 
-import { CircleCheck, CircleX, ListFilter, Tags, Tag } from "lucide-react";
+import {
+  CircleCheck,
+  CircleX,
+  Layers,
+  ListFilter,
+  PackageOpen,
+  Tags,
+  Tag,
+} from "lucide-react";
 import { DirectorySelect } from "@/components/shared/directory-select";
 import { FieldGroup } from "@/components/ui/field";
 
@@ -23,21 +31,37 @@ const statusOptions = [
     icon: <CircleX className="text-red-600! dark:text-red-400!" />,
   },
 ];
+const stockOptions = [
+  {
+    value: "all",
+    label: "All stock",
+    icon: <Layers className="text-primary!" />,
+  },
+  {
+    value: "low",
+    label: "Needs restock",
+    icon: <PackageOpen className="text-amber-600! dark:text-amber-400!" />,
+  },
+];
 const controlClassName =
   "sm:w-full [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:px-3";
 
 export function InventoryBalanceFilterControls({
   statusFilter,
   categoryFilter,
+  stockFilter,
   availableCategories,
   onStatusChange,
   onCategoryChange,
+  onStockChange,
 }: {
   statusFilter?: "active" | "inactive";
   categoryFilter?: string;
+  stockFilter?: "low";
   availableCategories: string[];
   onStatusChange: (value: "active" | "inactive" | undefined) => void;
   onCategoryChange: (value: string | undefined) => void;
+  onStockChange: (value: "low" | undefined) => void;
 }) {
   const categories =
     categoryFilter && !availableCategories.includes(categoryFilter)
@@ -58,7 +82,16 @@ export function InventoryBalanceFilterControls({
     })),
   ];
   return (
-    <FieldGroup className="grid min-w-0 gap-3 sm:grid-cols-2">
+    <FieldGroup className="grid min-w-0 gap-3 sm:grid-cols-3">
+      <DirectorySelect
+        id="inventory-stock"
+        label="Stock"
+        value={stockFilter ?? "all"}
+        options={stockOptions}
+        alignItemWithTrigger={false}
+        className={controlClassName}
+        onChange={(value) => onStockChange(value === "low" ? "low" : undefined)}
+      />
       <DirectorySelect
         id="inventory-status"
         label="Status"

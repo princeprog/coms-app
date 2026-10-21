@@ -3,6 +3,15 @@ import { z } from "zod";
 const decimalText = z.string().regex(/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/);
 const nonzeroDecimalText = decimalText.refine((value) => /[1-9]/.test(value));
 
+export const stockStatusSchema = z.enum([
+  "INACTIVE",
+  "BELOW_ZERO",
+  "OUT_OF_STOCK",
+  "LOW",
+  "RESTOCKING",
+  "IN_STOCK",
+]);
+
 export const inventoryItemSchema = z.object({
   id: z.uuid(),
   stock_item_name: z.string().min(1),
@@ -13,6 +22,12 @@ export const inventoryItemSchema = z.object({
   updated_at: z.iso.datetime(),
   // Branch stock can be negative after recipe sales outrun recorded receipts.
   quantity_on_hand: decimalText,
+  // Sent to the branch but not counted yet; always 0 at the commissary.
+  on_the_way: decimalText.default("0"),
+  reorder_level: decimalText.nullable().default(null),
+  target_level: decimalText.nullable().default(null),
+  avg_daily_use: decimalText.default("0"),
+  stock_status: stockStatusSchema,
 });
 
 export const inventoryPageSchema = z.object({
@@ -74,3 +89,34 @@ export const createInventoryAdjustmentSchema = z
     reason: z.string().trim().min(1).max(500),
   })
   .strict();
+
+// Up to 9 whole digits and 3 decimals, matching the API.
+const levelText = z
+  .string()
+  .trim()
+  .regex(/^(?:0|[1-9]\d{0,8})(?:\.\d{1,3})?$/);
+
+export const setStockLevelsSchema = z
+  .object({
+    stock_item_id: z.uuid(),
+    scope: z.enum(["COMMISSARY", "BRANCH"]),
+    branch_ids: z.array(z.uuid()).min(1).max(500).optional(),
+    reorder_level: levelText.nullable(),
+    target_level: levelText.nullable(),
+  })
+  .strict()
+  .refine(
+    (value) => (value.reorder_level === null) === (value.target_level === null),
+    { message: "Enter both levels or clear both." },
+  )
+  .refine(
+    (value) =>
+      value.reorder_level === null ||
+      value.target_level === null ||
+      Number(value.target_level) > Number(value.reorder_level),
+    { message: "Target level must be more than the reorder level." },
+  )
+  .refine(
+    (value) => (value.scope === "BRANCH") === Boolean(value.branch_ids?.length),
+    { message: "Choose the branches for these levels." },
+  );

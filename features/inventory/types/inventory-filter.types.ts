@@ -7,6 +7,7 @@ export type InventoryScopeFilterProps = {
   search: string;
   statusFilter?: "active" | "inactive";
   categoryFilter?: string;
+  stockFilter?: "low";
   availableCategories: string[];
   canViewCommissary: boolean;
   canViewBranch: boolean;

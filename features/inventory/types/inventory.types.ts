@@ -3,12 +3,16 @@ import type {
   createInventoryAdjustmentSchema,
   inventoryMovementPageSchema,
   inventoryPageSchema,
+  setStockLevelsSchema,
+  stockStatusSchema,
 } from "@/features/inventory/schemas/inventory.schema";
 
 export type InventoryPage = z.infer<typeof inventoryPageSchema>;
 export type InventoryMovementPage = z.infer<typeof inventoryMovementPageSchema>;
 export type InventoryItem = InventoryPage["items"][number];
 export type InventoryMovement = InventoryMovementPage["items"][number];
+export type StockStatus = z.infer<typeof stockStatusSchema>;
+export type SetStockLevelsInput = z.infer<typeof setStockLevelsSchema>;
 export type CreateInventoryAdjustment = z.infer<
   typeof createInventoryAdjustmentSchema
 >;

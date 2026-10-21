@@ -10,10 +10,12 @@ import {
   FileWarning,
   FilePen,
   PackageMinus,
+  PackageOpen,
   Truck,
   Undo2,
   UserCheck,
   UtensilsCrossed,
+  Warehouse,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,8 @@ const icons: Record<AttentionKey, ReactNode> = {
   shifts_open_past_day: <Clock />,
   cash_shortages: <Banknote />,
   stock_below_zero: <PackageMinus />,
+  branch_stock_low: <PackageOpen />,
+  commissary_stock_low: <Warehouse />,
   reports_missing: <FileWarning />,
   reports_returned: <Undo2 />,
   reports_to_review: <FileClock />,

@@ -43,8 +43,10 @@ export type InventoryViewResult =
       search: string;
       statusFilter?: "active" | "inactive";
       categoryFilter?: string;
+      stockFilter?: "low";
       page: number;
       canAdjust: boolean;
+      canSetLevels: boolean;
       canViewCommissary: boolean;
       canViewBranch: boolean;
     };
@@ -178,6 +180,7 @@ export async function loadInventoryView(
           search: filters.search,
           ...(filters.status ? { status: filters.status } : {}),
           ...(filters.category ? { category: filters.category } : {}),
+          ...(filters.stock ? { stock: filters.stock } : {}),
         }
       : {
           scope: "COMMISSARY",
@@ -186,6 +189,7 @@ export async function loadInventoryView(
           search: filters.search,
           ...(filters.status ? { status: filters.status } : {}),
           ...(filters.category ? { category: filters.category } : {}),
+          ...(filters.stock ? { stock: filters.stock } : {}),
         },
   );
   if (dataResult.status === "error") {
@@ -210,6 +214,7 @@ export async function loadInventoryView(
         search: filters.search,
         status: filters.status,
         category: filters.category,
+        stock: filters.stock,
       }),
     };
   }
@@ -227,12 +232,17 @@ export async function loadInventoryView(
     search: filters.search,
     statusFilter: filters.status,
     categoryFilter: filters.category,
+    stockFilter: filters.stock,
     page: filters.page,
     canAdjust:
       scope === "COMMISSARY"
         ? hasPermission(user, "inventory.commissary_adjust")
         : hasPermission(user, "inventory.adjust") &&
           selectedBranch?.status !== "inactive",
+    // Levels apply to active branches only; the API rechecks branch access.
+    canSetLevels:
+      hasPermission(user, "inventory.levels_manage") &&
+      (scope === "COMMISSARY" || selectedBranch?.status !== "inactive"),
     canViewCommissary,
     canViewBranch,
   };

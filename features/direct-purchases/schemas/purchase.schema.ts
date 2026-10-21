@@ -93,4 +93,6 @@ export type PurchaseStock = {
   is_active: boolean;
   /** Current commissary balance; null when the role cannot view balances. */
   quantity_on_hand: string | null;
+  /** Prefilled quantity, e.g. what brings a low item back to its target. */
+  suggested_quantity?: string;
 };

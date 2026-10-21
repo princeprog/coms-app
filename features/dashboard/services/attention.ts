@@ -57,6 +57,23 @@ export const attentionConfig: Record<AttentionKey, AttentionConfig> = {
     path: "/inventory?scope=BRANCH",
     branchParam: "branch_id",
   },
+  branch_stock_low: {
+    label: (n) =>
+      plural(n, "Branch item needs restocking", "Branch items need restocking"),
+    tone: "warning",
+    path: "/inventory?scope=BRANCH&stock=low",
+    branchParam: "branch_id",
+  },
+  commissary_stock_low: {
+    label: (n) =>
+      plural(
+        n,
+        "Commissary item needs restocking",
+        "Commissary items need restocking",
+      ),
+    tone: "warning",
+    path: "/inventory?scope=COMMISSARY&stock=low",
+  },
   reports_missing: {
     label: (n) =>
       plural(

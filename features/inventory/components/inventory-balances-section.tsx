@@ -11,6 +11,7 @@ import type { InventoryAdjustmentAction } from "./inventory-adjustment-dialog";
 import { InventoryBalanceTable } from "./inventory-balance-table";
 import { InventoryPagination } from "./inventory-pagination";
 import { InventoryPendingStatus } from "./inventory-pending-status";
+import type { InventoryLevelsControl } from "./inventory-row-actions";
 
 export function InventoryBalancesSection({
   inventory,
@@ -19,10 +20,12 @@ export function InventoryBalancesSection({
   search,
   status,
   category,
+  stock,
   page,
   isFetching,
   canAdjust,
   adjustAction,
+  levels,
   onComplete,
   onClearFilters,
 }: {
@@ -32,10 +35,12 @@ export function InventoryBalancesSection({
   search: string;
   status?: "active" | "inactive";
   category?: string;
+  stock?: "low";
   page: number;
   isFetching: boolean;
   canAdjust: boolean;
   adjustAction: InventoryAdjustmentAction;
+  levels?: InventoryLevelsControl;
   onComplete: (message: string) => void;
   onClearFilters: () => void;
 }) {
@@ -66,10 +71,11 @@ export function InventoryBalancesSection({
           items={inventory.items}
           scope={scope}
           branchId={branchId}
-          hasFilters={Boolean(search || status || category)}
+          hasFilters={Boolean(search || status || category || stock)}
           onClearFilters={onClearFilters}
           canAdjust={canAdjust}
           adjustAction={adjustAction}
+          levels={levels}
           onComplete={onComplete}
         />
       </CardContent>
@@ -80,6 +86,7 @@ export function InventoryBalancesSection({
           search={search}
           status={status}
           category={category}
+          stock={stock}
           page={page}
           pageCount={Math.max(
             1,

@@ -6,6 +6,8 @@ export const attentionKeys = [
   "shifts_open_past_day",
   "cash_shortages",
   "stock_below_zero",
+  "branch_stock_low",
+  "commissary_stock_low",
   "reports_missing",
   "reports_returned",
   "reports_to_review",

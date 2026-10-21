@@ -1,4 +1,5 @@
 export const dispatchesEndpoint = "/dispatches";
+export const restockSuggestionsEndpoint = "/dispatches/restock-suggestions";
 export const dispatchesRoute = "/dispatches";
 
 export const dispatchStatuses = [

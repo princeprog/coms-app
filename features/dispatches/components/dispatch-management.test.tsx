@@ -5,6 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import { DispatchManagement } from "./dispatch-management";
 
+const { getRestockSuggestions } = vi.hoisted(() => ({
+  getRestockSuggestions: vi.fn(async (): Promise<unknown[]> => []),
+}));
+vi.mock("../services/dispatch-restock-actions", () => ({
+  getRestockSuggestions,
+}));
 vi.mock("../services/dispatch-stock-actions", () => ({
   searchDispatchStock: vi.fn(),
 }));

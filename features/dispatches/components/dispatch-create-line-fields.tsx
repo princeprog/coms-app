@@ -23,6 +23,8 @@ export type DispatchCreateLine = {
   stock_item_id: string;
   quantity_dispatched: string;
   stock?: DispatchStockOption;
+  /** Why this quantity was suggested, from the branch's stock levels. */
+  hint?: string;
 };
 
 export function DispatchCreateLineFields({
@@ -93,6 +95,11 @@ export function DispatchCreateLineFields({
                   excluded={selectedByAnotherLine}
                   onSelect={(stock) => onStockSelect(line.key, stock)}
                 />
+                {line.hint && line.stock?.id === line.stock_item_id && (
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {line.hint}
+                  </span>
+                )}
               </Field>
               <Field
                 className="min-w-0"

@@ -27,6 +27,7 @@ const {
 const {
   createInventorySeed,
   handleInventoryRequest,
+  handleRestockSuggestions,
 } = require("./fixtures/inventory-fixture.cjs");
 
 const {
@@ -648,6 +649,8 @@ function dashboardTodayFixture() {
       { key: "shifts_open_past_day", count: 0 },
       { key: "cash_shortages", count: 1 },
       { key: "stock_below_zero", count: 3 },
+      { key: "branch_stock_low", count: 4 },
+      { key: "commissary_stock_low", count: 1 },
       { key: "reports_missing", count: 1 },
       { key: "reports_returned", count: 0 },
       { key: "reports_to_review", count: 2 },
@@ -1144,6 +1147,13 @@ function createOperationalApiFixture({
       });
       if (salesResponse !== false) return salesResponse;
 
+      const restockResponse = handleRestockSuggestions({
+        request,
+        response,
+        url,
+        state,
+      });
+      if (restockResponse !== false) return restockResponse;
       const dispatchResponse = handleDispatchRequest({
         request,
         response,

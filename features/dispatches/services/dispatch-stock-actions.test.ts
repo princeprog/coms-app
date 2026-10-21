@@ -54,7 +54,9 @@ describe("dispatch stock availability authorization", () => {
       user(["inventory.commissary_read"]),
     );
     requestComsApi.mockResolvedValue({
-      items: [{ ...stock, quantity_on_hand: "12.125" }],
+      items: [
+        { ...stock, quantity_on_hand: "12.125", stock_status: "IN_STOCK" },
+      ],
       total: 1,
       page: 1,
       page_size: 25,

@@ -19,6 +19,7 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
     search,
     statusFilter,
     categoryFilter,
+    stockFilter,
     branchOptions,
     availableCategories,
     scope,
@@ -57,6 +58,14 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
           },
         ]
       : []),
+    ...(stockFilter
+      ? [
+          {
+            label: "Stock: Needs restock",
+            options: { nextSearch: search, nextStock: null },
+          },
+        ]
+      : []),
   ];
   return (
     <section
@@ -90,7 +99,7 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
           )}
         </div>
       )}
-      <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(18rem,1fr)_minmax(22rem,0.75fr)] lg:items-end">
+      <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(16rem,1fr)_minmax(32rem,1.1fr)] lg:items-end">
         <Field className="min-w-0">
           <FieldLabel htmlFor="inventory-search">Search stock items</FieldLabel>
           <InputGroup className="h-10">
@@ -112,12 +121,16 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
         <InventoryBalanceFilterControls
           statusFilter={statusFilter}
           categoryFilter={categoryFilter}
+          stockFilter={stockFilter}
           availableCategories={availableCategories}
           onStatusChange={(nextStatus) =>
             applyFilters({ nextStatus: nextStatus ?? null })
           }
           onCategoryChange={(nextCategory) =>
             applyFilters({ nextCategory: nextCategory ?? null })
+          }
+          onStockChange={(nextStock) =>
+            applyFilters({ nextStock: nextStock ?? null })
           }
         />
       </div>
@@ -138,7 +151,9 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
                   ? "inventory-status"
                   : chip.label.startsWith("Category:")
                     ? "inventory-category"
-                    : "inventory-search";
+                    : chip.label.startsWith("Stock:")
+                      ? "inventory-stock"
+                      : "inventory-search";
                 document.getElementById(fieldId)?.focus();
                 applyFilters(chip.options);
               }}
@@ -156,6 +171,7 @@ export function InventoryScopeFilter(props: InventoryScopeFilterProps) {
                 nextSearch: "",
                 nextStatus: null,
                 nextCategory: null,
+                nextStock: null,
               });
             }}
           >

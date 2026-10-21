@@ -15,19 +15,21 @@ export function InventoryDiscardConfirmation({
   open,
   onOpenChange,
   onDiscard,
+  title = "Discard adjustment?",
+  description = "The quantity and reason you entered will be cleared.",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDiscard: () => void;
+  title?: string;
+  description?: string;
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent data-coms-ui="operational">
         <AlertDialogHeader>
-          <AlertDialogTitle>Discard adjustment?</AlertDialogTitle>
-          <AlertDialogDescription>
-            The quantity and reason you entered will be cleared.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Keep editing</AlertDialogCancel>

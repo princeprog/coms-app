@@ -14,6 +14,7 @@ export function useInventoryFilters({
   search,
   statusFilter,
   categoryFilter,
+  stockFilter,
   branchName,
   page,
   pageSize,
@@ -27,6 +28,7 @@ export function useInventoryFilters({
     search,
     statusFilter ?? "",
     categoryFilter ?? "",
+    stockFilter ?? "",
     pageSize,
   ]);
   const [searchDraft, setSearchDraft] = useState({
@@ -51,6 +53,7 @@ export function useInventoryFilters({
     resolvedBranchId,
     statusFilter,
     categoryFilter,
+    stockFilter,
     page,
     pageSize,
     onPendingChange,
@@ -70,6 +73,7 @@ export function useInventoryFilters({
       nextSearch?: string;
       nextStatus?: "active" | "inactive" | null;
       nextCategory?: string | null;
+      nextStock?: "low" | null;
       addHistoryEntry?: boolean;
     } = {},
   ) {
@@ -87,6 +91,10 @@ export function useInventoryFilters({
       options.nextCategory === null
         ? undefined
         : (options.nextCategory ?? categoryFilter);
+    const nextStock =
+      options.nextStock === null
+        ? undefined
+        : (options.nextStock ?? stockFilter);
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
       debounceTimer.current = null;
@@ -99,6 +107,7 @@ export function useInventoryFilters({
       normalizedSearch === search &&
       nextStatus === statusFilter &&
       nextCategory === categoryFilter &&
+      nextStock === stockFilter &&
       page === 1
     ) {
       return;
@@ -112,6 +121,7 @@ export function useInventoryFilters({
       search: normalizedSearch,
       status: nextStatus,
       category: nextCategory,
+      stock: nextStock,
     });
 
     onPendingChange(true);

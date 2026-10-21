@@ -11,7 +11,9 @@ import type {
 import { DispatchCreateLineFields } from "./dispatch-create-line-fields";
 
 import { useDispatchSendForm } from "../hooks/use-dispatch-send-form";
+import { addRestockLines } from "../services/restock-lines";
 import { DispatchBranchField } from "./dispatch-branch-field";
+import { DispatchRestockSuggestions } from "./dispatch-restock-suggestions";
 import { DispatchSendReview } from "./dispatch-send-review";
 
 export function DispatchCreateForm({
@@ -56,6 +58,9 @@ export function DispatchCreateForm({
     onDirtyChange,
     onCreated,
   });
+  const branchName =
+    options.branches.find((branch) => branch.id === branchId)?.branch_name ??
+    "";
 
   return (
     <form
@@ -97,6 +102,23 @@ export function DispatchCreateForm({
                 onDirtyChange(true);
               }}
             />
+            <DispatchRestockSuggestions
+              branchId={branchId}
+              branchName={branchName}
+              presentStockIds={new Set(lines.map((line) => line.stock_item_id))}
+              disabled={pending}
+              onAdd={(suggestions) => {
+                setLines(
+                  (current) =>
+                    addRestockLines(
+                      current,
+                      suggestions,
+                      () => nextLineKey.current++,
+                    ).lines,
+                );
+                onDirtyChange(true);
+              }}
+            />
             <DispatchCreateLineFields
               lines={lines}
               quantityErrors={quantityErrors}
@@ -109,6 +131,7 @@ export function DispatchCreateForm({
                           ...line,
                           stock_item_id: stock?.id ?? "",
                           stock: stock ?? undefined,
+                          hint: undefined,
                         }
                       : line,
                   ),

@@ -2,8 +2,6 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Ellipsis, PackagePlus, SlidersHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { InventoryAdjustmentForm } from "@/features/inventory/components/inventory-adjustment-form";
 import { InventoryDiscardConfirmation } from "@/features/inventory/components/inventory-discard-confirmation";
 import { createInventoryAdjustmentSchema } from "@/features/inventory/schemas/inventory.schema";
@@ -26,7 +17,7 @@ import type {
   InventoryMutationResult,
 } from "@/features/inventory/types/inventory.types";
 
-type InventoryAdjustmentTarget =
+export type InventoryAdjustmentTarget =
   { scope: "COMMISSARY" } | { scope: "BRANCH"; branch_id: string };
 
 export type InventoryAdjustmentAction = (
@@ -39,19 +30,21 @@ export function InventoryAdjustmentDialog({
   item,
   target,
   action,
+  open,
+  onOpenChange,
   onComplete,
-  onRestock,
+  onDiscarded,
 }: {
   item: InventoryItem;
   target: InventoryAdjustmentTarget;
   action: InventoryAdjustmentAction;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onComplete: (message: string) => void;
-  /** Opens Restock prefilled with this item when the user may restock. */
-  onRestock?: (trigger: HTMLElement | null) => void;
+  /** Returns focus after a discard closes the dialog outside its own flow. */
+  onDiscarded?: () => void;
 }) {
   const router = useRouter();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(false);
@@ -62,8 +55,8 @@ export function InventoryAdjustmentDialog({
     setDiscardOpen(false);
     setDirty(false);
     setError("");
-    setOpen(false);
-    window.requestAnimationFrame(() => triggerRef.current?.focus());
+    onOpenChange(false);
+    onDiscarded?.();
   }
 
   function requestClose() {
@@ -73,7 +66,7 @@ export function InventoryAdjustmentDialog({
       return;
     }
     setError("");
-    setOpen(false);
+    onOpenChange(false);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -121,46 +114,17 @@ export function InventoryAdjustmentDialog({
 
     keyForRetry.current = null;
     setDirty(false);
-    setOpen(false);
+    onOpenChange(false);
     onComplete("Inventory adjustment recorded.");
     router.refresh();
   }
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              ref={triggerRef}
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`Actions for ${item.stock_item_name}`}
-            />
-          }
-        >
-          <Ellipsis aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent data-coms-ui="operational" align="end">
-          <DropdownMenuGroup>
-            {onRestock && (
-              <DropdownMenuItem onClick={() => onRestock(triggerRef.current)}>
-                <PackagePlus aria-hidden="true" />
-                Restock
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={() => setOpen(true)}>
-              <SlidersHorizontal aria-hidden="true" />
-              Adjust stock
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
       <Dialog
         open={open}
         onOpenChange={(nextOpen) => {
-          if (nextOpen) setOpen(true);
+          if (nextOpen) onOpenChange(true);
           else requestClose();
         }}
       >

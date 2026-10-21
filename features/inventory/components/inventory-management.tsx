@@ -14,6 +14,8 @@ import { InventoryPageHeading } from "@/features/inventory/components/inventory-
 import { InventoryScopeFilter } from "@/features/inventory/components/inventory-scope-filter";
 import { createInventoryHref } from "@/features/inventory/services/inventory-page-params";
 import type { InventoryAdjustmentAction } from "@/features/inventory/components/inventory-adjustment-dialog";
+import type { InventoryLevelsControl } from "@/features/inventory/components/inventory-row-actions";
+import type { SetStockLevelsAction } from "@/features/inventory/services/stock-level-actions";
 import type {
   InventoryBranchOption,
   InventoryMovementPage,
@@ -31,10 +33,13 @@ export function InventoryManagement({
   search,
   statusFilter,
   categoryFilter,
+  stockFilter,
   canAdjust,
+  canSetLevels = false,
   canViewCommissary,
   canViewBranch,
   adjustAction,
+  levelsAction,
   branchUnavailable = false,
   branchUnavailableMessage = "No branch is assigned to this account.",
   page,
@@ -49,10 +54,13 @@ export function InventoryManagement({
   search: string;
   statusFilter?: "active" | "inactive";
   categoryFilter?: string;
+  stockFilter?: "low";
   canAdjust: boolean;
+  canSetLevels?: boolean;
   canViewCommissary: boolean;
   canViewBranch: boolean;
   adjustAction: InventoryAdjustmentAction;
+  levelsAction?: SetStockLevelsAction;
   branchUnavailable?: boolean;
   branchUnavailableMessage?: string;
   page?: number;
@@ -67,6 +75,24 @@ export function InventoryManagement({
   );
   const isAssignedBranchView = scope === "BRANCH" && !canViewCommissary;
   const branchName = selectedBranch?.name ?? "Assigned branch";
+  const levels: InventoryLevelsControl | undefined =
+    canSetLevels && levelsAction
+      ? scope === "COMMISSARY"
+        ? { action: levelsAction, location: { scope: "COMMISSARY" } }
+        : branchId
+          ? {
+              action: levelsAction,
+              location: {
+                scope: "BRANCH",
+                branchId,
+                branchName,
+                activeBranchIds: branchOptions
+                  .filter((branch) => branch.status !== "inactive")
+                  .map((branch) => branch.id),
+              },
+            }
+          : undefined
+      : undefined;
   return (
     <RestockProvider enabled={canCreatePurchases && scope === "COMMISSARY"}>
       <div data-coms-ui="operational" className="flex min-w-0 flex-col gap-6">
@@ -89,6 +115,7 @@ export function InventoryManagement({
                   branch_id: scope === "BRANCH" ? branchId : undefined,
                   search,
                   category: categoryFilter,
+                  stock: stockFilter,
                   is_active: statusFilter && String(statusFilter === "active"),
                 }}
               />
@@ -107,6 +134,7 @@ export function InventoryManagement({
             search={search}
             statusFilter={statusFilter}
             categoryFilter={categoryFilter}
+            stockFilter={stockFilter}
             availableCategories={inventory?.available_categories ?? []}
             canViewCommissary={canViewCommissary}
             canViewBranch={canViewBranch}
@@ -141,6 +169,7 @@ export function InventoryManagement({
                 search={search}
                 status={statusFilter}
                 category={categoryFilter}
+                stock={stockFilter}
                 page={currentPage}
                 isFetching={isFetching}
                 canAdjust={
@@ -149,6 +178,7 @@ export function InventoryManagement({
                     selectedBranch?.status !== "inactive")
                 }
                 adjustAction={adjustAction}
+                levels={levels}
                 onComplete={setStatusMessage}
                 onClearFilters={() => {
                   setIsFetching(true);

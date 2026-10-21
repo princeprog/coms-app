@@ -7,4 +7,5 @@ export const inventoryEndpoints = {
   commissaryAdjustments: "/inventory/commissary/adjustments",
   branchAdjustments: (branchId: string) =>
     `/inventory/branches/${branchId}/adjustments`,
+  levels: "/inventory/levels",
 } as const;

@@ -23,6 +23,9 @@ vi.mock("@/features/inventory/services/inventory-page-loader", () => ({
 vi.mock("@/features/inventory/services/inventory-actions", () => ({
   adjustInventoryAction: vi.fn(),
 }));
+vi.mock("@/features/inventory/services/stock-level-actions", () => ({
+  setStockLevelsAction: vi.fn(),
+}));
 vi.mock("@/components/layout/app-page-shell", () => ({
   AppPageShell: () => null,
 }));

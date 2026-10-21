@@ -7,7 +7,7 @@ type ExportTarget = {
   params: readonly string[];
 };
 
-const inventoryFilters = ["search", "is_active", "category"] as const;
+const inventoryFilters = ["search", "is_active", "category", "stock"] as const;
 const rangeFilters = ["from", "to"] as const;
 
 export const exportTargets = {

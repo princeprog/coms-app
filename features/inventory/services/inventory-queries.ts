@@ -20,6 +20,7 @@ type InventoryPageRequest =
       search: string;
       status?: "active" | "inactive";
       category?: string;
+      stock?: "low";
       scope: "COMMISSARY";
       pageSize?: number;
     }
@@ -28,6 +29,7 @@ type InventoryPageRequest =
       search: string;
       status?: "active" | "inactive";
       category?: string;
+      stock?: "low";
       scope: "BRANCH";
       branchId: string;
       pageSize?: number;
@@ -62,6 +64,7 @@ export async function getInventoryPageData(
   if (request.category?.trim()) {
     balanceParams.set("category", request.category.trim());
   }
+  if (request.stock) balanceParams.set("stock", request.stock);
   const movementParams = new URLSearchParams({
     page: "1",
     page_size: String(RECENT_MOVEMENT_LIMIT),

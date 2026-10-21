@@ -21,13 +21,19 @@ export function usePurchaseForm(
   onComplete: () => void,
   initialStock: PurchaseStock | null = null,
 ) {
+  const initialQuantity = initialStock?.suggested_quantity ?? "";
   const [initialDate] = useState(purchaseToday);
   const [purchase_date, setDate] = useState(initialDate);
   const [store_name, setStore] = useState("");
   const [receipt_number, setReceipt] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<PurchaseLine[]>([
-    { key: 1, stock: initialStock, quantity_received: "", unit_cost: "" },
+    {
+      key: 1,
+      stock: initialStock,
+      quantity_received: initialQuantity,
+      unit_cost: "",
+    },
   ]);
   const next = useRef(2);
   const [review, setReview] = useState<PurchaseInput | null>(null);
@@ -52,7 +58,7 @@ export function usePurchaseForm(
     lines.some(
       (line) =>
         line.stock?.id !== initialStock?.id ||
-        line.quantity_received ||
+        line.quantity_received !== (line.key === 1 ? initialQuantity : "") ||
         line.unit_cost,
     )
   );

@@ -11,16 +11,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { InventoryAdjustmentAction } from "./inventory-adjustment-dialog";
 import {
-  InventoryAdjustmentDialog,
-  type InventoryAdjustmentAction,
-} from "./inventory-adjustment-dialog";
-import type { InventoryItem } from "../types/inventory.types";
+  InventoryRowActions,
+  type InventoryLevelsControl,
+} from "./inventory-row-actions";
+import type { InventoryItem, StockStatus } from "../types/inventory.types";
+import { isZeroQuantity, restockQuantity } from "../services/stock-levels";
 import { useRestock } from "@/features/direct-purchases/components/restock-provider";
-import {
-  RestockRowMenu,
-  purchaseStockFromBalance,
-} from "@/features/direct-purchases/components/restock-row-menu";
+import { purchaseStockFromBalance } from "@/features/direct-purchases/services/purchase-stock";
 
 const updatedAt = new Intl.DateTimeFormat("en-PH", {
   month: "short",
@@ -29,38 +28,36 @@ const updatedAt = new Intl.DateTimeFormat("en-PH", {
   minute: "2-digit",
   timeZone: "Asia/Manila",
 });
-const ZERO_QUANTITY_PATTERN = /^0(?:\.0+)?$/;
-
-function isZeroQuantity(value: string) {
-  return ZERO_QUANTITY_PATTERN.test(value);
-}
-
-// Recipe deductions never block a sale, so branch stock can run below zero
-// until a physical count corrects it.
-function isBelowZero(value: string) {
-  return value.startsWith("-") && !isZeroQuantity(value.slice(1));
-}
+// Solid badges with white text; each shade keeps AA contrast in both themes.
+const STATUS_BADGE: Record<StockStatus, { label: string; className: string }> =
+  {
+    INACTIVE: { label: "Inactive", className: "bg-red-700" },
+    BELOW_ZERO: { label: "Below zero", className: "bg-red-700" },
+    OUT_OF_STOCK: { label: "Out of stock", className: "bg-red-700" },
+    LOW: { label: "Low stock", className: "bg-amber-700" },
+    RESTOCKING: { label: "Restocking", className: "bg-sky-700" },
+    IN_STOCK: { label: "In stock", className: "bg-emerald-700" },
+  };
 
 function StockHealth({ item }: { item: InventoryItem }) {
-  if (!item.is_active) {
-    return (
-      <Badge className="h-auto min-h-6 bg-red-700 text-white">Inactive</Badge>
-    );
-  }
-  if (isBelowZero(item.quantity_on_hand)) {
-    return (
-      <Badge className="h-auto min-h-6 bg-red-700 text-white">Below zero</Badge>
-    );
-  }
-  if (isZeroQuantity(item.quantity_on_hand)) {
-    return (
-      <Badge className="h-auto min-h-6 bg-red-700 text-white">
-        Out of stock
-      </Badge>
-    );
-  }
+  const badge = STATUS_BADGE[item.stock_status];
   return (
-    <Badge className="h-auto min-h-6 bg-emerald-700 text-white">In stock</Badge>
+    <Badge className={"h-auto min-h-6 text-white " + badge.className}>
+      {badge.label}
+    </Badge>
+  );
+}
+
+function StockLevels({ item }: { item: InventoryItem }) {
+  if (item.reorder_level === null || item.target_level === null)
+    return <span className="text-muted-foreground">Not set</span>;
+  return (
+    <span className="flex flex-col tabular-nums">
+      <span>Reorder at {item.reorder_level}</span>
+      <span className="text-xs text-muted-foreground">
+        Target {item.target_level}
+      </span>
+    </span>
   );
 }
 
@@ -82,6 +79,7 @@ export function InventoryBalanceTable({
   onClearFilters,
   canAdjust,
   adjustAction,
+  levels,
   onComplete,
 }: {
   items: InventoryItem[];
@@ -91,11 +89,13 @@ export function InventoryBalanceTable({
   onClearFilters: () => void;
   canAdjust: boolean;
   adjustAction: InventoryAdjustmentAction;
+  /** Present when the user may set reorder and target levels here. */
+  levels?: InventoryLevelsControl;
   onComplete: (message: string) => void;
 }) {
   const restock = useRestock();
   const canRestock = scope === "COMMISSARY" && restock !== null;
-  const showActions = canAdjust || canRestock;
+  const showActions = canAdjust || canRestock || Boolean(levels);
   const target =
     scope === "COMMISSARY"
       ? { scope: "COMMISSARY" as const }
@@ -156,6 +156,9 @@ export function InventoryBalanceTable({
           <TableHead scope="col" className="pl-6 whitespace-nowrap sm:pl-8">
             Status
           </TableHead>
+          <TableHead scope="col" className="hidden md:table-cell">
+            Levels
+          </TableHead>
           <TableHead scope="col" className="hidden xl:table-cell">
             Updated
           </TableHead>
@@ -183,14 +186,21 @@ export function InventoryBalanceTable({
               {item.category}
             </TableCell>
             <TableCell className="py-3 text-right tabular-nums">
-              <span
-                className={
-                  isBelowZero(item.quantity_on_hand)
-                    ? "font-medium text-destructive"
-                    : "font-medium"
-                }
-              >
-                {item.quantity_on_hand}
+              <span className="flex flex-col items-end">
+                <span
+                  className={
+                    item.stock_status === "BELOW_ZERO"
+                      ? "font-medium text-destructive"
+                      : "font-medium"
+                  }
+                >
+                  {item.quantity_on_hand}
+                </span>
+                {!isZeroQuantity(item.on_the_way) && (
+                  <span className="text-xs whitespace-nowrap text-muted-foreground">
+                    +{item.on_the_way} on the way
+                  </span>
+                )}
               </span>
             </TableCell>
             <TableCell className="py-3 pl-6 sm:pl-8">
@@ -199,37 +209,35 @@ export function InventoryBalanceTable({
             <TableCell className="py-3 pl-6 sm:pl-8">
               <StockHealth item={item} />
             </TableCell>
+            <TableCell className="hidden py-3 md:table-cell">
+              <StockLevels item={item} />
+            </TableCell>
             <TableCell className="hidden py-3 text-muted-foreground xl:table-cell">
               <UpdatedAt value={item.updated_at} />
             </TableCell>
             {showActions && (
               <TableCell className="py-3 pr-4 text-right sm:pr-5">
-                {item.is_active && canAdjust ? (
-                  <InventoryAdjustmentDialog
-                    item={item}
-                    target={target}
-                    action={adjustAction}
-                    onComplete={onComplete}
-                    onRestock={
-                      canRestock
-                        ? (trigger) =>
-                            restock.openRestock(
-                              purchaseStockFromBalance(item),
-                              trigger,
-                            )
-                        : undefined
-                    }
-                  />
-                ) : item.is_active ? (
-                  <RestockRowMenu stock={purchaseStockFromBalance(item)} />
-                ) : (
-                  <span className="text-muted-foreground">
-                    <span aria-hidden="true">-</span>
-                    <span className="sr-only">
-                      Adjustment unavailable for inactive stock
-                    </span>
-                  </span>
-                )}
+                <InventoryRowActions
+                  item={item}
+                  target={target}
+                  adjustAction={adjustAction}
+                  canAdjust={canAdjust}
+                  levels={levels}
+                  onComplete={onComplete}
+                  onRestock={
+                    canRestock
+                      ? (trigger) =>
+                          restock.openRestock(
+                            {
+                              ...purchaseStockFromBalance(item),
+                              suggested_quantity:
+                                restockQuantity(item) ?? undefined,
+                            },
+                            trigger,
+                          )
+                      : undefined
+                  }
+                />
               </TableCell>
             )}
           </TableRow>

@@ -8,6 +8,7 @@ import { CatalogLoadError } from "@/features/catalogs/components/catalog-load-er
 import { InventoryManagement } from "@/features/inventory/components/inventory-management";
 import { adjustInventoryAction } from "@/features/inventory/services/inventory-actions";
 import { loadInventoryView } from "@/features/inventory/services/inventory-page-loader";
+import { setStockLevelsAction } from "@/features/inventory/services/stock-level-actions";
 
 type InventorySearchParams = Promise<
   Record<string, string | string[] | undefined>
@@ -80,10 +81,13 @@ export default async function InventoryPage({
         search={view.search}
         statusFilter={view.statusFilter}
         categoryFilter={view.categoryFilter}
+        stockFilter={view.stockFilter}
         canAdjust={view.canAdjust}
+        canSetLevels={view.canSetLevels}
         canViewCommissary={view.canViewCommissary}
         canViewBranch={view.canViewBranch}
         adjustAction={adjustInventoryAction}
+        levelsAction={setStockLevelsAction}
         page={view.page}
       />
     </AppPageShell>

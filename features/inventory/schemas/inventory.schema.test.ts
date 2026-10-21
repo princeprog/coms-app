@@ -24,6 +24,7 @@ describe("inventory schemas", () => {
               created_at: timestamp,
               updated_at: timestamp,
               quantity_on_hand,
+              stock_status: "IN_STOCK",
             },
           ],
           total: 1,
