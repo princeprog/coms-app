@@ -25,118 +25,124 @@ import {
   UsersIcon,
 } from "lucide-react";
 
+// Each icon has its own hue (600 light, 400 dark); the active item turns it
+// white on the primary background (see NavMain).
 export const navItems = [
   {
     title: "Payment methods",
     url: "/payment-methods",
-    icon: <CreditCardIcon />,
+    icon: <CreditCardIcon className="text-emerald-600 dark:text-emerald-400" />,
   },
   {
     title: "Business day",
     url: "/business-day",
-    icon: <CalendarClockIcon />,
+    icon: (
+      <CalendarClockIcon className="text-orange-600 dark:text-orange-400" />
+    ),
   },
   {
     title: "Dashboard",
     url: "/dashboard",
     permission: ["dashboard.read", "dashboard.global_read"],
-    icon: <LayoutDashboardIcon />,
+    icon: <LayoutDashboardIcon className="text-sky-600 dark:text-sky-400" />,
   },
   {
     title: "Costs & profit",
     url: "/costs",
     permission: "costs.read",
-    icon: <CoinsIcon />,
+    icon: <CoinsIcon className="text-emerald-600 dark:text-emerald-400" />,
   },
   {
     title: "Sales report",
     url: "/sales-report",
     permission: "sales_report.read",
-    icon: <ReceiptTextIcon />,
+    icon: <ReceiptTextIcon className="text-violet-600 dark:text-violet-400" />,
   },
   {
     title: "Inventory",
     url: "/inventory",
     permission: ["inventory.read", "inventory.commissary_read"],
-    icon: <BoxesIcon />,
+    icon: <BoxesIcon className="text-amber-600 dark:text-amber-400" />,
   },
   {
     title: "Suppliers",
     url: "/suppliers",
     permission: "suppliers.read",
-    icon: <FactoryIcon />,
+    icon: <FactoryIcon className="text-indigo-600 dark:text-indigo-400" />,
   },
   {
     title: "Stock Items",
     url: "/stock-items",
     permission: "stock_items.read",
-    icon: <TagsIcon />,
+    icon: <TagsIcon className="text-teal-600 dark:text-teal-400" />,
   },
   {
     title: "Supplier Receiving",
     url: "/receipts",
     permission: "supplier_receipts.read",
-    icon: <ClipboardListIcon />,
+    icon: <ClipboardListIcon className="text-green-600 dark:text-green-400" />,
   },
   {
     title: "Dispatches",
     url: "/dispatches",
     permission: "dispatches.read",
-    icon: <SendIcon />,
+    icon: <SendIcon className="text-blue-600 dark:text-blue-400" />,
   },
   {
     title: "Products",
     url: "/products",
     permission: "products.read",
-    icon: <PackageIcon />,
+    icon: <PackageIcon className="text-rose-600 dark:text-rose-400" />,
   },
   {
     title: "Branch Menu",
     url: "/branch-products",
     permission: "branch_products.read",
-    icon: <StoreIcon />,
+    icon: <StoreIcon className="text-fuchsia-600 dark:text-fuchsia-400" />,
   },
   {
     title: "Point of Sale",
     url: "/pos",
     permission: ["sales.create", "sales.read"],
-    icon: <StoreIcon />,
+    icon: <StoreIcon className="text-cyan-600 dark:text-cyan-400" />,
   },
   {
     title: "Shifts",
     url: "/shifts",
     permission: "shifts.read",
-    icon: <ClockIcon />,
+    icon: <ClockIcon className="text-orange-600 dark:text-orange-400" />,
   },
   {
     title: "Daily Reports",
     url: "/reports",
     permission: "daily_reports.read",
-    icon: <FileChartColumnIcon />,
+    icon: (
+      <FileChartColumnIcon className="text-purple-600 dark:text-purple-400" />
+    ),
   },
   {
     title: "Branches",
     url: "/branches",
     permission: "branches.read",
-    icon: <Building2Icon />,
+    icon: <Building2Icon className="text-sky-600 dark:text-sky-400" />,
   },
   {
     title: "Staff",
     url: "/staff",
     permission: "staff.read",
-    icon: <UsersIcon />,
+    icon: <UsersIcon className="text-violet-600 dark:text-violet-400" />,
   },
   {
     title: "Roles",
     url: "/roles",
     permission: "roles.read",
-    icon: <ShieldCheckIcon />,
+    icon: <ShieldCheckIcon className="text-indigo-600 dark:text-indigo-400" />,
   },
   {
     title: "Audit log",
     url: "/audit-log",
     permission: "audit.read",
-    icon: <HistoryIcon />,
+    icon: <HistoryIcon className="text-slate-600 dark:text-slate-400" />,
   },
 ];
 

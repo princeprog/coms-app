@@ -49,7 +49,7 @@ export function NavMain({
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   size="lg"
-                  className="h-11 gap-2.5 rounded-lg px-3 text-sm font-medium transition-colors data-active:bg-primary data-active:font-semibold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground data-active:active:bg-primary data-active:active:text-primary-foreground [&_svg]:size-4.5"
+                  className="h-11 gap-2.5 rounded-lg px-3 text-sm font-medium transition-colors data-active:bg-primary data-active:font-semibold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground data-active:active:bg-primary data-active:active:text-primary-foreground [&_svg]:size-4.5 data-active:[&_svg]:text-primary-foreground!"
                   tooltip={item.title}
                   isActive={isActive}
                   render={
