@@ -9,27 +9,30 @@ const itemId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const timestamp = "2026-09-24T01:30:00.000Z";
 
 describe("inventory schemas", () => {
-  it("accepts exact decimal balances and paginated inventory", () => {
-    expect(
-      inventoryPageSchema.safeParse({
-        items: [
-          {
-            id: itemId,
-            stock_item_name: "Flour",
-            category: "Dry goods",
-            unit: "kg",
-            is_active: true,
-            created_at: timestamp,
-            updated_at: timestamp,
-            quantity_on_hand: "2.5000",
-          },
-        ],
-        total: 1,
-        page: 1,
-        page_size: 25,
-      }).success,
-    ).toBe(true);
-  });
+  it.each(["2.5000", "-0.4000"])(
+    "accepts exact decimal balances, including below-zero branch stock (%s)",
+    (quantity_on_hand) => {
+      expect(
+        inventoryPageSchema.safeParse({
+          items: [
+            {
+              id: itemId,
+              stock_item_name: "Flour",
+              category: "Dry goods",
+              unit: "kg",
+              is_active: true,
+              created_at: timestamp,
+              updated_at: timestamp,
+              quantity_on_hand,
+            },
+          ],
+          total: 1,
+          page: 1,
+          page_size: 25,
+        }).success,
+      ).toBe(true);
+    },
+  );
 
   it("rejects numeric values that could lose database decimal precision", () => {
     expect(

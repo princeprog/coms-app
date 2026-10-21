@@ -2,7 +2,6 @@ import { z } from "zod";
 
 const decimalText = z.string().regex(/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/);
 const nonzeroDecimalText = decimalText.refine((value) => /[1-9]/.test(value));
-const nonnegativeDecimalText = z.string().regex(/^(?:0|[1-9]\d*)(?:\.\d+)?$/);
 
 export const inventoryItemSchema = z.object({
   id: z.uuid(),
@@ -12,7 +11,8 @@ export const inventoryItemSchema = z.object({
   is_active: z.boolean(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
-  quantity_on_hand: nonnegativeDecimalText,
+  // Branch stock can be negative after recipe sales outrun recorded receipts.
+  quantity_on_hand: decimalText,
 });
 
 export const inventoryPageSchema = z.object({

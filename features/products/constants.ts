@@ -11,6 +11,7 @@ export const productDisplayColumns: CatalogDisplayColumn[] = [
   { key: "product_name", label: "Product" },
   { key: "category_name", label: "Category" },
   { key: "price", label: "Selling price", format: "currency" },
+  { key: "recipe_summary", label: "Recipe" },
 ];
 
 export const productFields: CatalogFieldDefinition[] = [

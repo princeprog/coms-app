@@ -5,15 +5,21 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProductSetupWorkspace } from "./product-setup-workspace";
 import type { ProductSetup } from "../schemas/product-setup.schema";
-const { save, refresh, replace, searchBranches, searchCategories } = vi.hoisted(
-  () => ({
-    save: vi.fn(),
-    refresh: vi.fn(),
-    replace: vi.fn(),
-    searchBranches: vi.fn(),
-    searchCategories: vi.fn(),
-  }),
-);
+const {
+  save,
+  refresh,
+  replace,
+  searchBranches,
+  searchCategories,
+  searchStock,
+} = vi.hoisted(() => ({
+  save: vi.fn(),
+  refresh: vi.fn(),
+  replace: vi.fn(),
+  searchBranches: vi.fn(),
+  searchCategories: vi.fn(),
+  searchStock: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh, replace, push: vi.fn() }),
 }));
@@ -22,6 +28,9 @@ vi.mock("../services/product-setup-actions", () => ({
 }));
 vi.mock("../services/product-branch-actions", () => ({
   searchProductBranchesAction: searchBranches,
+}));
+vi.mock("../services/product-recipe-actions", () => ({
+  searchRecipeStock: searchStock,
 }));
 vi.mock(
   "@/features/product-categories/services/product-category-actions",
@@ -47,11 +56,19 @@ const initial = {
     is_active: true,
     service_types: ["DINE_IN", "TAKEAWAY"],
     setup_revision: 1,
+    recipe_line_count: 0,
     created_at: "2026-10-10T01:00:00.000Z",
     updated_at: "2026-10-10T01:00:00.000Z",
   },
   branch_ids: [branch],
+  recipe: [],
 } as ProductSetup;
+const rice = {
+  id: "00000000-0000-4000-8000-000000000004",
+  stock_item_name: "Rice",
+  unit: "kg",
+  is_active: true,
+};
 function mount(data: ProductSetup | null = initial, canManage = true) {
   render(
     <QueryClientProvider
@@ -88,6 +105,9 @@ beforeEach(() => {
     ok: true,
     data: { items: [category], total: 1, page: 1, page_size: 10 },
   });
+  searchStock
+    .mockReset()
+    .mockResolvedValue({ items: [rice], total: 1, page: 1 });
   save.mockReset();
   refresh.mockReset();
   replace.mockReset();
@@ -150,7 +170,7 @@ describe("simple product form", () => {
     expect(save.mock.calls[0][1].product.category_id).toBe(category.id);
     expect(save.mock.calls[0][2]).toBe(save.mock.calls[1][2]);
   });
-  it("creates a priced product with deliberate branch selection and no recipe workflow", async () => {
+  it("creates a priced product with deliberate branch selection and an empty recipe", async () => {
     const user = userEvent.setup();
     save.mockResolvedValue({ ok: true, data: initial });
     mount(null);
@@ -176,8 +196,60 @@ describe("simple product form", () => {
         service_types: ["DINE_IN", "TAKEAWAY"],
         branch_ids: [branch],
       },
+      recipe: [],
     });
-    expect(screen.queryByText("Product consumption")).toBeNull();
+    expect(
+      screen.getByText("No recipe. Sales of this product won't deduct stock."),
+    ).toBeTruthy();
+  });
+  it("adds a recipe line and saves it with the product", async () => {
+    const user = userEvent.setup();
+    save.mockResolvedValue({ ok: true, data: initial });
+    mount();
+    await user.click(screen.getByRole("button", { name: "Add stock item" }));
+    await user.click(screen.getByLabelText("Stock item, line 1"));
+    await user.click(await screen.findByRole("option", { name: /Rice/ }));
+    await user.type(screen.getByLabelText("Quantity per sale, line 1"), "0.25");
+    await user.click(screen.getByRole("button", { name: "Save product" }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1].recipe).toEqual([
+      { stock_item_id: rice.id, quantity: "0.25", usage_scope: "ALL" },
+    ]);
+  });
+  it("keeps an incomplete recipe line as a draft with a field error", async () => {
+    const user = userEvent.setup();
+    mount();
+    await user.click(screen.getByRole("button", { name: "Add stock item" }));
+    await user.type(screen.getByLabelText("Quantity per sale, line 1"), "1");
+    await user.click(screen.getByRole("button", { name: "Save product" }));
+    expect(await screen.findByText("Choose a stock item.")).toBeTruthy();
+    expect(screen.getByText(/Check the highlighted recipe lines/)).toBeTruthy();
+    expect(save).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Quantity per sale, line 1")).toHaveProperty(
+      "value",
+      "1",
+    );
+  });
+  it("shows a saved recipe read-only", () => {
+    mount(
+      {
+        ...initial,
+        recipe: [
+          {
+            stock_item_id: rice.id,
+            stock_item_name: "Rice",
+            unit: "kg",
+            is_active: true,
+            usage_scope: "TAKEAWAY",
+            quantity: "0.25",
+          },
+        ],
+      },
+      false,
+    );
+    expect(screen.getByRole("heading", { name: "Recipe" })).toBeTruthy();
+    expect(screen.getByText("0.25 kg")).toBeTruthy();
+    expect(screen.getByText("Takeout only")).toBeTruthy();
   });
   it("preserves price and branch drafts after errors and reuses identical retry keys", async () => {
     const user = userEvent.setup();

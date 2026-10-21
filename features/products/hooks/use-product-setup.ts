@@ -11,6 +11,8 @@ import {
 } from "../schemas/product-setup.schema";
 import { saveProductSetupAction } from "../services/product-setup-actions";
 import type { CategoryChoice } from "@/features/product-categories/schemas/product-category.schema";
+import { buildRecipePayload } from "../services/product-recipe-rules";
+import { useProductRecipe } from "./use-product-recipe";
 export function useProductSetup(initial: ProductSetup | null) {
   const router = useRouter();
   const [category, setCategoryValue] = useState<CategoryChoice | null>(
@@ -31,6 +33,7 @@ export function useProductSetup(initial: ProductSetup | null) {
     initial?.product.service_types ?? ["DINE_IN", "TAKEAWAY"],
   );
   const [branchIds, setBranchIds] = useState(initial?.branch_ids ?? []);
+  const recipe = useProductRecipe(initial?.recipe ?? []);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   function setCategory(value: CategoryChoice) {
@@ -52,6 +55,7 @@ export function useProductSetup(initial: ProductSetup | null) {
     description,
     services,
     branchIds: [...branchIds].sort(),
+    recipe: recipe.snapshot,
   });
   const [baseline, setBaseline] = useState(state);
   const retry = useRef<{ body: string; key: string } | null>(null);
@@ -68,6 +72,11 @@ export function useProductSetup(initial: ProductSetup | null) {
         setFieldErrors({ category_id: "Select an active category." });
         throw Error("Select an active category before saving.");
       }
+      const recipePayload = buildRecipePayload(recipe.rows, services);
+      if (Object.keys(recipePayload.errors).length) {
+        recipe.setErrors(recipePayload.errors);
+        throw Error("Check the highlighted recipe lines.");
+      }
       const parsed = productSetupInputSchema.safeParse({
         expected_product_revision: initial?.product.setup_revision ?? 0,
         product: {
@@ -78,6 +87,7 @@ export function useProductSetup(initial: ProductSetup | null) {
           service_types: services,
           branch_ids: [...branchIds].sort(),
         },
+        recipe: recipePayload.lines,
       });
       if (!parsed.success) {
         setFieldErrors(
@@ -104,6 +114,7 @@ export function useProductSetup(initial: ProductSetup | null) {
     onMutate: () => {
       setError("");
       setFieldErrors({});
+      recipe.setErrors({});
     },
     onError: (e) => setError(e.message),
     onSuccess: () => {
@@ -126,6 +137,7 @@ export function useProductSetup(initial: ProductSetup | null) {
     setServices,
     branchIds,
     setBranchIds,
+    recipe,
     error,
     fieldErrors,
     dirty,

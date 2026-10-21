@@ -35,10 +35,21 @@ function isZeroQuantity(value: string) {
   return ZERO_QUANTITY_PATTERN.test(value);
 }
 
+// Recipe deductions never block a sale, so branch stock can run below zero
+// until a physical count corrects it.
+function isBelowZero(value: string) {
+  return value.startsWith("-") && !isZeroQuantity(value.slice(1));
+}
+
 function StockHealth({ item }: { item: InventoryItem }) {
   if (!item.is_active) {
     return (
       <Badge className="h-auto min-h-6 bg-red-700 text-white">Inactive</Badge>
+    );
+  }
+  if (isBelowZero(item.quantity_on_hand)) {
+    return (
+      <Badge className="h-auto min-h-6 bg-red-700 text-white">Below zero</Badge>
     );
   }
   if (isZeroQuantity(item.quantity_on_hand)) {
@@ -172,7 +183,15 @@ export function InventoryBalanceTable({
               {item.category}
             </TableCell>
             <TableCell className="py-3 text-right tabular-nums">
-              <span className="font-medium">{item.quantity_on_hand}</span>
+              <span
+                className={
+                  isBelowZero(item.quantity_on_hand)
+                    ? "font-medium text-destructive"
+                    : "font-medium"
+                }
+              >
+                {item.quantity_on_hand}
+              </span>
             </TableCell>
             <TableCell className="py-3 pl-6 sm:pl-8">
               {stockUnitLabel(item.unit)}

@@ -27,6 +27,7 @@ export const productSchema = z.object({
   setup_revision: z.number().int().positive(),
   service_types: serviceTypesSchema,
   is_active: z.boolean(),
+  recipe_line_count: z.number().int().nonnegative().default(0),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
 });

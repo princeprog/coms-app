@@ -15,7 +15,12 @@ function categoryMetadata(state, product) {
 }
 
 function productView(state, product) {
-  return { ...product, ...categoryMetadata(state, product) };
+  const { recipe = [], ...fields } = product;
+  return {
+    ...fields,
+    recipe_line_count: recipe.length,
+    ...categoryMetadata(state, product),
+  };
 }
 
 function eligibleServices(branch, product) {
@@ -160,6 +165,17 @@ function setupView(state, product) {
     branch_ids: state.branchProducts
       .filter((offer) => offer.product_id === product.id && offer.is_available)
       .map((offer) => offer.branch_id),
+    recipe: (product.recipe ?? []).map((line) => {
+      const stock = state.stockItems?.find(
+        (item) => item.id === line.stock_item_id,
+      );
+      return {
+        ...line,
+        stock_item_name: stock?.stock_item_name ?? "Unknown stock item",
+        unit: stock?.unit ?? "",
+        is_active: stock?.is_active ?? false,
+      };
+    }),
   };
 }
 
@@ -353,6 +369,14 @@ function handleProductRequest({
     saved.description = input.description?.trim() || null;
   if (creating) state.products.push(saved);
   assignBranches(state, saved, input.branch_ids);
+  if (isSetup && Array.isArray(body?.recipe))
+    saved.recipe = body.recipe.map(
+      ({ stock_item_id, quantity, usage_scope }) => ({
+        stock_item_id,
+        quantity,
+        usage_scope,
+      }),
+    );
   for (const offer of state.branchProducts.filter(
     (item) => item.product_id === saved.id,
   ))

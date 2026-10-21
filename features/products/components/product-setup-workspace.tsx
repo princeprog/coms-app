@@ -15,6 +15,8 @@ import { ProductSetupInfo } from "./product-setup-info";
 import { ProductBranchSelection } from "./product-branch-selection";
 import { ProductServiceOptions } from "./product-service-options";
 import { ProductSetupFooter } from "./product-setup-footer";
+import { ProductRecipeSection } from "./product-recipe/product-recipe-section";
+import { ProductRecipeTable } from "./product-recipe/product-recipe-table";
 export function ProductSetupWorkspace({
   initial,
   canManage,
@@ -149,6 +151,18 @@ export function ProductSetupWorkspace({
               disabled={draft.pending}
               error={draft.fieldErrors.service_types}
             />
+            <Separator />
+            <ProductRecipeSection
+              recipe={draft.recipe}
+              services={draft.services}
+              disabled={draft.pending}
+            />
+          </>
+        )}
+        {readOnly && initial && (
+          <>
+            <Separator />
+            <ProductRecipeTable recipe={initial.recipe} />
           </>
         )}
         <Separator />
