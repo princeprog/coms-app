@@ -71,6 +71,14 @@ export const exportTargets = {
     needsBranch: true,
     params: ["status"],
   },
+  "sales-report": {
+    path: () => "/reports/sales/export",
+    params: ["period", "date", "branch_id"],
+  },
+  "sales-report-pdf": {
+    path: () => "/reports/sales/pdf",
+    params: ["period", "date", "branch_id"],
+  },
 } satisfies Record<string, ExportTarget>;
 
 export type ExportKind = keyof typeof exportTargets;

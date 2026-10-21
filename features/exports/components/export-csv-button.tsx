@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -18,11 +18,13 @@ export function ExportCsvButton({
   kind,
   params,
   label = "Export CSV",
+  icon = <Download data-icon="inline-start" aria-hidden="true" />,
   className,
 }: {
   kind: ExportKind;
   params?: ExportParams;
   label?: string;
+  icon?: ReactNode;
   className?: string;
 }) {
   const [pending, setPending] = useState(false);
@@ -75,11 +77,7 @@ export function ExportCsvButton({
       aria-busy={pending}
       onClick={download}
     >
-      {pending ? (
-        <Spinner data-icon="inline-start" aria-hidden="true" />
-      ) : (
-        <Download data-icon="inline-start" aria-hidden="true" />
-      )}
+      {pending ? <Spinner data-icon="inline-start" aria-hidden="true" /> : icon}
       {pending ? "Exporting…" : label}
     </Button>
   );

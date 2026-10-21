@@ -608,9 +608,173 @@ function branchProductView(state, offer) {
   };
 }
 
+function salesReportFixture(query) {
+  const period = ["day", "week", "month"].includes(query.get("period"))
+    ? query.get("period")
+    : "week";
+  const totals = {
+    gross_sales: "12450.00",
+    net_sales: "11980.00",
+    sales_count: 64,
+    average_sale: "187.19",
+    items_sold: "142",
+    void_count: 2,
+    void_amount: "470.00",
+    food_cost: "4672.20",
+    gross_profit: "7307.80",
+    food_cost_percent: "39",
+    cost_coverage_percent: "96.5",
+  };
+  const days = ["2026-10-19", "2026-10-20", "2026-10-21"];
+  return {
+    period,
+    period_range: { from: "2026-10-19", to: "2026-10-25" },
+    range: { from: "2026-10-19", to: "2026-10-21" },
+    previous_range: { from: "2026-10-12", to: "2026-10-14" },
+    in_progress: true,
+    branch: null,
+    scope_label: "All branches",
+    branch_options: [
+      {
+        id: "10000000-0000-4000-8000-000000000001",
+        name: "Manila - Ermita",
+        status: "active",
+      },
+      {
+        id: "10000000-0000-4000-8000-000000000002",
+        name: "Cebu Branch",
+        status: "active",
+      },
+    ],
+    show_costs: true,
+    headline: totals,
+    previous: { ...totals, net_sales: "10650.00" },
+    changes: {
+      gross_sales: "11.2",
+      net_sales: "12.5",
+      sales_count: "6.7",
+      average_sale: "5.4",
+      void_amount: "-21.7",
+      gross_profit: "9.8",
+      food_cost_percent_points: "1.4",
+    },
+    cash: {
+      closed_shifts: 6,
+      short_shifts: 1,
+      over_shifts: 1,
+      cash_difference: "-35.00",
+      short_amount: "-60.00",
+      over_amount: "25.00",
+    },
+    stock: {
+      approved_reports: 4,
+      waste_value: "312.50",
+      variance_value: "-128.40",
+    },
+    by_branch: [
+      {
+        branch_id: "10000000-0000-4000-8000-000000000001",
+        branch_name: "Manila - Ermita",
+        sales_count: 40,
+        net_sales: "7520.00",
+        average_sale: "188.00",
+        cash_difference: "-35.00",
+        food_cost: "2930.10",
+        gross_profit: "4589.90",
+      },
+      {
+        branch_id: "10000000-0000-4000-8000-000000000002",
+        branch_name: "Cebu Branch",
+        sales_count: 24,
+        net_sales: "4460.00",
+        average_sale: "185.83",
+        cash_difference: "0.00",
+        food_cost: "1742.10",
+        gross_profit: "2717.90",
+      },
+    ],
+    by_payment: [
+      {
+        name: "Cash",
+        sales_count: 44,
+        amount: "8120.00",
+        share_percent: "67.8",
+      },
+      {
+        name: "GCash",
+        sales_count: 20,
+        amount: "3860.00",
+        share_percent: "32.2",
+      },
+    ],
+    by_service: [
+      {
+        service_type: "DINE_IN",
+        sales_count: 41,
+        amount: "7710.00",
+        share_percent: "64.4",
+      },
+      {
+        service_type: "TAKEAWAY",
+        sales_count: 23,
+        amount: "4270.00",
+        share_percent: "35.6",
+      },
+    ],
+    by_category: [
+      {
+        name: "Silog meals",
+        quantity: "48",
+        net_sales: "7480.00",
+        share_percent: "62.4",
+        food_cost: "3010.00",
+        gross_profit: "4470.00",
+      },
+      {
+        name: "Beverages",
+        quantity: "51",
+        net_sales: "2240.00",
+        share_percent: "18.7",
+        food_cost: "520.00",
+        gross_profit: "1720.00",
+      },
+    ],
+    top_products: [
+      {
+        product_id: "20000000-0000-4000-8000-000000000001",
+        name: "Tapsilog",
+        quantity: "22",
+        net_sales: "3718.00",
+        food_cost: "1663.20",
+        gross_profit: "2054.80",
+      },
+      {
+        product_id: "20000000-0000-4000-8000-000000000002",
+        name: "Bangsilog",
+        quantity: "12",
+        net_sales: "2148.00",
+        food_cost: "1382.40",
+        gross_profit: "765.60",
+      },
+    ],
+    daily:
+      period === "day"
+        ? []
+        : days.map((date, index) => ({
+            date,
+            sales_count: 20 + index,
+            net_sales: String(3600 + index * 380) + ".00",
+            food_cost: "1400.00",
+            gross_profit: String(2200 + index * 380) + ".00",
+          })),
+  };
+}
+
 const auditEvent = (index, patch) => ({
   id: `00000000-0000-4000-8000-${String(900000000000 + index)}`,
-  occurred_at: new Date(Date.UTC(2026, 9, 21, 13, 30 - index * 7)).toISOString(),
+  occurred_at: new Date(
+    Date.UTC(2026, 9, 21, 13, 30 - index * 7),
+  ).toISOString(),
   actor_user_id: "00000000-0000-4000-8000-000000000101",
   actor_name: "Maria Santos",
   entity_id: null,
@@ -1401,6 +1565,19 @@ function createOperationalApiFixture({
       }
       if (url.pathname === "/roles/permissions" && request.method === "GET") {
         return send(response, 200, seed.permissions);
+      }
+      if (url.pathname === "/reports/sales" && request.method === "GET") {
+        return send(response, 200, salesReportFixture(url.searchParams));
+      }
+      if (url.pathname === "/reports/sales/pdf" && request.method === "GET") {
+        response.writeHead(200, {
+          "cache-control": "no-store",
+          "content-type": "application/pdf",
+          "content-disposition":
+            'attachment; filename="coms-sales-report-all-branches.pdf"',
+        });
+        response.end("%PDF-1.4\n%fixture\n");
+        return;
       }
       // Any CSV export echoes its forwarded filters; fail-next can force errors.
       if (url.pathname.endsWith("/export") && request.method === "GET") {

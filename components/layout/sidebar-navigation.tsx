@@ -17,6 +17,7 @@ import {
   HistoryIcon,
   LayoutDashboardIcon,
   PackageIcon,
+  ReceiptTextIcon,
   SendIcon,
   ShieldCheckIcon,
   StoreIcon,
@@ -46,6 +47,12 @@ export const navItems = [
     url: "/costs",
     permission: "costs.read",
     icon: <CoinsIcon />,
+  },
+  {
+    title: "Sales report",
+    url: "/sales-report",
+    permission: "sales_report.read",
+    icon: <ReceiptTextIcon />,
   },
   {
     title: "Inventory",
@@ -159,7 +166,7 @@ export function getAppSidebarNavigation(user: User) {
 }
 
 export const sidebarNavigationGroups = [
-  { title: "Overview", urls: ["/dashboard", "/costs"] },
+  { title: "Overview", urls: ["/dashboard", "/costs", "/sales-report"] },
   {
     title: "Supply & Inventory",
     urls: [
