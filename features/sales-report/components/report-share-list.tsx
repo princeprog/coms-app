@@ -1,5 +1,13 @@
 import { cn } from "@/lib/utils";
 
+// Each breakdown gets its own hue so sections read apart at a glance.
+const barColors = {
+  orange: "bg-orange-500 dark:bg-orange-400",
+  violet: "bg-violet-500 dark:bg-violet-400",
+  sky: "bg-sky-500 dark:bg-sky-400",
+  emerald: "bg-emerald-500 dark:bg-emerald-400",
+} as const;
+
 export type ShareRow = {
   key: string;
   name: string;
@@ -15,11 +23,13 @@ export function ReportShareList({
   id,
   title,
   rows,
+  color = "orange",
   className,
 }: {
   id: string;
   title: string;
   rows: ShareRow[];
+  color?: keyof typeof barColors;
   className?: string;
 }) {
   return (
@@ -64,7 +74,10 @@ export function ReportShareList({
                 className="h-1.5 overflow-hidden rounded-full bg-muted"
               >
                 <div
-                  className="h-full w-full origin-left rounded-full bg-[var(--chart-3)] transition-transform duration-300 ease-out-quint motion-reduce:transition-none"
+                  className={cn(
+                    "h-full w-full origin-left rounded-full transition-transform duration-300 ease-out-quint motion-reduce:transition-none",
+                    barColors[color],
+                  )}
                   style={{
                     transform: `scaleX(${Math.min(100, Math.max(0, row.share)) / 100})`,
                   }}

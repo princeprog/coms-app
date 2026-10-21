@@ -13,6 +13,7 @@ export function ReportBreakdowns({ report }: { report: SalesReport }) {
     <div className="grid gap-4 lg:grid-cols-2">
       <ReportShareList
         id="report-products"
+        color="orange"
         title="Top products"
         rows={report.top_products.map((row, index) => ({
           key: row.product_id,
@@ -24,6 +25,7 @@ export function ReportBreakdowns({ report }: { report: SalesReport }) {
       />
       <ReportShareList
         id="report-categories"
+        color="violet"
         title="Categories"
         rows={report.by_category.map((row) => ({
           key: row.name,
@@ -36,6 +38,7 @@ export function ReportBreakdowns({ report }: { report: SalesReport }) {
       />
       <ReportShareList
         id="report-payments"
+        color="sky"
         title="Payment methods"
         rows={report.by_payment.map((row) => ({
           key: row.name,
@@ -48,6 +51,7 @@ export function ReportBreakdowns({ report }: { report: SalesReport }) {
       />
       <ReportShareList
         id="report-service"
+        color="emerald"
         title="Dine-in and Takeout"
         rows={report.by_service.map((row) => ({
           key: row.service_type,
