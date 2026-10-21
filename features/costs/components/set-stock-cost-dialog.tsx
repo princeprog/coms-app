@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -63,7 +63,10 @@ export function SetStockCostDialog({
     onMutate: () => setErrors({}),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: costKeys.all });
-      toast.success(`Cost updated for ${item!.stock_item_name}.`);
+      toast.add({
+        type: "success",
+        title: `Cost updated for ${item!.stock_item_name}.`,
+      });
       onOpenChange(false);
     },
   });

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { TriangleAlert } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import type { useCostQuery } from "../hooks/use-cost-query";
 import { costKeys } from "../query-keys";
 import { getBranchProfitAction } from "../services/cost-actions";
@@ -37,11 +38,21 @@ export function ProfitView({
   const coverage = result.data?.totals.cost_coverage_percent;
   return (
     <div className="flex flex-col gap-5">
-      <CostRangeFilter
-        from={range.from}
-        to={range.to}
-        onChange={(next) => update({ ...next })}
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <CostRangeFilter
+          from={range.from}
+          to={range.to}
+          onChange={(next) => update({ ...next })}
+        />
+        {valid && (
+          <ExportCsvButton
+            kind="profit-branches"
+            label="Export branches"
+            params={range}
+            className="h-11 sm:mt-6"
+          />
+        )}
+      </div>
       {!valid ? null : result.isError ? (
         <CostTableError
           label="Profit"

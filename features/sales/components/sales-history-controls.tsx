@@ -9,7 +9,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DirectorySelect } from "@/components/shared/directory-select";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import type { useDirectoryQuery } from "@/hooks/use-directory-query";
+import { salesHistoryDates } from "../services/sales-history-filters";
 import type { SalesPageFilters } from "../services/sales-page-params";
 import type { SalePage } from "../types/sale.types";
 import { SalesHistoryDateFilter } from "./sales-history-date-filter";
@@ -28,6 +30,7 @@ export function SalesHistoryControls({
       ...(filters.historyTender ? [filters.historyTender] : []),
     ]),
   );
+  const dates = salesHistoryDates(filters);
   return (
     <>
       <div className="flex flex-wrap gap-3">
@@ -117,23 +120,39 @@ export function SalesHistoryControls({
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
         <span>Filtered sales · Philippine time</span>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => {
-            query.changeSearch("");
-            query.apply({
-              search: "",
-              historyStatus: undefined,
-              historyTender: undefined,
-              historyPeriod: "today",
-              historyFrom: undefined,
-              historyTo: undefined,
-            });
-          }}
-        >
-          Reset filters
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              query.changeSearch("");
+              query.apply({
+                search: "",
+                historyStatus: undefined,
+                historyTender: undefined,
+                historyPeriod: "today",
+                historyFrom: undefined,
+                historyTo: undefined,
+              });
+            }}
+          >
+            Reset filters
+          </Button>
+          {filters.branchId && (
+            <ExportCsvButton
+              kind="sales"
+              className="h-9"
+              params={{
+                branch_id: filters.branchId,
+                search: filters.historySearch,
+                status: filters.historyStatus,
+                tender_method: filters.historyTender,
+                date_from: dates.dateFrom,
+                date_to: dates.dateTo,
+              }}
+            />
+          )}
+        </div>
       </div>
     </>
   );

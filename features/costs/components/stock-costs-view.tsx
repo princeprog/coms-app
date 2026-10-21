@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import {
   Table,
   TableBody,
@@ -90,6 +91,11 @@ export function StockCostsView({
           />
           <Label htmlFor="stock-cost-missing">Missing cost only</Label>
         </div>
+        <ExportCsvButton
+          kind="stock-costs"
+          params={{ search: query.search, missing_only: input.missing_only }}
+          className="h-11 sm:ml-auto"
+        />
       </div>
       <section aria-label="Stock costs" className="rounded-xl border">
         {result.isError ? (

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ListFilter, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DirectorySelect } from "@/components/shared/directory-select";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import {
   Table,
   TableBody,
@@ -74,6 +75,11 @@ export function ProductCostsView({
             },
           ]}
           onChange={(status) => update({ status })}
+        />
+        <ExportCsvButton
+          kind="product-costs"
+          params={{ search: query.search, status: query.status }}
+          className="h-11 sm:ml-auto"
         />
       </div>
       <section aria-label="Product costs" className="rounded-xl border">

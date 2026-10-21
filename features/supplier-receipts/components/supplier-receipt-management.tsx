@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import type { SupplierReceiptPage } from "@/features/supplier-receipts/types/supplier-receipt.types";
 import { SupplierReceiptPagination } from "./supplier-receipt-pagination";
 import { SupplierReceiptTable } from "./supplier-receipt-table";
@@ -57,11 +58,26 @@ export function SupplierReceiptManagement({
             commissary inventory.
           </p>
         </div>
-        {canCreate && (
-          <Button nativeButton={false} render={<Link href="/receipts/new" />}>
-            Record supplier delivery
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {page.total > 0 && (
+            <ExportCsvButton
+              kind="supplier-deliveries"
+              params={{
+                search: appliedFilters.search,
+                received_from: appliedFilters.received_from,
+                received_to: appliedFilters.received_to,
+                min_cost: appliedFilters.min_cost,
+                max_cost: appliedFilters.max_cost,
+                sort: appliedFilters.sort,
+              }}
+            />
+          )}
+          {canCreate && (
+            <Button nativeButton={false} render={<Link href="/receipts/new" />}>
+              Record supplier delivery
+            </Button>
+          )}
+        </div>
       </section>
       {createIssue && (
         <Alert>

@@ -1,6 +1,7 @@
 import { ActivityRow } from "./inventory-activity-row";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -15,15 +16,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import type { InventoryMovementPage } from "../types/inventory.types";
 
 const RECENT_ACTIVITY_LIMIT = 5;
 export function InventoryMovementsTable({
   movements,
   canReadPurchases = false,
+  branchId,
 }: {
   movements: InventoryMovementPage;
   canReadPurchases?: boolean;
+  /** Exports this branch's movements; commissary movements when omitted. */
+  branchId?: string;
 }) {
   const recentMovements = movements.items.slice(0, RECENT_ACTIVITY_LIMIT);
   return (
@@ -38,6 +43,16 @@ export function InventoryMovementsTable({
         <CardDescription className="sr-only">
           Latest changes for this location, newest first.
         </CardDescription>
+        {movements.total > 0 && (
+          <CardAction>
+            <ExportCsvButton
+              kind={branchId ? "branch-movements" : "commissary-movements"}
+              label="Export all activity"
+              params={{ branch_id: branchId }}
+              className="h-9"
+            />
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent className="p-0">
         {recentMovements.length > 0 ? (

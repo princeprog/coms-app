@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DirectorySelect } from "@/components/shared/directory-select";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import {
   Table,
   TableBody,
@@ -55,29 +56,37 @@ export function ProfitProductTable({
         <h2 id="profit-products" className="font-semibold">
           Profit by product
         </h2>
-        {branches.length > 1 && (
-          <DirectorySelect
-            id="profit-branch"
-            label="Branch"
-            hideLabel
-            alignItemWithTrigger={false}
-            className="sm:w-60 [&_[data-slot=select-trigger]]:h-10"
-            value={query.branch ?? "all"}
-            options={[
-              { value: "all", label: "All branches" },
-              ...branches.map((branch) => ({
-                value: branch.branch_id!,
-                label: branch.branch_name,
-              })),
-            ].map((option) => ({
-              ...option,
-              icon: <Building2 className="text-sky-600" />,
-            }))}
-            onChange={(value) =>
-              update({ branch: value === "all" ? undefined : value })
-            }
+        <div className="flex flex-wrap items-center gap-3">
+          {branches.length > 1 && (
+            <DirectorySelect
+              id="profit-branch"
+              label="Branch"
+              hideLabel
+              alignItemWithTrigger={false}
+              className="sm:w-60 [&_[data-slot=select-trigger]]:h-10"
+              value={query.branch ?? "all"}
+              options={[
+                { value: "all", label: "All branches" },
+                ...branches.map((branch) => ({
+                  value: branch.branch_id!,
+                  label: branch.branch_name,
+                })),
+              ].map((option) => ({
+                ...option,
+                icon: <Building2 className="text-sky-600" />,
+              }))}
+              onChange={(value) =>
+                update({ branch: value === "all" ? undefined : value })
+              }
+            />
+          )}
+          <ExportCsvButton
+            kind="profit-products"
+            label="Export products"
+            params={{ ...range, branch_id: query.branch }}
+            className="h-10"
           />
-        )}
+        </div>
       </div>
       {result.isError ? (
         <CostTableError

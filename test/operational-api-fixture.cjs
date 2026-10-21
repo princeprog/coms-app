@@ -1402,6 +1402,17 @@ function createOperationalApiFixture({
       if (url.pathname === "/roles/permissions" && request.method === "GET") {
         return send(response, 200, seed.permissions);
       }
+      // Any CSV export echoes its forwarded filters; fail-next can force errors.
+      if (url.pathname.endsWith("/export") && request.method === "GET") {
+        const name = url.pathname.split("/").filter(Boolean).join("-");
+        response.writeHead(200, {
+          "cache-control": "no-store",
+          "content-type": "text/csv; charset=utf-8",
+          "content-disposition": `attachment; filename="coms-${name}.csv"`,
+        });
+        response.end(`\uFEFFFilters\r\n${url.searchParams.toString()}\r\n`);
+        return;
+      }
       if (url.pathname === "/audit-events" && request.method === "GET") {
         const area = url.searchParams.get("entity_type");
         const search = (url.searchParams.get("search") ?? "").toLowerCase();

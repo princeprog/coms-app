@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { LockKeyhole } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -46,7 +46,10 @@ export function ChangePasswordForm({ required }: { required: boolean }) {
       if (!result.ok) throw new Error(result.message);
     },
     onSuccess: () => {
-      toast.success("Password changed. Other devices have been signed out.");
+      toast.add({
+        type: "success",
+        title: "Password changed. Other devices have been signed out.",
+      });
       router.replace("/");
       router.refresh();
     },

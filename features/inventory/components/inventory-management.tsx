@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { OperationalLoadError } from "@/components/shared/operational-load-error";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import { InventoryBalancesSection } from "./inventory-balances-section";
 import { InventoryMovementsTable } from "@/features/inventory/components/inventory-movements-table";
 import { InventoryPageHeading } from "@/features/inventory/components/inventory-page-heading";
@@ -75,9 +76,27 @@ export function InventoryManagement({
             selectedBranchId={selectedBranchId}
             branchName={branchName}
           />
-          {scope === "COMMISSARY" && (
-            <PurchaseActions canRead={canReadPurchases} />
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {inventory && !branchUnavailable && (
+              <ExportCsvButton
+                kind={
+                  scope === "COMMISSARY"
+                    ? "commissary-inventory"
+                    : "branch-inventory"
+                }
+                label="Export stock"
+                params={{
+                  branch_id: scope === "BRANCH" ? branchId : undefined,
+                  search,
+                  category: categoryFilter,
+                  is_active: statusFilter && String(statusFilter === "active"),
+                }}
+              />
+            )}
+            {scope === "COMMISSARY" && (
+              <PurchaseActions canRead={canReadPurchases} />
+            )}
+          </div>
         </div>
 
         {!branchUnavailable && (
@@ -148,6 +167,7 @@ export function InventoryManagement({
               <InventoryMovementsTable
                 movements={movements}
                 canReadPurchases={canReadPurchases}
+                branchId={scope === "BRANCH" ? branchId : undefined}
               />
             </div>
           </>

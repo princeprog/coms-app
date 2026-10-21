@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { OperationalPageIntro } from "@/components/shared/operational-page-ui";
 import { buttonVariants } from "@/components/ui/button";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import { DailyReportCreateForm } from "@/features/daily-reports/components/daily-report-create-form";
 import { DailyReportDetail } from "@/features/daily-reports/components/daily-report-detail";
 import { DailyReportDirectoryToolbar } from "@/features/daily-reports/components/daily-report-directory-toolbar";
@@ -82,13 +83,25 @@ export function DailyReportsManagement({ view }: { view: ReadyReportsView }) {
               </span>
             }
             actions={
-              view.canCreate ? (
-                <DailyReportCreateForm
-                  branchId={view.selectedBranch.id}
-                  todayManila={view.todayManila}
-                  action={createDailyReportAction}
-                />
-              ) : null
+              <>
+                {view.page.total > 0 && (
+                  <ExportCsvButton
+                    kind="daily-reports"
+                    label="Export report lines"
+                    params={{
+                      branch_id: view.selectedBranch.id,
+                      status: view.filters.status,
+                    }}
+                  />
+                )}
+                {view.canCreate && (
+                  <DailyReportCreateForm
+                    branchId={view.selectedBranch.id}
+                    todayManila={view.todayManila}
+                    action={createDailyReportAction}
+                  />
+                )}
+              </>
             }
           />
           {view.selectedBranch.status === "inactive" && (

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExportCsvButton } from "@/features/exports/components/export-csv-button";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +35,20 @@ export function PurchaseHistory({ canCreate }: { canCreate: boolean }) {
               Direct purchases
             </h1>
           </div>
-          <PurchaseActions canRead showHistory={false} />
+          <div className="flex flex-wrap items-center gap-3">
+            {!!history.result.data?.total && (
+              <ExportCsvButton
+                kind="direct-purchases"
+                params={{
+                  search: history.query.search,
+                  purchased_from: history.query.purchased_from,
+                  purchased_to: history.query.purchased_to,
+                  sort: history.query.sort,
+                }}
+              />
+            )}
+            <PurchaseActions canRead showHistory={false} />
+          </div>
         </div>
         <PurchaseHistoryFilters history={history} />
         <PurchaseHistoryTable history={history} />
