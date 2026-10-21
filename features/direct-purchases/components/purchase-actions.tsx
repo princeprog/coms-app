@@ -17,7 +17,11 @@ export function PurchaseActions({
   return (
     <div className="flex shrink-0 flex-wrap gap-2">
       {canRead && showHistory && (
-        <Button variant="outline" render={<Link href={purchasesRoute} />}>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={purchasesRoute} />}
+        >
           View purchases
         </Button>
       )}

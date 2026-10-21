@@ -93,6 +93,7 @@ export function BranchesManagement({
               filtered ? (
                 <Button
                   variant="outline"
+                  nativeButton={false}
                   render={
                     <Link
                       href={branchDirectoryHref({

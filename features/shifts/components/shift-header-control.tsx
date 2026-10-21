@@ -39,6 +39,7 @@ export function ShiftHeaderControl() {
         variant="outline"
         size="sm"
         className="h-9 gap-2"
+        nativeButton={false}
         render={<Link href="/shifts/start" />}
       >
         <PlayCircle

@@ -90,6 +90,7 @@ export function PosShiftGate({
           <Button
             size="lg"
             className="min-h-11 gap-2"
+            nativeButton={false}
             render={
               <Link href={`/shifts/start?branch=${branchId}&return=${back}`} />
             }
@@ -116,6 +117,7 @@ export function PosShiftGate({
             <Button
               variant="outline"
               className="min-h-11"
+              nativeButton={false}
               render={<Link href={shiftHref(branchId, state.shift.id)} />}
             >
               View shift
@@ -153,6 +155,7 @@ export function PosShiftGate({
         <Button
           size="lg"
           className="min-h-11"
+          nativeButton={false}
           render={<Link href="/shifts/end" />}
         >
           End shift

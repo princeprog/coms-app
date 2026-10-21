@@ -105,6 +105,7 @@ export function StartShiftView({
         <div className="flex flex-wrap gap-2">
           <Button
             className="min-h-11 gap-2"
+            nativeButton={false}
             render={<Link href={posHref(mine.data.branch_id)} />}
           >
             <ShoppingCart data-icon="inline-start" aria-hidden="true" />
@@ -113,6 +114,7 @@ export function StartShiftView({
           <Button
             variant="outline"
             className="min-h-11"
+            nativeButton={false}
             render={<Link href="/shifts/end" />}
           >
             End shift

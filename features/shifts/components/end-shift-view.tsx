@@ -51,6 +51,7 @@ export function EndShiftView() {
       >
         <Button
           className="min-h-11 w-fit gap-2"
+          nativeButton={false}
           render={<Link href="/shifts/start" />}
         >
           <PlayCircle data-icon="inline-start" aria-hidden="true" />
@@ -190,9 +191,9 @@ export function EndShiftView() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5">
           {step === 0 ? (
             <Button
-              type="button"
               variant="ghost"
               className="min-h-11"
+              nativeButton={false}
               render={<Link href={posHref(shift.branch_id)} />}
             >
               Back to Point of Sale
@@ -210,9 +211,9 @@ export function EndShiftView() {
             </Button>
           ) : (
             <Button
-              type="button"
               variant="ghost"
               className="min-h-11"
+              nativeButton={false}
               render={<Link href={shiftHref(shift.branch_id, shift.id)} />}
             >
               View shift

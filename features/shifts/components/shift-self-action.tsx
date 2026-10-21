@@ -12,13 +12,18 @@ export function ShiftSelfAction() {
     <Button
       variant="outline"
       className="min-h-10 gap-2"
+      nativeButton={false}
       render={<Link href="/shifts/end" />}
     >
       <LockKeyhole data-icon="inline-start" aria-hidden="true" />
       End shift
     </Button>
   ) : (
-    <Button className="min-h-10 gap-2" render={<Link href="/shifts/start" />}>
+    <Button
+      className="min-h-10 gap-2"
+      nativeButton={false}
+      render={<Link href="/shifts/start" />}
+    >
       <PlayCircle data-icon="inline-start" aria-hidden="true" />
       Start shift
     </Button>
