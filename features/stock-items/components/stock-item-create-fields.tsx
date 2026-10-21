@@ -1,6 +1,11 @@
 import { CatalogCreateField } from "@/features/catalogs/components/catalog-create-field";
 import type { CatalogFieldDefinition } from "@/features/catalogs/types/catalog.types";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -9,7 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { stockItemCategories } from "@/features/stock-items/constants";
+import {
+  stockItemCategories,
+  stockRecipeUseLabels,
+} from "@/features/stock-items/constants";
 
 export function StockItemCreateFields({
   fields,
@@ -77,6 +85,43 @@ export function StockItemCreateFields({
         </Field>
         {renderField("unit", "e.g. kg, pcs, L")}
       </FieldGroup>
+      <Field className="min-w-0 gap-2">
+        <FieldLabel htmlFor="catalog-create-recipe_use">Recipe use</FieldLabel>
+        <Select
+          name="recipe_use"
+          value={values.recipe_use || "RECIPE"}
+          disabled={pending}
+          onValueChange={(value) => onChange("recipe_use", value ?? "RECIPE")}
+        >
+          <SelectTrigger
+            id="catalog-create-recipe_use"
+            aria-describedby="catalog-create-recipe_use-help"
+            className="w-full data-[size=default]:h-11"
+          >
+            <SelectValue>
+              {(value: keyof typeof stockRecipeUseLabels) =>
+                stockRecipeUseLabels[value]
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent
+            data-coms-ui="operational"
+            alignItemWithTrigger={false}
+          >
+            <SelectGroup>
+              {Object.entries(stockRecipeUseLabels).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <FieldDescription id="catalog-create-recipe_use-help">
+          Operating supplies, like cleaning items, are left out of product
+          recipes.
+        </FieldDescription>
+      </Field>
     </FieldGroup>
   );
 }

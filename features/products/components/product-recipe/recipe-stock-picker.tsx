@@ -80,14 +80,19 @@ export function RecipeStockPicker({
                 role="status"
                 className="px-3 py-4 text-sm text-muted-foreground"
               >
-                No matching stock items.
+                No matching stock items. Operating supplies aren&apos;t listed.
               </p>
             )}
             <ComboboxList>
               {(item: RecipeStock) => (
                 <ComboboxItem key={item.id} value={item}>
-                  <span className="min-w-0 flex-1 truncate">
-                    {item.stock_item_name}
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate">{item.stock_item_name}</span>
+                    {item.category && (
+                      <span className="truncate text-xs text-muted-foreground">
+                        {item.category}
+                      </span>
+                    )}
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {item.unit}

@@ -1,12 +1,16 @@
 import { z } from "zod";
 import { catalogPageSchema } from "@/features/catalogs/schemas/catalog.schema";
 
+export const stockRecipeUseSchema = z.enum(["RECIPE", "OPERATING_SUPPLY"]);
+
 export const stockItemSchema = z.object({
   id: z.uuid(),
   stock_item_name: z.string().min(2).max(160),
   category: z.string().min(1).max(80),
   unit: z.string().min(1).max(40),
   is_active: z.boolean(),
+  // Always sent by the API; older fixtures omit it, which means RECIPE.
+  recipe_use: stockRecipeUseSchema.optional(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
 });
@@ -18,6 +22,7 @@ export const createStockItemSchema = z
     stock_item_name: z.string().trim().min(2).max(160),
     category: z.string().trim().min(1).max(80),
     unit: z.string().trim().min(1).max(40),
+    recipe_use: stockRecipeUseSchema.optional(),
   })
   .strict();
 
@@ -26,6 +31,7 @@ export const updateStockItemSchema = z
     stock_item_name: z.string().trim().min(2).max(160).optional(),
     category: z.string().trim().min(1).max(80).optional(),
     unit: z.string().trim().min(1).max(40).optional(),
+    recipe_use: stockRecipeUseSchema.optional(),
   })
   .strict()
   .refine((input) => Object.keys(input).length > 0, {

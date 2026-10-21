@@ -40,4 +40,5 @@ export type RecipeStock = {
   stock_item_name: string;
   unit: string;
   is_active: boolean;
+  category?: string;
 };

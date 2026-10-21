@@ -350,6 +350,7 @@ function createState({ stockItemCount = 26 } = {}) {
     const sequence = String(index + 1).padStart(12, "0");
     return {
       usage_types: ["INGREDIENT"],
+      recipe_use: "RECIPE",
       id: "31000000-0000-4000-8000-" + sequence,
       stock_item_name:
         index === 0

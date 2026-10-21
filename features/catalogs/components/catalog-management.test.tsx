@@ -212,7 +212,9 @@ describe("catalog management", () => {
     );
     expect(createStockItem).not.toHaveBeenCalled();
     await user.click(category);
-    await user.click(await screen.findByRole("option", { name: "Dry goods" }));
+    await user.click(
+      await screen.findByRole("option", { name: "Rice and grains" }),
+    );
     await user.click(
       within(dialog).getByRole("button", { name: "Create stock item" }),
     );
@@ -220,8 +222,9 @@ describe("catalog management", () => {
     await waitFor(() =>
       expect(createStockItem).toHaveBeenCalledWith({
         stock_item_name: "All-purpose flour",
-        category: "Dry goods",
+        category: "Rice and grains",
         unit: "kg",
+        recipe_use: "RECIPE",
       }),
     );
   });
@@ -256,7 +259,9 @@ describe("catalog management", () => {
     await user.click(
       within(dialog).getByRole("combobox", { name: "Category" }),
     );
-    await user.click(await screen.findByRole("option", { name: "Dry goods" }));
+    await user.click(
+      await screen.findByRole("option", { name: "Rice and grains" }),
+    );
     await user.click(
       within(dialog).getByRole("button", { name: "Create stock item" }),
     );

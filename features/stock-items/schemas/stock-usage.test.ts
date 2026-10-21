@@ -18,4 +18,13 @@ describe("simple stock item contracts", () => {
       updateStockItemSchema.safeParse({ usage_types: ["INGREDIENT"] }).success,
     ).toBe(false);
   });
+  it("accepts only recipe or operating-supply recipe use", () => {
+    expect(
+      updateStockItemSchema.safeParse({ recipe_use: "OPERATING_SUPPLY" })
+        .success,
+    ).toBe(true);
+    expect(
+      updateStockItemSchema.safeParse({ recipe_use: "PACKAGING" }).success,
+    ).toBe(false);
+  });
 });

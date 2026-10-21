@@ -27,6 +27,7 @@ export async function searchRecipeStock(input: {
     page: String(parsed.page),
     page_size: "25",
     is_active: "true",
+    recipe_use: "RECIPE",
   });
   const page = stockItemPageSchema.parse(
     await requestComsApi<unknown>(`${stockItemsEndpoint}?${query}`, {
@@ -41,6 +42,7 @@ export async function searchRecipeStock(input: {
       stock_item_name: item.stock_item_name,
       unit: item.unit,
       is_active: item.is_active,
+      category: item.category,
     })),
   };
 }
