@@ -1,184 +1,66 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import type {
-  DailyReportDraftItem,
-  DailyReportItem,
-} from "@/features/daily-reports/types/daily-report.types";
-import { DailyReportCountDetails } from "./daily-report-count-details";
-import { DailyReportDecimalField } from "./daily-report-input-field";
+import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DailyReportCountRow } from "./daily-report-count-row";
+import { rowState, type CountViewProps } from "./daily-report-count-views";
 
-export function DailyReportCountTable({
-  items,
-  drafts,
-  editable,
-  pending,
-  onChange,
-}: {
-  items: DailyReportItem[];
-  drafts: DailyReportDraftItem[];
-  editable: boolean;
-  pending: boolean;
-  onChange: (
-    stockItemId: string,
-    field: keyof DailyReportDraftItem,
-    value: string,
-  ) => void;
-}) {
+export function DailyReportCountTable(props: CountViewProps) {
   return (
-    <div className="hidden min-w-0 max-w-full overflow-hidden lg:block">
+    <div className="hidden min-w-0 xl:block">
       <Table
-        className="min-w-[96rem]"
-        containerProps={{
-          role: "region",
-          "aria-label": "Stock count table",
-          tabIndex: 0,
-          className:
-            "min-w-0 max-w-full rounded-lg border bg-card focus-within:ring-2 focus-within:ring-ring",
-        }}
+        aria-label="Stock counts"
+        className="table-fixed"
+        containerProps={{ className: "min-w-0" }}
       >
+        <colgroup>
+          <col />
+          <col className="w-32" />
+          <col className="w-40" />
+          <col className="w-32" />
+          <col className="w-36" />
+          <col className="w-32" />
+          <col className="w-14" />
+        </colgroup>
         <TableHeader className="bg-muted/50">
-          <TableRow>
-            <TableHead scope="col" className="w-64">
-              Stock item
+          <TableRow className="hover:bg-transparent">
+            <TableHead scope="col" className="pl-5">
+              Item
             </TableHead>
             <TableHead scope="col" className="text-right">
-              Opening quantity
+              Expected
             </TableHead>
             <TableHead scope="col" className="text-right">
-              Received
-            </TableHead>
-            <TableHead scope="col" className="text-right">
-              Sales usage
-            </TableHead>
-            <TableHead scope="col" className="text-right">
-              Expected remaining
-            </TableHead>
-            <TableHead scope="col" className="text-right">
-              Physical closing
+              Physical count
             </TableHead>
             <TableHead scope="col" className="text-right">
               Waste
             </TableHead>
             <TableHead scope="col" className="text-right">
-              Justified adjustment
+              Adjustment
             </TableHead>
             <TableHead scope="col" className="text-right">
               Variance
             </TableHead>
+            <TableHead scope="col" className="pr-4">
+              <span className="sr-only">Stock movements</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {items.map((item) => {
-            const values = drafts.find(
-              (draft) => draft.stock_item_id === item.stock_item_id,
-            );
-            if (!values) return null;
-            return (
-              <TableRow key={item.id}>
-                <TableCell className="whitespace-normal font-medium">
-                  <p>{item.stock_item_name}</p>
-                  <p className="text-xs font-normal text-muted-foreground">
-                    Unit: {item.unit}
-                  </p>
-                  <DailyReportCountDetails
-                    item={item}
-                    values={values}
-                    editable={editable}
-                    pending={pending}
-                    idSuffix="desktop"
-                    onChange={onChange}
-                  />
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatQuantity(item.opening_quantity, item.unit)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatQuantity(item.receipt_quantity, item.unit)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatQuantity(item.sale_consumption_quantity, item.unit)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatQuantity(item.expected_closing_quantity, item.unit)}
-                </TableCell>
-                <TableCell className="min-w-44 text-right tabular-nums">
-                  {editable ? (
-                    <DailyReportDecimalField
-                      id={`desktop-physical-${item.stock_item_id}`}
-                      label={`Physical closing for ${item.stock_item_name} (${item.unit})`}
-                      labelClassName="sr-only"
-                      className="flex flex-col gap-2"
-                      value={values.physical_closing_quantity}
-                      disabled={pending}
-                      onChange={(value) =>
-                        onChange(
-                          item.stock_item_id,
-                          "physical_closing_quantity",
-                          value,
-                        )
-                      }
-                    />
-                  ) : (
-                    formatQuantity(item.physical_closing_quantity, item.unit)
-                  )}
-                </TableCell>
-                <TableCell className="min-w-36 text-right tabular-nums">
-                  {editable ? (
-                    <DailyReportDecimalField
-                      id={`desktop-waste-${item.stock_item_id}`}
-                      label={`Waste for ${item.stock_item_name} (${item.unit})`}
-                      labelClassName="sr-only"
-                      className="flex flex-col gap-2"
-                      value={values.waste_quantity}
-                      disabled={pending}
-                      onChange={(value) =>
-                        onChange(item.stock_item_id, "waste_quantity", value)
-                      }
-                    />
-                  ) : (
-                    formatQuantity(item.waste_quantity, item.unit)
-                  )}
-                </TableCell>
-                <TableCell className="min-w-44 text-right tabular-nums">
-                  {editable ? (
-                    <DailyReportDecimalField
-                      id={`desktop-adjustment-${item.stock_item_id}`}
-                      label={`Justified adjustment for ${item.stock_item_name} (${item.unit})`}
-                      labelClassName="sr-only"
-                      className="flex flex-col gap-2"
-                      value={values.adjustment_quantity}
-                      disabled={pending}
-                      signed
-                      onChange={(value) =>
-                        onChange(
-                          item.stock_item_id,
-                          "adjustment_quantity",
-                          value,
-                        )
-                      }
-                    />
-                  ) : (
-                    formatQuantity(item.adjustment_quantity, item.unit)
-                  )}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatQuantity(item.variance_quantity, item.unit)}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
+        {props.items.map((item) => {
+          const { values, changed } = rowState(props, item);
+          if (!values) return null;
+          return (
+            <DailyReportCountRow
+              key={item.id}
+              item={item}
+              values={values}
+              changed={changed}
+              editable={props.editable}
+              pending={props.pending}
+              attempted={props.attempted}
+              onChange={props.onChange}
+            />
+          );
+        })}
       </Table>
     </div>
   );
-}
-
-function formatQuantity(value: string | null, unit: string) {
-  return value === null ? "Not counted" : `${value} ${unit}`;
 }

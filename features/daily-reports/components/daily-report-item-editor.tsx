@@ -1,18 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { updateDailyReportSchema } from "@/features/daily-reports/schemas/daily-report.schema";
 import type {
   DailyReport,
-  DailyReportDraftItem,
   DailyReportItem,
+  DailyReportDraftItem,
   DailyReportUpdateAction,
 } from "@/features/daily-reports/types/daily-report.types";
+import { countSetError } from "../services/daily-report-count-validation";
+import { isNonZeroQuantity } from "../services/daily-report-quantity";
+import {
+  DailyReportCountToolbar,
+  type CountFilter,
+} from "./daily-report-count-toolbar";
 import {
   DailyReportCountViews,
   toDailyReportDraftItem,
 } from "./daily-report-count-views";
+import { DailyReportCountSaveBar } from "./daily-report-count-save-bar";
+import styles from "./daily-report-counts.module.css";
+
+const emptyMessages: Record<CountFilter, string> = {
+  all: "No stock items in this report.",
+  todo: "Every item has a saved count.",
+  variance: "No items differ from the expected count.",
+};
+
+const hasVariance = (item: DailyReportItem) =>
+  item.variance_quantity !== null && isNonZeroQuantity(item.variance_quantity);
+
+/** Focuses the first invalid field that is visible in the current layout. */
+function focusFirstVisibleInvalid(form: HTMLFormElement) {
+  requestAnimationFrame(() =>
+    Array.from(form.querySelectorAll<HTMLElement>('[aria-invalid="true"]'))
+      .find((field) => field.offsetParent !== null)
+      ?.focus(),
+  );
+}
 
 export function DailyReportItemEditor({
   branchId,
@@ -37,11 +63,34 @@ export function DailyReportItemEditor({
   const [draftItems, setDraftItems] = useState(() =>
     items.map(toDailyReportDraftItem),
   );
+  const [filter, setFilter] = useState<CountFilter>("all");
+  const [attempted, setAttempted] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const dirty = JSON.stringify(draftItems) !== JSON.stringify(savedItems);
 
   useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
+
+  // Filters use saved values so a row does not disappear while it is being typed in.
+  const counts = useMemo(
+    () => ({
+      all: items.length,
+      todo: items.filter((item) => item.physical_closing_quantity === null)
+        .length,
+      variance: items.filter(hasVariance).length,
+    }),
+    [items],
+  );
+  const visibleItems = items.filter((item) =>
+    filter === "todo"
+      ? item.physical_closing_quantity === null
+      : filter === "variance"
+        ? hasVariance(item)
+        : true,
+  );
+  const counted = draftItems.filter(
+    (draft) => draft.physical_closing_quantity !== "",
+  ).length;
 
   function updateItem(
     stockItemId: string,
@@ -58,17 +107,24 @@ export function DailyReportItemEditor({
 
   function discardDraft() {
     setDraftItems(savedItems.map((item) => ({ ...item })));
+    setAttempted(false);
     setError("");
   }
 
   async function saveReport(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+    setAttempted(true);
+    const problem = countSetError(draftItems);
     const parsed = updateDailyReportSchema.safeParse({ items: draftItems });
-    if (!parsed.success) {
+    if (problem || !parsed.success) {
       setError(
-        parsed.error.issues[0]?.message ??
-          "Enter every physical count and explain nonzero waste or adjustments.",
+        problem ??
+          parsed.error?.issues[0]?.message ??
+          "Check the counts and try again.",
       );
+      if (problem) setFilter("all");
+      focusFirstVisibleInvalid(form);
       return;
     }
 
@@ -83,6 +139,7 @@ export function DailyReportItemEditor({
       const nextSavedItems = result.report.items.map(toDailyReportDraftItem);
       setSavedItems(nextSavedItems);
       setDraftItems(nextSavedItems);
+      setAttempted(false);
       onSaved(result.report);
     } catch {
       setError(
@@ -93,75 +150,64 @@ export function DailyReportItemEditor({
     }
   }
 
+  const views = (
+    <>
+      <DailyReportCountToolbar
+        filter={filter}
+        counts={counts}
+        editable={canEdit}
+        counted={counted}
+        total={items.length}
+        onFilter={setFilter}
+      />
+      {visibleItems.length ? (
+        <DailyReportCountViews
+          items={visibleItems}
+          drafts={draftItems}
+          saved={savedItems}
+          editable={canEdit}
+          pending={pending}
+          attempted={attempted}
+          onChange={updateItem}
+        />
+      ) : (
+        <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+          {emptyMessages[filter]}
+        </p>
+      )}
+    </>
+  );
+
   return (
-    <section aria-labelledby="daily-report-counts-title" className="grid gap-4">
-      <header className="grid gap-1">
+    <section
+      aria-labelledby="daily-report-counts-title"
+      className={cn(styles.page, "overflow-clip rounded-xl border bg-card")}
+    >
+      <header className="flex flex-col gap-1 px-5 pt-4 pb-3">
         <h3 id="daily-report-counts-title" className="text-base font-semibold">
           Stock counts
         </h3>
         <p className="text-sm text-muted-foreground">
-          Expected remaining quantity and variance are calculated by COMS from
-          posted inventory movements.
+          Expected quantities come from posted inventory movements.
         </p>
       </header>
-      {dirty && canEdit && (
-        <p
-          role="status"
-          className="rounded-md border border-orange-300/60 bg-orange-50/60 p-3 text-sm text-foreground dark:bg-orange-950/20"
-        >
-          Unsaved count edits. Expected remaining and variance show the last
-          saved values. Save or discard these edits before changing report
-          status.
-        </p>
-      )}
       {canEdit ? (
         <form
           onSubmit={saveReport}
+          noValidate
           aria-label="Edit daily report counts"
-          className="grid gap-4"
         >
-          <DailyReportCountViews
-            items={items}
-            drafts={draftItems}
-            editable
+          {views}
+          <DailyReportCountSaveBar
+            dirty={dirty}
             pending={pending}
-            onChange={updateItem}
+            disabled={pending || items.length === 0}
+            error={error}
+            onDiscard={discardDraft}
           />
-          <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              Save sends the complete count set. COMS recalculates expected
-              closing and variance.
-            </p>
-            <div className="flex flex-col-reverse gap-2 sm:flex-row">
-              {dirty && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={discardDraft}
-                >
-                  Discard unsaved counts
-                </Button>
-              )}
-              <Button type="submit" disabled={pending || items.length === 0}>
-                {pending ? "Saving…" : "Save counts"}
-              </Button>
-            </div>
-          </div>
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
         </form>
       ) : (
-        <DailyReportCountViews
-          items={items}
-          drafts={draftItems}
-          editable={false}
-          pending={false}
-          onChange={updateItem}
-        />
+        views
       )}
     </section>
   );

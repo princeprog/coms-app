@@ -1672,7 +1672,7 @@ let baseUrl;
   await navigate(`/reports?branch_id=${branchId}&report_id=${draftReport.id}`);
   await saveScreenshot("daily-report-counts-mobile.png");
   assert.equal(
-    await page.getByRole("textbox", { name: /Physical closing for/ }).count(),
+    await page.getByRole("textbox", { name: /Physical count for/ }).count(),
     0,
     "Super Admin daily report review must keep physical counts read-only",
   );
@@ -1691,7 +1691,7 @@ let baseUrl;
   await page.getByRole("button", { name: "Return for correction" }).waitFor();
   await page.getByRole("button", { name: "Approve report" }).waitFor();
   assert.equal(
-    await page.getByRole("textbox", { name: /Physical closing for/ }).count(),
+    await page.getByRole("textbox", { name: /Physical count for/ }).count(),
     0,
   );
 

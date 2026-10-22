@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -91,7 +91,7 @@ describe("daily report item editor", () => {
     );
 
     await user.type(
-      screen.getAllByLabelText("Physical closing for Bread flour (kg)")[0]!,
+      screen.getAllByLabelText("Physical count for Bread flour (kg)")[0]!,
       "10.5",
     );
     await user.clear(
@@ -101,18 +101,16 @@ describe("daily report item editor", () => {
       screen.getAllByLabelText("Waste for Bread flour (kg)")[0]!,
       "0.5",
     );
-    await user.click(
-      screen.getAllByText(/Ledger details and reasons for Bread flour/i)[0]!,
-    );
+    // The reason field appears once waste is nonzero.
     await user.type(
       screen.getAllByLabelText("Reason for waste for Bread flour")[0]!,
       "Damaged during prep",
     );
     await user.clear(
-      screen.getAllByLabelText("Justified adjustment for Bread flour (kg)")[0]!,
+      screen.getAllByLabelText("Adjustment for Bread flour (kg)")[0]!,
     );
     await user.type(
-      screen.getAllByLabelText("Justified adjustment for Bread flour (kg)")[0]!,
+      screen.getAllByLabelText("Adjustment for Bread flour (kg)")[0]!,
       "-0.25",
     );
     await user.type(
@@ -154,7 +152,7 @@ describe("daily report item editor", () => {
     );
 
     await user.type(
-      screen.getAllByLabelText("Physical closing for Bread flour (kg)")[0]!,
+      screen.getAllByLabelText("Physical count for Bread flour (kg)")[0]!,
       "11",
     );
     await user.clear(
@@ -168,6 +166,11 @@ describe("daily report item editor", () => {
 
     expect((await screen.findByRole("alert")).textContent).toMatch(/reason/i);
     expect(action).not.toHaveBeenCalled();
+    expect(
+      screen
+        .getAllByLabelText("Reason for waste for Bread flour")[0]!
+        .getAttribute("aria-invalid"),
+    ).toBe("true");
   });
 
   it("shows the API's ledger figures and current variance without changing them locally", async () => {
@@ -185,19 +188,20 @@ describe("daily report item editor", () => {
       />,
     );
 
-    expect(
-      screen.getAllByText("Opening quantity")[1]?.nextSibling?.textContent,
-    ).toBe("10.000 kg");
-    expect(screen.getAllByText("Received")[1]?.nextSibling?.textContent).toBe(
-      "2 kg",
+    // Read-only quantities come straight from the API, formatted without trailing zeros.
+    const ledger = within(
+      screen.getByLabelText("Stock movements for Bread flour"),
     );
-    expect(
-      screen.getAllByText("Sales usage")[1]?.nextSibling?.textContent,
-    ).toBe("1.5 kg");
+    expect(ledger.getByText("Opening").nextSibling?.textContent).toBe("10 kg");
+    expect(ledger.getByText("Received").nextSibling?.textContent).toBe("2 kg");
+    expect(ledger.getByText("Used by sales").nextSibling?.textContent).toBe(
+      "1.5 kg",
+    );
+    expect(ledger.getByText("Expected").nextSibling?.textContent).toBe("11 kg");
     expect(screen.getAllByText("Not counted").length).toBeGreaterThan(0);
     expect(
       screen.getByText(
-        /expected remaining quantity and variance are calculated by coms/i,
+        /expected quantities come from posted inventory movements/i,
       ),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Save counts" })).toBeNull();
@@ -221,7 +225,7 @@ describe("daily report item editor", () => {
     );
 
     const physicalFields = screen.getAllByLabelText(
-      "Physical closing for Bread flour (kg)",
+      "Physical count for Bread flour (kg)",
     );
     expect(physicalFields).toHaveLength(2);
     expect(physicalFields[0]?.id).not.toBe(physicalFields[1]?.id);
@@ -231,7 +235,7 @@ describe("daily report item editor", () => {
 
     const ledgerSections = container.querySelectorAll("details");
     expect(ledgerSections.length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Voided sale reversals").length).toBeGreaterThan(
+    expect(screen.getAllByText("Voided sales returned").length).toBeGreaterThan(
       0,
     );
     expect(screen.getByRole("button", { name: "Save counts" })).toBeTruthy();
