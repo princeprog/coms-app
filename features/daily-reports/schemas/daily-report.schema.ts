@@ -125,6 +125,7 @@ export const dailyReportPageSchema = z.object({
 });
 
 export const dailyReportDetailSchema = dailyReportHeaderSchema.extend({
+  business_day_ended: z.boolean().optional(),
   pending_deliveries: z
     .array(
       z.object({

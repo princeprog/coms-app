@@ -47,6 +47,7 @@ export function DailyReportsManagement({ view }: { view: ReadyReportsView }) {
               branchName={view.selectedBranch.name}
               report={view.selectedReport}
               canUpdate={view.canUpdate}
+              canPrepareSubmission={view.canPrepareSubmission}
               canSubmit={view.canSubmit}
               canApprove={view.canApprove}
               canReturn={view.canReturn}

@@ -3,10 +3,8 @@
 import { DailyReportDeliveryHistory } from "./daily-report-deliveries";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  OperationalEmptyState,
-  OperationalStatusBadge,
-} from "@/components/shared/operational-page-ui";
+import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
+import { businessDayLong } from "@/features/shifts/services/shift-time";
 import type {
   DailyReport,
   DailyReportReturnAction,
@@ -14,10 +12,12 @@ import type {
   DailyReportUpdateAction,
 } from "@/features/daily-reports/types/daily-report.types";
 import { DailyReportHistory } from "./daily-report-history";
+import { DailyReportChecklist } from "./daily-report-checklist";
 import { DailyReportItemEditor } from "./daily-report-item-editor";
 import { DailyReportReviewControls } from "./daily-report-review-controls";
 import { DailyReportSalesSummary } from "./daily-report-sales-summary";
 import { DailyReportShifts } from "./daily-report-shifts";
+import { DailyReportStatusBadge } from "./daily-report-status-badge";
 
 const manilaTime = new Intl.DateTimeFormat("en-PH", {
   dateStyle: "medium",
@@ -30,6 +30,7 @@ export function DailyReportDetail({
   branchName,
   report: initialReport,
   canUpdate,
+  canPrepareSubmission,
   canSubmit,
   canApprove,
   canReturn,
@@ -42,6 +43,7 @@ export function DailyReportDetail({
   branchName: string;
   report: DailyReport;
   canUpdate: boolean;
+  canPrepareSubmission: boolean;
   canSubmit: boolean;
   canApprove: boolean;
   canReturn: boolean;
@@ -70,7 +72,7 @@ export function DailyReportDetail({
       <header className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
         <div>
           <h2 id="daily-report-detail-title" className="text-lg font-semibold">
-            Daily report · {report.business_date}
+            Daily report · {businessDayLong(report.business_date)}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">{branchName}</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -78,9 +80,7 @@ export function DailyReportDetail({
             (Asia/Manila)
           </p>
         </div>
-        <OperationalStatusBadge variant={statusVariant(report.status)}>
-          {report.status.replaceAll("_", " ")}
-        </OperationalStatusBadge>
+        <DailyReportStatusBadge status={report.status} />
       </header>
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
@@ -102,6 +102,13 @@ export function DailyReportDetail({
         )}
       </dl>
       <DailyReportSalesSummary report={report} />
+      {canPrepareSubmission && isEditable && (
+        <DailyReportChecklist
+          branchId={branchId}
+          report={report}
+          hasUnsavedChanges={hasUnsavedChanges}
+        />
+      )}
       <DailyReportShifts branchId={branchId} report={report} />
       {report.return_reason && (
         <p
@@ -155,10 +162,4 @@ function Metadata({ label, value }: { label: string; value: string }) {
       <dd className="mt-1 font-medium tabular-nums">{value}</dd>
     </div>
   );
-}
-
-function statusVariant(status: DailyReport["status"]) {
-  if (status === "RETURNED") return "destructive" as const;
-  if (status === "APPROVED") return "secondary" as const;
-  return "outline" as const;
 }

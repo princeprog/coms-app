@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { subtractAmounts } from "./shift-money";
+import { subtractAmounts, sumAmounts } from "./shift-money";
 
 describe("subtractAmounts", () => {
   it("subtracts peso strings exactly", () => {
@@ -7,5 +7,13 @@ describe("subtractAmounts", () => {
     expect(subtractAmounts("0.3", "0.1")).toBe("0.2");
     expect(subtractAmounts("500", "500.25")).toBe("-0.25");
     expect(subtractAmounts("12000", "0")).toBe("12000");
+  });
+});
+
+describe("sumAmounts", () => {
+  it("adds peso strings exactly and skips missing values", () => {
+    expect(sumAmounts(["0.1", "0.2"])).toBe("0.3");
+    expect(sumAmounts(["980", "-12.5", null])).toBe("967.5");
+    expect(sumAmounts([null, undefined])).toBeNull();
   });
 });

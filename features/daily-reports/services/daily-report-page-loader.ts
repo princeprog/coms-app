@@ -45,6 +45,8 @@ export type DailyReportsViewResult =
       todayManila: string;
       canCreate: boolean;
       canUpdate: boolean;
+      /** Allowed to submit once the report's blockers are cleared. */
+      canPrepareSubmission: boolean;
       canSubmit: boolean;
       canApprove: boolean;
       canReturn: boolean;
@@ -170,11 +172,16 @@ export async function loadDailyReportsView(
       selectedReport.status === "RETURNED") &&
     selectedBranch.status !== "inactive" &&
     hasPermission(user, "daily_reports.update");
-  const canSubmit =
+  const canPrepareSubmission =
     isBranchOperator &&
     selectedReport !== null &&
     (selectedReport.status === "DRAFT" ||
       selectedReport.status === "RETURNED") &&
+    selectedBranch.status !== "inactive" &&
+    hasPermission(user, "daily_reports.submit");
+  const canSubmit =
+    canPrepareSubmission &&
+    selectedReport !== null &&
     selectedReport.items.length > 0 &&
     selectedReport.items.every(
       (item) => item.physical_closing_quantity !== null,
@@ -183,9 +190,7 @@ export async function loadDailyReportsView(
     (() => {
       const blocked = blockingReportShifts(selectedReport);
       return !blocked.open.length && !blocked.unreviewed.length;
-    })() &&
-    selectedBranch.status !== "inactive" &&
-    hasPermission(user, "daily_reports.submit");
+    })();
   const canReview =
     selectedReport?.status === "SUBMITTED" &&
     (selectedBranch.status !== "inactive" || isProtectedSuperAdmin(user));
@@ -201,6 +206,7 @@ export async function loadDailyReportsView(
     todayManila: businessToday,
     canCreate,
     canUpdate,
+    canPrepareSubmission: Boolean(canPrepareSubmission),
     canSubmit: Boolean(canSubmit),
     canApprove: Boolean(
       canReview && hasPermission(user, "daily_reports.approve"),

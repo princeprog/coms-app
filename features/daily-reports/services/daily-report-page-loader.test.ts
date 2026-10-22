@@ -184,7 +184,11 @@ describe("daily report page loader", () => {
     const incomplete = await loader.loadDailyReportsView(user(permissions), {
       report_id: reportId,
     });
-    expect(incomplete).toMatchObject({ status: "ready", canSubmit: false });
+    expect(incomplete).toMatchObject({
+      status: "ready",
+      canPrepareSubmission: true,
+      canSubmit: false,
+    });
 
     getDailyReportDetail.mockResolvedValueOnce({
       ...report,

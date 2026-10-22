@@ -112,6 +112,24 @@ function makeReport({ branch, stockItems, seed, index, status, date }) {
     items: makeItems(stockItems, index, status === "DRAFT"),
     events: [],
   };
+  if (index === 0)
+    report.shifts = [
+      [1, "Maria Santos", "06:02", "14:08", "4612", "2971", "-12"],
+      [2, "Jose Ramos", "14:15", "22:04", "3890.5", "1640", "0"],
+    ].map(([number, cashier, opened, closed, cash, nonCash, difference]) => ({
+      id: uuid("6d000000", number),
+      shift_number: number,
+      status: "REVIEWED",
+      close_type: "CASHIER",
+      cashier_name: cashier,
+      opened_at: new Date(`${date}T${opened}:00+08:00`).toISOString(),
+      closed_at: new Date(`${date}T${closed}:00+08:00`).toISOString(),
+      sales_count: 30,
+      net_cash_sales: cash,
+      non_cash_sales: nonCash,
+      cash_difference: difference,
+      opening_difference: "0",
+    }));
   report.events.push({
     id: uuid("6b000000", index * 3 + 1),
     event_type: "CREATED",

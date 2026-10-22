@@ -57,6 +57,7 @@ const readyView = {
   todayManila: "2026-09-24",
   canCreate: true,
   canUpdate: false,
+  canPrepareSubmission: false,
   canSubmit: false,
   canApprove: true,
   canReturn: true,

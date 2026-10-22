@@ -43,7 +43,7 @@ describe("daily report list", () => {
       />,
     );
 
-    const reportRow = screen.getByRole("row", { name: /2026-09-23/i });
+    const reportRow = screen.getByRole("row", { name: /Sep 23, 2026/i });
     expect(
       within(reportRow)
         .getByRole("link", { name: /open report/i })

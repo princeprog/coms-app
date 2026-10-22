@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { DailyReport } from "@/features/daily-reports/types/daily-report.types";
+import { formatPeso } from "@/features/shifts/services/shift-money";
 
 export function DailyReportSalesSummary({ report }: { report: DailyReport }) {
   const values = [
@@ -26,27 +27,18 @@ export function DailyReportSalesSummary({ report }: { report: DailyReport }) {
       {values.map((value) => (
         <Card key={value.label}>
           <CardHeader className="pb-2">
-            <CardDescription>{value.label} · amount</CardDescription>
+            <CardDescription>{value.label}</CardDescription>
             <CardTitle className="text-xl tabular-nums">
-              {formatAmount(value.amount)}
+              {formatPeso(value.amount)}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {value.count} {value.count === 1 ? "transaction" : "transactions"}
+              {value.count} {value.count === 1 ? "sale" : "sales"}
             </p>
           </CardContent>
         </Card>
       ))}
-      <p className="text-xs text-muted-foreground sm:col-span-2">
-        Amounts are recorded without a currency symbol. This snapshot is refreshed while the report is editable and frozen when approved.
-      </p>
     </section>
-  );
-}
-
-function formatAmount(value: string) {
-  return new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(
-    Number(value),
   );
 }

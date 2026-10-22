@@ -56,6 +56,20 @@ export function subtractAmounts(left: string, right: string) {
   return `${negative ? "-" : ""}${whole}${digits ? `.${text.slice(-digits)}` : ""}`;
 }
 
+/** Exact sum of peso strings; null when every value is missing. */
+export function sumAmounts(values: (string | null | undefined)[]) {
+  const present = values.filter((value): value is string => value != null);
+  if (!present.length) return null;
+  return present.reduce(
+    (total, value) =>
+      subtractAmounts(
+        total,
+        value.startsWith("-") ? value.slice(1) : `-${value}`,
+      ),
+    "0",
+  );
+}
+
 /** Share of a total for proportion bars, clamped to 0–1. */
 export function shareOf(part: string, total: string) {
   const whole = Number(total);

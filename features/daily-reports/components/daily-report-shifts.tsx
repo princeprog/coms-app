@@ -1,20 +1,19 @@
 import Link from "next/link";
-import { TriangleAlert } from "lucide-react";
 import { ShiftDifference } from "@/features/shifts/components/shift-difference";
 import { ShiftStatusBadge } from "@/features/shifts/components/shift-status-badge";
 import { shiftHref } from "@/features/shifts/constants";
-import { formatPeso } from "@/features/shifts/services/shift-money";
+import { formatPeso, sumAmounts } from "@/features/shifts/services/shift-money";
 import { shiftTime } from "@/features/shifts/services/shift-time";
 import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import type { DailyReport } from "../types/daily-report.types";
-import { blockingReportShifts } from "../services/report-shift-blocks";
 
 export function DailyReportShifts({
   branchId,
@@ -25,13 +24,11 @@ export function DailyReportShifts({
 }) {
   const shifts = report.shifts ?? [];
   if (!shifts.length) return null;
-  const blocking = blockingReportShifts(report);
-  const editable = report.status === "DRAFT" || report.status === "RETURNED";
-  const message = blocking.open.length
-    ? `Close shift ${blocking.open.join(", ")} before submitting this report.`
-    : blocking.unreviewed.length
-      ? `A manager must review shift ${blocking.unreviewed.join(", ")} before this report can be submitted.`
-      : null;
+  // Open shifts have no closing figures yet, so totals cover closed shifts only.
+  const closed = shifts.filter((shift) => shift.status !== "OPEN");
+  const total = (pick: (shift: (typeof shifts)[number]) => string | null) =>
+    sumAmounts(closed.map(pick));
+  const cashDifference = total((shift) => shift.cash_difference);
   return (
     <section
       aria-labelledby="report-shifts-heading"
@@ -43,15 +40,6 @@ export function DailyReportShifts({
       >
         Shifts
       </h3>
-      {editable && message && (
-        <p
-          role="status"
-          className="flex items-center gap-2 border-b bg-amber-50 px-5 py-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
-        >
-          <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
-          {message}
-        </p>
-      )}
       <Table aria-label="Shifts for this business day" className="min-w-2xl">
         <TableHeader className="bg-muted/40">
           <TableRow>
@@ -96,6 +84,31 @@ export function DailyReportShifts({
             </TableRow>
           ))}
         </TableBody>
+        {closed.length > 0 && (
+          <TableFooter>
+            <TableRow className="hover:bg-transparent">
+              <TableCell className="py-3 pl-5 font-semibold" colSpan={2}>
+                {closed.length === shifts.length
+                  ? "Day total"
+                  : `Total for ${closed.length} closed ${closed.length === 1 ? "shift" : "shifts"}`}
+              </TableCell>
+              <TableCell className="text-right font-semibold tabular-nums">
+                {formatPeso(total((shift) => shift.net_cash_sales))}
+              </TableCell>
+              <TableCell className="text-right font-semibold tabular-nums">
+                {formatPeso(total((shift) => shift.non_cash_sales))}
+              </TableCell>
+              <TableCell className="text-right font-semibold">
+                {cashDifference === null ? (
+                  "—"
+                ) : (
+                  <ShiftDifference value={cashDifference} />
+                )}
+              </TableCell>
+              <TableCell className="pr-5 pl-6" />
+            </TableRow>
+          </TableFooter>
+        )}
       </Table>
     </section>
   );

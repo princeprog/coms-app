@@ -196,7 +196,9 @@ describe("daily report item editor", () => {
     ).toBe("1.5 kg");
     expect(screen.getAllByText("Not counted").length).toBeGreaterThan(0);
     expect(
-      screen.getByText(/expected remaining quantity and variance are calculated by coms/i),
+      screen.getByText(
+        /expected remaining quantity and variance are calculated by coms/i,
+      ),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Save counts" })).toBeNull();
   });

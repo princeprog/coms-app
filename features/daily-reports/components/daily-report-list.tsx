@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   OperationalEmptyState,
   OperationalPagination,
-  OperationalStatusBadge,
 } from "@/components/shared/operational-page-ui";
 import {
   Table,
@@ -12,12 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { dailyReportStatuses } from "@/features/daily-reports/constants";
 import {
   createDailyReportHref,
   type DailyReportPageFilters,
 } from "@/features/daily-reports/services/daily-report-page-params";
 import type { DailyReportPage } from "@/features/daily-reports/types/daily-report.types";
+import { businessDayLabel } from "@/features/shifts/services/shift-time";
+import { DailyReportStatusBadge } from "./daily-report-status-badge";
 
 export function DailyReportList({
   page,
@@ -83,14 +83,10 @@ export function DailyReportList({
             {page.items.map((report) => (
               <TableRow key={report.id}>
                 <TableCell className="font-medium tabular-nums">
-                  {report.business_date}
+                  {businessDayLabel(report.business_date)}
                 </TableCell>
                 <TableCell>
-                  <OperationalStatusBadge
-                    variant={statusVariant(report.status)}
-                  >
-                    {report.status.replaceAll("_", " ")}
-                  </OperationalStatusBadge>
+                  <DailyReportStatusBadge status={report.status} />
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatManilaDate(report.updated_at)}
@@ -145,10 +141,4 @@ function formatManilaDate(value: string) {
     timeStyle: "short",
     timeZone: "Asia/Manila",
   }).format(new Date(value));
-}
-
-function statusVariant(status: (typeof dailyReportStatuses)[number]) {
-  if (status === "RETURNED") return "destructive" as const;
-  if (status === "APPROVED") return "secondary" as const;
-  return "outline" as const;
 }
