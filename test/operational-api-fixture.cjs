@@ -962,6 +962,7 @@ function createOperationalApiFixture({
   notificationCount = 0,
   receivingFollowup = false,
   openShifts = true,
+  sampleReport = false,
 }) {
   if (!gatewaySecret || !/^[a-f0-9]{64}$/i.test(gatewaySecret)) {
     throw new Error(
@@ -1182,6 +1183,7 @@ function createOperationalApiFixture({
         state,
         authUser,
         openShifts,
+        sampleReport,
       });
       if (shiftResponse !== false) return shiftResponse;
 

@@ -12,8 +12,10 @@ import {
   shiftDetailSchema,
   shiftPageSchema,
   shiftQuerySchema,
+  shiftReportSchema,
   type ShiftDetail,
   type ShiftPage,
+  type ShiftReport,
   type ShiftResult,
 } from "../schemas/shift.schema";
 
@@ -127,13 +129,15 @@ export async function listShiftsAction(
 export async function getShiftAction(
   branchId: unknown,
   shiftId: unknown,
-): Promise<ShiftResult<ShiftDetail>> {
+): Promise<ShiftResult<ShiftReport>> {
   const access = await authorize(branchId, "shifts.read");
   if (!access.ok) return access;
   const id = z.uuid().safeParse(shiftId);
   if (!id.success)
     return { ok: false, error: "That shift could not be found." };
-  return call(`${shiftsEndpoint(access.branchId)}/${id.data}`, detail);
+  return call(`${shiftsEndpoint(access.branchId)}/${id.data}`, (value) =>
+    shiftReportSchema.parse(value),
+  );
 }
 
 export async function openShiftAction(

@@ -68,9 +68,9 @@ export function ShiftNoteForm({
       id={mode === "review" ? "review" : undefined}
       onSubmit={submit}
       noValidate
-      className="flex flex-col gap-3 rounded-xl border bg-card p-5"
+      className="flex scroll-mt-6 flex-col gap-3 rounded-2xl bg-card p-5 shadow-xs ring-1 ring-foreground/10 sm:p-6"
     >
-      <h2 className="text-sm font-semibold">
+      <h2 className="text-base font-semibold">
         {mode === "review" ? "Review shift" : "Explain the difference"}
       </h2>
       <Field data-invalid={Boolean(error)}>

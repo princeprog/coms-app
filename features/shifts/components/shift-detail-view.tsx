@@ -6,16 +6,51 @@ import { ArrowLeft } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { shiftKeys } from "../query-keys";
 import { getShiftAction } from "../services/shift-actions";
 import { differenceTone } from "../services/shift-money";
-import { businessDayLabel, shiftDateTime } from "../services/shift-time";
 import { CloseShiftDialog } from "./close-shift-dialog";
-import { ShiftActivity } from "./shift-activity";
-import { ShiftCountSummary } from "./shift-count-summary";
+import { ShiftCashDrawer } from "./shift-cash-drawer";
+import { ShiftFacts } from "./shift-facts";
+import { ShiftHeadline } from "./shift-headline";
 import { ShiftNoteForm } from "./shift-note-form";
-import { ShiftNotes } from "./shift-notes";
-import { ShiftStatusBadge } from "./shift-status-badge";
+import { ShiftProductsSold } from "./shift-products-sold";
+import { ShiftReportHeader } from "./shift-report-header";
+import styles from "./shift-report.module.css";
+import { ShiftSalesBreakdown } from "./shift-sales-breakdown";
+import { ShiftTimeline } from "./shift-timeline";
+
+const pageClass = cn(
+  styles.page,
+  "mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 pb-4",
+);
+
+function ShiftReportSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      aria-label="Loading shift"
+      className="flex flex-col gap-6"
+    >
+      <div className="flex items-center gap-3.5">
+        <Skeleton className="size-12 rounded-xl" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+      </div>
+      <Skeleton className="h-28 w-full rounded-2xl" />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="flex flex-col gap-6">
+          <Skeleton className="h-80 w-full rounded-2xl" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </div>
+        <Skeleton className="h-96 w-full rounded-2xl" />
+      </div>
+    </div>
+  );
+}
 
 export function ShiftDetailView({
   branchId,
@@ -46,32 +81,26 @@ export function ShiftDetailView({
   const back = (
     <Link
       href={`/shifts?branch=${branchId}`}
-      className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      className="shift-press inline-flex min-h-9 w-fit items-center gap-2 rounded-md px-1 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
     >
       <ArrowLeft aria-hidden="true" className="size-4" />
-      Shifts
+      Back to shifts
     </Link>
   );
   if (query.isPending)
     return (
-      <div
-        aria-busy="true"
-        aria-label="Loading shift"
-        className="flex flex-col gap-4"
-      >
+      <div data-coms-ui="operational" className={pageClass}>
         {back}
-        <Skeleton className="h-9 w-64" />
-        <Skeleton className="h-28 w-full" />
-        <Skeleton className="h-56 w-full" />
+        <ShiftReportSkeleton />
       </div>
     );
   if (query.isError)
     return (
-      <div className="flex flex-col gap-4">
+      <div data-coms-ui="operational" className={pageClass}>
         {back}
         <div
           role="alert"
-          className="flex flex-col items-start gap-3 rounded-xl border p-6"
+          className="flex flex-col items-start gap-3 rounded-2xl p-6 ring-1 ring-foreground/10"
         >
           <p>{query.error.message}</p>
           <Button variant="outline" onClick={() => query.refetch()}>
@@ -91,56 +120,62 @@ export function ShiftDetailView({
     shift.close_type === "CASHIER" &&
     differenceTone(shift.cash_difference) !== "balanced";
   return (
-    <div data-coms-ui="operational" className="flex flex-col gap-6">
-      {back}
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Shift {shift.shift_number}
-            </h1>
-            <ShiftStatusBadge status={shift.status} />
+    <div data-coms-ui="operational" className={pageClass}>
+      <ShiftReportHeader
+        shift={shift}
+        back={back}
+        action={
+          shift.status === "OPEN" &&
+          canReview &&
+          !own && (
+            <Button
+              variant="outline"
+              className="min-h-10 self-start sm:self-center"
+              onClick={() => setForcing(true)}
+            >
+              Force close
+            </Button>
+          )
+        }
+      />
+      <ShiftHeadline shift={shift} />
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <div className="grid min-w-0 items-start gap-6 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <ShiftCashDrawer shift={shift} />
+            <ShiftSalesBreakdown shift={shift} />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {businessDayLabel(shift.business_date)} · {shift.opened_by_name} ·
-            Opened {shiftDateTime(shift.opened_at)}
-            {shift.closed_at && ` · Closed ${shiftDateTime(shift.closed_at)}`}
-          </p>
+          <ShiftProductsSold shift={shift} />
         </div>
-        {shift.status === "OPEN" && canReview && !own && (
-          <Button
-            variant="outline"
-            className="min-h-10"
-            onClick={() => setForcing(true)}
-          >
-            Force close
-          </Button>
-        )}
-      </header>
-      <ShiftCountSummary shift={shift} />
-      <ShiftActivity shift={shift} />
-      <ShiftNotes shift={shift} />
-      {explainable && (
-        <ShiftNoteForm
-          branchId={branchId}
-          shift={shift}
-          mode="explain"
-          onSaved={refresh}
-        />
-      )}
-      {reviewable && (
-        <ShiftNoteForm
-          branchId={branchId}
-          shift={shift}
-          mode="review"
-          onSaved={refresh}
-        />
-      )}
-      {shift.status === "CLOSED" && canReview && own && !superAdmin && (
-        <p role="status" className="text-sm text-muted-foreground">
-          Another manager must review a shift you worked.
-        </p>
-      )}
+        <div className="flex min-w-0 flex-col gap-6">
+          {explainable && (
+            <ShiftNoteForm
+              branchId={branchId}
+              shift={shift}
+              mode="explain"
+              onSaved={refresh}
+            />
+          )}
+          {reviewable && (
+            <ShiftNoteForm
+              branchId={branchId}
+              shift={shift}
+              mode="review"
+              onSaved={refresh}
+            />
+          )}
+          {shift.status === "CLOSED" && canReview && own && !superAdmin && (
+            <p
+              role="status"
+              className="rounded-2xl bg-muted/40 px-5 py-4 text-sm text-muted-foreground ring-1 ring-foreground/10"
+            >
+              Another manager must review a shift you worked.
+            </p>
+          )}
+          <ShiftFacts shift={shift} />
+          <ShiftTimeline shift={shift} />
+        </div>
+      </div>
       {forcing && (
         <CloseShiftDialog
           branchId={branchId}

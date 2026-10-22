@@ -34,3 +34,34 @@ export function differenceLabel(value: string | null | undefined) {
 }
 
 export { peso as pesoFormatter };
+
+function scaled(value: string, digits: number) {
+  const negative = value.startsWith("-");
+  const [whole, fraction = ""] = value.replace("-", "").split(".");
+  const result = BigInt(whole + fraction.padEnd(digits, "0"));
+  return negative ? -result : result;
+}
+
+/** Exact decimal subtraction for peso strings, such as cash removed from a drawer. */
+export function subtractAmounts(left: string, right: string) {
+  const digits = Math.max(
+    ...[left, right].map((value) => value.split(".")[1]?.length ?? 0),
+  );
+  const result = scaled(left, digits) - scaled(right, digits);
+  const negative = result < BigInt(0);
+  const text = (negative ? -result : result)
+    .toString()
+    .padStart(digits + 1, "0");
+  const whole = text.slice(0, text.length - digits);
+  return `${negative ? "-" : ""}${whole}${digits ? `.${text.slice(-digits)}` : ""}`;
+}
+
+/** Share of a total for proportion bars, clamped to 0–1. */
+export function shareOf(part: string, total: string) {
+  const whole = Number(total);
+  if (!whole) return 0;
+  return Math.min(1, Math.max(0, Number(part) / whole));
+}
+
+export const isZeroAmount = (value: string | null | undefined) =>
+  !value || /^-?0(?:\.0+)?$/.test(value);

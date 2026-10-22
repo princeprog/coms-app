@@ -80,6 +80,37 @@ export const shiftDetailSchema = shiftSchema.extend({
   cash_hidden: z.boolean().default(false),
 });
 
+/** The shift page adds report figures; null while a cashier's count is blind. */
+export const shiftReportSchema = shiftDetailSchema.extend({
+  sales_summary: z
+    .object({
+      sales_count: z.number().int().nonnegative(),
+      gross_amount: amount,
+      voided_count: z.number().int().nonnegative(),
+      voided_amount: amount,
+      completed_count: z.number().int().nonnegative(),
+      net_amount: amount,
+      average_amount: optionalAmount,
+      items_sold: amount,
+      dine_in_count: z.number().int().nonnegative(),
+      dine_in_amount: amount,
+      takeaway_count: z.number().int().nonnegative(),
+      takeaway_amount: amount,
+      first_sale_at: z.string().nullable(),
+      last_sale_at: z.string().nullable(),
+    })
+    .nullable(),
+  products: z.array(
+    z.object({
+      product_id: z.uuid(),
+      product_name: z.string(),
+      category_name: z.string().nullable(),
+      quantity: amount,
+      amount,
+    }),
+  ),
+});
+
 export const shiftPageSchema = z.object({
   items: z.array(shiftSchema),
   total: z.number().int().nonnegative(),
@@ -114,6 +145,7 @@ export const pesoInputSchema = z
 
 export type Shift = z.infer<typeof shiftSchema>;
 export type ShiftDetail = z.infer<typeof shiftDetailSchema>;
+export type ShiftReport = z.infer<typeof shiftReportSchema>;
 export type ShiftPage = z.infer<typeof shiftPageSchema>;
 export type ShiftQuery = z.infer<typeof shiftQuerySchema>;
 export type ShiftResult<T> =
