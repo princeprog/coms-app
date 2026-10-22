@@ -22,6 +22,7 @@ export function DatePicker({
   invalid = false,
   describedBy,
   captionLayout = "dropdown",
+  placeholder,
   onChange,
 }: {
   id: string;
@@ -33,11 +34,15 @@ export function DatePicker({
   invalid?: boolean;
   describedBy?: string;
   captionLayout?: "label" | "dropdown";
+  /** Shown muted when no date is chosen; defaults to "Select a date". */
+  placeholder?: string;
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const selected = value ? parseISO(value) : undefined;
-  const selectedLabel = selected ? format(selected, "PPP") : "Select a date";
+  const selectedLabel = selected
+    ? format(selected, "PPP")
+    : (placeholder ?? "Select a date");
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
@@ -58,7 +63,14 @@ export function DatePicker({
         }
       >
         <CalendarDays data-icon="inline-start" aria-hidden="true" />
-        <span className="truncate">{selectedLabel}</span>
+        <span
+          className={cn(
+            "truncate",
+            !selected && placeholder && "text-muted-foreground",
+          )}
+        >
+          {selectedLabel}
+        </span>
       </PopoverTrigger>
       <PopoverContent
         data-coms-ui="operational"

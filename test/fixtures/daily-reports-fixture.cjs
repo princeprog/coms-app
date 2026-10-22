@@ -64,7 +64,9 @@ function timestamp(sequence) {
 function makeItems(stockItems, reportIndex, editable) {
   return stockItems.slice(0, 2).map((stockItem, itemIndex) => {
     const ledger = itemIndex === 0 ? "11" : "6";
-    const physical = editable ? null : ledger;
+    // Second-branch reports (index 26+) include some count differences.
+    const short = reportIndex >= 26 && reportIndex % 3 === 1 && itemIndex === 0;
+    const physical = editable ? null : short ? "10" : ledger;
     return {
       id: uuid("6a000000", reportIndex * 2 + itemIndex + 1),
       stock_item_id: stockItem.id,
@@ -82,7 +84,7 @@ function makeItems(stockItems, reportIndex, editable) {
       adjustment_reason: null,
       expected_closing_quantity: ledger,
       physical_closing_quantity: physical,
-      variance_quantity: editable ? null : "0",
+      variance_quantity: editable ? null : short ? "-1" : "0",
     };
   });
 }
@@ -109,6 +111,8 @@ function makeReport({ branch, stockItems, seed, index, status, date }) {
         : null,
     created_at: createdAt,
     updated_at: reviewed ? timestamp(index + 1) : createdAt,
+    completed_sales_amount: (6500 + ((index * 731) % 5200)).toFixed(2),
+    completed_sales_count: 25 + (index % 17),
     items: makeItems(stockItems, index, status === "DRAFT"),
     events: [],
   };
@@ -164,7 +168,7 @@ function makeReport({ branch, stockItems, seed, index, status, date }) {
 function createDailyReportSeed({ branches, stockItems, seed }) {
   const branch = branches[0];
   const statuses = ["DRAFT", "SUBMITTED", "RETURNED", "APPROVED"];
-  return Array.from({ length: 26 }, (_, index) => {
+  const reports = Array.from({ length: 26 }, (_, index) => {
     const day = new Date(
       Date.parse("2026-09-23T00:00:00.000Z") - index * 86_400_000,
     )
@@ -179,6 +183,26 @@ function createDailyReportSeed({ branches, stockItems, seed }) {
       date: day,
     });
   });
+  // A second branch so the cross-branch directory has something to mix.
+  if (branches[1])
+    for (let offset = 0; offset < 8; offset += 1)
+      reports.push(
+        makeReport({
+          branch: branches[1],
+          stockItems,
+          seed,
+          index: 26 + offset,
+          status: ["SUBMITTED", "APPROVED", "SUBMITTED", "RETURNED"][
+            offset % 4
+          ],
+          date: new Date(
+            Date.parse("2026-09-23T00:00:00.000Z") - offset * 86_400_000,
+          )
+            .toISOString()
+            .slice(0, 10),
+        }),
+      );
+  return reports;
 }
 
 function listItem(report) {
@@ -203,6 +227,64 @@ function pageItems(items, url) {
   };
 }
 
+/** Cross-branch list mirroring GET /daily-reports in coms-api. */
+function directoryPage(state, url) {
+  const query = url.searchParams;
+  const branchName = (id) =>
+    state.branches.find((branch) => branch.id === id) ?? {};
+  const scoped = state.dailyReports.filter(
+    (report) =>
+      (!query.get("branch_id") ||
+        report.branch_id === query.get("branch_id")) &&
+      (!query.get("date_from") ||
+        report.business_date >= query.get("date_from")) &&
+      (!query.get("date_to") || report.business_date <= query.get("date_to")),
+  );
+  const status_counts = { DRAFT: 0, SUBMITTED: 0, RETURNED: 0, APPROVED: 0 };
+  for (const report of scoped) status_counts[report.status] += 1;
+  const direction = query.get("sort") === "oldest" ? 1 : -1;
+  const rows = scoped
+    .filter(
+      (report) => !query.get("status") || report.status === query.get("status"),
+    )
+    .map((report) => {
+      const branch = branchName(report.branch_id);
+      return {
+        id: report.id,
+        branch_id: report.branch_id,
+        branch_name: branch.branch_name ?? "Branch",
+        branch_status: branch.status ?? "active",
+        business_date: report.business_date,
+        status: report.status,
+        completed_sales_amount: report.completed_sales_amount ?? "0",
+        completed_sales_count: report.completed_sales_count ?? 0,
+        voided_sales_count: report.voided_sales_count ?? 0,
+        submitted_at: report.submitted_at,
+        submitted_by_name: report.submitted_at
+          ? "Fixture Branch Manager"
+          : null,
+        reviewed_at: report.reviewed_at,
+        reviewed_by_name: report.reviewed_at ? "Fixture Operations Lead" : null,
+        updated_at: report.updated_at,
+        item_count: report.items.length,
+        counted_count: report.items.filter(
+          (item) => item.physical_closing_quantity !== null,
+        ).length,
+        variance_count: report.items.filter(
+          (item) =>
+            item.variance_quantity !== null &&
+            Number(item.variance_quantity) !== 0,
+        ).length,
+      };
+    })
+    .sort(
+      (left, right) =>
+        direction * left.business_date.localeCompare(right.business_date) ||
+        left.branch_name.localeCompare(right.branch_name),
+    );
+  return { ...pageItems(rows, url), status_counts };
+}
+
 function touch(state, report, type, note = null) {
   const now = timestamp(state.dailyReportEventSequence++);
   report.updated_at = now;
@@ -224,6 +306,8 @@ function handleDailyReportRequest({
   state,
   seed,
 }) {
+  if (url.pathname === "/daily-reports" && request.method === "GET")
+    return send(response, 200, directoryPage(state, url));
   const route = url.pathname.match(
     /^\/branches\/([0-9a-f-]{36})\/daily-reports(?:\/([0-9a-f-]{36})(?:\/(submit|return|approve))?)?$/i,
   );

@@ -1,31 +1,38 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/services/api-services";
 
-const { getBranchOptions, getDailyReportDetail, getDailyReportPageData } =
+const { getBranchOptions, getDailyReportDetail, getDailyReportDirectory } =
   vi.hoisted(() => ({
     getBranchOptions: vi.fn(),
     getDailyReportDetail: vi.fn(),
-    getDailyReportPageData: vi.fn(),
+    getDailyReportDirectory: vi.fn(),
   }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/features/branch-products/services/branch-product-queries", () => ({
   getBranchOptions,
 }));
+vi.mock("@/features/business-day/services/business-day-queries", () => ({
+  getBusinessToday: vi.fn().mockResolvedValue("2026-09-24"),
+}));
 vi.mock("./daily-report-queries", () => ({
   getDailyReportDetail,
-  getDailyReportPageData,
+  getDailyReportDirectory,
 }));
 
-async function getLoader() {
-  return import("./daily-report-page-loader").catch(() => null);
-}
+import { loadDailyReportsView } from "./daily-report-page-loader";
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const otherBranchId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
 const reportId = "3fa85f64-5717-4562-b3fc-2c963f66afa8";
 const timestamp = "2026-09-24T02:00:00.000Z";
-const page = { items: [], total: 0, page: 1, page_size: 25 };
+const directory = {
+  items: [],
+  total: 0,
+  page: 1,
+  page_size: 10,
+  status_counts: { DRAFT: 0, SUBMITTED: 0, RETURNED: 0, APPROVED: 0 },
+};
 const report = {
   id: reportId,
   branch_id: branchId,
@@ -66,126 +73,117 @@ function user(permissions: string[], branchIds: string[] = [branchId]) {
   };
 }
 
+const admin = {
+  ...user([]),
+  role: {
+    id: "1",
+    code: "SUPER_ADMIN",
+    name: "Super Admin",
+    isSystem: true,
+    isActive: true,
+  },
+};
+
 describe("daily report page loader", () => {
   beforeEach(() => {
     getBranchOptions.mockReset().mockResolvedValue([
       { id: branchId, name: "Downtown", status: "active" },
-      { id: otherBranchId, name: "Airport", status: "active" },
+      { id: otherBranchId, name: "Airport", status: "inactive" },
     ]);
-    getDailyReportPageData.mockReset().mockResolvedValue(page);
+    getDailyReportDirectory.mockReset().mockResolvedValue(directory);
     getDailyReportDetail.mockReset().mockResolvedValue(report);
   });
 
-  it("denies a user without the report read grant before loading branch data", async () => {
-    const loader = await getLoader();
-    expect(loader).not.toBeNull();
-    if (!loader) return;
-
-    await expect(loader.loadDailyReportsView(user([]), {})).resolves.toEqual({
+  it("denies a user without the report read grant before loading data", async () => {
+    await expect(loadDailyReportsView(user([]), {})).resolves.toEqual({
       status: "forbidden",
     });
     expect(getBranchOptions).not.toHaveBeenCalled();
-    expect(getDailyReportPageData).not.toHaveBeenCalled();
+    expect(getDailyReportDirectory).not.toHaveBeenCalled();
   });
 
-  it("limits selected branches to the signed-in user's assignments", async () => {
-    const loader = await getLoader();
-    expect(loader).not.toBeNull();
-    if (!loader) return;
+  it("lists every branch first for Super Admin, who cannot create drafts", async () => {
+    const result = await loadDailyReportsView(admin, {});
+    expect(result).toMatchObject({
+      status: "list",
+      directory,
+      createBranches: [],
+      filters: { status: "all", sort: "newest", page: 1, pageSize: 10 },
+    });
+    expect(getDailyReportDirectory).toHaveBeenCalledWith(
+      expect.not.objectContaining({ branchId: expect.anything() }),
+    );
+  });
+
+  it("offers drafts only at active branches and rejects branches outside the user's scope", async () => {
+    const result = await loadDailyReportsView(
+      user(
+        ["daily_reports.read", "daily_reports.create", "branches.read"],
+        [branchId, otherBranchId],
+      ),
+      { status: "SUBMITTED" },
+    );
+    expect(result).toMatchObject({
+      status: "list",
+      createBranches: [{ id: branchId }],
+    });
 
     await expect(
-      loader.loadDailyReportsView(
-        user(["daily_reports.read", "branches.read"]),
-        {
-          branch_id: otherBranchId,
-        },
-      ),
+      loadDailyReportsView(user(["daily_reports.read", "branches.read"]), {
+        branch_id: otherBranchId,
+      }),
     ).resolves.toEqual({ status: "forbidden" });
-    expect(getDailyReportPageData).not.toHaveBeenCalled();
   });
 
-  it("loads a report and exposes only the actions granted for its current state", async () => {
-    const loader = await getLoader();
-    expect(loader).not.toBeNull();
-    if (!loader) return;
+  it("returns to the last page when filters leave the requested page empty", async () => {
+    getDailyReportDirectory.mockResolvedValue({
+      ...directory,
+      total: 12,
+      page: 5,
+    });
+    await expect(
+      loadDailyReportsView(admin, { status: "DRAFT", page: "5" }),
+    ).resolves.toEqual({
+      status: "redirect",
+      href: "/reports?status=DRAFT&page=2",
+    });
+  });
 
-    const result = await loader.loadDailyReportsView(
+  it("opens a report through its own branch and exposes the actions for its state", async () => {
+    const result = await loadDailyReportsView(
       user([
         "daily_reports.read",
-        "daily_reports.create",
         "daily_reports.update",
-        "daily_reports.submit",
         "daily_reports.approve",
         "daily_reports.return",
         "branches.read",
       ]),
-      { branch_id: branchId, report_id: reportId, status: "SUBMITTED" },
+      { report_id: reportId, report_branch: branchId, status: "SUBMITTED" },
     );
-
     expect(result).toMatchObject({
-      status: "ready",
-      page,
+      status: "detail",
       selectedReport: report,
-      canCreate: true,
       canUpdate: false,
       canSubmit: false,
       canApprove: true,
       canReturn: true,
-    });
-    expect(getDailyReportPageData).toHaveBeenCalledWith({
-      branchId,
-      page: 1,
-      status: "SUBMITTED",
+      filters: { status: "SUBMITTED", reportBranchId: branchId },
     });
     expect(getDailyReportDetail).toHaveBeenCalledWith(branchId, reportId);
+    expect(getDailyReportDirectory).not.toHaveBeenCalled();
   });
 
-  it("keeps Super Admin review access while hiding branch report preparation", async () => {
-    const loader = await getLoader();
-    expect(loader).not.toBeNull();
-    if (!loader) return;
-    const admin = {
-      ...user([]),
-      role: {
-        id: "1",
-        code: "SUPER_ADMIN",
-        name: "Super Admin",
-        isSystem: true,
-        isActive: true,
-      },
-    };
-    const result = await loader.loadDailyReportsView(admin, {
-      branch_id: branchId,
-      report_id: reportId,
-      status: "SUBMITTED",
-    });
-    expect(result).toMatchObject({
-      status: "ready",
-      canCreate: false,
-      canUpdate: false,
-      canSubmit: false,
-      canApprove: true,
-      canReturn: true,
-    });
-  });
-
-  it("only enables submission for an ended Manila day with a saved count for every item", async () => {
-    const loader = await getLoader();
-    expect(loader).not.toBeNull();
-    if (!loader) return;
-    getDailyReportDetail.mockResolvedValue({
+  it("only enables submission for an ended day with a saved count for every item", async () => {
+    const permissions = ["daily_reports.read", "daily_reports.submit"];
+    getDailyReportDetail.mockResolvedValueOnce({
       ...report,
       status: "DRAFT",
-      business_date: "2000-01-01",
       items: [{ stock_item_id: reportId, physical_closing_quantity: null }],
     });
-    const permissions = ["daily_reports.read", "daily_reports.submit"];
-
-    const incomplete = await loader.loadDailyReportsView(user(permissions), {
-      report_id: reportId,
-    });
-    expect(incomplete).toMatchObject({
-      status: "ready",
+    await expect(
+      loadDailyReportsView(user(permissions), { report_id: reportId }),
+    ).resolves.toMatchObject({
+      status: "detail",
       canPrepareSubmission: true,
       canSubmit: false,
     });
@@ -193,25 +191,19 @@ describe("daily report page loader", () => {
     getDailyReportDetail.mockResolvedValueOnce({
       ...report,
       status: "DRAFT",
-      business_date: "2000-01-01",
       items: [{ stock_item_id: reportId, physical_closing_quantity: "3.25" }],
     });
-    const complete = await loader.loadDailyReportsView(user(permissions), {
-      report_id: reportId,
-    });
-    expect(complete).toMatchObject({ status: "ready", canSubmit: true });
+    await expect(
+      loadDailyReportsView(user(permissions), { report_id: reportId }),
+    ).resolves.toMatchObject({ status: "detail", canSubmit: true });
   });
 
-  it("converts expired sessions from protected report requests into a session state", async () => {
-    const loader = await getLoader();
-    expect(loader).not.toBeNull();
-    if (!loader) return;
-    getDailyReportPageData.mockRejectedValueOnce(
+  it("converts an expired session into a session state", async () => {
+    getDailyReportDirectory.mockRejectedValueOnce(
       new ApiRequestError("expired", 401),
     );
-
     await expect(
-      loader.loadDailyReportsView(user(["daily_reports.read"]), {}),
+      loadDailyReportsView(user(["daily_reports.read"]), {}),
     ).resolves.toEqual({ status: "session-expired" });
   });
 });

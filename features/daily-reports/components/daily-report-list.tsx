@@ -1,9 +1,5 @@
 import Link from "next/link";
 import {
-  OperationalEmptyState,
-  OperationalPagination,
-} from "@/components/shared/operational-page-ui";
-import {
   Table,
   TableBody,
   TableCell,
@@ -11,134 +7,161 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatPeso } from "@/features/shifts/services/shift-money";
+import {
+  businessDayLabel,
+  shiftDateTime,
+} from "@/features/shifts/services/shift-time";
 import {
   createDailyReportHref,
   type DailyReportPageFilters,
-} from "@/features/daily-reports/services/daily-report-page-params";
-import type { DailyReportPage } from "@/features/daily-reports/types/daily-report.types";
-import { businessDayLabel } from "@/features/shifts/services/shift-time";
+} from "../services/daily-report-page-params";
+import type { DailyReportDirectoryItem } from "../types/daily-report.types";
+import { DailyReportRowActions } from "./daily-report-row-actions";
 import { DailyReportStatusBadge } from "./daily-report-status-badge";
 
-export function DailyReportList({
-  page,
-  filters,
-}: {
-  page: DailyReportPage;
-  filters: DailyReportPageFilters;
-}) {
-  const pageCount = Math.max(1, Math.ceil(page.total / page.page_size));
-  const start = page.total === 0 ? 0 : (page.page - 1) * page.page_size + 1;
-  const end = Math.min(page.total, start + page.items.length - 1);
+const weekday = new Intl.DateTimeFormat("en-PH", {
+  weekday: "long",
+  timeZone: "UTC",
+});
 
+function CountProgress({ report }: { report: DailyReportDirectoryItem }) {
+  if (!report.item_count)
+    return <span className="text-muted-foreground">—</span>;
+  const complete = report.counted_count === report.item_count;
   return (
-    <section aria-labelledby="daily-report-list-title" className="grid gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="daily-report-list-title" className="text-lg font-semibold">
-            Daily reports
-          </h2>
-          <p aria-live="polite" className="text-sm text-muted-foreground">
-            {page.total === 0
-              ? "No reports"
-              : `Showing ${start}–${end} of ${page.total} reports`}
-          </p>
-        </div>
-      </div>
-
-      {page.items.length === 0 ? (
-        <OperationalEmptyState
-          title={
-            filters.status === "all"
-              ? "No daily reports yet"
-              : `No ${filters.status.toLowerCase()} reports`
-          }
-          description={
-            filters.status === "all"
-              ? "Create a report to record this branch’s physical counts."
-              : "Choose another status to find a different report."
-          }
-        />
-      ) : (
-        <Table
-          className="min-w-[42rem]"
-          containerProps={{
-            role: "region",
-            "aria-label": "Daily report results",
-            tabIndex: 0,
-            className:
-              "rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          }}
-        >
-          <TableHeader className="bg-muted/50">
-            <TableRow>
-              <TableHead scope="col">Business date</TableHead>
-              <TableHead scope="col">Status</TableHead>
-              <TableHead scope="col">Updated</TableHead>
-              <TableHead scope="col" className="text-right">
-                Action
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {page.items.map((report) => (
-              <TableRow key={report.id}>
-                <TableCell className="font-medium tabular-nums">
-                  {businessDayLabel(report.business_date)}
-                </TableCell>
-                <TableCell>
-                  <DailyReportStatusBadge status={report.status} />
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {formatManilaDate(report.updated_at)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Link
-                    href={createDailyReportHref({
-                      ...filters,
-                      reportId: report.id,
-                    })}
-                    aria-current={
-                      filters.reportId === report.id ? "page" : undefined
-                    }
-                    className="rounded-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    Open report
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
-      <OperationalPagination
-        ariaLabel="Daily report pages"
-        page={filters.page}
-        pageCount={pageCount}
-        previousHref={
-          filters.page > 1
-            ? createDailyReportHref({ ...filters, page: filters.page - 1 })
-            : undefined
-        }
-        nextHref={
-          filters.page < pageCount
-            ? createDailyReportHref({ ...filters, page: filters.page + 1 })
-            : undefined
-        }
-        resultSummary={
-          page.total === 0
-            ? "No reports"
-            : `Showing ${start}–${end} of ${page.total} reports`
-        }
-      />
-    </section>
+    <span className={complete ? "text-muted-foreground" : "font-medium"}>
+      {report.counted_count} of {report.item_count}
+    </span>
   );
 }
 
-function formatManilaDate(value: string) {
-  return new Intl.DateTimeFormat("en-PH", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Manila",
-  }).format(new Date(value));
+function Variance({ report }: { report: DailyReportDirectoryItem }) {
+  if (!report.counted_count)
+    return <span className="text-muted-foreground">—</span>;
+  if (!report.variance_count)
+    return <span className="text-muted-foreground">None</span>;
+  return (
+    <span className="font-medium text-amber-700 dark:text-amber-400">
+      {report.variance_count} {report.variance_count === 1 ? "item" : "items"}
+    </span>
+  );
+}
+
+export function DailyReportList({
+  items,
+  filters,
+}: {
+  items: DailyReportDirectoryItem[];
+  filters: DailyReportPageFilters;
+}) {
+  return (
+    <Table
+      aria-label="Daily reports"
+      className="min-w-3xl"
+      containerProps={{ className: "min-w-0" }}
+    >
+      <TableHeader className="bg-muted/50">
+        <TableRow className="hover:bg-transparent">
+          <TableHead scope="col" className="pl-5">
+            Business date
+          </TableHead>
+          <TableHead scope="col">Branch</TableHead>
+          <TableHead scope="col">Status</TableHead>
+          <TableHead scope="col" className="text-right">
+            Counted
+          </TableHead>
+          <TableHead scope="col" className="text-right">
+            Variance
+          </TableHead>
+          <TableHead scope="col" className="text-right">
+            Sales
+          </TableHead>
+          <TableHead scope="col" className="hidden pl-6 lg:table-cell">
+            Submitted
+          </TableHead>
+          <TableHead scope="col" className="w-12 pr-4">
+            <span className="sr-only">Actions</span>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((report) => {
+          const openHref = createDailyReportHref({
+            ...filters,
+            reportId: report.id,
+            reportBranchId: report.branch_id,
+          });
+          return (
+            <TableRow key={report.id}>
+              <TableCell className="py-3 pl-5">
+                <Link
+                  href={openHref}
+                  className="rounded-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {businessDayLabel(report.business_date)}
+                </Link>
+                <span className="block text-xs text-muted-foreground">
+                  {weekday.format(
+                    new Date(`${report.business_date}T00:00:00Z`),
+                  )}
+                </span>
+              </TableCell>
+              <TableCell className="whitespace-normal">
+                <span className="font-medium">{report.branch_name}</span>
+                {report.branch_status === "inactive" && (
+                  <span className="block text-xs text-muted-foreground">
+                    Inactive branch
+                  </span>
+                )}
+              </TableCell>
+              <TableCell>
+                <DailyReportStatusBadge status={report.status} />
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                <CountProgress report={report} />
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                <Variance report={report} />
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatPeso(report.completed_sales_amount)}
+                <span className="block text-xs text-muted-foreground">
+                  {report.completed_sales_count}{" "}
+                  {report.completed_sales_count === 1 ? "sale" : "sales"}
+                </span>
+              </TableCell>
+              <TableCell className="hidden pl-6 lg:table-cell">
+                {report.submitted_at ? (
+                  <>
+                    <span>{report.submitted_by_name ?? "—"}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {shiftDateTime(report.submitted_at)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">Not submitted</span>
+                )}
+              </TableCell>
+              <TableCell className="pr-4 text-right">
+                <DailyReportRowActions
+                  report={report}
+                  openHref={openHref}
+                  branchHref={
+                    filters.branchId
+                      ? undefined
+                      : createDailyReportHref({
+                          ...filters,
+                          branchId: report.branch_id,
+                          page: 1,
+                        })
+                  }
+                />
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
 }

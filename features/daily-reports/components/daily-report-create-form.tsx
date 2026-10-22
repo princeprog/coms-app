@@ -2,6 +2,8 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Building2 } from "lucide-react";
+import { DirectorySelect } from "@/components/shared/directory-select";
 import { useQuickCreateDialog } from "@/components/layout/use-quick-create-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,31 +22,36 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import type { BranchProductBranchOption } from "@/features/branch-products/types/branch-product.types";
 import { createDailyReportSchema } from "@/features/daily-reports/schemas/daily-report.schema";
 import { createDailyReportHref } from "@/features/daily-reports/services/daily-report-page-params";
 import type { DailyReportCreateAction } from "@/features/daily-reports/types/daily-report.types";
 import { DailyReportCreateDiscardConfirmation } from "./daily-report-create-discard-confirmation";
 
 export function DailyReportCreateForm({
-  branchId,
+  branches,
+  defaultBranchId,
   todayManila,
   action,
 }: {
-  branchId: string;
+  branches: BranchProductBranchOption[];
+  defaultBranchId: string;
   todayManila: string;
   action: DailyReportCreateAction;
 }) {
   const router = useRouter();
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
+  const [branchId, setBranchId] = useState(defaultBranchId);
   const [businessDate, setBusinessDate] = useState(todayManila);
   const { open, openDialog, closeDialog } = useQuickCreateDialog();
   const [discardOpen, setDiscardOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const dirty = businessDate !== todayManila;
+  const dirty = businessDate !== todayManila || branchId !== defaultBranchId;
 
   function resetDraft() {
     setBusinessDate(todayManila);
+    setBranchId(defaultBranchId);
     setError("");
   }
 
@@ -88,10 +95,8 @@ export function DailyReportCreateForm({
       closeDialog();
       router.replace(
         createDailyReportHref({
-          branchId,
           reportId: result.report.id,
-          status: "all",
-          page: 1,
+          reportBranchId: branchId,
         }),
       );
       router.refresh();
@@ -128,6 +133,23 @@ export function DailyReportCreateForm({
         </DialogHeader>
         <form onSubmit={createReport} className="grid gap-5">
           <FieldGroup>
+            {branches.length > 1 && (
+              <DirectorySelect
+                id="daily-report-create-branch"
+                label="Branch"
+                alignItemWithTrigger={false}
+                value={branchId}
+                options={branches.map((branch) => ({
+                  value: branch.id,
+                  label: branch.name,
+                  icon: <Building2 className="text-sky-600" />,
+                }))}
+                onChange={(value) => {
+                  setBranchId(value);
+                  setError("");
+                }}
+              />
+            )}
             <Field>
               <FieldLabel htmlFor="daily-report-business-date">
                 Business date

@@ -9,12 +9,14 @@ vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ cookies }));
 vi.mock("@/services/server-api-services", () => ({ requestComsApi }));
 
-async function getQueries() {
-  return import("./daily-report-queries").catch(() => null);
-}
+import {
+  getDailyReportDetail,
+  getDailyReportDirectory,
+} from "./daily-report-queries";
 
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const reportId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
+const counts = { DRAFT: 0, SUBMITTED: 0, RETURNED: 0, APPROVED: 0 };
 
 describe("daily report queries", () => {
   beforeEach(() => {
@@ -22,45 +24,52 @@ describe("daily report queries", () => {
     requestComsApi.mockReset();
   });
 
-  it("loads a validated status-filtered branch report page", async () => {
-    const queries = await getQueries();
-    expect(queries).not.toBeNull();
-    if (!queries) return;
-    requestComsApi.mockResolvedValue({
+  it("loads the cross-branch directory with every applied filter", async () => {
+    const page = {
       items: [],
       total: 0,
       page: 2,
-      page_size: 25,
-    });
+      page_size: 30,
+      status_counts: counts,
+    };
+    requestComsApi.mockResolvedValue(page);
 
     await expect(
-      queries.getDailyReportPageData({
+      getDailyReportDirectory({
         branchId,
-        page: 2,
         status: "SUBMITTED",
+        dateFrom: "2026-09-01",
+        dateTo: "2026-09-30",
+        sort: "oldest",
+        page: 2,
+        pageSize: 30,
       }),
-    ).resolves.toEqual({ items: [], total: 0, page: 2, page_size: 25 });
+    ).resolves.toEqual(page);
     expect(requestComsApi).toHaveBeenCalledWith(
-      `/branches/${branchId}/daily-reports?page=2&page_size=25&status=SUBMITTED`,
+      `/daily-reports?page=2&page_size=30&sort=oldest&branch_id=${branchId}&status=SUBMITTED&date_from=2026-09-01&date_to=2026-09-30`,
       { cookieHeader: "coms_access=access-token" },
     );
   });
 
-  it("rejects malformed branch IDs before making an API request", async () => {
-    const queries = await getQueries();
-    expect(queries).not.toBeNull();
-    if (!queries) return;
-
+  it("rejects a directory response for another page", async () => {
+    requestComsApi.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 10,
+      status_counts: counts,
+    });
     await expect(
-      queries.getDailyReportPageData({ branchId: "bad", page: 1 }),
-    ).rejects.toMatchObject({ status: 404 });
-    expect(requestComsApi).not.toHaveBeenCalled();
+      getDailyReportDirectory({
+        status: "all",
+        sort: "newest",
+        page: 3,
+        pageSize: 10,
+      }),
+    ).rejects.toMatchObject({ status: 502 });
   });
 
-  it("loads a validated report detail through its selected branch endpoint", async () => {
-    const queries = await getQueries();
-    expect(queries).not.toBeNull();
-    if (!queries) return;
+  it("loads a validated report detail through its branch endpoint", async () => {
     const report = {
       id: reportId,
       branch_id: branchId,
@@ -84,12 +93,15 @@ describe("daily report queries", () => {
     };
     requestComsApi.mockResolvedValue(report);
 
-    await expect(
-      queries.getDailyReportDetail(branchId, reportId),
-    ).resolves.toEqual(report);
+    await expect(getDailyReportDetail(branchId, reportId)).resolves.toEqual(
+      report,
+    );
     expect(requestComsApi).toHaveBeenCalledWith(
       `/branches/${branchId}/daily-reports/${reportId}`,
       { cookieHeader: "coms_access=access-token" },
     );
+    await expect(getDailyReportDetail("bad", reportId)).rejects.toMatchObject({
+      status: 404,
+    });
   });
 });

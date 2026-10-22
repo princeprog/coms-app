@@ -1,61 +1,85 @@
 import { describe, expect, it } from "vitest";
+import {
+  createDailyReportHref,
+  listFilters,
+  parseDailyReportPageFilters,
+} from "./daily-report-page-params";
 
-async function getPageParams() {
-  return import("./daily-report-page-params").catch(() => null);
-}
+const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+const reportId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
 
 describe("daily report page parameters", () => {
-  it("normalizes branch, report, status, and pagination filters", async () => {
-    const pageParams = await getPageParams();
-    expect(pageParams).not.toBeNull();
-    if (!pageParams) return;
+  it("defaults to every branch, newest first, ten rows", () => {
+    expect(parseDailyReportPageFilters({})).toEqual({
+      status: "all",
+      sort: "newest",
+      page: 1,
+      pageSize: 10,
+    });
+  });
 
-    const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
-    const reportId = "3fa85f64-5717-4562-b3fc-2c963f66afa7";
+  it("normalizes list filters and the opened report", () => {
     expect(
-      pageParams.parseDailyReportPageFilters({
+      parseDailyReportPageFilters({
         branch_id: branchId.toUpperCase(),
         report_id: reportId,
+        report_branch: branchId,
         status: "RETURNED",
+        date_from: "2026-09-01",
+        date_to: "2026-09-30",
+        sort: "oldest",
         page: "3",
+        page_size: "30",
       }),
     ).toEqual({
       branchId,
       reportId,
+      reportBranchId: branchId,
       status: "RETURNED",
+      dateFrom: "2026-09-01",
+      dateTo: "2026-09-30",
+      sort: "oldest",
       page: 3,
+      pageSize: 30,
     });
   });
 
-  it("ignores malformed IDs and unsupported filters", async () => {
-    const pageParams = await getPageParams();
-    expect(pageParams).not.toBeNull();
-    if (!pageParams) return;
-
+  it("ignores malformed values", () => {
     expect(
-      pageParams.parseDailyReportPageFilters({
+      parseDailyReportPageFilters({
         branch_id: "not-a-uuid",
         report_id: "bad",
         status: "PENDING",
+        date_from: "2026-02-31",
+        sort: "random",
         page: ["0", "4"],
+        page_size: "25",
       }),
-    ).toEqual({ status: "all", page: 1 });
+    ).toEqual({ status: "all", sort: "newest", page: 1, pageSize: 10 });
   });
 
-  it("builds detail and pagination links without dropping the current filters", async () => {
-    const pageParams = await getPageParams();
-    expect(pageParams).not.toBeNull();
-    if (!pageParams) return;
-
-    expect(
-      pageParams.createDailyReportHref({
-        branchId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        reportId: "3fa85f64-5717-4562-b3fc-2c963f66afa7",
-        status: "SUBMITTED",
-        page: 2,
-      }),
-    ).toBe(
-      "/reports?branch_id=3fa85f64-5717-4562-b3fc-2c963f66afa6&status=SUBMITTED&page=2&report_id=3fa85f64-5717-4562-b3fc-2c963f66afa7",
+  it("opens a report without changing the list it came from", () => {
+    const filters = parseDailyReportPageFilters({
+      status: "SUBMITTED",
+      date_from: "2026-09-01",
+      page: "2",
+    });
+    const href = createDailyReportHref({
+      ...filters,
+      reportId,
+      reportBranchId: branchId,
+    });
+    expect(href).toBe(
+      `/reports?status=SUBMITTED&date_from=2026-09-01&page=2&report_id=${reportId}&report_branch=${branchId}`,
     );
+    expect(
+      createDailyReportHref(
+        listFilters(
+          parseDailyReportPageFilters(
+            Object.fromEntries(new URL(href, "http://x").searchParams),
+          ),
+        ),
+      ),
+    ).toBe("/reports?status=SUBMITTED&date_from=2026-09-01&page=2");
   });
 });

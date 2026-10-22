@@ -60,7 +60,8 @@ describe("daily report create form", () => {
     const user = userEvent.setup();
     render(
       <createFormModule.DailyReportCreateForm
-        branchId={branchId}
+        branches={[{ id: branchId, name: "Manila North", status: "active" }]}
+        defaultBranchId={branchId}
         todayManila="2026-09-24"
         action={action}
       />,
@@ -90,7 +91,8 @@ describe("daily report create form", () => {
     const user = userEvent.setup();
     render(
       <createFormModule.DailyReportCreateForm
-        branchId={branchId}
+        branches={[{ id: branchId, name: "Manila North", status: "active" }]}
+        defaultBranchId={branchId}
         todayManila="2026-09-24"
         action={action}
       />,
@@ -118,7 +120,7 @@ describe("daily report create form", () => {
       firstKey,
     );
     expect(replace).toHaveBeenCalledWith(
-      `/reports?branch_id=${branchId}&report_id=${reportId}`,
+      `/reports?report_id=${reportId}&report_branch=${branchId}`,
     );
     expect(refresh).toHaveBeenCalled();
   });
@@ -139,7 +141,8 @@ describe("daily report create form", () => {
     const user = userEvent.setup();
     render(
       <createFormModule.DailyReportCreateForm
-        branchId={branchId}
+        branches={[{ id: branchId, name: "Manila North", status: "active" }]}
+        defaultBranchId={branchId}
         todayManila="2026-09-24"
         action={action}
       />,
@@ -163,7 +166,8 @@ describe("daily report create form", () => {
     const user = userEvent.setup();
     render(
       <createFormModule.DailyReportCreateForm
-        branchId={branchId}
+        branches={[{ id: branchId, name: "Manila North", status: "active" }]}
+        defaultBranchId={branchId}
         todayManila="2026-09-24"
         action={vi.fn()}
       />,

@@ -8,3 +8,4 @@ export const dailyReportStatuses = [
 export const dailyReportRoute = "/reports";
 export const dailyReportEndpoint = (branchId: string) =>
   `/branches/${branchId}/daily-reports`;
+export const dailyReportDirectoryEndpoint = "/daily-reports";

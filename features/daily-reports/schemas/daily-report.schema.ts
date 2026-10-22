@@ -124,6 +124,39 @@ export const dailyReportPageSchema = z.object({
   page_size: z.number().int().positive(),
 });
 
+export const dailyReportDirectoryItemSchema = z.object({
+  id: z.uuid(),
+  branch_id: z.uuid(),
+  branch_name: z.string(),
+  branch_status: z.string(),
+  business_date: z.iso.date(),
+  status: z.enum(dailyReportStatuses),
+  completed_sales_amount: decimalStringSchema,
+  completed_sales_count: z.number().int().nonnegative(),
+  voided_sales_count: z.number().int().nonnegative(),
+  submitted_at: z.iso.datetime().nullable(),
+  submitted_by_name: z.string().nullable(),
+  reviewed_at: z.iso.datetime().nullable(),
+  reviewed_by_name: z.string().nullable(),
+  updated_at: z.iso.datetime(),
+  item_count: z.number().int().nonnegative(),
+  counted_count: z.number().int().nonnegative(),
+  variance_count: z.number().int().nonnegative(),
+});
+
+export const dailyReportDirectorySchema = z.object({
+  items: z.array(dailyReportDirectoryItemSchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  page_size: z.number().int().positive(),
+  status_counts: z.object({
+    DRAFT: z.number().int().nonnegative(),
+    SUBMITTED: z.number().int().nonnegative(),
+    RETURNED: z.number().int().nonnegative(),
+    APPROVED: z.number().int().nonnegative(),
+  }),
+});
+
 export const dailyReportDetailSchema = dailyReportHeaderSchema.extend({
   business_day_ended: z.boolean().optional(),
   pending_deliveries: z

@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type {
   createDailyReportSchema,
   dailyReportDetailSchema,
+  dailyReportDirectorySchema,
   dailyReportPageSchema,
   returnDailyReportSchema,
   updateDailyReportSchema,
@@ -10,6 +11,8 @@ import type {
 export type DailyReport = z.infer<typeof dailyReportDetailSchema>;
 export type DailyReportPage = z.infer<typeof dailyReportPageSchema>;
 export type DailyReportListItem = DailyReportPage["items"][number];
+export type DailyReportDirectory = z.infer<typeof dailyReportDirectorySchema>;
+export type DailyReportDirectoryItem = DailyReportDirectory["items"][number];
 export type DailyReportItem = DailyReport["items"][number];
 export type CreateDailyReport = z.infer<typeof createDailyReportSchema>;
 export type UpdateDailyReport = z.infer<typeof updateDailyReportSchema>;
