@@ -89,6 +89,20 @@ const report: DailyReport = {
 const todo = (name: string) => screen.getByText(name).closest("li")!;
 
 describe("daily report checklist", () => {
+  it("explains the development bypass without claiming the checklist is complete", () => {
+    render(
+      <DailyReportChecklist
+        branchId={branchId}
+        report={{ ...report, submission_checklist_bypassed: true }}
+        hasUnsavedChanges={false}
+      />,
+    );
+    expect(
+      screen.getByText(/checklist is bypassed in development/i),
+    ).toBeTruthy();
+    expect(screen.queryByText("Ready to submit")).toBeNull();
+  });
+
   it("lists every submit blocker with links to the shifts involved", () => {
     render(
       <DailyReportChecklist

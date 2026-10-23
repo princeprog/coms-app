@@ -37,6 +37,19 @@ export function DailyReportChecklist({
   report: DailyReport;
   hasUnsavedChanges: boolean;
 }) {
+  if (report.submission_checklist_bypassed) {
+    return (
+      <section
+        aria-label="Before you submit"
+        className="rounded-xl border bg-card px-5 py-4"
+      >
+        <p className="text-sm text-muted-foreground">
+          The submission checklist is bypassed in development. You can submit
+          before the business day ends.
+        </p>
+      </section>
+    );
+  }
   const shifts = report.shifts ?? [];
   const open = shifts.filter((shift) => shift.status === "OPEN");
   const unreviewed = shifts.filter((shift) => shift.status === "CLOSED");

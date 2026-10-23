@@ -158,6 +158,7 @@ export const dailyReportDirectorySchema = z.object({
 });
 
 export const dailyReportDetailSchema = dailyReportHeaderSchema.extend({
+  submission_checklist_bypassed: z.boolean().optional(),
   business_day_ended: z.boolean().optional(),
   pending_deliveries: z
     .array(

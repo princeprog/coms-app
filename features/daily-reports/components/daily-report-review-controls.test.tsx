@@ -38,6 +38,51 @@ const report = {
 };
 
 describe("daily report review controls", () => {
+  it("submits without delivery reasons in development but still blocks unsaved edits", async () => {
+    const controls = await getReviewControls();
+    if (!controls) throw new Error("Report controls unavailable");
+    const action = vi.fn().mockResolvedValue({ ok: true, report });
+    const props = {
+      branchId,
+      report: {
+        ...report,
+        status: "DRAFT" as const,
+        submission_checklist_bypassed: true,
+        pending_deliveries: [
+          {
+            id: reportId,
+            dispatched_at: null,
+            receive_by: null,
+            receiving_status: "OVERDUE",
+          },
+        ],
+      },
+      canSubmit: true,
+      canReturn: false,
+      canApprove: false,
+      submitAction: action,
+      returnAction: vi.fn(),
+      approveAction: vi.fn(),
+      onReportChange: vi.fn(),
+    };
+    const { rerender } = render(
+      <controls.DailyReportReviewControls {...props} hasUnsavedChanges />,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Submit for review" }));
+    expect(action).not.toHaveBeenCalled();
+    rerender(
+      <controls.DailyReportReviewControls
+        {...props}
+        hasUnsavedChanges={false}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Submit for review" }));
+    await waitFor(() =>
+      expect(action).toHaveBeenCalledWith(branchId, reportId),
+    );
+  });
+
   it("keeps submission visible but disabled while an authorized report has blockers", async () => {
     const controls = await getReviewControls();
     if (!controls) throw new Error("Report controls unavailable");

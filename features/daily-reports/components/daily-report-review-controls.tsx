@@ -84,7 +84,9 @@ export function DailyReportReviewControls({
     )
       return;
     setAttempted(true);
-    const deliveries = report.pending_deliveries ?? [];
+    const deliveries = report.submission_checklist_bypassed
+      ? []
+      : (report.pending_deliveries ?? []);
     const missing = deliveries.find(
       (item) => !deliveryReasons[item.id]?.trim(),
     );
@@ -136,7 +138,7 @@ export function DailyReportReviewControls({
       aria-label="Report actions"
       className="flex flex-col gap-3 rounded-lg border bg-card p-4"
     >
-      {submitAvailable && (
+      {submitAvailable && !report.submission_checklist_bypassed && (
         <DailyReportDeliveries
           report={report}
           reasons={deliveryReasons}

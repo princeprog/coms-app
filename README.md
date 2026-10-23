@@ -27,6 +27,13 @@ existing local environment file when copying examples. Generate production
 secrets independently; never use a `NEXT_PUBLIC_` name for gateway credentials.
 Browser headers cannot override the configured gateway header.
 
+For local daily-report testing, set `NODE_ENV=development` in the API `.env`
+and app `.env.local`, then restart both servers. The API tells the app when the
+submission checklist is bypassed, allowing submission before day-end without
+counts, reviewed shifts, or delivery explanations. Permissions, unsaved-edit
+protection, and approval validation remain enforced. Deployed environments must
+use `NODE_ENV=production`; an app setting alone cannot bypass the API's checks.
+
 Backend redirects are rejected so gateway credentials and token-changing requests
 cannot be forwarded to a redirected destination. Auth responses are validated at
 the server boundary and extra user fields are stripped before reaching the client.

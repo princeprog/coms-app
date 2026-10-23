@@ -192,15 +192,16 @@ async function loadDetail(
   const canSubmit =
     canPrepareSubmission &&
     selectedReport !== null &&
-    selectedReport.items.length > 0 &&
-    selectedReport.items.every(
-      (item) => item.physical_closing_quantity !== null,
-    ) &&
-    selectedReport.business_date < businessToday &&
-    (() => {
-      const blocked = blockingReportShifts(selectedReport);
-      return !blocked.open.length && !blocked.unreviewed.length;
-    })();
+    (selectedReport.submission_checklist_bypassed === true ||
+      (selectedReport.items.length > 0 &&
+        selectedReport.items.every(
+          (item) => item.physical_closing_quantity !== null,
+        ) &&
+        selectedReport.business_date < businessToday &&
+        (() => {
+          const blocked = blockingReportShifts(selectedReport);
+          return !blocked.open.length && !blocked.unreviewed.length;
+        })()));
   const canReview =
     selectedReport?.status === "SUBMITTED" &&
     (selectedBranch.status !== "inactive" || isProtectedSuperAdmin(user));

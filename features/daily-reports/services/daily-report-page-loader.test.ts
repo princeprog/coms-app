@@ -198,6 +198,40 @@ describe("daily report page loader", () => {
     ).resolves.toMatchObject({ status: "detail", canSubmit: true });
   });
 
+  it("uses the API's development bypass without bypassing submission permissions", async () => {
+    getDailyReportDetail.mockResolvedValue({
+      ...report,
+      status: "DRAFT",
+      business_date: "2026-09-24",
+      submission_checklist_bypassed: true,
+      items: [{ stock_item_id: reportId, physical_closing_quantity: null }],
+      shifts: [{ status: "OPEN" }, { status: "CLOSED" }],
+    });
+    await expect(
+      loadDailyReportsView(
+        user(["daily_reports.read", "daily_reports.submit"]),
+        { report_id: reportId },
+      ),
+    ).resolves.toMatchObject({ canSubmit: true });
+    await expect(
+      loadDailyReportsView(user(["daily_reports.read"]), {
+        report_id: reportId,
+      }),
+    ).resolves.toMatchObject({ canSubmit: false });
+    getDailyReportDetail.mockResolvedValue({
+      ...report,
+      status: "DRAFT",
+      business_date: "2026-09-24",
+      submission_checklist_bypassed: false,
+    });
+    await expect(
+      loadDailyReportsView(
+        user(["daily_reports.read", "daily_reports.submit"]),
+        { report_id: reportId },
+      ),
+    ).resolves.toMatchObject({ canSubmit: false });
+  });
+
   it("converts an expired session into a session state", async () => {
     getDailyReportDirectory.mockRejectedValueOnce(
       new ApiRequestError("expired", 401),
