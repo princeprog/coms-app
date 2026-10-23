@@ -89,8 +89,10 @@ export function DailyReportChecklist({
     },
     {
       key: "counts",
-      done: report.items.length > 0 && counted === report.items.length,
-      label: "Every item counted",
+      done: counted === report.items.length,
+      label: report.items.length
+        ? "Every item counted"
+        : "No stock items require counting",
       detail: `${counted} of ${report.items.length} items counted${hasUnsavedChanges ? " · save your changes" : ""}`,
     },
     {

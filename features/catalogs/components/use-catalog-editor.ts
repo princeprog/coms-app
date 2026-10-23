@@ -17,8 +17,8 @@ function initialValues(
         field.key,
         Array.isArray(value)
           ? value.join(",")
-          : typeof value === "string"
-            ? value
+          : typeof value === "string" || typeof value === "boolean"
+            ? String(value)
             : (field.defaultValue ?? ""),
       ];
     }),
@@ -98,9 +98,11 @@ export function useCatalogEditor({
         const value = values[field.key]?.trim() ?? "";
         return [
           field.key,
-          field.type === "choices"
-            ? value.split(",").filter(Boolean)
-            : value || (field.required ? "" : null),
+          field.type === "checkbox"
+            ? value === "true"
+            : field.type === "choices"
+              ? value.split(",").filter(Boolean)
+              : value || (field.required ? "" : null),
         ];
       }),
     );

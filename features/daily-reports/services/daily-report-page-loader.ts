@@ -193,10 +193,9 @@ async function loadDetail(
     canPrepareSubmission &&
     selectedReport !== null &&
     (selectedReport.submission_checklist_bypassed === true ||
-      (selectedReport.items.length > 0 &&
-        selectedReport.items.every(
-          (item) => item.physical_closing_quantity !== null,
-        ) &&
+      (selectedReport.items.every(
+        (item) => item.physical_closing_quantity !== null,
+      ) &&
         selectedReport.business_date < businessToday &&
         (() => {
           const blocked = blockingReportShifts(selectedReport);

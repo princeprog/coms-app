@@ -16,6 +16,7 @@ function recordValue(
   options?: { value: string; label: string }[],
 ) {
   const value = record[key];
+  if (typeof value === "boolean") return value ? "Yes" : "No";
   if (Array.isArray(value))
     return value
       .map((v) => options?.find((o) => o.value === v)?.label ?? v)

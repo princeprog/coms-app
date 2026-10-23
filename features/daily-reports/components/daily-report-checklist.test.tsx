@@ -89,6 +89,17 @@ const report: DailyReport = {
 const todo = (name: string) => screen.getByText(name).closest("li")!;
 
 describe("daily report checklist", () => {
+  it("treats a report without count items as complete once its other checks pass", () => {
+    render(
+      <DailyReportChecklist
+        branchId={branchId}
+        report={{ ...report, items: [], pending_deliveries: [], shifts: [] }}
+        hasUnsavedChanges={false}
+      />,
+    );
+    expect(screen.getByText("No stock items require counting")).toBeTruthy();
+    expect(screen.getByText("Ready to submit")).toBeTruthy();
+  });
   it("explains the development bypass without claiming the checklist is complete", () => {
     render(
       <DailyReportChecklist

@@ -123,7 +123,7 @@ export function DailyReportDetail({
       {report.items.length === 0 ? (
         <OperationalEmptyState
           title="No stock items to count"
-          description="This report has no stock items in its saved snapshot."
+          description="Sales are still included. Approving this report will not adjust inventory balances."
         />
       ) : (
         <DailyReportItemEditor

@@ -11,6 +11,8 @@ export function displayValue(
   labels?: Record<string, string>,
 ) {
   const value = record[key];
+  if (typeof value === "boolean")
+    return labels?.[String(value)] ?? (value ? "Yes" : "No");
   if (key === "category_name" && typeof value === "string")
     return `${value}${record.category_is_active === false ? " (Archived)" : ""}`;
   if (Array.isArray(value))

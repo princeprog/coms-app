@@ -1,4 +1,5 @@
 import { CatalogCreateField } from "@/features/catalogs/components/catalog-create-field";
+import { CatalogCheckboxField } from "@/features/catalogs/components/catalog-checkbox-field";
 import type { CatalogFieldDefinition } from "@/features/catalogs/types/catalog.types";
 import {
   Field,
@@ -122,6 +123,15 @@ export function StockItemCreateFields({
           recipes.
         </FieldDescription>
       </Field>
+      {byKey.daily_count_required && (
+        <CatalogCheckboxField
+          id="catalog-create-daily_count_required"
+          field={byKey.daily_count_required}
+          value={values.daily_count_required ?? "true"}
+          pending={pending}
+          onChange={onChange}
+        />
+      )}
     </FieldGroup>
   );
 }

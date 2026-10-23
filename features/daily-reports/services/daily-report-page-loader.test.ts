@@ -232,6 +232,20 @@ describe("daily report page loader", () => {
     ).resolves.toMatchObject({ canSubmit: false });
   });
 
+  it("allows an ended report without count items to be submitted", async () => {
+    getDailyReportDetail.mockResolvedValue({
+      ...report,
+      status: "DRAFT",
+      items: [],
+    });
+    await expect(
+      loadDailyReportsView(
+        user(["daily_reports.read", "daily_reports.submit"]),
+        { report_id: reportId },
+      ),
+    ).resolves.toMatchObject({ canSubmit: true });
+  });
+
   it("converts an expired session into a session state", async () => {
     getDailyReportDirectory.mockRejectedValueOnce(
       new ApiRequestError("expired", 401),

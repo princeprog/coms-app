@@ -14,7 +14,8 @@ export type CatalogPage<T extends CatalogRecord = CatalogRecord> = {
 export type CatalogFieldDefinition = {
   key: string;
   label: string;
-  type?: "text" | "email" | "textarea" | "choices" | "select";
+  type?: "text" | "email" | "textarea" | "choices" | "select" | "checkbox";
+  description?: string;
   options?: { value: string; label: string }[];
   defaultValue?: string;
   required?: boolean;

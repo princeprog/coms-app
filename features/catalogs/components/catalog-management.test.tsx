@@ -199,6 +199,11 @@ describe("catalog management", () => {
       within(dialog).queryByRole("textbox", { name: "Category" }),
     ).toBeNull();
     const unit = within(dialog).getByRole("textbox", { name: "Unit" });
+    const dailyCount = within(dialog).getByRole("checkbox", {
+      name: "Include in daily branch counts",
+    });
+    expect(dailyCount.getAttribute("aria-checked")).toBe("true");
+    await user.click(dailyCount);
     expect(unit).toHaveProperty("required", true);
     expect(unit.getAttribute("aria-describedby")).toBeNull();
 
@@ -225,6 +230,7 @@ describe("catalog management", () => {
         category: "Rice and grains",
         unit: "kg",
         recipe_use: "RECIPE",
+        daily_count_required: false,
       }),
     );
   });
@@ -348,6 +354,61 @@ describe("catalog management", () => {
 
     await user.click(screen.getByRole("button", { name: "Create supplier" }));
     await waitFor(() => expect(createAction).toHaveBeenCalledTimes(2));
+  });
+
+  it("preserves an excluded item's count setting when editing and can enable it again", async () => {
+    const user = userEvent.setup();
+    const update = vi.fn().mockResolvedValue({ ok: false, error: "Try again" });
+    renderCatalog({
+      resourceName: "stock item",
+      title: "Stock items",
+      routePath: "/stock-items",
+      fields: stockItemFields,
+      displayColumns: stockItemDisplayColumns,
+      updateAction: update,
+      page: {
+        items: [
+          {
+            id: supplier.id,
+            stock_item_name: "Soy sauce",
+            category: "Sauces and seasonings",
+            unit: "L",
+            is_active: true,
+            recipe_use: "RECIPE",
+            daily_count_required: false,
+          },
+        ],
+        total: 1,
+        page: 1,
+        page_size: 10,
+      },
+    });
+    expect(screen.getAllByText("Periodic").length).toBeGreaterThan(0);
+    const trigger = screen.getByRole("button", {
+      name: "More actions for Soy sauce",
+    });
+    trigger.focus();
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("menuitem", { name: "Edit" }));
+    const checkbox = screen.getByRole("checkbox", {
+      name: "Include in daily branch counts",
+    });
+    expect(checkbox.getAttribute("aria-checked")).toBe("false");
+    await user.click(screen.getByRole("button", { name: "Save stock item" }));
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(
+        supplier.id,
+        expect.objectContaining({ daily_count_required: false }),
+      ),
+    );
+    await user.click(checkbox);
+    await user.click(screen.getByRole("button", { name: "Save stock item" }));
+    await waitFor(() =>
+      expect(update).toHaveBeenLastCalledWith(
+        supplier.id,
+        expect.objectContaining({ daily_count_required: true }),
+      ),
+    );
   });
 
   it("updates the selected record without changing other values", async () => {

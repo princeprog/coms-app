@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/select";
 import type { ChangeEvent } from "react";
 import { CatalogChoiceField } from "./catalog-choice-field";
+import { CatalogCheckboxField } from "./catalog-checkbox-field";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,17 @@ export function CatalogEditorFields({
   return (
     <FieldGroup className="gap-4">
       {fields.map((field) => {
+        if (field.type === "checkbox")
+          return (
+            <CatalogCheckboxField
+              key={field.key}
+              id={`catalog-${idPrefix}-${field.key}`}
+              field={field}
+              value={values[field.key] ?? field.defaultValue ?? "false"}
+              pending={pending}
+              onChange={onChange}
+            />
+          );
         if (field.type === "select")
           return (
             <Field key={field.key}>

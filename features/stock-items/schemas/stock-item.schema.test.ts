@@ -16,6 +16,16 @@ const stockItem = {
 };
 
 describe("stock-item schemas", () => {
+  it("accepts explicit daily-count settings without coercing strings or null", () => {
+    expect(
+      updateStockItemSchema.parse({ daily_count_required: false }),
+    ).toEqual({ daily_count_required: false });
+    for (const value of [null, "false", 0])
+      expect(
+        updateStockItemSchema.safeParse({ daily_count_required: value })
+          .success,
+      ).toBe(false);
+  });
   it("trims required stock item fields before submitting them", () => {
     expect(
       createStockItemSchema.parse({

@@ -11,6 +11,7 @@ export const stockItemSchema = z.object({
   is_active: z.boolean(),
   // Always sent by the API; older fixtures omit it, which means RECIPE.
   recipe_use: stockRecipeUseSchema.optional(),
+  daily_count_required: z.boolean().optional(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
 });
@@ -23,6 +24,7 @@ export const createStockItemSchema = z
     category: z.string().trim().min(1).max(80),
     unit: z.string().trim().min(1).max(40),
     recipe_use: stockRecipeUseSchema.optional(),
+    daily_count_required: z.boolean().optional(),
   })
   .strict();
 
@@ -32,6 +34,7 @@ export const updateStockItemSchema = z
     category: z.string().trim().min(1).max(80).optional(),
     unit: z.string().trim().min(1).max(40).optional(),
     recipe_use: stockRecipeUseSchema.optional(),
+    daily_count_required: z.boolean().optional(),
   })
   .strict()
   .refine((input) => Object.keys(input).length > 0, {

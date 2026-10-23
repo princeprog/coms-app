@@ -31,6 +31,11 @@ export const stockItemDisplayColumns: CatalogDisplayColumn[] = [
   { key: "category", label: "Category" },
   { key: "unit", label: "Unit" },
   { key: "recipe_use", label: "Recipe use", valueLabels: stockRecipeUseLabels },
+  {
+    key: "daily_count_required",
+    label: "Branch count",
+    valueLabels: { true: "Daily", false: "Periodic" },
+  },
 ];
 
 export const stockItemFields: CatalogFieldDefinition[] = [
@@ -52,5 +57,13 @@ export const stockItemFields: CatalogFieldDefinition[] = [
       value,
       label,
     })),
+  },
+  {
+    key: "daily_count_required",
+    label: "Include in daily branch counts",
+    type: "checkbox",
+    defaultValue: "true",
+    description:
+      "Turn off for items counted periodically. Inventory movements will still be tracked. Applies to new reports only.",
   },
 ];
