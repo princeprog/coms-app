@@ -19,10 +19,7 @@ export function TodayChart({ data }: { data: DashboardToday }) {
     0,
   );
   return (
-    <section
-      aria-label="Sales trend"
-      className="flex min-h-0 min-w-0 flex-1 flex-col gap-2"
-    >
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Tabs value={view} onValueChange={(value) => setView(value as View)}>
           <TabsList aria-label="Sales trend view" className="h-8">
@@ -62,6 +59,6 @@ export function TodayChart({ data }: { data: DashboardToday }) {
       ) : (
         <WeekTrend days={data.last_7_days} />
       )}
-    </section>
+    </div>
   );
 }

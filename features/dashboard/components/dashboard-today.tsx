@@ -12,7 +12,8 @@ import { BranchBoard } from "./branch-board";
 import { CountShortages } from "./count-shortages";
 import { ExceptionTrends } from "./exception-trends";
 import { ReportBacklog } from "./report-backlog";
-import { TodayHero } from "./today-hero";
+import { SalesTrendPanel } from "./sales-trend-panel";
+import { SummaryCards } from "./summary-cards";
 import { TopProductsToday } from "./top-products-today";
 import { UpdatedLabel } from "./updated-label";
 
@@ -27,6 +28,11 @@ function DashboardSkeleton() {
       aria-label="Loading dashboard"
       className="flex flex-col gap-4"
     >
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((card) => (
+          <Skeleton key={card} className="h-28" />
+        ))}
+      </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <Skeleton className="h-64 lg:col-span-2" />
         <Skeleton className="h-64" />
@@ -141,10 +147,11 @@ export function DashboardTodayWorkspace({
           aria-busy={busy}
           className="flex flex-col gap-4 transition-opacity duration-200 ease-out-quint aria-busy:opacity-80 motion-reduce:transition-none"
         >
+          <SummaryCards data={data} />
           {data.workspace === "branch" && <BranchBoard data={data} />}
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="min-w-0 lg:col-span-2">
-              <TodayHero
+              <SalesTrendPanel
                 data={data}
                 canOpenReport={canOpenReport && data.access.sales}
                 branchId={branchId}

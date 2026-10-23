@@ -448,15 +448,30 @@ describe("dashboard today", () => {
     expect(
       within(hero).getByText("Food cost covers 66.7% of today's sales."),
     ).toBeTruthy();
+    const cards = within(hero)
+      .getAllByRole("term")
+      .map((term) => term.textContent);
+    expect(cards).toEqual([
+      "Net sales",
+      "Sales",
+      "Average sale",
+      "Gross profit",
+      "Voided",
+    ]);
     expect(
-      within(hero)
+      within(hero).getByText("75.1% margin · Food cost ₱112.00"),
+    ).toBeTruthy();
+    expect(within(hero).getByText("5 items sold")).toBeTruthy();
+    expect(within(hero).getByText("₱338.00")).toBeTruthy();
+    const trend = screen.getByRole("region", { name: "Sales trend" });
+    expect(
+      within(trend)
         .getByRole("tab", { name: "By hour" })
         .getAttribute("aria-selected"),
     ).toBe("true");
-    expect(within(hero).getByText("Hourly chart")).toBeTruthy();
-    expect(within(hero).getByText("₱338.00")).toBeTruthy();
+    expect(within(trend).getByText("Hourly chart")).toBeTruthy();
     expect(
-      within(hero)
+      within(trend)
         .getByRole("link", { name: "Sales report" })
         .getAttribute("href"),
     ).toBe("/sales-report?period=day");
