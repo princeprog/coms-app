@@ -1,4 +1,11 @@
-import { TriangleAlert } from "lucide-react";
+import {
+  Ban,
+  Banknote,
+  ReceiptText,
+  Scale,
+  TrendingUp,
+  TriangleAlert,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { MetricChange } from "@/components/shared/metric-change";
 import { changeText, count, peso } from "@/lib/metric-format";
@@ -6,9 +13,23 @@ import { cn } from "@/lib/utils";
 import type { DashboardToday } from "../schemas/dashboard-today.schema";
 import { weekdayShort } from "../services/dashboard-format";
 
+type Tone = "emerald" | "sky" | "violet" | "amber" | "rose";
+
+const toneStyles: Record<Tone, string> = {
+  emerald:
+    "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
+  sky: "bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400",
+  violet:
+    "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400",
+  amber: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+  rose: "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400",
+};
+
 type Card = {
   label: string;
   value: string;
+  icon: ReactNode;
+  tone: Tone;
   change?: string | null;
   detail?: ReactNode;
   wide?: boolean;
@@ -28,6 +49,8 @@ export function SummaryCards({ data }: { data: DashboardToday }) {
     {
       label: "Net sales",
       value: peso(t.net_sales),
+      icon: <Banknote />,
+      tone: "emerald",
       change: data.changes.net_sales,
       wide: true,
       detail: (
@@ -46,12 +69,16 @@ export function SummaryCards({ data }: { data: DashboardToday }) {
     {
       label: "Sales",
       value: count(t.sales_count),
+      icon: <ReceiptText />,
+      tone: "sky",
       change: data.changes.sales_count,
       detail: `${lastWeek} at this time: ${count(data.last_week_same_time.sales_count)}`,
     },
     {
       label: "Average sale",
       value: peso(t.average_sale),
+      icon: <Scale />,
+      tone: "violet",
       detail: `${count(t.items_sold)} items sold`,
     },
     ...(data.show_costs
@@ -59,6 +86,8 @@ export function SummaryCards({ data }: { data: DashboardToday }) {
           {
             label: "Gross profit",
             value: peso(t.gross_profit),
+            icon: <TrendingUp />,
+            tone: "amber" as const,
             detail: [
               margin(t.gross_profit, t.net_sales),
               `Food cost ${peso(t.food_cost)}`,
@@ -71,6 +100,8 @@ export function SummaryCards({ data }: { data: DashboardToday }) {
     {
       label: "Voided",
       value: count(t.void_count),
+      icon: <Ban />,
+      tone: "rose",
       detail: "Sales voided today",
     },
   ];
@@ -89,11 +120,22 @@ export function SummaryCards({ data }: { data: DashboardToday }) {
           <div
             key={card.label}
             className={cn(
-              "flex min-w-0 flex-col gap-1 rounded-xl border bg-card p-4",
+              "flex min-w-0 flex-col gap-1.5 rounded-xl border bg-card p-4 shadow-xs",
               card.wide && "col-span-2 md:col-span-1",
             )}
           >
-            <dt className="text-sm text-muted-foreground">{card.label}</dt>
+            <dt className="flex items-center justify-between gap-2 text-sm font-medium text-muted-foreground">
+              {card.label}
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-lg [&_svg]:size-4",
+                  toneStyles[card.tone],
+                )}
+              >
+                {card.icon}
+              </span>
+            </dt>
             <dd className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <span className="truncate text-2xl font-semibold tracking-tight tabular-nums">
                 {card.value}
