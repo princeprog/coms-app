@@ -150,6 +150,8 @@ export const dashboardTodaySchema = z.object({
       sales_count: z.number().int(),
       net_sales: money,
       last_sale_at: z.string().nullable(),
+      last_week_net_sales: money,
+      net_sales_change: z.string().nullable(),
       yesterday_report_status: z
         .enum(["DRAFT", "SUBMITTED", "RETURNED", "APPROVED", "MISSING"])
         .nullable(),

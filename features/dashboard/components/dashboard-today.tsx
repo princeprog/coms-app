@@ -9,6 +9,7 @@ import { useDashboardToday } from "../hooks/use-dashboard-today";
 import { businessDayLabel } from "../services/dashboard-format";
 import { AttentionList } from "./attention-list";
 import { BranchBoard } from "./branch-board";
+import { BranchSalesChart } from "./branch-sales-chart";
 import { CountShortages } from "./count-shortages";
 import { ExceptionTrends } from "./exception-trends";
 import { ReportBacklog } from "./report-backlog";
@@ -159,6 +160,12 @@ export function DashboardTodayWorkspace({
             </div>
             <AttentionList data={data} branchId={branchId} />
           </div>
+          {data.branches.length > 1 && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <BranchSalesChart data={data} />
+              <TopProductsToday products={data.top_products_today} />
+            </div>
+          )}
           {data.workspace === "overview" && <BranchBoard data={data} />}
           {data.access.reports && (
             <div className="grid gap-4 lg:grid-cols-3">
@@ -169,7 +176,9 @@ export function DashboardTodayWorkspace({
             </div>
           )}
           <ExceptionTrends branchId={branchId} />
-          <TopProductsToday products={data.top_products_today} />
+          {data.branches.length <= 1 && (
+            <TopProductsToday products={data.top_products_today} />
+          )}
         </div>
       )}
     </div>

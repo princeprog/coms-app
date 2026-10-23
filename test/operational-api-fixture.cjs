@@ -834,6 +834,8 @@ function dashboardTodayFixture() {
         sales_count: 24,
         net_sales: "4320.00",
         last_sale_at: new Date(Date.now() - 6 * 60_000).toISOString(),
+        last_week_net_sales: "3980.00",
+        net_sales_change: "8.5",
         yesterday_report_status: "SUBMITTED",
       },
       {
@@ -847,6 +849,8 @@ function dashboardTodayFixture() {
         sales_count: 14,
         net_sales: "2520.00",
         last_sale_at: new Date(Date.now() - 21 * 60_000).toISOString(),
+        last_week_net_sales: "2760.00",
+        net_sales_change: "-8.7",
         yesterday_report_status: "MISSING",
       },
     ],

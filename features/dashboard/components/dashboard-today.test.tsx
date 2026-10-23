@@ -173,6 +173,8 @@ function today(patch: Partial<DashboardToday> = {}): DashboardToday {
         sales_count: 3,
         net_sales: "450.00",
         last_sale_at: "2026-10-22T06:35:00Z",
+        last_week_net_sales: "300.00",
+        net_sales_change: "50",
         yesterday_report_status: "MISSING",
       },
     ],
@@ -329,6 +331,55 @@ describe("dashboard today", () => {
     expect(
       screen.getByRole("list", { name: "Shortages by branch" }).textContent,
     ).not.toContain("₱");
+  });
+
+  it("compares each branch with the same time last week when several are shown", async () => {
+    const base = today().branches[0];
+    getDashboardTodayAction.mockResolvedValue({
+      ok: true,
+      data: today({
+        branches: [
+          {
+            ...base,
+            branch_id: "b-cebu",
+            branch_name: "Cebu Branch",
+            net_sales: "200.00",
+            last_week_net_sales: "800.00",
+            net_sales_change: "-75",
+          },
+          base,
+          {
+            ...base,
+            branch_id: "b-new",
+            branch_name: "Davao Branch",
+            net_sales: "0.00",
+            last_week_net_sales: "0.00",
+            net_sales_change: null,
+          },
+        ],
+      }),
+    });
+    mount();
+    const chart = await screen.findByRole("list", {
+      name: "Branch sales vs last week",
+    });
+    const rows = within(chart).getAllByRole("listitem");
+    expect(rows.map((row) => row.textContent?.split("₱")[0])).toEqual([
+      "Manila - Ermita",
+      "Cebu Branch",
+      "Davao Branch",
+    ]);
+    expect(rows[1].textContent).toContain("₱200.00");
+    expect(rows[1].textContent).toContain("−75%");
+    expect(rows[1].textContent).toContain("Last Thu at this time: ₱800.00");
+    expect(rows[2].textContent).toContain("No sales last week");
+  });
+
+  it("hides the branch comparison for a single branch", async () => {
+    mount();
+    await screen.findByRole("region", { name: "Today so far" });
+    expect(screen.queryByText("Branch sales vs last week")).toBeNull();
+    expect(screen.getByText("Top products today")).toBeTruthy();
   });
 
   it("hides unauthorized report progress and actions in the branch workspace", async () => {
