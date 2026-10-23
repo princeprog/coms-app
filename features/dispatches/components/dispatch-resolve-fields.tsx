@@ -128,7 +128,8 @@ export function DispatchResolveFields({
       ) : (
         <p className="rounded-md border bg-muted/30 p-3 text-sm">
           The branch counted more than was sent. Confirming the surplus deducts
-          it from commissary stock, because it was packed by mistake.
+          it from commissary stock. If this leaves the balance below zero, it
+          will be marked Below zero in Inventory for a stock-record correction.
         </p>
       )}
       <Field data-invalid={!!errors.quantity}>

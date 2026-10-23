@@ -20,7 +20,7 @@ export const inventoryItemSchema = z.object({
   is_active: z.boolean(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
-  // Branch stock can be negative after recipe sales outrun recorded receipts.
+  // Recorded sales or confirmed dispatch surplus can leave stock below zero.
   quantity_on_hand: decimalText,
   // Sent to the branch but not counted yet; always 0 at the commissary.
   on_the_way: decimalText.default("0"),
