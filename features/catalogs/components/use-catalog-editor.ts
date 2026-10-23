@@ -52,13 +52,11 @@ export function useCatalogEditor({
   const createLayout: "supplier" | "stock-item" | "payment-method" | null =
     resourceName === "payment method"
       ? "payment-method"
-      : record
-        ? null
-        : resourceName === "supplier"
+      : resourceName === "stock item"
+        ? "stock-item"
+        : !record && resourceName === "supplier"
           ? "supplier"
-          : resourceName === "stock item"
-            ? "stock-item"
-            : null;
+          : null;
   const isDesignedCreate = createLayout !== null;
   const idPrefix = resourceName.replaceAll(" ", "-");
   const originalValues = initialValues(fields, record);

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CatalogCreateField } from "@/features/catalogs/components/catalog-create-field";
 import { CatalogCheckboxField } from "@/features/catalogs/components/catalog-checkbox-field";
 import type { CatalogFieldDefinition } from "@/features/catalogs/types/catalog.types";
@@ -32,6 +33,13 @@ export function StockItemCreateFields({
   onChange: (key: string, value: string) => void;
 }) {
   const byKey = Object.fromEntries(fields.map((field) => [field.key, field]));
+  // Older saved categories must remain selectable when this form is used to edit.
+  const [categories] = useState<readonly string[]>(() =>
+    values.category &&
+    !stockItemCategories.some((category) => category === values.category)
+      ? [values.category, ...stockItemCategories]
+      : stockItemCategories,
+  );
   const renderField = (key: string, placeholder: string) => {
     const field = byKey[key] as CatalogFieldDefinition | undefined;
     return field ? (
@@ -75,7 +83,7 @@ export function StockItemCreateFields({
               alignItemWithTrigger={false}
             >
               <SelectGroup>
-                {stockItemCategories.map((category) => (
+                {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
                   </SelectItem>

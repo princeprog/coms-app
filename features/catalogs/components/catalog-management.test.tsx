@@ -356,7 +356,7 @@ describe("catalog management", () => {
     await waitFor(() => expect(createAction).toHaveBeenCalledTimes(2));
   });
 
-  it("preserves an excluded item's count setting when editing and can enable it again", async () => {
+  it("edits stock items with the create controls while preserving saved categories and count settings", async () => {
     const user = userEvent.setup();
     const update = vi.fn().mockResolvedValue({ ok: false, error: "Try again" });
     renderCatalog({
@@ -371,7 +371,7 @@ describe("catalog management", () => {
           {
             id: supplier.id,
             stock_item_name: "Soy sauce",
-            category: "Sauces and seasonings",
+            category: "Legacy condiments",
             unit: "L",
             is_active: true,
             recipe_use: "RECIPE",
@@ -390,6 +390,18 @@ describe("catalog management", () => {
     trigger.focus();
     await user.keyboard("{Enter}");
     await user.click(screen.getByRole("menuitem", { name: "Edit" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit stock item" });
+    const category = within(dialog).getByRole("combobox", { name: "Category" });
+    expect(category.textContent).toContain("Legacy condiments");
+    expect(
+      within(dialog).queryByRole("textbox", { name: "Category" }),
+    ).toBeNull();
+    expect(
+      within(dialog).getByRole("textbox", { name: "Stock item name" }),
+    ).toHaveProperty("value", "Soy sauce");
+    expect(
+      within(dialog).getByRole("textbox", { name: "Unit" }),
+    ).toHaveProperty("value", "L");
     const checkbox = screen.getByRole("checkbox", {
       name: "Include in daily branch counts",
     });
@@ -398,15 +410,29 @@ describe("catalog management", () => {
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith(
         supplier.id,
-        expect.objectContaining({ daily_count_required: false }),
+        expect.objectContaining({
+          category: "Legacy condiments",
+          daily_count_required: false,
+        }),
       ),
     );
+    await user.click(category);
+    await user.click(
+      await screen.findByRole("option", { name: "Sauces and seasonings" }),
+    );
+    await waitFor(() =>
+      expect(category.textContent).toContain("Sauces and seasonings"),
+    );
     await user.click(checkbox);
+    expect(checkbox.getAttribute("aria-checked")).toBe("true");
     await user.click(screen.getByRole("button", { name: "Save stock item" }));
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
         supplier.id,
-        expect.objectContaining({ daily_count_required: true }),
+        expect.objectContaining({
+          category: "Sauces and seasonings",
+          daily_count_required: true,
+        }),
       ),
     );
   });
