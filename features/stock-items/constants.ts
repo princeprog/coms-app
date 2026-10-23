@@ -63,7 +63,5 @@ export const stockItemFields: CatalogFieldDefinition[] = [
     label: "Include in daily branch counts",
     type: "checkbox",
     defaultValue: "true",
-    description:
-      "Turn off for items counted periodically. Inventory movements will still be tracked. Applies to new reports only.",
   },
 ];
