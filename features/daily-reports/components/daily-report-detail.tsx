@@ -142,6 +142,7 @@ export function DailyReportDetail({
         branchId={branchId}
         report={report}
         canSubmit={canSubmit}
+        canPrepareSubmission={canPrepareSubmission}
         canApprove={canApprove}
         canReturn={canReturn}
         hasUnsavedChanges={hasUnsavedChanges}

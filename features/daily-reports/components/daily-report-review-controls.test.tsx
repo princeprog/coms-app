@@ -38,6 +38,57 @@ const report = {
 };
 
 describe("daily report review controls", () => {
+  it("keeps submission visible but disabled while an authorized report has blockers", async () => {
+    const controls = await getReviewControls();
+    if (!controls) throw new Error("Report controls unavailable");
+    const action = vi.fn();
+    const user = userEvent.setup();
+    const props = {
+      branchId,
+      report: { ...report, status: "DRAFT" as const },
+      canPrepareSubmission: true,
+      canSubmit: false,
+      canReturn: false,
+      canApprove: false,
+      hasUnsavedChanges: false,
+      submitAction: action,
+      returnAction: vi.fn(),
+      approveAction: vi.fn(),
+      onReportChange: vi.fn(),
+    };
+    const { rerender } = render(
+      <controls.DailyReportReviewControls {...props} />,
+    );
+    const button = screen.getByRole("button", { name: "Submit for review" });
+    expect(button.hasAttribute("disabled")).toBe(true);
+    const hint = screen.getByText(
+      /complete the.*before you submit.*checklist/i,
+    );
+    expect(button.getAttribute("aria-describedby")).toBe(hint.id);
+    await user.click(button);
+    expect(action).not.toHaveBeenCalled();
+
+    rerender(<controls.DailyReportReviewControls {...props} canSubmit />);
+    expect(
+      screen
+        .getByRole("button", { name: "Submit for review" })
+        .hasAttribute("disabled"),
+    ).toBe(false);
+    expect(
+      screen.queryByText(/complete the.*before you submit.*checklist/i),
+    ).toBeNull();
+
+    rerender(
+      <controls.DailyReportReviewControls
+        {...props}
+        canPrepareSubmission={false}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Submit for review" }),
+    ).toBeNull();
+  });
+
   it("requires a not-arrived reason and preserves it after a failed submission", async () => {
     const controls = await getReviewControls();
     if (!controls) throw new Error("Report controls unavailable");

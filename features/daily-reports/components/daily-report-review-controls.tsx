@@ -17,6 +17,7 @@ export function DailyReportReviewControls({
   report,
   hasUnsavedChanges,
   canSubmit,
+  canPrepareSubmission = canSubmit,
   canReturn,
   canApprove,
   submitAction,
@@ -28,6 +29,7 @@ export function DailyReportReviewControls({
   report: DailyReport;
   hasUnsavedChanges: boolean;
   canSubmit: boolean;
+  canPrepareSubmission?: boolean;
   canReturn: boolean;
   canApprove: boolean;
   submitAction: DailyReportTransitionAction;
@@ -73,6 +75,14 @@ export function DailyReportReviewControls({
   }
 
   async function submit() {
+    if (
+      !canPrepareSubmission ||
+      !canSubmit ||
+      !isEditable ||
+      hasUnsavedChanges ||
+      pending
+    )
+      return;
     setAttempted(true);
     const deliveries = report.pending_deliveries ?? [];
     const missing = deliveries.find(
@@ -114,7 +124,8 @@ export function DailyReportReviewControls({
     await runAction(() => approveAction(branchId, report.id));
   }
 
-  const submitAvailable = canSubmit && isEditable;
+  const submitAvailable = canPrepareSubmission && isEditable;
+  const submitBlockedHintId = `report-submit-blocked-${report.id}`;
   const returnAvailable = canReturn && isReviewable;
   const approveAvailable = canApprove && isReviewable;
 
@@ -140,7 +151,8 @@ export function DailyReportReviewControls({
         {submitAvailable && (
           <Button
             type="button"
-            disabled={pending || hasUnsavedChanges}
+            disabled={pending || hasUnsavedChanges || !canSubmit}
+            aria-describedby={!canSubmit ? submitBlockedHintId : undefined}
             onClick={() => void submit()}
           >
             {pending ? "Submitting…" : "Submit for review"}
@@ -167,6 +179,11 @@ export function DailyReportReviewControls({
           />
         )}
       </div>
+      {submitAvailable && !canSubmit && (
+        <p id={submitBlockedHintId} className="text-sm text-muted-foreground">
+          Complete the “Before you submit” checklist above to enable submission.
+        </p>
+      )}
       {hasUnsavedChanges && (
         <p role="status" className="text-sm text-muted-foreground">
           Save or discard unsaved counts before changing report status.
