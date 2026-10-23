@@ -618,6 +618,26 @@ function dashboardTodayFixture() {
   const branchA = "10000000-0000-4000-8000-000000000001";
   const branchB = "10000000-0000-4000-8000-000000000002";
   return {
+    workspace: "overview",
+    access: { reports: true, shifts: true, sales: true, dispatches: true },
+    submission_checklist_bypassed: false,
+    report_progress: [branchA, branchB].flatMap((branch_id) =>
+      [0, 1].map((offset) => ({
+        branch_id,
+        period: offset ? "yesterday" : "today",
+        business_date: day(offset),
+        report_id: null,
+        status: "MISSING",
+        total_items: null,
+        counted_items: null,
+        open_shifts: offset ? 0 : 1,
+        unreviewed_shifts: 0,
+        pending_deliveries: 0,
+        counts_awaiting_review: 0,
+        day_ended: Boolean(offset),
+        had_sales: true,
+      })),
+    ),
     business_date: today,
     as_of: new Date().toISOString(),
     scope_label: "All branches",
@@ -665,6 +685,7 @@ function dashboardTodayFixture() {
         branch_id: branchA,
         branch_name: "Manila - Ermita",
         status: "active",
+        shift_id: null,
         shift_number: 2,
         cashier_name: "Ana Cruz",
         opened_at: new Date(Date.now() - 5 * 3600_000).toISOString(),
@@ -677,6 +698,7 @@ function dashboardTodayFixture() {
         branch_id: branchB,
         branch_name: "Cebu Branch",
         status: "active",
+        shift_id: null,
         shift_number: 1,
         cashier_name: "Ben Reyes",
         opened_at: new Date(Date.now() - 4 * 3600_000).toISOString(),

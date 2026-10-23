@@ -25,7 +25,6 @@ export function useDashboardToday() {
     },
     refetchInterval: dashboardRefreshMs,
     refetchIntervalInBackground: false,
-    placeholderData: (previous) => previous,
     retry: false,
   });
   function selectBranch(next?: string) {

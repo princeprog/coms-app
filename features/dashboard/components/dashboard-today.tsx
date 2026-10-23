@@ -100,6 +100,23 @@ export function DashboardTodayWorkspace({
           )}
         </div>
       </header>
+      {result.isError && data && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-600/40 bg-amber-50 p-3 text-sm dark:bg-amber-950/30"
+        >
+          <p>
+            Could not refresh the dashboard. Showing the last successful update.
+          </p>
+          <Button
+            variant="outline"
+            disabled={result.isFetching}
+            onClick={() => result.refetch()}
+          >
+            Try again
+          </Button>
+        </div>
+      )}
       {result.isError && !data ? (
         <div
           role="alert"
@@ -121,18 +138,19 @@ export function DashboardTodayWorkspace({
           aria-busy={busy}
           className="flex flex-col gap-4 transition-opacity duration-200 ease-out-quint aria-busy:opacity-80 motion-reduce:transition-none"
         >
+          {data.workspace === "branch" && <BranchBoard data={data} />}
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="min-w-0 lg:col-span-2">
-              <TodayHero data={data} canOpenReport={canOpenReport} />
+              <TodayHero
+                data={data}
+                canOpenReport={canOpenReport && data.access.sales}
+                branchId={branchId}
+              />
             </div>
             <AttentionList data={data} branchId={branchId} />
           </div>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="min-w-0 lg:col-span-2">
-              <BranchBoard branches={data.branches} />
-            </div>
-            <TopProductsToday products={data.top_products_today} />
-          </div>
+          {data.workspace === "overview" && <BranchBoard data={data} />}
+          <TopProductsToday products={data.top_products_today} />
         </div>
       )}
     </div>

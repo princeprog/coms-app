@@ -6,14 +6,17 @@ import { cn } from "@/lib/utils";
 import type { DashboardToday } from "../schemas/dashboard-today.schema";
 import { weekdayShort } from "../services/dashboard-format";
 import { TodayChart } from "./today-chart";
+import { salesReportHref } from "../services/dashboard-links";
 
 /** Today's sales so far against the same weekday last week. */
 export function TodayHero({
   data,
   canOpenReport,
+  branchId,
 }: {
   data: DashboardToday;
   canOpenReport: boolean;
+  branchId?: string;
 }) {
   const t = data.today;
   const coverage = t.cost_coverage_percent;
@@ -62,7 +65,7 @@ export function TodayHero({
         </div>
         {canOpenReport && (
           <Link
-            href="/sales-report?period=day"
+            href={salesReportHref(branchId)}
             className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
           >
             Sales report

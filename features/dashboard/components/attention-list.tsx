@@ -28,6 +28,7 @@ import {
   pendingAttention,
   type AttentionTone,
 } from "../services/attention";
+import { AttentionDetail } from "./attention-detail";
 
 const icons: Record<AttentionKey, ReactNode> = {
   deliveries_overdue: <Truck />,
@@ -35,6 +36,7 @@ const icons: Record<AttentionKey, ReactNode> = {
   shifts_open_past_day: <Clock />,
   cash_shortages: <Banknote />,
   stock_below_zero: <PackageMinus />,
+  commissary_stock_below_zero: <Warehouse />,
   branch_stock_low: <PackageOpen />,
   commissary_stock_low: <Warehouse />,
   reports_missing: <FileWarning />,
@@ -88,7 +90,11 @@ export function AttentionList({
           </p>
         </div>
       ) : (
-        <ul aria-label="Needs attention" className="flex flex-col p-2">
+        <ul
+          aria-label="Needs attention"
+          tabIndex={0}
+          className="flex max-h-128 flex-col overflow-y-auto p-2 focus-visible:outline-2 focus-visible:outline-ring"
+        >
           {items.map((item) => (
             <li key={item.key}>
               <Link
@@ -120,6 +126,7 @@ export function AttentionList({
                   className="size-4 text-muted-foreground transition-transform duration-150 ease-out group-hover:translate-x-0.5 motion-reduce:transition-none"
                 />
               </Link>
+              <AttentionDetail item={item} />
             </li>
           ))}
         </ul>

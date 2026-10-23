@@ -57,6 +57,12 @@ export const attentionConfig: Record<AttentionKey, AttentionConfig> = {
     path: "/inventory?scope=BRANCH",
     branchParam: "branch_id",
   },
+  commissary_stock_below_zero: {
+    label: (n) =>
+      plural(n, "Commissary item below zero", "Commissary items below zero"),
+    tone: "critical",
+    path: "/inventory?scope=COMMISSARY",
+  },
   branch_stock_low: {
     label: (n) =>
       plural(n, "Branch item needs restocking", "Branch items need restocking"),
@@ -163,9 +169,9 @@ export function attentionHref(key: AttentionKey, branchId?: string) {
 }
 
 /** Items with something to do, most urgent first. */
-export function pendingAttention(
-  items: { key: AttentionKey; count: number }[],
-) {
+export function pendingAttention<
+  T extends { key: AttentionKey; count: number },
+>(items: T[]) {
   return items
     .filter((item) => item.count > 0)
     .map((item, index) => ({ ...item, index, ...attentionConfig[item.key] }))

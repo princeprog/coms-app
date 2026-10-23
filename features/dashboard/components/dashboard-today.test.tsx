@@ -27,6 +27,41 @@ vi.mock("./hourly-trend", () => ({
 const branch = "00000000-0000-4000-8000-000000000001";
 function today(patch: Partial<DashboardToday> = {}): DashboardToday {
   return {
+    workspace: "overview",
+    access: { reports: true, shifts: true, sales: true, dispatches: true },
+    submission_checklist_bypassed: false,
+    report_progress: [
+      {
+        branch_id: branch,
+        period: "today",
+        business_date: "2026-10-22",
+        report_id: "report-1",
+        status: "DRAFT",
+        counted_items: 2,
+        total_items: 5,
+        open_shifts: 1,
+        unreviewed_shifts: 0,
+        pending_deliveries: 1,
+        counts_awaiting_review: 0,
+        day_ended: false,
+        had_sales: true,
+      },
+      {
+        branch_id: branch,
+        period: "yesterday",
+        business_date: "2026-10-21",
+        report_id: null,
+        status: "MISSING",
+        counted_items: null,
+        total_items: null,
+        open_shifts: 0,
+        unreviewed_shifts: 1,
+        pending_deliveries: 1,
+        counts_awaiting_review: 0,
+        day_ended: true,
+        had_sales: true,
+      },
+    ],
     business_date: "2026-10-22",
     as_of: new Date().toISOString(),
     scope_label: "All branches",
@@ -68,6 +103,7 @@ function today(patch: Partial<DashboardToday> = {}): DashboardToday {
         branch_id: branch,
         branch_name: "Manila - Ermita",
         status: "active",
+        shift_id: "shift-1",
         shift_number: 2,
         cashier_name: "Ana Cruz",
         opened_at: "2026-10-22T00:00:00Z",
@@ -123,6 +159,166 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("dashboard today", () => {
+  it("keeps the selected branch when opening the sales report", async () => {
+    mount(`branch=${branch}`);
+    expect(
+      (await screen.findByRole("link", { name: "Sales report" })).getAttribute(
+        "href",
+      ),
+    ).toBe(`/sales-report?period=day&branch_id=${branch}`);
+  });
+
+  it("keeps previous figures visible and offers retry after a failed refresh", async () => {
+    mount();
+    await screen.findByRole("region", { name: "Today so far" });
+    getDashboardTodayAction.mockResolvedValue({
+      ok: false,
+      error: "Service unavailable",
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Refresh dashboard" }),
+    );
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Showing the last successful update",
+    );
+    expect(
+      screen.getByRole("region", { name: "Today so far" }).textContent,
+    ).toContain("₱450.00");
+    getDashboardTodayAction.mockResolvedValue({ ok: true, data: today() });
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await vi.waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
+
+  it("shows count progress and opens branch actions by keyboard", async () => {
+    const user = userEvent.setup();
+    mount();
+    expect(await screen.findByText("2 / 5 items counted")).toBeTruthy();
+    expect(screen.getByText("1 open shift")).toBeTruthy();
+    expect(screen.getByText("Business day still open")).toBeTruthy();
+    const trigger = screen.getByRole("button", {
+      name: "Actions for Manila - Ermita",
+    });
+    trigger.focus();
+    await user.keyboard("{Enter}");
+    const report = await screen.findByRole("menuitem", {
+      name: "Today's report",
+    });
+    expect(report.getAttribute("href")).toContain("report_id=report-1");
+    expect(report.getAttribute("href")).toContain(`report_branch=${branch}`);
+    expect(
+      screen
+        .getByRole("menuitem", { name: "Current shift" })
+        .getAttribute("href"),
+    ).toBe(`/shifts/shift-1?branch=${branch}`);
+    expect(
+      screen
+        .getByRole("menuitem", { name: "Sales report" })
+        .getAttribute("href"),
+    ).toBe(`/sales-report?period=day&branch_id=${branch}`);
+    await user.keyboard("{Escape}");
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
+  it("hides unauthorized report progress and actions in the branch workspace", async () => {
+    getDashboardTodayAction.mockResolvedValue({
+      ok: true,
+      data: today({
+        workspace: "branch",
+        access: {
+          reports: false,
+          shifts: false,
+          sales: false,
+          dispatches: false,
+        },
+        report_progress: [],
+      }),
+    });
+    mount();
+    expect(await screen.findByText("Your branches today")).toBeTruthy();
+    expect(screen.queryByText("Today's report")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Actions for Manila - Ermita" }),
+    ).toBeNull();
+  });
+
+  it("does not relabel old figures while a different branch is loading", async () => {
+    const client = new QueryClient();
+    params.value = new URLSearchParams();
+    const view = render(
+      <QueryClientProvider client={client}>
+        <DashboardTodayWorkspace canOpenReport />
+      </QueryClientProvider>,
+    );
+    await screen.findByRole("region", { name: "Today so far" });
+    getDashboardTodayAction.mockImplementation(() => new Promise(() => {}));
+    params.value = new URLSearchParams(`branch=${branch}`);
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <DashboardTodayWorkspace canOpenReport />
+      </QueryClientProvider>,
+    );
+    expect(
+      await screen.findByRole("status", { name: "Loading dashboard" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Today so far" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Sales report" })).toBeNull();
+    view.unmount();
+    client.clear();
+  });
+
+  it("shows affected stock and shortage amounts with record links", async () => {
+    getDashboardTodayAction.mockResolvedValue({
+      ok: true,
+      data: today({
+        attention: [
+          {
+            key: "commissary_stock_below_zero",
+            count: 1,
+            example: {
+              record_id: "stock-1",
+              branch_id: null,
+              branch_name: null,
+              label: "Fish Sauce",
+              quantity: "-0.125",
+              unit: "L",
+            },
+          },
+          {
+            key: "cash_shortages",
+            count: 2,
+            amount: "125.50",
+            branch_count: 2,
+            oldest_at: "2026-10-21T03:00:00Z",
+            example: {
+              record_id: "shift-1",
+              branch_id: branch,
+              branch_name: "Manila - Ermita",
+              label: "Shift 2",
+              quantity: null,
+              unit: null,
+            },
+          },
+        ],
+      }),
+    });
+    mount();
+    expect(
+      (
+        await screen.findByRole("link", {
+          name: "View: Fish Sauce · -0.125 L on hand",
+        })
+      ).getAttribute("href"),
+    ).toBe("/inventory?scope=COMMISSARY&search=Fish%20Sauce");
+    expect(
+      screen.getByText("₱125.50 total short · 2 branches affected"),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: /Oldest: Manila - Ermita/ })
+        .getAttribute("href"),
+    ).toBe(`/shifts/shift-1?branch=${branch}`);
+  });
+
   it("shows today's sales with yesterday's comparison and the urgent items first", async () => {
     mount();
     const hero = await screen.findByRole("region", { name: "Today so far" });
