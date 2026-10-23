@@ -32,9 +32,33 @@ export function DispatchResolveControl({
   const [quantity, setQuantity] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   if (lines.length === 0) return null;
-  const line = lines.find((candidate) => candidate.item.id === itemId) ?? lines[0];
+  const line =
+    lines.find((candidate) => candidate.item.id === itemId) ?? lines[0];
+  const amount = quantity.trim();
+  const parsed = closeDispatchShortageSchema.safeParse({
+    outcome: line.direction === "surplus" ? "SURPLUS" : outcome,
+    reason,
+    items: [{ dispatch_item_id: line.item.id, quantity_closed: amount }],
+  });
+  const issues = parsed.error?.issues ?? [];
+  const fieldErrors = {
+    outcome: issues.some((issue) => issue.path[0] === "outcome")
+      ? "Choose what happened to the missing stock."
+      : undefined,
+    quantity: issues.some((issue) => issue.path.includes("quantity_closed"))
+      ? "Enter a quantity greater than zero using numbers and a decimal point only."
+      : !isDecimalQuantityWithinLimit(amount, line.amount)
+        ? `${line.item.stock_item_name} has only ${line.amount} ${line.item.unit} unresolved.`
+        : undefined,
+    reason: issues.some((issue) => issue.path[0] === "reason")
+      ? reason.trim().length > 500
+        ? "Use 500 characters or fewer for the reason."
+        : "Enter a reason for this resolution."
+      : undefined,
+  };
 
   function selectLine(nextId: string) {
     const next = lines.find((candidate) => candidate.item.id === nextId);
@@ -49,6 +73,7 @@ export function DispatchResolveControl({
     setQuantity("");
     setReason("");
     setError("");
+    setSubmitted(false);
     retry.current = null;
   }
 
@@ -65,18 +90,9 @@ export function DispatchResolveControl({
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
-    const amount = quantity.trim();
-    const parsed = closeDispatchShortageSchema.safeParse({
-      outcome: line.direction === "surplus" ? "SURPLUS" : outcome,
-      reason,
-      items: [{ dispatch_item_id: line.item.id, quantity_closed: amount }],
-    });
-    if (!parsed.success) {
-      setError("Choose an outcome, enter a positive quantity, and give a reason.");
-      return;
-    }
-    if (!isDecimalQuantityWithinLimit(amount, line.amount)) {
-      setError(`${line.item.stock_item_name} has only ${line.amount} ${line.item.unit} unresolved.`);
+    setSubmitted(true);
+    setError("");
+    if (!parsed.success || fieldErrors.quantity) {
       return;
     }
     const fingerprint = JSON.stringify(parsed.data);
@@ -88,7 +104,10 @@ export function DispatchResolveControl({
     try {
       result = await action(dispatch.id, parsed.data, retry.current.key);
     } catch {
-      result = { ok: false, error: "COMS could not resolve this variance. Try again." };
+      result = {
+        ok: false,
+        error: "COMS could not resolve this variance. Try again.",
+      };
     }
     setPending(false);
     if (!result.ok) {
@@ -130,6 +149,7 @@ export function DispatchResolveControl({
           quantity={quantity}
           reason={reason}
           disabled={pending}
+          errors={submitted ? fieldErrors : {}}
           onLineChange={selectLine}
           onOutcomeChange={setOutcome}
           onQuantityChange={setQuantity}

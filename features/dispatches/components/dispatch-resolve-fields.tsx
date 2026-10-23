@@ -1,6 +1,16 @@
-import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { VarianceLine } from "@/features/dispatches/services/dispatch-detail-presentation";
 import type { DispatchResolutionOutcome } from "@/features/dispatches/types/dispatch.types";
@@ -10,12 +20,14 @@ const shortageOutcomes = [
   {
     value: "NOT_LOADED",
     label: "Not loaded",
-    description: "The stock never left the commissary. It is added back to commissary stock.",
+    description:
+      "The stock never left the commissary. It is added back to commissary stock.",
   },
   {
     value: "LOST",
     label: "Lost",
-    description: "The stock left the commissary but never arrived. It is written off.",
+    description:
+      "The stock left the commissary but never arrived. It is written off.",
   },
 ] as const;
 
@@ -27,6 +39,7 @@ export function DispatchResolveFields({
   quantity,
   reason,
   disabled,
+  errors,
   onLineChange,
   onOutcomeChange,
   onQuantityChange,
@@ -39,6 +52,7 @@ export function DispatchResolveFields({
   quantity: string;
   reason: string;
   disabled: boolean;
+  errors: { outcome?: string; quantity?: string; reason?: string };
   onLineChange: (itemId: string) => void;
   onOutcomeChange: (outcome: DispatchResolutionOutcome) => void;
   onQuantityChange: (quantity: string) => void;
@@ -58,8 +72,12 @@ export function DispatchResolveFields({
           onChange={(event) => onLineChange(event.target.value)}
         >
           {lines.map((candidate) => (
-            <NativeSelectOption key={candidate.item.id} value={candidate.item.id}>
-              {candidate.item.stock_item_name}: {candidate.amount} {candidate.item.unit}{" "}
+            <NativeSelectOption
+              key={candidate.item.id}
+              value={candidate.item.id}
+            >
+              {candidate.item.stock_item_name}: {candidate.amount}{" "}
+              {candidate.item.unit}{" "}
               {candidate.direction === "short" ? "short" : "over"}
             </NativeSelectOption>
           ))}
@@ -67,16 +85,32 @@ export function DispatchResolveFields({
       </Field>
       {line.direction === "short" ? (
         <FieldSet>
-          <FieldLegend variant="label">What happened to the missing stock?</FieldLegend>
+          <FieldLegend id={`${lineId}-outcome-label`} variant="label">
+            What happened to the missing stock?
+          </FieldLegend>
           <RadioGroup
+            aria-labelledby={`${lineId}-outcome-label`}
+            aria-required="true"
+            aria-invalid={!!errors.outcome}
+            aria-describedby={
+              errors.outcome ? `${lineId}-outcome-error` : undefined
+            }
             value={outcome}
             disabled={disabled}
-            onValueChange={(value) => onOutcomeChange(value as DispatchResolutionOutcome)}
+            onValueChange={(value) =>
+              onOutcomeChange(value as DispatchResolutionOutcome)
+            }
           >
             {shortageOutcomes.map((option) => (
               <Field key={option.value} orientation="horizontal">
-                <RadioGroupItem value={option.value} id={`${lineId}-${option.value}`} />
-                <FieldLabel htmlFor={`${lineId}-${option.value}`} className="flex-col items-start gap-1">
+                <RadioGroupItem
+                  value={option.value}
+                  id={`${lineId}-${option.value}`}
+                />
+                <FieldLabel
+                  htmlFor={`${lineId}-${option.value}`}
+                  className="flex-col items-start gap-1"
+                >
                   <span>{option.label}</span>
                   <span className="text-xs font-normal text-muted-foreground">
                     {option.description}
@@ -85,6 +119,11 @@ export function DispatchResolveFields({
               </Field>
             ))}
           </RadioGroup>
+          {errors.outcome && (
+            <FieldError id={`${lineId}-outcome-error`}>
+              {errors.outcome}
+            </FieldError>
+          )}
         </FieldSet>
       ) : (
         <p className="rounded-md border bg-muted/30 p-3 text-sm">
@@ -92,10 +131,15 @@ export function DispatchResolveFields({
           it from commissary stock, because it was packed by mistake.
         </p>
       )}
-      <Field>
-        <FieldLabel htmlFor={quantityId}>Quantity ({line.item.unit})</FieldLabel>
+      <Field data-invalid={!!errors.quantity}>
+        <FieldLabel htmlFor={quantityId}>
+          Quantity ({line.item.unit})
+        </FieldLabel>
         <Input
           id={quantityId}
+          aria-required="true"
+          aria-invalid={!!errors.quantity}
+          aria-describedby={`${quantityId}-hint${errors.quantity ? ` ${quantityId}-error` : ""}`}
           inputMode="decimal"
           autoComplete="off"
           maxLength={80}
@@ -103,14 +147,18 @@ export function DispatchResolveFields({
           value={quantity}
           onChange={(event) => onQuantityChange(event.target.value)}
         />
-        <FieldDescription>
+        <FieldDescription id={`${quantityId}-hint`}>
           {line.amount} {line.item.unit} unresolved.
         </FieldDescription>
+        {errors.quantity && (
+          <FieldError id={`${quantityId}-error`}>{errors.quantity}</FieldError>
+        )}
       </Field>
       <DispatchShortageReasonField
         dispatchId={dispatchId}
         reason={reason}
         disabled={disabled}
+        error={errors.reason}
         onReasonChange={onReasonChange}
       />
     </>

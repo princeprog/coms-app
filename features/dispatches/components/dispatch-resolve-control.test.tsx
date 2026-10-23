@@ -72,17 +72,29 @@ describe("dispatch resolve control", () => {
   it("offers lost or not loaded for a shortage and requires a reason", async () => {
     vi.stubGlobal("crypto", { randomUUID: () => key });
     const user = userEvent.setup();
-    const action = vi.fn<DispatchShortageAction>().mockResolvedValue({ ok: true });
+    const action = vi
+      .fn<DispatchShortageAction>()
+      .mockResolvedValue({ ok: true });
     render(<DispatchResolveControl dispatch={dispatch} action={action} />);
     await user.click(screen.getByRole("button", { name: "Resolve variance" }));
     expect(
       (screen.getByLabelText("Quantity (kg)") as HTMLInputElement).value,
     ).toBe("1");
-    await user.click(screen.getByRole("button", { name: "Confirm resolution" }));
-    expect(await screen.findByRole("alert")).toBeTruthy();
+    await user.click(
+      screen.getByRole("button", { name: "Confirm resolution" }),
+    );
+    expect(await screen.findAllByRole("alert")).toHaveLength(2);
+    expect(screen.getByRole("radiogroup").getAttribute("aria-invalid")).toBe(
+      "true",
+    );
     await user.click(screen.getByRole("radio", { name: /Not loaded/ }));
+    expect(
+      screen.getByRole("radiogroup").getAttribute("aria-invalid"),
+    ).not.toBe("true");
     await user.type(screen.getByLabelText("Reason"), "Left on the loading bay");
-    await user.click(screen.getByRole("button", { name: "Confirm resolution" }));
+    await user.click(
+      screen.getByRole("button", { name: "Confirm resolution" }),
+    );
     await waitFor(() =>
       expect(action).toHaveBeenCalledWith(
         dispatchId,
@@ -96,10 +108,80 @@ describe("dispatch resolve control", () => {
     );
   });
 
+  it("identifies the missing reason for a valid 10 L surplus and clears errors as fields are corrected", async () => {
+    vi.stubGlobal("crypto", { randomUUID: () => key });
+    const user = userEvent.setup();
+    const action = vi
+      .fn<DispatchShortageAction>()
+      .mockResolvedValue({ ok: true });
+    const surplusDispatch: Dispatch = {
+      ...dispatch,
+      items: [
+        {
+          ...dispatch.items[1],
+          stock_item_name: "Fish Sauce",
+          unit: "L",
+          quantity_dispatched: "20",
+          quantity_received: "30",
+          quantity_outstanding: "-10",
+          quantity_variance: "10",
+        },
+      ],
+    };
+    render(
+      <DispatchResolveControl dispatch={surplusDispatch} action={action} />,
+    );
+    await user.click(screen.getByRole("button", { name: "Resolve variance" }));
+    const quantity = screen.getByLabelText("Quantity (L)");
+    const reason = screen.getByLabelText("Reason");
+    await user.clear(quantity);
+    await user.type(quantity, "10");
+    await user.click(
+      screen.getByRole("button", { name: "Confirm resolution" }),
+    );
+    const error = await screen.findByRole("alert");
+    expect(error.textContent).toMatch(/enter a reason/i);
+    expect(reason.getAttribute("aria-invalid")).toBe("true");
+    expect(reason.getAttribute("aria-describedby")).toContain(error.id);
+    expect(quantity.getAttribute("aria-invalid")).not.toBe("true");
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(action).not.toHaveBeenCalled();
+
+    await user.type(reason, "   ");
+    expect(reason.getAttribute("aria-invalid")).toBe("true");
+    await user.type(reason, "Extra bottles packed");
+    expect(screen.queryByRole("alert")).toBeNull();
+    await user.clear(quantity);
+    await user.type(quantity, "0");
+    expect(quantity.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /quantity greater than zero/i,
+    );
+    await user.clear(quantity);
+    await user.type(quantity, "10");
+    expect(screen.queryByRole("alert")).toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: "Confirm resolution" }),
+    );
+    await waitFor(() =>
+      expect(action).toHaveBeenCalledWith(
+        dispatchId,
+        {
+          outcome: "SURPLUS",
+          reason: "Extra bottles packed",
+          items: [{ dispatch_item_id: sugarLineId, quantity_closed: "10" }],
+        },
+        key,
+      ),
+    );
+  });
+
   it("confirms a surplus and blocks quantities above the unresolved amount", async () => {
     vi.stubGlobal("crypto", { randomUUID: () => key });
     const user = userEvent.setup();
-    const action = vi.fn<DispatchShortageAction>().mockResolvedValue({ ok: true });
+    const action = vi
+      .fn<DispatchShortageAction>()
+      .mockResolvedValue({ ok: true });
     render(<DispatchResolveControl dispatch={dispatch} action={action} />);
     await user.click(screen.getByRole("button", { name: "Resolve variance" }));
     await user.selectOptions(screen.getByLabelText("Stock item"), sugarLineId);
@@ -108,11 +190,15 @@ describe("dispatch resolve control", () => {
     await user.clear(quantity);
     await user.type(quantity, "0.6");
     await user.type(screen.getByLabelText("Reason"), "Extra sack packed");
-    await user.click(screen.getByRole("button", { name: "Confirm resolution" }));
+    await user.click(
+      screen.getByRole("button", { name: "Confirm resolution" }),
+    );
     expect((await screen.findByRole("alert")).textContent).toMatch(/0.5 kg/);
     await user.clear(quantity);
     await user.type(quantity, "0.5");
-    await user.click(screen.getByRole("button", { name: "Confirm resolution" }));
+    await user.click(
+      screen.getByRole("button", { name: "Confirm resolution" }),
+    );
     await waitFor(() =>
       expect(action).toHaveBeenCalledWith(
         dispatchId,
