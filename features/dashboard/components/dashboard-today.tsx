@@ -9,6 +9,8 @@ import { useDashboardToday } from "../hooks/use-dashboard-today";
 import { businessDayLabel } from "../services/dashboard-format";
 import { AttentionList } from "./attention-list";
 import { BranchBoard } from "./branch-board";
+import { CountShortages } from "./count-shortages";
+import { ReportBacklog } from "./report-backlog";
 import { TodayHero } from "./today-hero";
 import { TopProductsToday } from "./top-products-today";
 import { UpdatedLabel } from "./updated-label";
@@ -150,6 +152,14 @@ export function DashboardTodayWorkspace({
             <AttentionList data={data} branchId={branchId} />
           </div>
           {data.workspace === "overview" && <BranchBoard data={data} />}
+          {data.access.reports && (
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="min-w-0 lg:col-span-2">
+                <CountShortages data={data} />
+              </div>
+              <ReportBacklog data={data} />
+            </div>
+          )}
           <TopProductsToday products={data.top_products_today} />
         </div>
       )}

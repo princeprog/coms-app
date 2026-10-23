@@ -48,6 +48,46 @@ export const dashboardTodaySchema = z.object({
   }),
   submission_checklist_bypassed: z.boolean(),
   report_progress: z.array(reportProgressSchema),
+  count_shortages: z.object({
+    days: z.number().int(),
+    branches: z.array(
+      z.object({
+        branch_id: z.string(),
+        branch_name: z.string(),
+        reports: z.number().int(),
+        short_lines: z.number().int(),
+        uncosted_short_lines: z.number().int(),
+        shortage_value: nullableMoney,
+      }),
+    ),
+    items: z.array(
+      z.object({
+        branch_id: z.string(),
+        branch_name: z.string(),
+        stock_item_id: z.string(),
+        stock_item_name: z.string(),
+        unit: z.string(),
+        short_quantity: z.string(),
+        shortage_value: nullableMoney,
+        times_short: z.number().int(),
+        latest_report_id: z.string(),
+        latest_business_date: z.string(),
+      }),
+    ),
+  }),
+  report_backlog: z.object({
+    total: z.number().int(),
+    items: z.array(
+      z.object({
+        branch_id: z.string(),
+        branch_name: z.string(),
+        business_date: z.string(),
+        report_id: z.string().nullable(),
+        status: z.enum(["DRAFT", "RETURNED", "MISSING"]),
+        days_outstanding: z.number().int(),
+      }),
+    ),
+  }),
   business_date: z.string(),
   as_of: z.string(),
   scope_label: z.string(),

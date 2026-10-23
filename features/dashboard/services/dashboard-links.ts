@@ -23,6 +23,20 @@ export function reportProgressHref(report: ReportProgress) {
   });
 }
 
+/** An existing report opens directly; a missing one opens its branch and date. */
+export function reportHref(
+  branchId: string,
+  businessDate: string,
+  reportId: string | null,
+) {
+  return createDailyReportHref({
+    branchId,
+    dateFrom: businessDate,
+    dateTo: businessDate,
+    ...(reportId ? { reportId, reportBranchId: branchId } : {}),
+  });
+}
+
 export function attentionExampleHref(item: DashboardAttention) {
   const sample = item.example;
   if (!sample) return attentionHref(item.key);

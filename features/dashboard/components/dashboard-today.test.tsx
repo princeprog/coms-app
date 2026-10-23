@@ -62,6 +62,66 @@ function today(patch: Partial<DashboardToday> = {}): DashboardToday {
         had_sales: true,
       },
     ],
+    count_shortages: {
+      days: 7,
+      branches: [
+        {
+          branch_id: branch,
+          branch_name: "Manila - Ermita",
+          reports: 3,
+          short_lines: 2,
+          uncosted_short_lines: 0,
+          shortage_value: "640.00",
+        },
+      ],
+      items: [
+        {
+          branch_id: branch,
+          branch_name: "Manila - Ermita",
+          stock_item_id: "s1",
+          stock_item_name: "Chicken leg quarter",
+          unit: "kg",
+          short_quantity: "2.5",
+          shortage_value: "600.00",
+          times_short: 2,
+          latest_report_id: "report-9",
+          latest_business_date: "2026-10-20",
+        },
+        {
+          branch_id: branch,
+          branch_name: "Manila - Ermita",
+          stock_item_id: "s2",
+          stock_item_name: "Cooking oil",
+          unit: "L",
+          short_quantity: "0.5",
+          shortage_value: null,
+          times_short: 1,
+          latest_report_id: "report-8",
+          latest_business_date: "2026-10-19",
+        },
+      ],
+    },
+    report_backlog: {
+      total: 12,
+      items: [
+        {
+          branch_id: branch,
+          branch_name: "Manila - Ermita",
+          business_date: "2026-10-15",
+          report_id: null,
+          status: "MISSING",
+          days_outstanding: 7,
+        },
+        {
+          branch_id: branch,
+          branch_name: "Manila - Ermita",
+          business_date: "2026-10-18",
+          report_id: "report-7",
+          status: "RETURNED",
+          days_outstanding: 4,
+        },
+      ],
+    },
     business_date: "2026-10-22",
     as_of: new Date().toISOString(),
     scope_label: "All branches",
@@ -219,6 +279,55 @@ describe("dashboard today", () => {
     await vi.waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
+  it("shows recurring count shortages with values and links to the latest report", async () => {
+    mount();
+    const table = await screen.findByRole("region", {
+      name: "Count shortages table",
+    });
+    const row = within(table).getByText("Chicken leg quarter").closest("tr")!;
+    expect(row.textContent).toContain("2.5 kg");
+    expect(row.textContent).toContain("₱600.00");
+    expect(within(row).getByText("Recurring")).toBeTruthy();
+    expect(within(row).getByRole("link").getAttribute("href")).toContain(
+      "report_id=report-9",
+    );
+    const oil = within(table).getByText("Cooking oil").closest("tr")!;
+    expect(within(oil).getByText("No cost")).toBeTruthy();
+    expect(within(oil).queryByText("Recurring")).toBeNull();
+    expect(
+      screen.getByRole("list", { name: "Shortages by branch" }).textContent,
+    ).toContain("₱640.00 short · 2 short counts in 3 reports");
+  });
+
+  it("lists older unfinished reports oldest first with links to fix them", async () => {
+    mount();
+    const list = await screen.findByRole("list", {
+      name: "Older reports outstanding",
+    });
+    const links = within(list).getAllByRole("link");
+    expect(links[0].textContent).toContain("Not started");
+    expect(links[0].getAttribute("href")).toContain("date_from=2026-10-15");
+    expect(links[0].getAttribute("href")).not.toContain("report_id");
+    expect(links[1].getAttribute("href")).toContain("report_id=report-7");
+    expect(screen.getByText(/Showing the oldest 2 of 12/)).toBeTruthy();
+  });
+
+  it("hides shortage values without cost access", async () => {
+    getDashboardTodayAction.mockResolvedValue({
+      ok: true,
+      data: today({ show_costs: false }),
+    });
+    mount();
+    const table = await screen.findByRole("region", {
+      name: "Count shortages table",
+    });
+    expect(within(table).queryByText("Value")).toBeNull();
+    expect(table.textContent).not.toContain("₱600.00");
+    expect(
+      screen.getByRole("list", { name: "Shortages by branch" }).textContent,
+    ).not.toContain("₱");
+  });
+
   it("hides unauthorized report progress and actions in the branch workspace", async () => {
     getDashboardTodayAction.mockResolvedValue({
       ok: true,
@@ -236,6 +345,8 @@ describe("dashboard today", () => {
     mount();
     expect(await screen.findByText("Your branches today")).toBeTruthy();
     expect(screen.queryByText("Today's report")).toBeNull();
+    expect(screen.queryByText("Count shortages")).toBeNull();
+    expect(screen.queryByText("Older reports outstanding")).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Actions for Manila - Ermita" }),
     ).toBeNull();
