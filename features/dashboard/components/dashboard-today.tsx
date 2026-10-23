@@ -10,6 +10,7 @@ import { businessDayLabel } from "../services/dashboard-format";
 import { AttentionList } from "./attention-list";
 import { BranchBoard } from "./branch-board";
 import { CountShortages } from "./count-shortages";
+import { ExceptionTrends } from "./exception-trends";
 import { ReportBacklog } from "./report-backlog";
 import { TodayHero } from "./today-hero";
 import { TopProductsToday } from "./top-products-today";
@@ -160,6 +161,7 @@ export function DashboardTodayWorkspace({
               <ReportBacklog data={data} />
             </div>
           )}
+          <ExceptionTrends branchId={branchId} />
           <TopProductsToday products={data.top_products_today} />
         </div>
       )}

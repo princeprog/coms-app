@@ -19,6 +19,9 @@ vi.mock("next/navigation", () => ({
 vi.mock("../services/dashboard-today-actions", () => ({
   getDashboardTodayAction,
 }));
+vi.mock("../services/dashboard-exceptions-actions", () => ({
+  getDashboardExceptionsAction: () => new Promise(() => {}),
+}));
 vi.mock("./week-trend", () => ({ WeekTrend: () => <div>Week chart</div> }));
 vi.mock("./hourly-trend", () => ({
   HourlyTrend: () => <div>Hourly chart</div>,

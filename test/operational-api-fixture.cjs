@@ -609,6 +609,88 @@ function branchProductView(state, offer) {
   };
 }
 
+function dashboardExceptionsFixture() {
+  const today = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+  const start = (week) =>
+    new Date(Date.parse(today + "T00:00:00Z") - (28 - 7 * week) * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+  const week = (index, counts) => ({
+    week_start: start(index),
+    shortage_lines: counts[0],
+    uncosted_shortage_lines: 0,
+    shortage_value: (counts[0] * 240).toFixed(2),
+    cash_short_shifts: counts[1],
+    cash_short_amount: (counts[1] * 85).toFixed(2),
+    receiving_differences: counts[2],
+    void_count: counts[3],
+    void_amount: (counts[3] * 165).toFixed(2),
+  });
+  return {
+    week_starts: [0, 1, 2, 3].map(start),
+    access: {
+      shortages: true,
+      shortage_values: true,
+      cash: true,
+      receiving: true,
+      cashiers: true,
+    },
+    branches: [
+      {
+        branch_id: "10000000-0000-4000-8000-000000000002",
+        branch_name: "Cebu Branch",
+        weeks: [
+          [1, 0, 0, 1],
+          [0, 1, 1, 0],
+          [2, 1, 0, 1],
+          [3, 2, 0, 2],
+        ].map((c, i) => week(i, c)),
+      },
+      {
+        branch_id: "10000000-0000-4000-8000-000000000001",
+        branch_name: "Manila - Ermita",
+        weeks: [
+          [0, 0, 0, 1],
+          [1, 0, 0, 0],
+          [0, 0, 1, 1],
+          [0, 0, 0, 0],
+        ].map((c, i) => week(i, c)),
+      },
+    ],
+    cashiers: {
+      total: 2,
+      items: [
+        {
+          user_id: "50000000-0000-4000-8000-000000000002",
+          full_name: "Ben Reyes",
+          branches: ["Cebu Branch"],
+          shifts: 12,
+          short_shifts: 4,
+          short_amount: "340.00",
+          over_shifts: 1,
+          over_amount: "15.00",
+          sales_count: 168,
+          void_count: 4,
+          void_amount: "660.00",
+        },
+        {
+          user_id: "50000000-0000-4000-8000-000000000001",
+          full_name: "Ana Cruz",
+          branches: ["Manila - Ermita"],
+          shifts: 13,
+          short_shifts: 0,
+          short_amount: "0.00",
+          over_shifts: 1,
+          over_amount: "10.00",
+          sales_count: 201,
+          void_count: 3,
+          void_amount: "495.00",
+        },
+      ],
+    },
+  };
+}
+
 function dashboardTodayFixture() {
   const today = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
   const day = (offset) =>
@@ -1784,6 +1866,12 @@ function createOperationalApiFixture({
       }
       if (url.pathname === "/dashboard/today" && request.method === "GET") {
         return send(response, 200, dashboardTodayFixture());
+      }
+      if (
+        url.pathname === "/dashboard/exceptions" &&
+        request.method === "GET"
+      ) {
+        return send(response, 200, dashboardExceptionsFixture());
       }
       if (url.pathname === "/reports/sales/pdf" && request.method === "GET") {
         response.writeHead(200, {
