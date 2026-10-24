@@ -383,7 +383,12 @@ describe("catalog management", () => {
         page_size: 10,
       },
     });
-    expect(screen.getAllByText("Periodic").length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole("columnheader", { name: "Recipe use" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("columnheader", { name: "Branch count" }),
+    ).toBeNull();
     const trigger = screen.getByRole("button", {
       name: "More actions for Soy sauce",
     });

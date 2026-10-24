@@ -30,12 +30,6 @@ export const stockItemDisplayColumns: CatalogDisplayColumn[] = [
   { key: "stock_item_name", label: "Stock item" },
   { key: "category", label: "Category" },
   { key: "unit", label: "Unit" },
-  { key: "recipe_use", label: "Recipe use", valueLabels: stockRecipeUseLabels },
-  {
-    key: "daily_count_required",
-    label: "Branch count",
-    valueLabels: { true: "Daily", false: "Periodic" },
-  },
 ];
 
 export const stockItemFields: CatalogFieldDefinition[] = [
