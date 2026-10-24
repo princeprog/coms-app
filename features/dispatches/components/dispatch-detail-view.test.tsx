@@ -12,6 +12,9 @@ import {
   type DispatchDetailViewProps,
 } from "./dispatch-detail-view";
 
+vi.mock("../services/count-reminder-action", () => ({
+  sendCountReminderAction: vi.fn(),
+}));
 vi.mock("../services/dispatch-actions", () => ({
   reviewLateCountAction: vi.fn(),
 }));

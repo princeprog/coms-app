@@ -2,6 +2,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
+  BellRing,
   Check,
   ChevronDown,
   History,
@@ -20,6 +21,7 @@ import type { Dispatch } from "../types/dispatch.types";
 import styles from "./dispatch-detail.module.css";
 
 const icons = {
+  reminder: BellRing,
   created: ClipboardList,
   dispatched: Truck,
   receipt: PackageCheck,

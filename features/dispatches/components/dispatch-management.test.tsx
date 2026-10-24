@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DispatchPage } from "@/features/dispatches/types/dispatch.types";
 import { DispatchManagement } from "./dispatch-management";
 
+vi.mock("../services/count-reminder-action", () => ({
+  sendCountReminderAction: vi.fn(),
+}));
+
 const { getRestockSuggestions } = vi.hoisted(() => ({
   getRestockSuggestions: vi.fn(async (): Promise<unknown[]> => []),
 }));

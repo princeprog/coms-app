@@ -25,6 +25,10 @@ import type {
 } from "../schemas/notification.schema";
 
 const appearance = {
+  DISPATCH_COUNT_REMINDER: {
+    icon: Bell,
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  },
   DISPATCH_OVERDUE: {
     icon: TriangleAlert,
     color: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",

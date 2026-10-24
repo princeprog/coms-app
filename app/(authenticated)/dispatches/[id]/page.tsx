@@ -41,6 +41,7 @@ export default async function DispatchDetailPage({
       <DispatchDetailView
         dispatch={view.dispatch}
         canDispatch={view.canDispatch}
+        canRemind={view.canRemind}
         postAction={postDispatchAction}
         canReceive={view.canReceive}
         receiveAction={receiveDispatchAction}

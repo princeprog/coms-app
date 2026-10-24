@@ -113,6 +113,11 @@ export const closeDispatchShortageSchema = z
     message: "A dispatch item may appear only once per resolution.",
   });
 
+export const countReminderSchema = z.object({
+  last_sent_at: z.iso.datetime().nullable(),
+  next_allowed_at: z.iso.datetime().nullable(),
+});
+
 const dispatchListItemSchema = z.object({
   id: z.uuid(),
   branch_id: z.uuid(),
@@ -126,6 +131,7 @@ const dispatchListItemSchema = z.object({
   dispatched_at: z.iso.datetime().nullable(),
   counted_at: z.iso.datetime().nullable().optional(),
   receive_by: z.iso.datetime().nullable().optional(),
+  count_reminder: countReminderSchema.nullable().optional(),
   receiving_status: z
     .enum(["NONE", "COUNTED", "AWAITING_COUNT", "OVERDUE", "REVIEW"])
     .optional(),
@@ -200,6 +206,7 @@ const dispatchEventSchema = z.object({
     "DISPATCHED",
     "RECEIPT_RECORDED",
     "SHORTAGE_CLOSED",
+    "COUNT_REMINDER_SENT",
   ]),
   actor_user_id: z.uuid(),
   actor_name: z.string().min(1),
@@ -271,6 +278,7 @@ export const dispatchDetailSchema = z.object({
   counted_by_name: z.string().min(1).nullable().optional(),
   counted_at: z.iso.datetime().nullable().optional(),
   receive_by: z.iso.datetime().nullable().optional(),
+  count_reminder: countReminderSchema.nullable().optional(),
   receiving_status: z
     .enum(["NONE", "COUNTED", "AWAITING_COUNT", "OVERDUE", "REVIEW"])
     .optional(),

@@ -1,5 +1,6 @@
 import { z } from "zod";
 export const notificationKindSchema = z.enum([
+  "DISPATCH_COUNT_REMINDER",
   "DISPATCH_SENT",
   "DISPATCH_DISCREPANCY",
   "DISPATCH_RESOLVED",

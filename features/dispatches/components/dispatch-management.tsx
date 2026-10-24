@@ -11,6 +11,7 @@ export function DispatchManagement({
   page,
   filters,
   canCreate,
+  canRemind = false,
   createOptions,
   createOptionsIssue,
   createAction,
@@ -18,6 +19,7 @@ export function DispatchManagement({
   page: DispatchPage;
   filters: DispatchPageFilters;
   canCreate: boolean;
+  canRemind?: boolean;
   createOptions: DispatchCreateOptions | null;
   createOptionsIssue:
     "permissions" | "forbidden" | "unavailable" | "sending-permission" | null;
@@ -50,7 +52,7 @@ export function DispatchManagement({
           permissions. Ask an administrator to review your role.
         </p>
       )}
-      <DispatchDirectory page={page} filters={filters} />
+      <DispatchDirectory page={page} filters={filters} canRemind={canRemind} />
     </div>
   );
 }

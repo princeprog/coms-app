@@ -1,4 +1,5 @@
 "use client";
+import { DispatchCountReminder } from "./dispatch-count-reminder";
 import Link from "next/link";
 import type { Dispatch } from "../types/dispatch.types";
 import { LateCountActions } from "./late-count-actions";
@@ -8,12 +9,19 @@ import { ReceivingStatusBadge } from "./receiving-status-badge";
 export function DispatchReceivingFollowup({
   dispatch,
   canReview,
+  canRemind = false,
 }: {
   dispatch: Dispatch;
   canReview: boolean;
+  canRemind?: boolean;
 }) {
   const count = dispatch.late_counts?.[0];
-  if (!dispatch.receive_by && !count) return null;
+  const showReminder =
+    canRemind &&
+    dispatch.count_reminder &&
+    (dispatch.count_reminder.last_sent_at ||
+      ["AWAITING_COUNT", "OVERDUE"].includes(dispatch.receiving_status ?? ""));
+  if (!dispatch.receive_by && !count && !showReminder) return null;
   return (
     <section
       className="space-y-4 rounded-xl border bg-card p-5"
@@ -128,6 +136,7 @@ export function DispatchReceivingFollowup({
           </ul>
         </details>
       )}
+      <DispatchCountReminder dispatch={dispatch} allowed={canRemind} />
     </section>
   );
 }

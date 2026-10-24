@@ -34,6 +34,7 @@ export type DispatchIndexViewResult =
       page: DispatchPage;
       filters: ReturnType<typeof parseDispatchPageFilters>;
       canCreate: boolean;
+      canRemind: boolean;
       createOptions: DispatchCreateOptions | null;
       createOptionsIssue:
         | "permissions"
@@ -52,6 +53,7 @@ export type DispatchDetailViewResult =
       status: "ready";
       dispatch: Dispatch;
       canDispatch: boolean;
+      canRemind: boolean;
       canReceive: boolean;
       canResolve: boolean;
     };
@@ -124,6 +126,7 @@ export async function loadDispatchIndexView(
     page,
     filters,
     canCreate,
+    canRemind: hasPermission(user, "dispatches.dispatch"),
     createOptions,
     createOptionsIssue,
   };
@@ -151,6 +154,7 @@ export async function loadDispatchDetailView(
     return {
       status: "ready",
       dispatch,
+      canRemind: hasPermission(user, "dispatches.dispatch"),
       canDispatch:
         dispatch.status === "DRAFT" &&
         hasPermission(user, "dispatches.dispatch"),

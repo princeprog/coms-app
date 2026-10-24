@@ -18,9 +18,11 @@ import { DispatchTableSkeleton } from "./dispatch-table-skeleton";
 export function DispatchDirectory({
   page,
   filters,
+  canRemind = false,
 }: {
   page: DispatchPage;
   filters: DispatchPageFilters;
+  canRemind?: boolean;
 }) {
   const query = useDirectoryQuery(filters, createDispatchHref);
   const loading =
@@ -71,7 +73,7 @@ export function DispatchDirectory({
               }
             />
           ) : (
-            <DispatchTable page={page} />
+            <DispatchTable page={page} canRemind={canRemind} />
           )}
         </CardContent>
         <CardFooter className="border-t px-4 py-3 sm:px-5">

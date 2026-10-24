@@ -50,7 +50,13 @@ export function varianceLines(dispatch: Dispatch): VarianceLine[] {
 
 export type DispatchActivity = {
   id: string;
-  kind: "created" | "dispatched" | "receipt" | "shortage" | "discrepancy";
+  kind:
+    | "created"
+    | "dispatched"
+    | "receipt"
+    | "shortage"
+    | "discrepancy"
+    | "reminder";
   title: string;
   actor: string;
   timestamp: string;
@@ -59,6 +65,7 @@ export type DispatchActivity = {
 };
 
 const eventTitles = {
+  COUNT_REMINDER_SENT: "Count reminder sent",
   CREATED: "Dispatch created",
   DISPATCHED: "Dispatched",
   RECEIPT_RECORDED: "Branch count recorded",
@@ -93,13 +100,15 @@ export function buildDispatchActivity(dispatch: Dispatch): DispatchActivity[] {
     )
       return [];
     const kind =
-      event.event_type === "CREATED"
-        ? "created"
-        : event.event_type === "DISPATCHED"
-          ? "dispatched"
-          : event.event_type === "SHORTAGE_CLOSED"
-            ? "shortage"
-            : "receipt";
+      event.event_type === "COUNT_REMINDER_SENT"
+        ? "reminder"
+        : event.event_type === "CREATED"
+          ? "created"
+          : event.event_type === "DISPATCHED"
+            ? "dispatched"
+            : event.event_type === "SHORTAGE_CLOSED"
+              ? "shortage"
+              : "receipt";
     return [
       {
         id: `event-${event.id}`,
@@ -204,6 +213,7 @@ export function buildDispatchActivity(dispatch: Dispatch): DispatchActivity[] {
     receipt: 2,
     shortage: 3,
     discrepancy: 4,
+    reminder: 5,
   };
   return entries.sort(
     (a, b) =>

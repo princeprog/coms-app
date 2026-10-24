@@ -1,4 +1,6 @@
 "use client";
+import { DispatchCountReminder } from "./dispatch-count-reminder";
+import type { DispatchListItem } from "../types/dispatch.types";
 import Link from "next/link";
 import { Ellipsis, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,9 +14,13 @@ import {
 export function DispatchRowActions({
   id,
   branchName,
+  dispatch,
+  canRemind = false,
 }: {
   id: string;
   branchName: string;
+  dispatch?: DispatchListItem;
+  canRemind?: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -35,6 +41,13 @@ export function DispatchRowActions({
             <Eye aria-hidden="true" />
             View dispatch
           </DropdownMenuItem>
+          {dispatch && (
+            <DispatchCountReminder
+              dispatch={dispatch}
+              allowed={canRemind}
+              menu
+            />
+          )}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

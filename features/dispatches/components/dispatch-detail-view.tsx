@@ -21,6 +21,7 @@ import { DispatchReceivingFollowup } from "./dispatch-receiving-followup";
 export type DispatchDetailViewProps = {
   dispatch: Dispatch;
   canDispatch: boolean;
+  canRemind?: boolean;
   postAction: DispatchPostAction;
   canReceive: boolean;
   receiveAction: DispatchReceiveAction;
@@ -40,6 +41,7 @@ export function DispatchDetailView(props: DispatchDetailViewProps) {
       <DispatchReceivingFollowup
         dispatch={dispatch}
         canReview={props.canResolve}
+        canRemind={props.canRemind}
       />
       {completed ? (
         <DispatchCompletedSummary dispatch={dispatch} />

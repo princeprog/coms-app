@@ -39,6 +39,7 @@ export default async function DispatchesPage({
         page={view.page}
         filters={view.filters}
         canCreate={view.canCreate}
+        canRemind={view.canRemind}
         createOptions={view.createOptions}
         createOptionsIssue={view.createOptionsIssue}
         createAction={sendDispatchAction}

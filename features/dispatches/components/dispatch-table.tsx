@@ -33,7 +33,13 @@ function DispatchTimestamp({ value }: { value: string }) {
     </time>
   );
 }
-export function DispatchTable({ page }: { page: DispatchPage }) {
+export function DispatchTable({
+  page,
+  canRemind = false,
+}: {
+  page: DispatchPage;
+  canRemind?: boolean;
+}) {
   return (
     <Table
       aria-label="Dispatches"
@@ -135,6 +141,8 @@ export function DispatchTable({ page }: { page: DispatchPage }) {
               </TableCell>
               <TableCell className="py-4 pr-4 text-right sm:pr-5">
                 <DispatchRowActions
+                  dispatch={dispatch}
+                  canRemind={canRemind}
                   id={dispatch.id}
                   branchName={dispatch.branch_name}
                 />
