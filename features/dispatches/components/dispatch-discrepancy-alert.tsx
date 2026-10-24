@@ -67,35 +67,39 @@ export function DispatchDiscrepancyAlert({
     >
       <AlertDialogContent
         data-coms-ui="operational"
-        className="overflow-hidden border-t-4 border-t-amber-500 sm:max-w-md"
+        // The base dialog caps the default size at max-w-sm; override that
+        // same variant so the wider width actually applies.
+        className="gap-5 overflow-hidden border-t-4 border-t-amber-500 p-6 data-[size=default]:max-w-[calc(100%-2rem)] data-[size=default]:sm:max-w-lg"
       >
-        <AlertDialogHeader>
-          <AlertDialogMedia className="size-11 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+        <AlertDialogHeader className="gap-2 has-data-[slot=alert-dialog-media]:gap-x-5">
+          <AlertDialogMedia className="size-14 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 *:[svg:not([class*='size-'])]:size-7">
             <TriangleAlert aria-hidden="true" />
           </AlertDialogMedia>
-          <AlertDialogTitle>Delivery count has a discrepancy</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogTitle className="text-xl font-semibold">
+            Delivery count has a discrepancy
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-base">
             Your count was recorded, but it doesn&apos;t match what the
             commissary sent. They will review the difference.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <ul
           aria-label="Items that differ"
-          className="flex max-h-64 flex-col divide-y overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/60 dark:border-amber-500/25 dark:bg-amber-500/5"
+          className="flex max-h-80 flex-col divide-y overflow-y-auto rounded-xl border border-amber-200 bg-amber-50/60 dark:border-amber-500/25 dark:bg-amber-500/5"
         >
           {differences.map((item) => {
             const short = item.quantity_variance.startsWith("-");
             return (
               <li
                 key={item.stock_item_name}
-                className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"
+                className="flex items-center justify-between gap-4 px-4 py-3.5 text-base"
               >
                 <span className="min-w-0 font-medium wrap-anywhere">
                   {item.stock_item_name}
                 </span>
                 <Badge
                   className={cn(
-                    "shrink-0 text-white tabular-nums",
+                    "h-7 shrink-0 px-3 text-sm text-white tabular-nums",
                     short ? "bg-red-700" : "bg-amber-700",
                   )}
                 >
@@ -105,8 +109,12 @@ export function DispatchDiscrepancyAlert({
             );
           })}
         </ul>
-        <AlertDialogFooter>
-          <AlertDialogCancel variant="default" className="min-h-10">
+        <AlertDialogFooter className="-mx-6 -mb-6 px-6 py-4">
+          <AlertDialogCancel
+            variant="default"
+            size="lg"
+            className="min-h-11 px-6 text-base"
+          >
             OK, got it
           </AlertDialogCancel>
         </AlertDialogFooter>
