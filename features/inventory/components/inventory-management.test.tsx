@@ -122,10 +122,8 @@ describe("inventory management", () => {
     expect(
       within(balances).getByRole("columnheader", { name: "Units" }),
     ).toBeTruthy();
-    expect(
-      within(balances).getByRole("cell", { name: "Kilograms" }),
-    ).toBeTruthy();
-    expect(within(balances).getByRole("cell", { name: "Liters" })).toBeTruthy();
+    expect(within(balances).getByRole("cell", { name: "kg" })).toBeTruthy();
+    expect(within(balances).getByRole("cell", { name: "L" })).toBeTruthy();
     expect(within(balances).getByRole("cell", { name: "2.500" })).toBeTruthy();
     expect(screen.getByText("Supplier receipt")).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Branch" })).toBeTruthy();
@@ -197,7 +195,7 @@ describe("inventory management", () => {
     expect(outOfStock.querySelector("svg")).toBeNull();
     expect(inactive.querySelector("svg")).toBeNull();
     expect(screen.getByText("0.000")).toBeTruthy();
-    expect(screen.getByRole("cell", { name: "Pieces" })).toBeTruthy();
+    expect(screen.getByRole("cell", { name: "pcs" })).toBeTruthy();
   });
 
   it("limits the scope to Branches and shows authorized branch choices for branch-only access", () => {

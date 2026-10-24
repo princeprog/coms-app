@@ -1,4 +1,3 @@
-import { stockUnitLabel } from "../stock-unit-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
@@ -203,9 +202,7 @@ export function InventoryBalanceTable({
                 )}
               </span>
             </TableCell>
-            <TableCell className="py-3 pl-6 sm:pl-8">
-              {stockUnitLabel(item.unit)}
-            </TableCell>
+            <TableCell className="py-3 pl-6 sm:pl-8">{item.unit}</TableCell>
             <TableCell className="py-3 pl-6 sm:pl-8">
               <StockHealth item={item} />
             </TableCell>
