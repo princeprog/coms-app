@@ -18,18 +18,27 @@ import { Separator } from "@/components/ui/separator";
 const enterClassName =
   "animate-in fill-mode-both duration-500 ease-out-quint fade-in-0 motion-safe:slide-in-from-bottom-2";
 
+// The theme class is set before paint, so CSS picks the matching background
+// without a flash. Both stay lazy so the hidden one is never downloaded.
+const backgrounds = [
+  { src: "/images/login-bg.png", className: "dark:hidden" },
+  { src: "/images/login-bg-dark.png", className: "hidden dark:block" },
+];
+
 export function LoginPage() {
   return (
     <main className="relative isolate flex min-h-svh items-center justify-center overflow-hidden bg-background px-4 py-8 text-foreground sm:px-6">
-      <Image
-        src="/images/login-bg.png"
-        alt=""
-        fill
-        priority
-        sizes="100vw"
-        aria-hidden="true"
-        className="object-cover object-center"
-      />
+      {backgrounds.map((background) => (
+        <Image
+          key={background.src}
+          src={background.src}
+          alt=""
+          fill
+          sizes="100vw"
+          aria-hidden="true"
+          className={cn("object-cover object-center", background.className)}
+        />
+      ))}
 
       <Card
         className={cn(
