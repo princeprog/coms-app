@@ -35,7 +35,11 @@ export function DispatchRowActions({
       >
         <Ellipsis aria-hidden="true" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" data-coms-ui="operational">
+      <DropdownMenuContent
+        align="end"
+        className="w-72 max-w-(--available-width)"
+        data-coms-ui="operational"
+      >
         <DropdownMenuGroup>
           <DropdownMenuItem render={<Link href={`/dispatches/${id}`} />}>
             <Eye aria-hidden="true" />
