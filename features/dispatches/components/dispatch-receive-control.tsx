@@ -72,7 +72,6 @@ export function DispatchReceiveControl({
       return;
     }
     const parsed = receiveDispatchSchema.safeParse({
-      delivery_date: timing.date,
       ...(timing.reason.trim() ? { late_reason: timing.reason.trim() } : {}),
       items: items.map((item) => ({
         dispatch_item_id: item.id,

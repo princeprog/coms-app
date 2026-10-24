@@ -131,6 +131,7 @@ const freePort = () =>
     .getByRole("button", { name: "Count delivery", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "Count delivery" });
+  assert.equal(await dialog.locator('input[type="date"]').count(), 0);
   await dialog
     .getByRole("button", { name: "Review count", exact: true })
     .click();
@@ -154,6 +155,10 @@ const freePort = () =>
   await page
     .getByRole("dialog", { name: "Review delivery count" })
     .getByText("Forgot to submit before the deadline.")
+    .waitFor();
+  await page
+    .getByRole("dialog", { name: "Review delivery count" })
+    .getByText("The receiving date and time are recorded when you submit.")
     .waitFor();
   await page.getByRole("button", { name: "Back to edit", exact: true }).click();
   assert.equal(

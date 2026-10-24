@@ -64,14 +64,68 @@ afterEach(() => {
   refresh.mockReset();
 });
 
-async function openDialog(action: DispatchReceiveAction) {
+async function openDialog(action: DispatchReceiveAction, current = dispatch) {
   const user = userEvent.setup();
-  render(<DispatchReceiveControl dispatch={dispatch} action={action} />);
+  render(<DispatchReceiveControl dispatch={current} action={action} />);
   await user.click(screen.getByRole("button", { name: "Count delivery" }));
   return user;
 }
 
 describe("dispatch receive control", () => {
+  it("requires a late reason without asking for a delivery date", async () => {
+    const action = vi
+      .fn<DispatchReceiveAction>()
+      .mockResolvedValue({ ok: true });
+    const user = await openDialog(action, {
+      ...dispatch,
+      receive_by: "2020-01-01T00:00:00.000Z",
+    });
+    await user.type(screen.getByLabelText("Flour counted (kg)"), "1");
+    await user.type(screen.getByLabelText("Sugar counted (kg)"), "2");
+    await user.click(screen.getByRole("button", { name: "Review count" }));
+    expect(screen.getByText("Explain why this count is late.")).toBeTruthy();
+    expect(action).not.toHaveBeenCalled();
+    await user.type(
+      screen.getByLabelText("Reason for late count"),
+      "Delivery arrived late",
+    );
+    await user.click(screen.getByRole("button", { name: "Review count" }));
+    expect(
+      screen.getByText(
+        "The receiving date and time are recorded when you submit.",
+      ),
+    ).toBeTruthy();
+    await user.click(
+      screen.getByRole("button", { name: "Submit final count" }),
+    );
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    expect(action.mock.calls[0][1]).not.toHaveProperty("delivery_date");
+    expect(action.mock.calls[0][1]).toHaveProperty(
+      "late_reason",
+      "Delivery arrived late",
+    );
+  });
+
+  it("rechecks the deadline when confirming a count left open past its deadline", async () => {
+    let now = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    const action = vi.fn<DispatchReceiveAction>();
+    const user = await openDialog(action, {
+      ...dispatch,
+      receive_by: new Date(now + 1000).toISOString(),
+    });
+    await user.type(screen.getByLabelText("Flour counted (kg)"), "1");
+    await user.type(screen.getByLabelText("Sugar counted (kg)"), "2");
+    await user.click(screen.getByRole("button", { name: "Review count" }));
+    now += 2000;
+    await user.click(
+      screen.getByRole("button", { name: "Submit final count" }),
+    );
+    expect(action).not.toHaveBeenCalled();
+    expect(await screen.findByLabelText("Reason for late count")).toBeTruthy();
+    expect(screen.getByText("Explain why this count is late.")).toBeTruthy();
+  });
+
   it("never shows sent quantities and requires a count for every line", async () => {
     const action = vi.fn<DispatchReceiveAction>();
     const user = await openDialog(action);
@@ -79,6 +133,10 @@ describe("dispatch receive control", () => {
       "operational",
     );
     expect(screen.queryByText(/in transit/i)).toBeNull();
+    expect(screen.queryByLabelText("Actual delivery date")).toBeNull();
+    expect(
+      screen.getByRole("dialog").querySelector('input[type="date"]'),
+    ).toBeNull();
     await user.type(screen.getByLabelText("Flour counted (kg)"), "5");
     await user.click(screen.getByRole("button", { name: "Review count" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/Use 0/);
@@ -116,7 +174,6 @@ describe("dispatch receive control", () => {
         { dispatch_item_id: sugarLineId, quantity_received: "0" },
       ],
       note: "Sugar sack missing",
-      delivery_date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
     };
     expect(action.mock.calls[0]).toEqual([dispatchId, body, idempotencyKey]);
     expect(action.mock.calls[1]).toEqual([dispatchId, body, idempotencyKey]);
