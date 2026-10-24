@@ -2171,6 +2171,12 @@ function createOperationalApiFixture({
         server,
         port: address.port,
         baseUrl: `http://127.0.0.1:${address.port}`,
+        addNotification: () => {
+          const [item] = createNotificationSeed(state, 1);
+          item.id = require("node:crypto").randomUUID();
+          item.created_at = new Date().toISOString();
+          notificationItems.unshift(item);
+        },
         close: () =>
           new Promise((done, fail) => {
             server.close((error) => (error ? fail(error) : done()));

@@ -5,6 +5,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import { NotificationArrival } from "@/features/notifications/components/notification-arrival";
+import { NotificationSound } from "@/features/notifications/components/notification-sound";
 import { ShiftHeaderControl } from "@/features/shifts/components/shift-header-control";
 import {
   hasPermission,
@@ -96,6 +97,7 @@ export function SiteHeader({ user }: { user?: User }) {
               !isProtectedSuperAdmin(user) && <ShiftHeaderControl />}
             <NotificationBell key={pathname} userId={user.id} />
             <NotificationArrival userId={user.id} />
+            <NotificationSound key={user.id} userId={user.id} />
           </div>
         )}
       </div>

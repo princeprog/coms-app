@@ -40,6 +40,12 @@ function handleNotifications({ request, response, url, items, send }) {
   ) {
     send(response, 200, {
       unread_count: items.filter((item) => !item.read_at).length,
+      latest_unread_at:
+        items
+          .filter((item) => !item.read_at)
+          .map((item) => item.created_at)
+          .sort()
+          .at(-1) ?? null,
     });
     return true;
   }

@@ -67,7 +67,10 @@ export async function getNotificationCountAction(userId: string) {
   return requestNotification(
     userId,
     `${notificationsEndpoint}/unread-count`,
-    z.object({ unread_count: z.number().int().nonnegative() }),
+    z.object({
+      unread_count: z.number().int().nonnegative(),
+      latest_unread_at: z.iso.datetime().nullable().optional(),
+    }),
   );
 }
 export async function markNotificationReadAction(userId: string, id?: string) {

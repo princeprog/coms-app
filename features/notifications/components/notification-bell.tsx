@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Bell, CheckCheck, CircleAlert, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationSoundToggle } from "./notification-sound-toggle";
 import {
   Popover,
   PopoverContent,
@@ -117,13 +118,16 @@ export function NotificationBell({ userId }: { userId: string }) {
             <NotificationEmpty />
           )}
         </div>
-        <Link
-          href="/notifications"
-          onClick={() => setOpen(false)}
-          className="border-t px-4 py-3 text-center text-sm font-medium hover:bg-muted/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-        >
-          View all notifications
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
+          <NotificationSoundToggle userId={userId} />
+          <Link
+            href="/notifications"
+            onClick={() => setOpen(false)}
+            className="rounded-md px-2 py-2 text-sm font-medium hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            View all notifications
+          </Link>
+        </div>
       </PopoverContent>
     </Popover>
   );
