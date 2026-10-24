@@ -12,6 +12,7 @@ import type { AuthActionResult } from "@/features/auth/types/auth-action.types";
 import { ApiRequestError } from "@/services/api-services";
 import {
   announceLogout,
+  announceSessionRecovery,
   supportsAuthLock,
   withAuthLock,
 } from "./auth-coordination";
@@ -37,9 +38,12 @@ export async function login(input: LoginInput): Promise<AuthResponse> {
 let sessionCheck: Promise<User | null> | undefined;
 export function getCurrentUser(): Promise<User | null> {
   if (!sessionCheck) {
-    sessionCheck = withAuthLock(async () =>
-      unwrap(await currentUserAction(supportsAuthLock())),
-    ).finally(() => {
+    sessionCheck = withAuthLock(async () => {
+      const result = await currentUserAction(supportsAuthLock());
+      const user = unwrap(result);
+      if (result.ok && result.sessionRefreshed) announceSessionRecovery();
+      return user;
+    }).finally(() => {
       sessionCheck = undefined;
     });
   }

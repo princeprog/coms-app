@@ -16,6 +16,10 @@ export function useCurrentUser() {
     queryFn: getCurrentUser,
     retry: false,
     staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: "always",
+    refetchOnReconnect: "always",
   });
   useEffect(() => {
     if (query.isSuccess && query.data === null) {

@@ -59,7 +59,11 @@ describe("server session recovery", () => {
       )
       .mockResolvedValueOnce(json(authTestMeResponse));
     vi.stubGlobal("fetch", fetch);
-    expect(await currentUserAction()).toEqual({ ok: true, data: user });
+    expect(await currentUserAction()).toEqual({
+      ok: true,
+      data: user,
+      sessionRefreshed: true,
+    });
     expect(fetch.mock.calls.map((call) => call[0].split("/").pop())).toEqual([
       "me",
       "refresh",

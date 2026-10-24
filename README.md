@@ -53,6 +53,13 @@ automatic rotation is disabled and **Sign in again** completes logout before
 returning to login. Rejected recovery clears cookies and refreshes the route,
 including when already on `/`. Outages preserve cookies and offer retry.
 
+The authenticated shell checks the session every minute while visible and on
+focus or reconnection. Expired access cookies rotate through the existing shared
+lock. Successful recovery refreshes protected reads and the server-rendered page
+without reloading the document or discarding form input. **Try again** restores
+the session before retrying the page. See [session recovery](docs/session-recovery.md)
+for verification and behavior when the refresh session has expired or been revoked.
+
 ## Verification and rollout
 
 Run `pnpm test` and `pnpm build`. `pnpm test:auth-browser` runs against the

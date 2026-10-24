@@ -11,6 +11,7 @@ import {
   AUTH_LOCK_NAME,
   withAuthLock,
   subscribeToLogout,
+  subscribeToSessionRecovery,
 } from "./auth-coordination";
 
 describe("browser auth coordination", () => {
@@ -74,6 +75,27 @@ describe("browser auth coordination", () => {
         ([name, options]) => name === AUTH_LOCK_NAME && !options.steal,
       ),
     ).toBe(true);
+  });
+  it("notifies stale-page consumers once after a coordinated rotation, not a healthy check", async () => {
+    const recovered = vi.fn();
+    const unsubscribe = subscribeToSessionRecovery(recovered);
+    try {
+      actions.currentUserAction.mockResolvedValueOnce({
+        ok: true,
+        data: { id: "u1" },
+        sessionRefreshed: true,
+      });
+      await Promise.all([getCurrentUser(), getCurrentUser()]);
+      expect(recovered).toHaveBeenCalledTimes(1);
+      actions.currentUserAction.mockResolvedValueOnce({
+        ok: true,
+        data: { id: "u1" },
+      });
+      await getCurrentUser();
+      expect(recovered).toHaveBeenCalledTimes(1);
+    } finally {
+      unsubscribe();
+    }
   });
   it("bounds lock waiting to 30 seconds without executing or stealing", async () => {
     vi.useFakeTimers();

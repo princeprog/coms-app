@@ -2,6 +2,19 @@ import { ApiRequestError } from "@/services/api-services";
 
 export const AUTH_LOCK_NAME = "coms-auth-session";
 const AUTH_CHANNEL = "coms-auth-events";
+const SESSION_RECOVERED_EVENT = "coms-session-recovered";
+
+// No credentials leave the HttpOnly cookie store. Consumers only need to know
+// that requests made with the previous access cookie may now be retried.
+export function announceSessionRecovery(): void {
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new Event(SESSION_RECOVERED_EVENT));
+}
+
+export function subscribeToSessionRecovery(callback: () => void): () => void {
+  window.addEventListener(SESSION_RECOVERED_EVENT, callback);
+  return () => window.removeEventListener(SESSION_RECOVERED_EVENT, callback);
+}
 
 export function supportsAuthLock(): boolean {
   return (

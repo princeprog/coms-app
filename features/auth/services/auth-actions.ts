@@ -269,7 +269,8 @@ export async function currentUserAction(
     method: "GET",
     cookie: await selectedCookieHeader(ACCESS_COOKIE_NAMES),
   });
-  if (retried.ok) return { ok: true, data: retried.data.user };
+  if (retried.ok)
+    return { ok: true, data: retried.data.user, sessionRefreshed: true };
   if (retried.status === 401) {
     await expireAuthCookies();
     return { ok: true, data: null };
