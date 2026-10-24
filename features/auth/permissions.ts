@@ -23,6 +23,7 @@ const landingRoutes: { url: string; permissions: readonly string[] }[] = [
   { url: "/products", permissions: ["products.read"] },
   { url: "/branch-products", permissions: ["branch_products.read"] },
   { url: "/reports", permissions: ["daily_reports.read"] },
+  { url: "/expenses", permissions: ["expenses.read"] },
   { url: "/branches", permissions: ["branches.read"] },
   { url: "/staff", permissions: ["staff.read"] },
   { url: "/roles", permissions: ["roles.read"] },

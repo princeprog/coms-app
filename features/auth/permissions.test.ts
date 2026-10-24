@@ -39,6 +39,12 @@ describe("permission aware navigation", () => {
       }),
     ).toBe("/pos");
     expect(getAuthorizedLandingPath(authTestUser)).toBe("/no-access");
+    expect(
+      getAuthorizedLandingPath({
+        ...authTestSessionUser,
+        permissions: ["expenses.read"],
+      }),
+    ).toBe("/expenses");
   });
 
   it("keeps public-in-context links and only granted features", () => {

@@ -11,6 +11,20 @@ const inventoryFilters = ["search", "is_active", "category", "stock"] as const;
 const rangeFilters = ["from", "to"] as const;
 
 export const exportTargets = {
+  expenses: {
+    path: () => "/expenses/export",
+    params: [
+      "from",
+      "to",
+      "scope",
+      "branch_id",
+      "category_id",
+      "source",
+      "status",
+      "search",
+      "sort",
+    ],
+  },
   sales: {
     path: (branch) => `/branches/${branch}/sales/export`,
     needsBranch: true,

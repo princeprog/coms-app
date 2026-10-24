@@ -47,9 +47,9 @@ export const navItems = [
     icon: <LayoutDashboardIcon className="text-sky-600 dark:text-sky-400" />,
   },
   {
-    title: "Costs & profit",
-    url: "/costs",
-    permission: "costs.read",
+    title: "Expenses",
+    url: "/expenses",
+    permission: "expenses.read",
     icon: <CoinsIcon className="text-emerald-600 dark:text-emerald-400" />,
   },
   {
@@ -172,7 +172,7 @@ export function getAppSidebarNavigation(user: User) {
 }
 
 export const sidebarNavigationGroups = [
-  { title: "Overview", urls: ["/dashboard", "/costs", "/sales-report"] },
+  { title: "Overview", urls: ["/dashboard", "/expenses", "/sales-report"] },
   {
     title: "Supply & Inventory",
     urls: [

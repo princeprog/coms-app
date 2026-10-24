@@ -1,4 +1,5 @@
 const { handlePurchaseRequest } = require("./fixtures/purchases-fixture.cjs");
+const { handleExpensesRequest } = require("./fixtures/expenses-fixture.cjs");
 const { handleShiftRequest } = require("./fixtures/shifts-fixture.cjs");
 const {
   seedReceivingFollowup,
@@ -1354,6 +1355,16 @@ function createOperationalApiFixture({
         sampleReport,
       });
       if (shiftResponse !== false) return shiftResponse;
+
+      const expensesResponse = handleExpensesRequest({
+        request,
+        response,
+        url,
+        body,
+        state,
+        authUser,
+      });
+      if (expensesResponse !== false) return expensesResponse;
 
       const purchaseResponse = handlePurchaseRequest({
         request,
