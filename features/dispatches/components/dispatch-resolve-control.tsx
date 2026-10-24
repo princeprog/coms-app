@@ -12,7 +12,7 @@ import type {
 } from "@/features/dispatches/types/dispatch.types";
 import { DispatchDraftDiscardConfirmation } from "./dispatch-draft-discard-confirmation";
 import { DispatchResolveFields } from "./dispatch-resolve-fields";
-import { DispatchTransitionSheet } from "./dispatch-transition-sheet";
+import { DispatchResolveDialog } from "./dispatch-resolve-dialog";
 
 export function DispatchResolveControl({
   dispatch,
@@ -121,14 +121,8 @@ export function DispatchResolveControl({
 
   return (
     <>
-      <DispatchTransitionSheet
-        triggerLabel="Resolve variance"
-        primary
-        title="Resolve a count variance"
-        description="Decide what happened to the difference between what was sent and what the branch counted. The outcome, reason, and your name are saved."
-        formLabel="Resolve count variance"
-        submitLabel="Confirm resolution"
-        pendingLabel="Saving…"
+      <DispatchResolveDialog
+        branchName={dispatch.branch_name}
         open={open}
         pending={pending}
         error={error}
@@ -155,7 +149,7 @@ export function DispatchResolveControl({
           onQuantityChange={setQuantity}
           onReasonChange={setReason}
         />
-      </DispatchTransitionSheet>
+      </DispatchResolveDialog>
       <DispatchDraftDiscardConfirmation
         open={confirmDiscard}
         title="Discard this resolution?"

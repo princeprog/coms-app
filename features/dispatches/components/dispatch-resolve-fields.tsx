@@ -21,13 +21,13 @@ const shortageOutcomes = [
     value: "NOT_LOADED",
     label: "Not loaded",
     description:
-      "The stock never left the commissary. It is added back to commissary stock.",
+      "Stock stayed at the commissary. Add it back to commissary inventory.",
   },
   {
     value: "LOST",
     label: "Lost",
     description:
-      "The stock left the commissary but never arrived. It is written off.",
+      "Stock left the commissary but did not arrive. Record it as a loss.",
   },
 ] as const;
 
@@ -62,27 +62,55 @@ export function DispatchResolveFields({
   const quantityId = `resolve-quantity-${dispatchId}`;
   return (
     <>
-      <Field>
-        <FieldLabel htmlFor={lineId}>Stock item</FieldLabel>
-        <NativeSelect
-          id={lineId}
-          className="w-full"
-          disabled={disabled}
-          value={line.item.id}
-          onChange={(event) => onLineChange(event.target.value)}
-        >
-          {lines.map((candidate) => (
-            <NativeSelectOption
-              key={candidate.item.id}
-              value={candidate.item.id}
-            >
-              {candidate.item.stock_item_name}: {candidate.amount}{" "}
-              {candidate.item.unit}{" "}
-              {candidate.direction === "short" ? "short" : "over"}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </Field>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field className="min-w-0 sm:col-span-2">
+          <FieldLabel htmlFor={lineId}>Stock item</FieldLabel>
+          <NativeSelect
+            id={lineId}
+            className="w-full [&_select]:h-10"
+            disabled={disabled}
+            value={line.item.id}
+            onChange={(event) => onLineChange(event.target.value)}
+          >
+            {lines.map((candidate) => (
+              <NativeSelectOption
+                key={candidate.item.id}
+                value={candidate.item.id}
+              >
+                {candidate.item.stock_item_name}: {candidate.amount}{" "}
+                {candidate.item.unit}{" "}
+                {candidate.direction === "short" ? "short" : "over"}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field data-invalid={!!errors.quantity}>
+          <FieldLabel htmlFor={quantityId}>
+            Quantity ({line.item.unit})
+          </FieldLabel>
+          <Input
+            className="h-10"
+            id={quantityId}
+            aria-required="true"
+            aria-invalid={!!errors.quantity}
+            aria-describedby={`${quantityId}-hint${errors.quantity ? ` ${quantityId}-error` : ""}`}
+            inputMode="decimal"
+            autoComplete="off"
+            maxLength={80}
+            disabled={disabled}
+            value={quantity}
+            onChange={(event) => onQuantityChange(event.target.value)}
+          />
+          <FieldDescription id={`${quantityId}-hint`}>
+            {line.amount} {line.item.unit} unresolved.
+          </FieldDescription>
+          {errors.quantity && (
+            <FieldError id={`${quantityId}-error`}>
+              {errors.quantity}
+            </FieldError>
+          )}
+        </Field>
+      </div>
       {line.direction === "short" ? (
         <FieldSet>
           <FieldLegend id={`${lineId}-outcome-label`} variant="label">
@@ -102,17 +130,21 @@ export function DispatchResolveFields({
             }
           >
             {shortageOutcomes.map((option) => (
-              <Field key={option.value} orientation="horizontal">
+              <Field
+                key={option.value}
+                orientation="horizontal"
+                className="rounded-lg border p-3 has-data-checked:border-primary/50 has-data-checked:bg-primary/5"
+              >
                 <RadioGroupItem
                   value={option.value}
                   id={`${lineId}-${option.value}`}
                 />
                 <FieldLabel
                   htmlFor={`${lineId}-${option.value}`}
-                  className="flex-col items-start gap-1"
+                  className="cursor-pointer flex-col items-start gap-1"
                 >
                   <span>{option.label}</span>
-                  <span className="text-xs font-normal text-muted-foreground">
+                  <span className="text-sm leading-relaxed font-normal text-muted-foreground">
                     {option.description}
                   </span>
                 </FieldLabel>
@@ -126,35 +158,13 @@ export function DispatchResolveFields({
           )}
         </FieldSet>
       ) : (
-        <p className="rounded-md border bg-muted/30 p-3 text-sm">
+        <p className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 text-sm leading-relaxed">
+          <span className="mb-1 block font-medium">Confirm surplus</span>
           The branch counted more than was sent. Confirming the surplus deducts
           it from commissary stock. If this leaves the balance below zero, it
           will be marked Below zero in Inventory for a stock-record correction.
         </p>
       )}
-      <Field data-invalid={!!errors.quantity}>
-        <FieldLabel htmlFor={quantityId}>
-          Quantity ({line.item.unit})
-        </FieldLabel>
-        <Input
-          id={quantityId}
-          aria-required="true"
-          aria-invalid={!!errors.quantity}
-          aria-describedby={`${quantityId}-hint${errors.quantity ? ` ${quantityId}-error` : ""}`}
-          inputMode="decimal"
-          autoComplete="off"
-          maxLength={80}
-          disabled={disabled}
-          value={quantity}
-          onChange={(event) => onQuantityChange(event.target.value)}
-        />
-        <FieldDescription id={`${quantityId}-hint`}>
-          {line.amount} {line.item.unit} unresolved.
-        </FieldDescription>
-        {errors.quantity && (
-          <FieldError id={`${quantityId}-error`}>{errors.quantity}</FieldError>
-        )}
-      </Field>
       <DispatchShortageReasonField
         dispatchId={dispatchId}
         reason={reason}
