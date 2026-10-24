@@ -55,6 +55,22 @@ async function choose(container, label, option) {
   await container.getByRole("combobox", { name: label, exact: true }).click();
   await page.getByRole("option", { name: option, exact: true }).click();
 }
+async function filterWith(changes) {
+  await page.getByRole("button", { name: /^Filters/ }).click();
+  const panel = page.locator('[data-slot="popover-content"]');
+  await panel.getByText("Filter expenses", { exact: true }).waitFor();
+  for (const [label, option] of changes) await choose(page, label, option);
+  await panel
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
+  await panel.waitFor({ state: "hidden" });
+}
+async function chooseDates(preset) {
+  await page.getByRole("button", { name: /^Date range:/ }).click();
+  const panel = page.locator('[data-slot="popover-content"]');
+  await panel.getByRole("button", { name: preset, exact: true }).click();
+  await panel.waitFor({ state: "hidden" });
+}
 async function go(query = "") {
   await page.goto(origin + "/expenses" + query, {
     waitUntil: "domcontentloaded",
@@ -397,7 +413,8 @@ async function run() {
     .click();
   await toast("Expense voided.");
   await dialog.waitFor({ state: "hidden" });
-  await choose(page, "Status", "Voided");
+  await filterWith([["Status", "Voided"]]);
+  await page.waitForURL((url) => url.searchParams.get("status") === "VOIDED");
   await rowAction("Browser delivery fuel", "View details & history");
   dialog = page.getByRole("dialog", {
     name: "Browser delivery fuel",
@@ -585,20 +602,38 @@ async function run() {
       ),
     "Amount sorting did not reach the table",
   );
-  await choose(page, "Location", branch.name);
-  await choose(page, "Category", "Transportation");
+  await page.getByRole("button", { name: /^Filters/ }).click();
+  await page
+    .locator('[data-slot="popover-content"]')
+    .getByText("Filter expenses", { exact: true })
+    .waitFor();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 960 });
+    await noOverflow();
+    await screenshot(`filters-popover-${width}`);
+  }
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await page.keyboard.press("Escape");
+  await filterWith([
+    ["Location", branch.name],
+    ["Category", "Transportation"],
+  ]);
   await page.waitForURL(
     (url) => url.searchParams.get("category_id") === initial.categories[0].id,
   );
-  await page.getByLabel("From (Manila)").fill("2000-01-01");
-  await page.getByLabel("To (Manila)").fill("2000-01-31");
-  await page.getByRole("button", { name: "Apply dates", exact: true }).click();
+  await page.getByRole("button", { name: /^Filters, 2 active/ }).waitFor();
+  await page
+    .getByRole("button", { name: `Remove Location: ${branch.name}` })
+    .waitFor();
+  await screenshot("filters-active-chips");
+  await chooseDates("Last month");
   await page
     .getByText("No expenses in this selection", { exact: true })
     .waitFor();
-  await page
-    .getByRole("button", { name: "Reset filters", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Clear all", exact: true }).click();
+  await page.waitForURL((url) => !url.searchParams.get("category_id"));
+  await chooseDates("This month");
+  await choose(page, "Rows per page", "10");
   await visibleRows(10);
   completed.push(step);
 

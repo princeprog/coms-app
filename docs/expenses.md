@@ -13,6 +13,8 @@ Expenses replaces Costs & profit in navigation. `/expenses` opens the current Ma
 
 Search, dates, location, source, category, status, sorting, pagination, summaries and CSV use the same server-side scope. Export downloads all matching records up to the existing 50,000-row cap. Filters stay in the URL. Dirty forms warn before discard, errors preserve drafts and successful saves show a toast.
 
+The toolbar follows the other list pages: a debounced search bar, a sort select, a Filters popover (status, location, category and source, applied together with Apply filters) and a date-range popover with This month / Last month presets. Active filters appear as removable chips with Clear all. Location filtering and the By location breakdown are shown only to users with `expenses.commissary_read` or `expenses.global_read`; branch-only users see their assigned branches without a location control.
+
 ## Access
 
 Branch Managers receive read/create/update/void for assigned branches. Commissary Managers receive the same capabilities and commissary access. Super Admin manages categories and can access all locations. Cashiers and custom roles receive no automatic new grants. Administrators can grant expense capabilities through Roles; `global_read` expands branch access only and `commissary_read` is separate. Cash-out selection additionally needs shift access and ownership or review permission. History omits events involving locations the current viewer cannot access.

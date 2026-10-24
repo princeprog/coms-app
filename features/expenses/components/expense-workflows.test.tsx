@@ -188,7 +188,7 @@ describe("expense workflow safeguards", () => {
       "value",
       "rent",
     );
-    await user.click(screen.getByRole("button", { name: "Reset filters" }));
+    await user.click(screen.getByRole("button", { name: "Clear all" }));
     expect(screen.getByLabelText("Search expenses")).toHaveProperty(
       "value",
       "",

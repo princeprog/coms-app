@@ -1,207 +1,176 @@
 "use client";
+import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DirectorySelect } from "@/components/shared/directory-select";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import type { ExpenseDirectory } from "../hooks/use-expense-page-clamp";
 import type {
   ExpenseCategory,
   ExpenseLocation,
 } from "../schemas/expense.schema";
 import type { ExpenseQuery } from "../services/expense-query";
-import { sourceLabels } from "../services/expense-format";
-import { ExpenseField, ExpenseSelect } from "./expense-form-controls";
-
 import { ExpenseDateFilter } from "./expense-date-filter";
+import {
+  expenseCategoryOptions,
+  expenseLocationOptions,
+  expenseLocationValue,
+  expenseSortOptions,
+  expenseSourceOptions,
+  expenseStatusOptions,
+} from "./expense-filter-options";
+import { ExpenseFilterPopover } from "./expense-filter-popover";
+
+type Chip = { label: string; clear: () => void };
+const labelOf = (options: { value: string; label: string }[], value: string) =>
+  options.find((option) => option.value === value)?.label;
 
 export function ExpenseFilters({
   query,
   locations,
   categories,
   directory,
+  showLocation = true,
 }: {
   query: ExpenseQuery;
   locations: ExpenseLocation[];
   categories: ExpenseCategory[];
   directory: ExpenseDirectory;
+  showLocation?: boolean;
 }) {
-  const location = query.branch_id ?? query.scope ?? "all";
-  const locationOptions = [
-    { value: "all", label: "All permitted locations" },
-    { value: "BRANCH", label: "All permitted branches" },
-    ...locations.map((item) => ({
-      value: item.branch_id ?? item.scope,
-      label: `${item.name}${item.is_active ? "" : " (inactive)"}`,
-    })),
-  ];
-  const categoryOptions = [
-    { value: "all", label: "All categories" },
-    { value: "STOCK_PURCHASES", label: "Stock purchases" },
-    ...categories.map((item) => ({
-      value: item.id,
-      label: `${item.name}${item.is_active ? "" : " (inactive)"}`,
-    })),
-  ];
+  const locationOptions = expenseLocationOptions(locations);
+  const categoryOptions = expenseCategoryOptions(categories);
   const chips = [
-    ...(query.search
-      ? [
-          {
-            label: `Search: ${query.search}`,
-            clear: () => {
-              directory.changeSearch("");
-              directory.apply({ search: "" });
-            },
-          },
-        ]
-      : []),
-    ...(query.scope || query.branch_id
-      ? [
-          {
-            label: `Location: ${locationOptions.find((item) => item.value === location)?.label ?? "Selected location"}`,
-            clear: () =>
-              directory.apply({ scope: undefined, branch_id: undefined }),
-          },
-        ]
-      : []),
-    ...(query.category_id
-      ? [
-          {
-            label: `Category: ${categoryOptions.find((item) => item.value === query.category_id)?.label ?? "Selected category"}`,
-            clear: () => directory.apply({ category_id: undefined }),
-          },
-        ]
-      : []),
-    ...(query.source
-      ? [
-          {
-            label: sourceLabels[query.source],
-            clear: () => directory.apply({ source: undefined }),
-          },
-        ]
-      : []),
-    ...(query.status !== "RECORDED"
-      ? [
-          {
-            label: query.status === "all" ? "All statuses" : "Voided",
-            clear: () => directory.apply({ status: "RECORDED" }),
-          },
-        ]
-      : []),
-  ];
+    query.search && {
+      label: `Search: ${query.search}`,
+      clear: () => {
+        directory.changeSearch("");
+        directory.apply({ search: "" });
+      },
+    },
+    query.status !== "RECORDED" && {
+      label: `Status: ${labelOf(expenseStatusOptions, query.status)}`,
+      clear: () => directory.apply({ status: "RECORDED" }),
+    },
+    (query.scope || query.branch_id) && {
+      label: `Location: ${labelOf(locationOptions, expenseLocationValue(query)) ?? "Selected location"}`,
+      clear: () => directory.apply({ scope: undefined, branch_id: undefined }),
+    },
+    query.category_id && {
+      label: `Category: ${labelOf(categoryOptions, query.category_id) ?? "Selected category"}`,
+      clear: () => directory.apply({ category_id: undefined }),
+    },
+    query.source && {
+      label: `Source: ${labelOf(expenseSourceOptions, query.source)}`,
+      clear: () => directory.apply({ source: undefined }),
+    },
+  ].filter((chip): chip is Chip => Boolean(chip));
   return (
     <section
       aria-label="Expense filters"
-      className="space-y-3"
+      className="flex flex-col gap-3"
       aria-busy={directory.pending}
     >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="sm:col-span-2">
-          <ExpenseField
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <InputGroup className="h-11 min-w-0 lg:flex-1">
+          <InputGroupInput
             id="expense-search"
-            label="Search expenses"
-            placeholder="Description, payee or reference"
+            type="search"
+            aria-label="Search expenses"
+            className="h-full text-base md:text-sm"
+            placeholder="Search description, payee or reference…"
             value={directory.search}
             maxLength={160}
             onChange={(event) => directory.changeSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                directory.flushSearch();
+              }
+            }}
           />
+          <InputGroupAddon className="pl-3">
+            <Search aria-hidden="true" />
+          </InputGroupAddon>
+        </InputGroup>
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
+          <DirectorySelect
+            id="expense-sort"
+            label="Sort by"
+            hideLabel
+            value={query.sort}
+            options={expenseSortOptions}
+            alignItemWithTrigger={false}
+            className="sm:w-48 [&_[data-slot=select-trigger]]:h-11 [&_[data-slot=select-trigger]]:px-3"
+            onChange={(sort) =>
+              directory.apply({ sort: sort as ExpenseQuery["sort"] })
+            }
+          />
+          <ExpenseFilterPopover
+            query={query}
+            showLocation={showLocation}
+            locationOptions={locationOptions}
+            categoryOptions={categoryOptions}
+            onApply={(change) => directory.apply(change)}
+          />
+          <div className="col-span-2 sm:col-span-1">
+            <ExpenseDateFilter
+              query={query}
+              apply={(change) => directory.apply(change)}
+            />
+          </div>
         </div>
-        <ExpenseSelect
-          id="expense-sort"
-          label="Sort by"
-          value={query.sort}
-          onChange={(sort) =>
-            directory.apply({ sort: sort as ExpenseQuery["sort"] })
-          }
-          options={[
-            { value: "newest", label: "Newest first" },
-            { value: "oldest", label: "Oldest first" },
-            { value: "amount_highest", label: "Highest amount" },
-            { value: "amount_lowest", label: "Lowest amount" },
-          ]}
-        />
-        <ExpenseSelect
-          id="expense-status"
-          label="Status"
-          value={query.status}
-          onChange={(status) =>
-            directory.apply({ status: status as ExpenseQuery["status"] })
-          }
-          options={[
-            { value: "RECORDED", label: "Recorded" },
-            { value: "VOIDED", label: "Voided" },
-            { value: "all", label: "All statuses" },
-          ]}
-        />
-        <ExpenseSelect
-          id="expense-location"
-          label="Location"
-          value={location}
-          options={locationOptions}
-          onChange={(value) =>
-            directory.apply({
-              scope:
-                value === "all"
-                  ? undefined
-                  : value === "COMMISSARY"
-                    ? "COMMISSARY"
-                    : "BRANCH",
-              branch_id: ["all", "COMMISSARY", "BRANCH"].includes(value)
-                ? undefined
-                : value,
-            })
-          }
-        />
-        <ExpenseSelect
-          id="expense-category"
-          label="Category"
-          value={query.category_id ?? "all"}
-          options={categoryOptions}
-          onChange={(value) =>
-            directory.apply({
-              category_id: value === "all" ? undefined : value,
-            })
-          }
-        />
-        <ExpenseSelect
-          id="expense-source"
-          label="Source"
-          value={query.source ?? "all"}
-          options={[
-            { value: "all", label: "All sources" },
-            ...Object.entries(sourceLabels).map(([value, label]) => ({
-              value,
-              label,
-            })),
-          ]}
-          onChange={(value) =>
-            directory.apply({
-              source:
-                value === "all" ? undefined : (value as ExpenseQuery["source"]),
-            })
-          }
-        />
       </div>
-      <ExpenseDateFilter
-        query={query}
-        apply={(change) => {
-          if (change.search !== undefined)
-            directory.changeSearch(change.search);
-          directory.apply(change);
-        }}
-      />
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span>
-          Applied: {query.from} – {query.to}
-        </span>
-        {chips.map((chip) => (
+      {chips.length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-2"
+          aria-label="Active expense filters"
+        >
+          {chips.map((chip) => (
+            <Button
+              key={chip.label}
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-auto max-w-full whitespace-normal text-left"
+              onClick={chip.clear}
+              aria-label={`Remove ${chip.label}`}
+            >
+              <span className="min-w-0 break-words">{chip.label}</span>
+              <X aria-hidden="true" data-icon="inline-end" />
+            </Button>
+          ))}
           <Button
-            key={chip.label}
+            type="button"
             size="sm"
-            variant="outline"
-            onClick={chip.clear}
-            aria-label={`Remove ${chip.label}`}
+            variant="ghost"
+            onClick={() => {
+              directory.changeSearch("");
+              directory.apply({
+                search: "",
+                status: "RECORDED",
+                scope: undefined,
+                branch_id: undefined,
+                category_id: undefined,
+                source: undefined,
+              });
+            }}
           >
-            {chip.label} ×
+            Clear all
           </Button>
-        ))}
-      </div>
+        </div>
+      )}
+      <span
+        role="status"
+        className={
+          directory.pending ? "text-xs text-muted-foreground" : "sr-only"
+        }
+      >
+        {directory.pending ? "Updating expenses…" : ""}
+      </span>
     </section>
   );
 }

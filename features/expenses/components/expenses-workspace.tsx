@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { Plus, RefreshCw, Settings2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { hasPermission } from "@/features/auth/permissions";
 import type { User } from "@/features/auth/types/auth.types";
@@ -42,6 +43,9 @@ export function ExpensesWorkspace({
   const [creating, setCreating] = useState(false);
   const [selection, setSelection] = useState<ExpenseSelection | null>(null);
   const can = (permission: string) => hasPermission(user, permission);
+  // Branch-only users see their assigned branch, so location filtering adds nothing.
+  const showLocation =
+    can("expenses.commissary_read") || can("expenses.global_read");
   const exportParams = Object.fromEntries(
     Object.entries(query)
       .filter(([key]) => key !== "page" && key !== "page_size")
@@ -56,47 +60,52 @@ export function ExpensesWorkspace({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Expenses</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Track operating expenses and stock purchase value across your
-            locations.
+            Operating expenses and stock purchases.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {can("costs.read") && (
+            <Link
+              className={buttonVariants({ variant: "ghost" })}
+              href="/costs"
+            >
+              Product &amp; stock costs
+            </Link>
+          )}
+          {can("expenses.categories_manage") && (
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href="/expenses/categories"
+            >
+              <Settings2 aria-hidden="true" className="text-pink-600" />
+              Manage categories
+            </Link>
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Refresh expenses"
+            disabled={list.isFetching}
+            onClick={() => void list.refetch()}
+          >
+            <RefreshCw
+              aria-hidden="true"
+              className={list.isFetching ? "animate-spin" : undefined}
+            />
+          </Button>
           <ExportCsvButton
             kind="expenses"
             params={exportParams}
             label="Export matching CSV"
           />
           {can("expenses.create") && (
-            <Button onClick={() => setCreating(true)}>Record expense</Button>
+            <Button onClick={() => setCreating(true)}>
+              <Plus aria-hidden="true" />
+              Record expense
+            </Button>
           )}
         </div>
       </header>
-      <div className="flex flex-wrap gap-2">
-        {can("expenses.categories_manage") && (
-          <Link
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-            href="/expenses/categories"
-          >
-            Manage categories
-          </Link>
-        )}
-        {can("costs.read") && (
-          <Link
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-            href="/costs"
-          >
-            Product &amp; stock costs
-          </Link>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={list.isFetching}
-          onClick={() => void list.refetch()}
-        >
-          Refresh
-        </Button>
-      </div>
       {locations.error && (
         <ExpenseError
           error={locations.error}
@@ -111,10 +120,10 @@ export function ExpensesWorkspace({
       )}
       <ExpenseFilters
         directory={directory}
-        key={`${query.from}:${query.to}`}
         query={query}
         locations={locations.data?.items ?? []}
         categories={categories.data?.items ?? []}
+        showLocation={showLocation}
       />
       <div
         aria-busy={list.isFetching || directory.pending}
@@ -126,7 +135,7 @@ export function ExpensesWorkspace({
           <ExpenseError error={list.error} retry={() => void list.refetch()} />
         ) : (
           <>
-            <ExpenseSummary data={list.data} />
+            <ExpenseSummary data={list.data} showLocations={showLocation} />
             {list.data.items.length ? (
               <ExpenseTable
                 items={list.data.items}

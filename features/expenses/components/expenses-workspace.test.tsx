@@ -139,10 +139,12 @@ describe("Expenses workspace", () => {
         ],
       },
     });
-    workspace();
+    workspace(["expenses.read", "expenses.commissary_read"]);
     await screen.findByText("Electricity bill");
-    await user.click(screen.getByLabelText("Location"));
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    await user.click(await screen.findByLabelText("Location"));
     await user.click(await screen.findByRole("option", { name: "Commissary" }));
+    await user.click(screen.getByRole("button", { name: "Apply filters" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     const target = new URL(
       mocks.replace.mock.calls.at(-1)![0],
@@ -150,6 +152,17 @@ describe("Expenses workspace", () => {
     ).searchParams;
     expect(target.get("scope")).toBe("COMMISSARY");
     expect(target.get("page")).toBe("2");
+  });
+  it("omits location filtering and breakdown for branch-only users", async () => {
+    const user = userEvent.setup();
+    workspace();
+    await screen.findByText("Electricity bill");
+    expect(screen.queryByText("By location")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    expect(await screen.findByLabelText("Status")).toBeTruthy();
+    expect(screen.queryByLabelText("Location")).toBeNull();
+    expect(screen.getByLabelText("Category")).toBeTruthy();
+    expect(screen.getByLabelText("Source")).toBeTruthy();
   });
   it("renders server totals and hides mutation and category controls for read-only users", async () => {
     workspace();

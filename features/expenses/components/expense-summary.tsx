@@ -1,7 +1,13 @@
 import type { ExpensePage } from "../schemas/expense.schema";
 import { cents, pesos } from "../services/expense-format";
 
-export function ExpenseSummary({ data }: { data: ExpensePage }) {
+export function ExpenseSummary({
+  data,
+  showLocations = true,
+}: {
+  data: ExpensePage;
+  showLocations?: boolean;
+}) {
   return (
     <section aria-label="Recorded spending summary" className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -23,8 +29,10 @@ export function ExpenseSummary({ data }: { data: ExpensePage }) {
         entries are excluded. These totals do not represent cash paid or net
         profit.
       </p>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Breakdown title="By location" rows={data.by_location} />
+      <div className={showLocations ? "grid gap-4 md:grid-cols-2" : "grid"}>
+        {showLocations && (
+          <Breakdown title="By location" rows={data.by_location} />
+        )}
         <Breakdown title="By category" rows={data.by_category} />
       </div>
     </section>
