@@ -279,7 +279,7 @@ function decorate(dispatch) {
     const link = page.getByRole("menuitem", { name: "View dispatch" });
     if ((await link.getAttribute("href")) === `/dispatches/${target.id}`) {
       const item = page.getByRole("menuitem", {
-        name: /Remind branch to submit count/,
+        name: /Remind branch/,
       });
       await item.waitFor();
       assert((await item.getAttribute("aria-disabled")) === "true");

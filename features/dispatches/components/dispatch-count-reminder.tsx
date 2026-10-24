@@ -53,7 +53,9 @@ function CountReminderControl({
   );
   const label = reminder.pending
     ? "Sending reminder…"
-    : "Remind branch to submit count";
+    : menu
+      ? "Remind branch"
+      : "Remind branch to submit count";
   const hint =
     reminder.coolingDown && reminder.nextAllowed
       ? `Available again ${receivingTime(reminder.nextAllowed)} PHT`
