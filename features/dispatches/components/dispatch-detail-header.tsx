@@ -6,6 +6,11 @@ import type { Dispatch } from "../types/dispatch.types";
 import { ReceivingStatusBadge } from "./receiving-status-badge";
 import { DispatchStatusBadge } from "./dispatch-status-badge";
 
+// A pill with a leading dot and a "Status" label, so the header status
+// reads as information beside the page's buttons rather than as one of them.
+const statusPill =
+  "[&_[data-slot=badge]]:min-h-7 [&_[data-slot=badge]]:gap-2 [&_[data-slot=badge]]:rounded-full [&_[data-slot=badge]]:px-3 [&_[data-slot=badge]]:py-0.5 [&_[data-slot=badge]]:text-sm [&_[data-slot=badge]]:transition-none [&_[data-slot=badge]]:before:size-1.5 [&_[data-slot=badge]]:before:shrink-0 [&_[data-slot=badge]]:before:rounded-full [&_[data-slot=badge]]:before:bg-white/85 [&_[data-slot=badge]]:before:content-['']";
+
 export function DispatchDetailHeader({ dispatch }: { dispatch: Dispatch }) {
   const completed = isDispatchComplete(dispatch);
   const Icon = completed ? PackageCheck : Truck;
@@ -29,23 +34,24 @@ export function DispatchDetailHeader({ dispatch }: { dispatch: Dispatch }) {
             <p className="text-sm text-muted-foreground">From Commissary</p>
           </div>
         </div>
-        {completed ? (
-          <Badge
-            className={`h-auto min-h-8 max-w-full shrink-0 self-start rounded-md px-2.5 py-1 text-sm whitespace-normal text-white transition-none sm:self-center ${dispatch.status === "RECEIVED" ? "bg-emerald-700" : "bg-slate-600"}`}
-          >
-            {dispatch.status === "RECEIVED"
-              ? "Completed"
-              : "Completed with resolved discrepancies"}
-          </Badge>
-        ) : (
-          <div className="[&_[data-slot=badge]]:min-h-8 [&_[data-slot=badge]]:rounded-md [&_[data-slot=badge]]:text-sm [&_[data-slot=badge]]:px-2.5 [&_[data-slot=badge]]:transition-none">
-            {dispatch.receiving_status === "REVIEW" ? (
-              <ReceivingStatusBadge status="REVIEW" />
-            ) : (
-              <DispatchStatusBadge status={dispatch.status} />
-            )}
-          </div>
-        )}
+        <div
+          className={`flex max-w-full shrink-0 items-center gap-2 self-start sm:self-center ${statusPill}`}
+        >
+          <span className="text-sm text-muted-foreground">Status</span>
+          {completed ? (
+            <Badge
+              className={`h-auto max-w-full whitespace-normal text-white ${dispatch.status === "RECEIVED" ? "bg-emerald-700" : "bg-slate-600"}`}
+            >
+              {dispatch.status === "RECEIVED"
+                ? "Completed"
+                : "Completed with resolved discrepancies"}
+            </Badge>
+          ) : dispatch.receiving_status === "REVIEW" ? (
+            <ReceivingStatusBadge status="REVIEW" />
+          ) : (
+            <DispatchStatusBadge status={dispatch.status} />
+          )}
+        </div>
       </div>
     </header>
   );
