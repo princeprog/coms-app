@@ -15,10 +15,7 @@ import { DispatchCountReview } from "./dispatch-count-review";
 import { DispatchDraftDiscardConfirmation } from "./dispatch-draft-discard-confirmation";
 import { DispatchQuantityFields } from "./dispatch-quantity-fields";
 import { DispatchReceiveDialog } from "./dispatch-receive-dialog";
-import { discrepancyDescription } from "@/features/dispatches/services/receiving-discrepancy";
-
-// Long enough to read the listed items before it closes.
-const DISCREPANCY_TOAST_MS = 12_000;
+import { showDispatchDiscrepancy } from "./dispatch-discrepancy-alert";
 
 export function DispatchReceiveControl({
   dispatch,
@@ -118,13 +115,7 @@ export function DispatchReceiveControl({
     const differences = result.differences ?? [];
     if (result.receiving_outcome === "REVIEW_REQUIRED")
       toast.add({ type: "info", title: "Count saved for review" });
-    else if (differences.length > 0)
-      toast.add({
-        type: "warning",
-        title: "Delivery count recorded with a discrepancy",
-        description: discrepancyDescription(differences),
-        timeout: DISCREPANCY_TOAST_MS,
-      });
+    else if (differences.length > 0) showDispatchDiscrepancy(differences);
     else toast.add({ type: "success", title: "Delivery count recorded" });
     setOpen(false);
     router.refresh();

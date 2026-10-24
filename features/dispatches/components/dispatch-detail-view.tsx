@@ -14,6 +14,7 @@ import { DispatchDetailHeader } from "./dispatch-detail-header";
 import { DispatchItemTable } from "./dispatch-item-table";
 import { DispatchMilestones } from "./dispatch-milestones";
 import { DispatchNextActions } from "./dispatch-next-actions";
+import { DispatchDiscrepancyAlertHost } from "./dispatch-discrepancy-alert";
 import styles from "./dispatch-detail.module.css";
 import { DispatchReceivingFollowup } from "./dispatch-receiving-followup";
 
@@ -79,6 +80,7 @@ export function DispatchDetailView(props: DispatchDetailViewProps) {
         </Card>
       )}
       <DispatchActivity dispatch={dispatch} collapsible />
+      <DispatchDiscrepancyAlertHost />
     </div>
   );
 }

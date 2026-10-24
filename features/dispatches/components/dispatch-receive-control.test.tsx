@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/toast";
@@ -9,6 +9,7 @@ import type {
   DispatchReceiveAction,
 } from "@/features/dispatches/types/dispatch.types";
 import { DispatchReceiveControl } from "./dispatch-receive-control";
+import { DispatchDiscrepancyAlertHost } from "./dispatch-discrepancy-alert";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
@@ -145,26 +146,57 @@ describe("dispatch receive control", () => {
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
   }
 
-  it("warns that the delivery has a discrepancy after the count is recorded", async () => {
+  it("opens a discrepancy alert that stays open after the page refreshes", async () => {
+    vi.stubGlobal("crypto", { randomUUID: vi.fn(() => idempotencyKey) });
     const add = vi.spyOn(toast, "add");
-    await submitCount(
-      vi.fn<DispatchReceiveAction>().mockResolvedValue({
-        ok: true,
-        receiving_outcome: "POSTED",
-        differences: [
-          { stock_item_name: "Flour", unit: "kg", quantity_variance: "2" },
-          { stock_item_name: "Sugar", unit: "kg", quantity_variance: "-1.5" },
-        ],
+    const action = vi.fn<DispatchReceiveAction>().mockResolvedValue({
+      ok: true,
+      receiving_outcome: "POSTED",
+      differences: [
+        { stock_item_name: "Flour", unit: "kg", quantity_variance: "2" },
+        { stock_item_name: "Sugar", unit: "kg", quantity_variance: "-1.5" },
+      ],
+    });
+    const user = userEvent.setup();
+    const page = (current: Dispatch) => (
+      <>
+        <DispatchReceiveControl dispatch={current} action={action} />
+        <DispatchDiscrepancyAlertHost />
+      </>
+    );
+    const view = render(page(dispatch));
+    await user.click(screen.getByRole("button", { name: "Count delivery" }));
+    await user.type(screen.getByLabelText("Flour counted (kg)"), "12");
+    await user.type(screen.getByLabelText("Sugar counted (kg)"), "3");
+    await user.click(screen.getByRole("button", { name: "Review count" }));
+    await user.click(
+      screen.getByRole("button", { name: "Submit final count" }),
+    );
+
+    const alert = await screen.findByRole("alertdialog", {
+      name: "Delivery count has a discrepancy",
+    });
+    expect(add).not.toHaveBeenCalled();
+    const rows = within(alert).getAllByRole("listitem");
+    expect(rows.map((row) => row.textContent)).toEqual([
+      "Flour2 kg over",
+      "Sugar1.5 kg short",
+    ]);
+    // After the refresh the delivery is counted and the control renders nothing.
+    view.rerender(
+      page({
+        ...dispatch,
+        counted_at: timestamp,
+        items: dispatch.items.map((item) => ({
+          ...item,
+          awaiting_count: false,
+        })),
       }),
     );
-    expect(add).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "warning",
-        title: "Delivery count recorded with a discrepancy",
-        description:
-          "Flour: 2 kg over · Sugar: 1.5 kg short. The commissary will review the difference.",
-      }),
-    );
+    expect(screen.queryByRole("button", { name: "Count delivery" })).toBeNull();
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "OK, got it" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
   });
 
   it("confirms a matching count without a warning", async () => {
