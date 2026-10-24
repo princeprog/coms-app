@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "@/components/ui/toast";
 import { CatalogPageIntro } from "./catalog-page-intro";
 import { CatalogDetailsDialog } from "@/features/catalogs/components/catalog-details-dialog";
 import { CatalogEditorDialog } from "@/features/catalogs/components/catalog-editor-dialog";
@@ -152,7 +153,7 @@ export function CatalogManagement({
             if (!open) setEditorRecord(null);
           }}
           onComplete={(message) => {
-            setStatus(message);
+            toast.add({ type: "success", title: message });
             router.refresh();
           }}
         />

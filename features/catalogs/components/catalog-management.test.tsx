@@ -2,8 +2,9 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CatalogManagement } from "./catalog-management";
+import { toast } from "@/components/ui/toast";
 import type { CatalogDisplayColumn } from "@/features/catalogs/types/catalog.types";
 import {
   stockItemDisplayColumns,
@@ -79,8 +80,10 @@ async function openRowActions(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("catalog management", () => {
+  afterEach(() => vi.mocked(toast.add).mockRestore());
   beforeEach(() => {
     refresh.mockClear();
+    vi.spyOn(toast, "add").mockReturnValue("catalog-success");
   });
 
   it("renders explicit catalog columns and keeps long-form address in record details", async () => {
@@ -158,7 +161,10 @@ describe("catalog management", () => {
         address: null,
       }),
     );
-    expect(screen.getByRole("status").textContent).toBe("Supplier created.");
+    expect(toast.add).toHaveBeenCalledWith({
+      type: "success",
+      title: "Supplier created.",
+    });
   });
 
   it("creates a stock item from the grouped name, category, and unit fields", async () => {
@@ -233,6 +239,11 @@ describe("catalog management", () => {
         daily_count_required: false,
       }),
     );
+    expect(toast.add).toHaveBeenCalledTimes(1);
+    expect(toast.add).toHaveBeenCalledWith({
+      type: "success",
+      title: "Stock item created.",
+    });
   });
 
   it("shows accessible progress while stock item creation is pending", async () => {
@@ -347,6 +358,7 @@ describe("catalog management", () => {
     expect((await screen.findByRole("alert")).textContent).toContain(
       "Supplier name already exists.",
     );
+    expect(toast.add).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Supplier name")).toHaveProperty(
       "value",
       "North Farm Supply",
