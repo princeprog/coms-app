@@ -15,7 +15,10 @@ Configure these server-only variables for **Production** in Vercel:
 Never use `NEXT_PUBLIC_` for the gateway secret. Local environment files are
 not deployed; localhost URLs cannot reach the API from a Vercel function.
 The API's `WEB_ORIGIN` must match the canonical frontend origin exactly:
-`https://coms-app-sigma.vercel.app`. Sign in using that domain.
+`https://coms-emmaschickenhouse.vercel.app`. Sign in using that domain.
+
+The former `coms-app-sigma.vercel.app` address redirects permanently to this
+domain, preserving the requested path and query string.
 
 Deploy the configured API first, then the frontend. Verify sign-in, a
 protected page and cookie refresh after deployment. The API needs an
