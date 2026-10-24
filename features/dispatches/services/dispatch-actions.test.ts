@@ -154,6 +154,51 @@ describe("dispatch actions", () => {
     });
   });
 
+  it("returns the counted items that differ from what was sent", async () => {
+    const line = (
+      itemId: string,
+      name: string,
+      unit: string,
+      variance: string,
+    ) => ({
+      id: itemId,
+      stock_item_id: itemId,
+      stock_item_name: name,
+      unit,
+      quantity_dispatched: "10",
+      quantity_received: "10",
+      quantity_shortage_closed: "0",
+      quantity_in_transit: "0",
+      quantity_outstanding: "0",
+      quantity_variance: variance,
+    });
+    requestComsApi.mockResolvedValue({
+      ...sentDetail,
+      status: "RECEIVED",
+      counted_at: timestamp,
+      receiving_outcome: "POSTED",
+      items: [
+        line(id, "Fish Sauce", "L", "10"),
+        line("4fa85f64-5717-4562-b3fc-2c963f66afa6", "Rice", "kg", "0"),
+        line("5fa85f64-5717-4562-b3fc-2c963f66afa6", "Chicken", "kg", "-2.5"),
+      ],
+    });
+    await expect(
+      receiveDispatchAction(
+        id,
+        { items: [{ dispatch_item_id: id, quantity_received: "20" }] },
+        idempotencyKey,
+      ),
+    ).resolves.toEqual({
+      ok: true,
+      receiving_outcome: "POSTED",
+      differences: [
+        { stock_item_name: "Fish Sauce", unit: "L", quantity_variance: "10" },
+        { stock_item_name: "Chicken", unit: "kg", quantity_variance: "-2.5" },
+      ],
+    });
+  });
+
   it("sends the resolution outcome with a trimmed reason", async () => {
     requestComsApi.mockResolvedValue({
       ...sentDetail,
@@ -239,7 +284,10 @@ describe("dispatch actions", () => {
       error: expect.stringContaining("workflow changed"),
     });
     requestComsApi.mockRejectedValueOnce(
-      new ApiRequestError("The person who sent this dispatch cannot count it", 403),
+      new ApiRequestError(
+        "The person who sent this dispatch cannot count it",
+        403,
+      ),
     );
     await expect(
       receiveDispatchAction(

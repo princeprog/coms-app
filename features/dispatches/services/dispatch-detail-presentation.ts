@@ -167,7 +167,9 @@ export function buildDispatchActivity(dispatch: Dispatch): DispatchActivity[] {
       })),
     }),
   );
-  const receiptNotes = new Set(dispatch.receipts.map((receipt) => receipt.note));
+  const receiptNotes = new Set(
+    dispatch.receipts.map((receipt) => receipt.note),
+  );
   dispatch.discrepancy_events?.forEach((event) =>
     entries.push({
       id: `discrepancy-${event.id}`,

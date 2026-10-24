@@ -42,8 +42,21 @@ export type CloseDispatchShortageInput = z.infer<
 
 export type DispatchMutationResult =
   { ok: true; dispatch_id: string } | { ok: false; error: string };
+/** A counted item that came out above or below what the commissary sent. */
+export type DispatchCountDifference = {
+  stock_item_name: string;
+  unit: string;
+  /** Counted minus sent; positive is over, negative is short. */
+  quantity_variance: string;
+};
+
 export type DispatchActionResult =
-  | { ok: true; receiving_outcome?: "POSTED" | "REVIEW_REQUIRED" }
+  | {
+      ok: true;
+      receiving_outcome?: "POSTED" | "REVIEW_REQUIRED";
+      /** Present once a count is posted; empty when every item matched. */
+      differences?: DispatchCountDifference[];
+    }
   | { ok: false; error: string };
 
 export type DispatchCreateAction = (

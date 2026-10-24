@@ -3,6 +3,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { toast } from "@/components/ui/toast";
 import type {
   Dispatch,
   DispatchReceiveAction,
@@ -58,6 +59,7 @@ const dispatch: Dispatch = {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   refresh.mockReset();
 });
 
@@ -129,5 +131,56 @@ describe("dispatch receive control", () => {
     expect(
       (screen.getByLabelText("Flour counted (kg)") as HTMLInputElement).value,
     ).toBe("1");
+  });
+
+  async function submitCount(action: DispatchReceiveAction) {
+    vi.stubGlobal("crypto", { randomUUID: vi.fn(() => idempotencyKey) });
+    const user = await openDialog(action);
+    await user.type(screen.getByLabelText("Flour counted (kg)"), "12");
+    await user.type(screen.getByLabelText("Sugar counted (kg)"), "3");
+    await user.click(screen.getByRole("button", { name: "Review count" }));
+    await user.click(
+      screen.getByRole("button", { name: "Submit final count" }),
+    );
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+  }
+
+  it("warns that the delivery has a discrepancy after the count is recorded", async () => {
+    const add = vi.spyOn(toast, "add");
+    await submitCount(
+      vi.fn<DispatchReceiveAction>().mockResolvedValue({
+        ok: true,
+        receiving_outcome: "POSTED",
+        differences: [
+          { stock_item_name: "Flour", unit: "kg", quantity_variance: "2" },
+          { stock_item_name: "Sugar", unit: "kg", quantity_variance: "-1.5" },
+        ],
+      }),
+    );
+    expect(add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "warning",
+        title: "Delivery count recorded with a discrepancy",
+        description:
+          "Flour: 2 kg over · Sugar: 1.5 kg short. The commissary will review the difference.",
+      }),
+    );
+  });
+
+  it("confirms a matching count without a warning", async () => {
+    const add = vi.spyOn(toast, "add");
+    await submitCount(
+      vi.fn<DispatchReceiveAction>().mockResolvedValue({
+        ok: true,
+        receiving_outcome: "POSTED",
+        differences: [],
+      }),
+    );
+    expect(add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "success",
+        title: "Delivery count recorded",
+      }),
+    );
   });
 });

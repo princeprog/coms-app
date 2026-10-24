@@ -21,6 +21,7 @@ import type {
 } from "@/features/dispatches/types/dispatch.types";
 import { ApiRequestError } from "@/services/api-services";
 import { requestComsApi } from "@/services/server-api-services";
+import { countDifferences } from "./receiving-discrepancy";
 
 function getActionError(error: unknown) {
   if (error instanceof ApiRequestError) {
@@ -66,10 +67,13 @@ async function submitDispatchAction(
     if (!parsedDispatch.success)
       throw new ApiRequestError("Invalid dispatch action response.", 502);
     revalidateDispatchRoutes(id);
+    const outcome = parsedDispatch.data.receiving_outcome;
     return {
       ok: true,
-      ...(parsedDispatch.data.receiving_outcome
-        ? { receiving_outcome: parsedDispatch.data.receiving_outcome }
+      ...(outcome ? { receiving_outcome: outcome } : {}),
+      // Sent quantities are visible once the final count is posted.
+      ...(outcome === "POSTED"
+        ? { differences: countDifferences(parsedDispatch.data.items) }
         : {}),
     };
   } catch (error) {
