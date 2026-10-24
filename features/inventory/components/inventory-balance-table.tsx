@@ -19,6 +19,7 @@ import type { InventoryItem, StockStatus } from "../types/inventory.types";
 import { isZeroQuantity, restockQuantity } from "../services/stock-levels";
 import { useRestock } from "@/features/direct-purchases/components/restock-provider";
 import { purchaseStockFromBalance } from "@/features/direct-purchases/services/purchase-stock";
+import { count } from "@/lib/metric-format";
 
 const updatedAt = new Intl.DateTimeFormat("en-PH", {
   month: "short",
@@ -51,11 +52,13 @@ function StockLevels({ item }: { item: InventoryItem }) {
   if (item.reorder_level === null || item.target_level === null)
     return <span className="text-muted-foreground">Not set</span>;
   return (
-    <span className="flex flex-col tabular-nums">
-      <span>Reorder at {item.reorder_level}</span>
-      <span className="text-xs text-muted-foreground">
-        Target {item.target_level}
-      </span>
+    <span
+      className="whitespace-nowrap tabular-nums"
+      title={`Reorder at ${count(item.reorder_level)} ${item.unit}; target ${count(item.target_level)} ${item.unit}`}
+    >
+      {count(item.reorder_level)}
+      <span className="text-muted-foreground"> / </span>
+      {count(item.target_level)}
     </span>
   );
 }
@@ -156,7 +159,7 @@ export function InventoryBalanceTable({
             Status
           </TableHead>
           <TableHead scope="col" className="hidden md:table-cell">
-            Levels
+            Reorder / Target
           </TableHead>
           <TableHead scope="col" className="hidden xl:table-cell">
             Updated
