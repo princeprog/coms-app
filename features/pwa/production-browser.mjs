@@ -166,7 +166,9 @@ try {
       await page.goto(
         `${origin}/pos${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`,
       );
-      await page.getByRole("heading", { name: /^point of sale$/i }).waitFor();
+      await page
+        .getByRole("heading", { name: /^point of sale$/i, level: 2 })
+        .waitFor();
       evidence.persistence = await page.evaluate(async () => ({
         persisted: await navigator.storage.persisted(),
         persistResult: await navigator.storage.persist(),

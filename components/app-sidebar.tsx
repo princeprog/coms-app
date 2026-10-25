@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
 import { NavMain } from "@/components/nav-main";
+import { PwaSidebarNotice } from "@/features/pwa/components/pwa-sidebar-notice";
 import { NavUser } from "@/components/nav-user";
 import { SidebarQuickActions } from "@/components/layout/sidebar-quick-actions";
 import { getAppSidebarNavigationGroups } from "@/components/layout/sidebar-navigation";
@@ -91,6 +92,7 @@ export const AppSidebar = React.memo(function AppSidebar({
       </SidebarContent>
       <SidebarSeparator className="data-horizontal:w-auto" />
       <SidebarFooter className="p-3">
+        <PwaSidebarNotice />
         <NavUser
           user={{
             name: currentUser.full_name,
