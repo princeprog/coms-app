@@ -126,7 +126,6 @@ export function StaffCreateForm({
         email: values.email.trim().toLowerCase(),
         full_name: values.fullName.trim(),
         contact_number: contactNumber,
-        password: values.password,
         role_id: roleId === UNASSIGNED_ROLE_VALUE ? null : roleId,
         branch_ids: branchIds,
       });
@@ -167,6 +166,10 @@ export function StaffCreateForm({
           onChange={updateField}
           onBlur={blurField}
         />
+        <p className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+          Staff will use the default password and must change it at their first
+          sign-in before accessing COMS.
+        </p>
         <StaffCreateAccess
           roleId={roleId}
           roles={assignableRoles}

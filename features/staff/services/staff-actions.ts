@@ -7,6 +7,7 @@ import {
   assignStaffBranchesSchema,
   assignStaffRoleSchema,
   createStaffSchema,
+  defaultPasswordSchema,
   updateStaffSchema,
 } from "@/features/staff/schemas/staff.schema";
 import type { StaffMutationResult } from "@/features/staff/types/staff.types";
@@ -147,4 +148,16 @@ export async function deactivateStaffAction(
     "POST",
     scopedEndpoint(staffEndpoints.deactivate(id), branchId),
   );
+}
+
+export async function setStaffDefaultPasswordAction(
+  input: unknown,
+): Promise<StaffMutationResult> {
+  const parsed = defaultPasswordSchema.safeParse(input);
+  if (!parsed.success)
+    return {
+      ok: false,
+      error: "Use 12 to 128 characters for the default password.",
+    };
+  return mutateStaff("PUT", staffEndpoints.defaultPassword, parsed.data);
 }

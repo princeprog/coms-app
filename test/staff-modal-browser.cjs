@@ -296,9 +296,7 @@ async function clearToasts() {
   await create
     .getByRole("textbox", { name: "Contact number", exact: true })
     .fill("9171234567");
-  await create
-    .getByLabel("Initial password")
-    .fill("Synthetic staff fixture 42!");
+  assert.equal(await create.locator('input[type="password"]').count(), 0);
   await create
     .getByRole("button", { name: "Create staff", exact: true })
     .click();

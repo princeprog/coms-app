@@ -50,7 +50,6 @@ export const createStaffSchema = z
       .string()
       .trim()
       .regex(/^(?:0|\+63)(?:9\d|89)\d{8}$/),
-    password: z.string().min(12).max(128),
     role_id: roleIdSchema.nullable().optional().default(null),
     branch_ids: branchIdsSchema,
   })
@@ -71,4 +70,14 @@ export const assignStaffRoleSchema = z
 
 export const assignStaffBranchesSchema = z
   .object({ branch_ids: branchIdsSchema })
+  .strict();
+
+export const defaultPasswordSchema = z
+  .object({ password: z.string().min(12).max(128) })
+  .strict();
+export const defaultPasswordStatusSchema = z
+  .object({
+    configured: z.boolean(),
+    updated_at: z.string().datetime().nullable(),
+  })
   .strict();

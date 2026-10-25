@@ -57,7 +57,7 @@ export function ChangePasswordForm({ required }: { required: boolean }) {
   const fields = [
     {
       key: "current" as const,
-      label: required ? "Temporary password" : "Current password",
+      label: "Current password",
       autoComplete: "current-password",
     },
     {
@@ -101,6 +101,11 @@ export function ChangePasswordForm({ required }: { required: boolean }) {
               <InputGroupInput
                 id={`password-${field.key}`}
                 type="password"
+                placeholder={
+                  required && field.key === "current"
+                    ? "Default or temporary password"
+                    : undefined
+                }
                 autoComplete={field.autoComplete}
                 autoFocus={field.key === "current"}
                 value={values[field.key]}

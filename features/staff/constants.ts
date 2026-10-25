@@ -1,4 +1,5 @@
 export const staffEndpoints = {
+  defaultPassword: "/staff/default-password",
   collection: "/staff",
   member: (id: string) => `/staff/${id}`,
   role: (id: string) => `/staff/${id}/role`,

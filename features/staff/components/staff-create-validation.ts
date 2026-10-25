@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-export type StaffCreateField =
-  "fullName" | "email" | "contactNumber" | "password";
+export type StaffCreateField = "fullName" | "email" | "contactNumber";
 
 export type StaffCreateFieldErrors = Partial<Record<StaffCreateField, string>>;
 
@@ -21,12 +20,6 @@ export function validateStaffCreateField(
     return emailSchema.safeParse(value.trim().toLowerCase()).success
       ? undefined
       : "Enter a valid email address.";
-  }
-
-  if (field === "password") {
-    if (value.length < 12) return "Use at least 12 characters.";
-    if (value.length > 128) return "Use no more than 128 characters.";
-    return undefined;
   }
 
   return normalizeStaffContactNumber(value)

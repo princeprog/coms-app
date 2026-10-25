@@ -2,7 +2,10 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { staffEndpoints } from "@/features/staff/constants";
-import { staffPageSchema } from "@/features/staff/schemas/staff.schema";
+import {
+  staffPageSchema,
+  defaultPasswordStatusSchema,
+} from "@/features/staff/schemas/staff.schema";
 import type { StaffPage } from "@/features/staff/types/staff.types";
 import { branchesResponseSchema } from "@/features/branches/schemas/branch.schema";
 import { rolesResponseSchema } from "@/features/roles/schemas/role.schema";
@@ -103,4 +106,12 @@ export async function getStaffRoleOptions() {
     (role) =>
       role.is_active && !(role.is_system && role.code === "SUPER_ADMIN"),
   );
+}
+
+export async function getStaffDefaultPasswordStatus() {
+  const payload = await requestComsApi<unknown>(
+    staffEndpoints.defaultPassword,
+    { cookieHeader: (await cookies()).toString() },
+  );
+  return defaultPasswordStatusSchema.parse(payload);
 }

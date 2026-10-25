@@ -6,21 +6,18 @@ export const initialStaffCreateValues: StaffCreateValues = {
   fullName: "",
   email: "",
   contactNumber: "",
-  password: "",
 };
 
 export const staffCreateFieldOrder: StaffCreateField[] = [
   "fullName",
   "email",
   "contactNumber",
-  "password",
 ];
 
 export const staffCreateFieldIds: Record<StaffCreateField, string> = {
   fullName: "staff-create-full-name",
   email: "staff-create-email",
   contactNumber: "staff-create-contact",
-  password: "staff-create-password",
 };
 
 export function isStaffCreateDirty(
@@ -33,7 +30,6 @@ export function isStaffCreateDirty(
     values.fullName ||
     values.email ||
     values.contactNumber ||
-    values.password ||
     roleId !== UNASSIGNED_ROLE_VALUE ||
     branchIds.length !== initialBranchIds.length ||
     branchIds.some((id) => !initialBranchIds.includes(id)),

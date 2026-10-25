@@ -67,6 +67,7 @@ function renderDirectory(
 ) {
   return render(
     <StaffDirectory
+      defaultPasswordConfigured={true}
       staff={staffPage}
       branchOptions={branchOptions}
       selectedBranchId={branchId}
@@ -82,6 +83,31 @@ function renderDirectory(
 }
 
 describe("staff directory", () => {
+  it("offers the default password setting only to Super Admin and blocks creation until configured", () => {
+    renderDirectory({
+      isSuperAdmin: true,
+      canCreateStaff: true,
+      canReadRoles: true,
+      roleOptions: staffRoles,
+      defaultPasswordConfigured: false,
+    });
+    expect(
+      screen.getByRole("button", { name: "Default password" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add staff" })).toBeNull();
+    expect(screen.getByText(/must set the default password/)).toBeTruthy();
+  });
+  it("hides global password settings from ordinary staff managers", () => {
+    renderDirectory({
+      canCreateStaff: true,
+      canReadRoles: true,
+      roleOptions: staffRoles,
+    });
+    expect(
+      screen.queryByRole("button", { name: "Default password" }),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Add staff" })).toBeTruthy();
+  });
   it("blocks dismissal during a save and keeps a failed draft without success feedback", async () => {
     const user = userEvent.setup();
     let finish!: (result: { ok: false; error: string }) => void;

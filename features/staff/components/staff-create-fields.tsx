@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type {
   StaffCreateField,
@@ -42,8 +39,6 @@ export function StaffCreateFields({
   onChange: (field: StaffCreateField, value: string) => void;
   onBlur: (field: StaffCreateField) => void;
 }) {
-  const [showPassword, setShowPassword] = useState(false);
-
   return (
     <section aria-labelledby="staff-account-details" className="space-y-4">
       <h3 id="staff-account-details" className="sr-only">
@@ -150,51 +145,6 @@ export function StaffCreateFields({
           <FieldError
             id="staff-create-contact-error"
             message={errors.contactNumber}
-          />
-        </Field>
-
-        <Field className="gap-2">
-          <FieldLabel htmlFor="staff-create-password">
-            Initial password
-            <RequiredMark />
-          </FieldLabel>
-          <div className="relative">
-            <Input
-              id="staff-create-password"
-              aria-label="Initial password"
-              type={showPassword ? "text" : "password"}
-              className="h-11 pr-11"
-              autoComplete="new-password"
-              placeholder="Enter initial password"
-              maxLength={128}
-              value={values.password}
-              disabled={pending}
-              aria-required="true"
-              aria-invalid={Boolean(errors.password)}
-              aria-describedby={`staff-create-password-hint${errors.password ? " staff-create-password-error" : ""}`}
-              onChange={(event) =>
-                onChange("password", event.currentTarget.value)
-              }
-              onBlur={() => onBlur("password")}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="absolute top-1/2 right-1 -translate-y-1/2"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              disabled={pending}
-              onClick={() => setShowPassword((visible) => !visible)}
-            >
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-            </Button>
-          </div>
-          <FieldDescription id="staff-create-password-hint">
-            Minimum 12 characters.
-          </FieldDescription>
-          <FieldError
-            id="staff-create-password-error"
-            message={errors.password}
           />
         </Field>
       </div>

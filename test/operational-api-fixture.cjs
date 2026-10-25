@@ -1128,6 +1128,7 @@ function createOperationalApiFixture({
   authUser = seed.user,
   stockItemCount = 26,
   notificationCount = 0,
+  defaultPasswordConfigured = true,
   receivingFollowup = false,
   openShifts = true,
   sampleReport = false,
@@ -1138,6 +1139,8 @@ function createOperationalApiFixture({
     );
   }
 
+  authUser = clone(authUser);
+  let loginPassword = seed.login.password;
   let state = createState({ stockItemCount });
   if (receivingFollowup) seedReceivingFollowup(state);
   let notificationItems = createNotificationSeed(state, notificationCount);
@@ -1224,7 +1227,7 @@ function createOperationalApiFixture({
       if (url.pathname === "/auth/login" && request.method === "POST") {
         if (
           body?.email?.toLowerCase() !== authUser.email.toLowerCase() ||
-          body?.password !== seed.login.password
+          body?.password !== loginPassword
         ) {
           return send(response, 401, { message: "Invalid email or password." });
         }
@@ -1241,6 +1244,25 @@ function createOperationalApiFixture({
         );
       }
 
+      if (
+        url.pathname === "/auth/password" &&
+        request.method === "POST" &&
+        isAuthenticated
+      ) {
+        if (
+          body?.current_password !== loginPassword ||
+          typeof body?.new_password !== "string" ||
+          body.new_password.length < 12 ||
+          body.new_password === loginPassword
+        ) {
+          return send(response, 400, {
+            message: "Check the current and new passwords.",
+          });
+        }
+        loginPassword = body.new_password;
+        authUser.must_change_password = false;
+        return send(response, 200, { user: clone(authUser) });
+      }
       if (url.pathname === "/auth/me" && request.method === "GET") {
         if (!isAuthenticated) {
           return send(response, 401, { message: "Unauthorized." });
@@ -1963,6 +1985,23 @@ function createOperationalApiFixture({
         return send(response, 201, branch);
       }
 
+      if (url.pathname === "/staff/default-password") {
+        if (
+          request.method === "PUT" &&
+          (typeof body?.password !== "string" ||
+            body.password.length < 12 ||
+            body.password.length > 128)
+        ) {
+          return send(response, 400, { message: "Use 12 to 128 characters." });
+        }
+        if (request.method === "PUT") defaultPasswordConfigured = true;
+        return send(response, 200, {
+          configured: defaultPasswordConfigured,
+          updated_at: defaultPasswordConfigured
+            ? new Date().toISOString()
+            : null,
+        });
+      }
       if (url.pathname === "/staff" && request.method === "GET") {
         const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
         const pageSize = Math.min(

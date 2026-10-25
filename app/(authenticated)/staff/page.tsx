@@ -9,6 +9,7 @@ import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import type { Role } from "@/features/roles/types/role.types";
 import { StaffDirectory } from "@/features/staff/components/staff-directory";
 import {
+  getStaffDefaultPasswordStatus,
   getStaffBranchOptions,
   getStaffPageData,
   getStaffRoleOptions,
@@ -182,8 +183,19 @@ async function StaffDirectoryPageContent({
     }
   }
 
+  let defaultPasswordConfigured: boolean | null = null;
+  if (canCreateStaff) {
+    try {
+      defaultPasswordConfigured = (await getStaffDefaultPasswordStatus())
+        .configured;
+    } catch {
+      /* Keep the directory available; creation remains blocked until a retry succeeds. */
+    }
+  }
+
   return (
     <StaffDirectory
+      defaultPasswordConfigured={defaultPasswordConfigured}
       staff={staff}
       branchOptions={branchOptions}
       selectedBranchId={selectedBranchId}

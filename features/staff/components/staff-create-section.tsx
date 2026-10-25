@@ -17,12 +17,14 @@ import type { Role } from "@/features/roles/types/role.types";
 import type { StaffBranchOption } from "@/features/staff/types/staff.types";
 
 export function StaffCreateSection({
+  defaultPasswordConfigured,
   roles,
   branches,
   initialBranchId,
   canReadRoles,
   rolesFailed,
 }: {
+  defaultPasswordConfigured: boolean | null;
   roles: Role[];
   branches: StaffBranchOption[];
   initialBranchId?: string;
@@ -36,6 +38,22 @@ export function StaffCreateSection({
   const [pending, setPending] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
+
+  if (defaultPasswordConfigured !== true)
+    return (
+      <div className="flex max-w-sm items-center gap-2">
+        <p role="status" className="text-sm text-muted-foreground">
+          {defaultPasswordConfigured === false
+            ? "A Super Admin must set the default password before staff can be added."
+            : "Could not check the default password. Try again."}
+        </p>
+        {defaultPasswordConfigured === null && (
+          <Button variant="outline" onClick={() => router.refresh()}>
+            Try again
+          </Button>
+        )}
+      </div>
+    );
 
   if (roles.length === 0) {
     const message = !canReadRoles

@@ -96,10 +96,6 @@ describe("staff creation", () => {
     await user.type(screen.getByLabelText("Email"), "alex@example.com");
     await user.type(screen.getByLabelText("Full name"), "Alex Staff");
     await user.type(screen.getByLabelText("Contact number"), "09170000000");
-    await user.type(
-      screen.getByLabelText("Initial password"),
-      "safe staff passphrase 1",
-    );
     await user.click(screen.getByRole("button", { name: "Branches" }));
     await user.click(screen.getByRole("checkbox", { name: "Manila South" }));
     await user.click(screen.getByRole("button", { name: "Create staff" }));
@@ -108,7 +104,6 @@ describe("staff creation", () => {
       email: "alex@example.com",
       full_name: "Alex Staff",
       contact_number: "+639170000000",
-      password: "safe staff passphrase 1",
       role_id: "4",
       branch_ids: [northBranch, southBranch],
     });
@@ -172,17 +167,12 @@ describe("staff creation", () => {
     await user.type(screen.getByLabelText("Email"), "unassigned@example.com");
     await user.type(screen.getByLabelText("Full name"), "Unassigned Staff");
     await user.type(screen.getByLabelText("Contact number"), "09170000001");
-    await user.type(
-      screen.getByLabelText("Initial password"),
-      "safe staff passphrase 2",
-    );
     await user.click(screen.getByRole("button", { name: "Create staff" }));
 
     expect(createStaffAction).toHaveBeenCalledWith({
       email: "unassigned@example.com",
       full_name: "Unassigned Staff",
       contact_number: "+639170000001",
-      password: "safe staff passphrase 2",
       role_id: null,
       branch_ids: [],
     });
@@ -199,10 +189,6 @@ describe("staff creation", () => {
     await user.type(screen.getByLabelText("Email"), "alex@example.com");
     await user.type(screen.getByLabelText("Full name"), "Alex Staff");
     await user.type(screen.getByLabelText("Contact number"), "09170000000");
-    await user.type(
-      screen.getByLabelText("Initial password"),
-      "safe staff passphrase 1",
-    );
     await user.click(screen.getByRole("button", { name: "Create staff" }));
 
     expect((await screen.findByRole("alert")).textContent).toBe(
@@ -212,22 +198,17 @@ describe("staff creation", () => {
       "value",
       "alex@example.com",
     );
-    expect(screen.getByLabelText("Initial password")).toHaveProperty(
-      "value",
-      "safe staff passphrase 1",
-    );
     expect(refreshMock).not.toHaveBeenCalled();
     expect(toast.add).not.toHaveBeenCalled();
   });
 
-  it("shows inline email, contact number, and password errors before sending a request", async () => {
+  it("shows inline email and contact number errors before sending a request", async () => {
     const user = userEvent.setup();
     render(<StaffCreateForm roles={roles} branches={branches} />);
 
     await user.type(screen.getByLabelText("Full name"), "Alex Staff");
     await user.type(screen.getByLabelText("Email"), "not-an-email");
     await user.type(screen.getByLabelText("Contact number"), "abc123");
-    await user.type(screen.getByLabelText("Initial password"), "short");
     await user.click(screen.getByRole("button", { name: "Create staff" }));
 
     expect(screen.getByText("Enter a valid email address.")).toBeTruthy();
@@ -236,7 +217,6 @@ describe("staff creation", () => {
         "Enter a Philippine mobile number with 10 digits after +63.",
       ),
     ).toBeTruthy();
-    expect(screen.getByText("Use at least 12 characters.")).toBeTruthy();
     expect(createStaffAction).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Email").getAttribute("aria-invalid")).toBe(
       "true",
@@ -256,18 +236,11 @@ describe("staff creation", () => {
     expect(contact.value).toBe("9171234567");
   });
 
-  it("can reveal the initial password without changing its value", async () => {
-    const user = userEvent.setup();
+  it("uses the configured default without a password input", () => {
     render(<StaffCreateForm roles={roles} branches={branches} />);
-
-    const password = screen.getByLabelText(
-      "Initial password",
-    ) as HTMLInputElement;
-    await user.type(password, "safe staff passphrase 1");
-    await user.click(screen.getByRole("button", { name: "Show password" }));
-    expect(password.type).toBe("text");
-    expect(password.value).toBe("safe staff passphrase 1");
-    await user.click(screen.getByRole("button", { name: "Hide password" }));
-    expect(password.type).toBe("password");
+    expect(screen.queryByLabelText("Initial password")).toBeNull();
+    expect(
+      screen.getByText(/must change it at their first sign-in/),
+    ).toBeTruthy();
   });
 });

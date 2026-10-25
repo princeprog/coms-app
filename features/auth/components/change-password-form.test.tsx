@@ -32,7 +32,7 @@ describe("ChangePasswordForm", () => {
     const user = userEvent.setup();
     mount();
     await user.type(
-      screen.getByLabelText("Temporary password"),
+      screen.getByLabelText("Current password"),
       "Temp-password-1",
     );
     await user.type(screen.getByLabelText("New password"), "short");
@@ -76,10 +76,7 @@ describe("ChangePasswordForm", () => {
       message: "The current password is incorrect",
     });
     mount();
-    await user.type(
-      screen.getByLabelText("Temporary password"),
-      "wrong-one-xx",
-    );
+    await user.type(screen.getByLabelText("Current password"), "wrong-one-xx");
     await user.type(
       screen.getByLabelText("New password"),
       "a-much-longer-password",

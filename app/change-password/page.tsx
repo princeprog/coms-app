@@ -42,7 +42,7 @@ export default async function ChangePasswordPage() {
           </h1>
           <CardDescription>
             {required
-              ? "Your password was reset. Choose a new one to continue."
+              ? "Choose your own password before accessing COMS."
               : "Signed in as " + session.user.email + "."}
           </CardDescription>
         </CardHeader>

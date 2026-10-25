@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { StaffPagination } from "./staff-pagination";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
+import { StaffDefaultPasswordDialog } from "./staff-default-password-dialog";
 import { StaffCreateSection } from "@/features/staff/components/staff-create-section";
 import { StaffDirectoryFilters } from "@/features/staff/components/staff-directory-filters";
 import { StaffTable } from "@/features/staff/components/staff-table";
@@ -16,6 +17,7 @@ import type {
 } from "@/features/staff/types/staff.types";
 
 export function StaffDirectory({
+  defaultPasswordConfigured,
   staff,
   branchOptions,
   selectedBranchId,
@@ -36,6 +38,7 @@ export function StaffDirectory({
     canReadBranches: false,
   },
 }: {
+  defaultPasswordConfigured: boolean | null;
   staff: StaffPage;
   branchOptions: StaffBranchOption[];
   selectedBranchId?: string;
@@ -55,15 +58,23 @@ export function StaffDirectory({
     <div data-coms-ui="operational" className="flex min-w-0 flex-col gap-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-semibold tracking-tight">Staff</h2>
-        {canCreateStaff && (
-          <StaffCreateSection
-            roles={roleOptions}
-            branches={branchOptions}
-            initialBranchId={selectedBranchId}
-            canReadRoles={canReadRoles}
-            rolesFailed={roleOptionsFailed}
-          />
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {isSuperAdmin && (
+            <StaffDefaultPasswordDialog
+              configured={defaultPasswordConfigured}
+            />
+          )}
+          {canCreateStaff && (
+            <StaffCreateSection
+              defaultPasswordConfigured={defaultPasswordConfigured}
+              roles={roleOptions}
+              branches={branchOptions}
+              initialBranchId={selectedBranchId}
+              canReadRoles={canReadRoles}
+              rolesFailed={roleOptionsFailed}
+            />
+          )}
+        </div>
       </header>
       <StaffDirectoryFilters
         branchOptions={branchOptions}

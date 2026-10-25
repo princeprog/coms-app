@@ -41,7 +41,6 @@ describe("staff schemas", () => {
       email: "alex@example.com",
       full_name: "Alex Staff",
       contact_number: "09170000000",
-      password: "a secure test password",
       role_id: "4",
       branch_ids: [branchId],
     };

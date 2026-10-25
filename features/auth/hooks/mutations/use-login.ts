@@ -11,6 +11,7 @@ export function useLogin() {
   return useMutation({
     retry: false,
     mutationFn: (input: LoginInput) => login(input),
-    onSuccess: () => router.replace("/"),
+    onSuccess: ({ user }) =>
+      router.replace(user.must_change_password ? "/change-password" : "/"),
   });
 }

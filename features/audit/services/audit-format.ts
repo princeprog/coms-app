@@ -31,6 +31,7 @@ const namedActions: Record<string, string> = {
   "auth.sign_in_failed": "Failed sign-in",
   "auth.password_changed": "Changed password",
   "staff.password_reset": "Reset password",
+  "staff.default_password_updated": "Updated staff default password",
   "staff.branches_updated": "Changed branch access",
   "role.permissions_updated": "Changed permissions",
   "stock_item.cost_set": "Set stock cost",
