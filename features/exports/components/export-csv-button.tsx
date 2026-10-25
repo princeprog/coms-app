@@ -21,6 +21,7 @@ export function ExportCsvButton({
   icon = <Download data-icon="inline-start" aria-hidden="true" />,
   variant = "outline",
   className,
+  disabled = false,
 }: {
   kind: ExportKind;
   params?: ExportParams;
@@ -28,6 +29,7 @@ export function ExportCsvButton({
   icon?: ReactNode;
   variant?: "outline" | "default";
   className?: string;
+  disabled?: boolean;
 }) {
   const [pending, setPending] = useState(false);
   async function download() {
@@ -75,7 +77,7 @@ export function ExportCsvButton({
       type="button"
       variant={variant}
       className={className}
-      disabled={pending}
+      disabled={disabled || pending}
       aria-busy={pending}
       onClick={download}
     >

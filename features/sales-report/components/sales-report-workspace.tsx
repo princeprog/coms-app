@@ -86,6 +86,7 @@ export function SalesReportWorkspace() {
               kind="sales-report"
               className={press}
               params={downloads}
+              disabled={result.isPlaceholderData}
             />
             <ExportCsvButton
               kind="sales-report-pdf"
@@ -94,6 +95,7 @@ export function SalesReportWorkspace() {
               variant="default"
               className={press}
               params={downloads}
+              disabled={result.isPlaceholderData}
             />
           </div>
         )}

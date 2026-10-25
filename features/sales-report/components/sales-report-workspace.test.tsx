@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -203,6 +203,77 @@ describe("sales report", () => {
     expect(screen.queryByRole("region", { name: "Gross profit" })).toBeNull();
     expect(screen.queryByText("Waste value")).toBeNull();
     expect(screen.getByRole("region", { name: "Daily reports" })).toBeTruthy();
+  });
+
+  it.each([
+    ["Export CSV", "sales-report"],
+    ["Download PDF", "sales-report-pdf"],
+  ])("blocks %s until the selected report has loaded", async (label, kind) => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({ message: "Try later" }, { status: 500 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    params.value = new URLSearchParams("period=week&date=2026-10-14");
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const view = render(
+      <QueryClientProvider client={client}>
+        <SalesReportWorkspace />
+      </QueryClientProvider>,
+    );
+    await screen.findByRole("button", { name: label });
+    let finish!: (value: { ok: true; data: SalesReport }) => void;
+    getSalesReportAction.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    params.value = new URLSearchParams(
+      `period=month&date=2026-09-15&branch=${branch}`,
+    );
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <SalesReportWorkspace />
+      </QueryClientProvider>,
+    );
+    await waitFor(() =>
+      expect(getSalesReportAction).toHaveBeenLastCalledWith({
+        period: "month",
+        date: "2026-09-15",
+        branch_id: branch,
+      }),
+    );
+    const button = screen.getByRole("button", {
+      name: label,
+    }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    await user.click(button);
+    expect(fetchMock).not.toHaveBeenCalled();
+    await act(async () =>
+      finish({
+        ok: true,
+        data: report({
+          period: "month",
+          range: { from: "2026-09-01", to: "2026-09-30" },
+          period_range: { from: "2026-09-01", to: "2026-09-30" },
+          branch: { id: branch, name: "Manila - Ermita", code: null },
+          scope_label: "Manila - Ermita",
+        }),
+      }),
+    );
+    await waitFor(() => expect(button.disabled).toBe(false));
+    await user.click(button);
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        `/api/exports/${kind}?period=month&date=2026-09-30&branch_id=${branch}`,
+      ),
+    );
+    client.clear();
   });
 
   it("downloads the PDF for the shown period and recovers from errors", async () => {
