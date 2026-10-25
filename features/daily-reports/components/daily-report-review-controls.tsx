@@ -4,6 +4,7 @@ import { DailyReportDeliveries } from "./daily-report-deliveries";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { DailyReportApprovalControl } from "@/features/daily-reports/components/daily-report-approval-control";
 import { DailyReportReturnForm } from "@/features/daily-reports/components/daily-report-return-form";
 import type {
@@ -24,6 +25,7 @@ export function DailyReportReviewControls({
   returnAction,
   approveAction,
   onReportChange,
+  placement = "panel",
 }: {
   branchId: string;
   report: DailyReport;
@@ -36,10 +38,10 @@ export function DailyReportReviewControls({
   returnAction: DailyReportReturnAction;
   approveAction: DailyReportTransitionAction;
   onReportChange: (report: DailyReport) => void;
+  placement?: "header" | "panel";
 }) {
   const router = useRouter();
   const [showReturnForm, setShowReturnForm] = useState(false);
-  const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [deliveryReasons, setDeliveryReasons] = useState<
     Record<string, string>
@@ -106,26 +108,6 @@ export function DailyReportReviewControls({
     );
   }
 
-  async function returnForCorrection(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalizedReason = reason.trim();
-    if (!normalizedReason) {
-      setError("Enter a reason for returning this report.");
-      return;
-    }
-    const changed = await runAction(() =>
-      returnAction(branchId, report.id, { reason: normalizedReason }),
-    );
-    if (changed) {
-      setShowReturnForm(false);
-      setReason("");
-    }
-  }
-
-  async function approve() {
-    await runAction(() => approveAction(branchId, report.id));
-  }
-
   const submitAvailable = canPrepareSubmission && isEditable;
   const submitBlockedHintId = `report-submit-blocked-${report.id}`;
   const returnAvailable = canReturn && isReviewable;
@@ -136,7 +118,12 @@ export function DailyReportReviewControls({
   return (
     <section
       aria-label="Report actions"
-      className="flex flex-col gap-3 rounded-lg border bg-card p-4"
+      className={cn(
+        "flex flex-col gap-3",
+        placement === "header"
+          ? "w-full sm:w-auto"
+          : "rounded-lg border bg-card p-4",
+      )}
     >
       {submitAvailable && !report.submission_checklist_bypassed && (
         <DailyReportDeliveries
@@ -149,7 +136,12 @@ export function DailyReportReviewControls({
           }
         />
       )}
-      <div className="flex flex-wrap gap-2">
+      <div
+        className={cn(
+          "flex flex-wrap gap-2",
+          placement === "header" && "flex-col sm:flex-row sm:justify-end",
+        )}
+      >
         {submitAvailable && (
           <Button
             type="button"
@@ -160,24 +152,30 @@ export function DailyReportReviewControls({
             {pending ? "Submitting…" : "Submit for review"}
           </Button>
         )}
-        {returnAvailable && !showReturnForm && (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pending || hasUnsavedChanges}
-            onClick={() => {
-              setShowReturnForm(true);
+        {returnAvailable && (
+          <DailyReportReturnForm
+            reportId={report.id}
+            open={showReturnForm}
+            pending={pending}
+            disabled={hasUnsavedChanges}
+            error={error}
+            onOpenChange={(open) => {
+              setShowReturnForm(open);
               setError("");
             }}
-          >
-            Return for correction
-          </Button>
+            onConfirm={(reason) =>
+              runAction(() => returnAction(branchId, report.id, { reason }))
+            }
+            onClearError={() => setError("")}
+          />
         )}
         {approveAvailable && (
           <DailyReportApprovalControl
             pending={pending}
             disabled={hasUnsavedChanges}
-            onConfirm={() => void approve()}
+            onConfirm={() =>
+              void runAction(() => approveAction(branchId, report.id))
+            }
           />
         )}
       </div>
@@ -191,24 +189,7 @@ export function DailyReportReviewControls({
           Save or discard unsaved counts before changing report status.
         </p>
       )}
-      {showReturnForm && returnAvailable && (
-        <DailyReportReturnForm
-          reportId={report.id}
-          reason={reason}
-          pending={pending}
-          onSubmit={returnForCorrection}
-          onReasonChange={(value) => {
-            setReason(value);
-            setError("");
-          }}
-          onCancel={() => {
-            setShowReturnForm(false);
-            setReason("");
-            setError("");
-          }}
-        />
-      )}
-      {error && (
+      {error && !showReturnForm && (
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>

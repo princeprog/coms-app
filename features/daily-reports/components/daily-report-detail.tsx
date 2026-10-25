@@ -3,6 +3,7 @@
 import { DailyReportDeliveryHistory } from "./daily-report-deliveries";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
 import { businessDayLong } from "@/features/shifts/services/shift-time";
 import type {
@@ -60,6 +61,23 @@ export function DailyReportDetail({
     [],
   );
   const isEditable = report.status === "DRAFT" || report.status === "RETURNED";
+  const isSubmitted = report.status === "SUBMITTED";
+  const reviewControls = (
+    <DailyReportReviewControls
+      branchId={branchId}
+      report={report}
+      canSubmit={canSubmit}
+      canPrepareSubmission={canPrepareSubmission}
+      canApprove={canApprove}
+      canReturn={canReturn}
+      hasUnsavedChanges={hasUnsavedChanges}
+      submitAction={submitAction}
+      returnAction={returnAction}
+      approveAction={approveAction}
+      onReportChange={setReport}
+      placement={isSubmitted ? "header" : "panel"}
+    />
+  );
 
   function handleSaved(updatedReport: DailyReport) {
     setReport(updatedReport);
@@ -69,8 +87,13 @@ export function DailyReportDetail({
 
   return (
     <section aria-labelledby="daily-report-detail-title" className="grid gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
-        <div>
+      <header
+        className={cn(
+          "flex flex-wrap items-start justify-between gap-4 border-b bg-background py-4",
+          isSubmitted && (canApprove || canReturn) && "sticky top-0 z-20",
+        )}
+      >
+        <div className="min-w-0">
           <h2 id="daily-report-detail-title" className="text-lg font-semibold">
             Daily report · {businessDayLong(report.business_date)}
           </h2>
@@ -80,7 +103,10 @@ export function DailyReportDetail({
             (Asia/Manila)
           </p>
         </div>
-        <DailyReportStatusBadge status={report.status} />
+        <div className="flex w-full flex-col items-start gap-3 sm:w-auto sm:items-end">
+          <DailyReportStatusBadge status={report.status} />
+          {isSubmitted && reviewControls}
+        </div>
       </header>
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
@@ -138,19 +164,7 @@ export function DailyReportDetail({
       )}
 
       <DailyReportDeliveryHistory report={report} />
-      <DailyReportReviewControls
-        branchId={branchId}
-        report={report}
-        canSubmit={canSubmit}
-        canPrepareSubmission={canPrepareSubmission}
-        canApprove={canApprove}
-        canReturn={canReturn}
-        hasUnsavedChanges={hasUnsavedChanges}
-        submitAction={submitAction}
-        returnAction={returnAction}
-        approveAction={approveAction}
-        onReportChange={setReport}
-      />
+      {!isSubmitted && reviewControls}
       <DailyReportHistory report={report} />
     </section>
   );
