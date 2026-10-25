@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
-import { Button } from "@/components/ui/button";
+import { StaffEditFormFooter } from "./staff-edit-form-footer";
 import { StaffBranchAssignments } from "@/features/staff/components/staff-branch-assignments";
 import { assignStaffBranchesAction } from "@/features/staff/services/staff-actions";
 import type {
@@ -18,12 +18,16 @@ export function StaffBranchAssignmentForm({
   branches,
   onDirtyChange,
   onPendingChange,
+  onComplete,
+  onCancel,
 }: {
   staff: StaffMember;
   branchId?: string;
   branches: StaffBranchOption[];
   onDirtyChange?: (dirty: boolean) => void;
   onPendingChange?: (pending: boolean) => void;
+  onComplete?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [branchIds, setBranchIds] = useState(staff.branch_ids);
@@ -56,15 +60,14 @@ export function StaffBranchAssignmentForm({
     onDirtyChange?.(false);
     toast.add({ type: "success", title: "Branch access updated." });
     router.refresh();
+    onComplete?.();
   }
 
   return (
-    <details className="rounded-lg border p-4">
-      <summary className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-        Manage branch assignments
-      </summary>
-      <form onSubmit={submit} className="mt-4 flex flex-col items-start gap-4">
+    <form onSubmit={submit} className="flex min-h-0 flex-col">
+      <div className="min-h-0 space-y-5 overflow-y-auto px-5 pb-6 sm:px-8 [&_input]:h-10 [&_[data-slot=select-trigger]]:h-10">
         <StaffBranchAssignments
+          disabled={pending}
           branches={branches}
           selectedBranchIds={branchIds}
           onChange={(ids) => {
@@ -84,10 +87,13 @@ export function StaffBranchAssignmentForm({
             {error}
           </p>
         )}
-        <Button type="submit" disabled={pending}>
-          {pending ? "Saving assignments…" : "Save branch assignments"}
-        </Button>
-      </form>
-    </details>
+      </div>
+      <StaffEditFormFooter
+        pending={pending}
+        onCancel={onCancel}
+        label="Save branch assignments"
+        pendingLabel="Saving assignments…"
+      />
+    </form>
   );
 }

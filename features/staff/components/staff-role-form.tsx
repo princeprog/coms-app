@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
-import { Button } from "@/components/ui/button";
+import { StaffEditFormFooter } from "./staff-edit-form-footer";
 import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Select,
@@ -27,6 +27,8 @@ export function StaffRoleForm({
   rolesFailed,
   onDirtyChange,
   onPendingChange,
+  onComplete,
+  onCancel,
 }: {
   staff: StaffMember;
   branchId?: string;
@@ -34,6 +36,8 @@ export function StaffRoleForm({
   rolesFailed: boolean;
   onDirtyChange?: (dirty: boolean) => void;
   onPendingChange?: (pending: boolean) => void;
+  onComplete?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const assignableRoles = roles.filter(
@@ -76,14 +80,12 @@ export function StaffRoleForm({
     onDirtyChange?.(false);
     toast.add({ type: "success", title: "Staff role updated." });
     router.refresh();
+    onComplete?.();
   }
 
   return (
-    <details className="rounded-lg border p-4">
-      <summary className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-        Assign role
-      </summary>
-      <form onSubmit={submit} className="mt-4 flex flex-col items-start gap-4">
+    <form onSubmit={submit} className="flex min-h-0 flex-col">
+      <div className="min-h-0 space-y-5 overflow-y-auto px-5 pb-6 sm:px-8 [&_input]:h-10 [&_[data-slot=select-trigger]]:h-10">
         {rolesFailed ? (
           <p role="alert" className="text-sm text-destructive">
             COMS could not load account roles. Try refreshing this page.
@@ -100,6 +102,7 @@ export function StaffRoleForm({
                 <span className="sr-only"> for {staff.full_name}</span>
               </FieldLabel>
               <Select
+                disabled={pending}
                 value={roleId}
                 onValueChange={(value) => {
                   setRoleId(value ?? "");
@@ -136,19 +139,25 @@ export function StaffRoleForm({
                 {error}
               </p>
             )}
-            <Button
-              type="submit"
-              disabled={pending || !roleId || roleId === initialRoleId}
-            >
-              {pending
-                ? "Saving role…"
-                : roleId === UNASSIGNED_ROLE_VALUE && staff.role_id !== null
-                  ? "Remove role"
-                  : "Assign role"}
-            </Button>
           </>
         )}
-      </form>
-    </details>
+      </div>
+      <StaffEditFormFooter
+        pending={pending}
+        onCancel={onCancel}
+        disabled={
+          rolesFailed ||
+          assignableRoles.length === 0 ||
+          !roleId ||
+          roleId === initialRoleId
+        }
+        label={
+          roleId === UNASSIGNED_ROLE_VALUE && staff.role_id !== null
+            ? "Remove role"
+            : "Assign role"
+        }
+        pendingLabel="Saving role…"
+      />
+    </form>
   );
 }

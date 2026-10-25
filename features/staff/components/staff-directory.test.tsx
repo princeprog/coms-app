@@ -97,9 +97,9 @@ describe("staff directory", () => {
       screen.getByRole("button", { name: "Actions for Alex Staff" }),
     );
     await user.click(
-      await screen.findByRole("menuitem", { name: "Manage staff" }),
+      await screen.findByRole("menuitem", { name: "Edit profile" }),
     );
-    const dialog = screen.getByRole("dialog", { name: "Alex Staff" });
+    const dialog = screen.getByRole("dialog", { name: "Edit profile" });
     const name = within(dialog).getByLabelText("Full name for Alex Staff");
     await user.clear(name);
     await user.type(name, "Alex Draft");
@@ -107,14 +107,13 @@ describe("staff directory", () => {
       within(dialog).getByRole("button", { name: "Save profile" }),
     );
     expect(
-      within(dialog).getByRole("button", { name: "Close staff details" }),
+      within(dialog).getByRole("button", { name: "Close edit profile" }),
     ).toHaveProperty("disabled", true);
-    expect(within(dialog).getByRole("button", { name: "Done" })).toHaveProperty(
-      "disabled",
-      true,
-    );
+    expect(
+      within(dialog).getByRole("button", { name: "Cancel" }),
+    ).toHaveProperty("disabled", true);
     await user.keyboard("{Escape}");
-    expect(screen.getByRole("dialog", { name: "Alex Staff" })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "Edit profile" })).toBeTruthy();
     await act(async () =>
       finish({ ok: false, error: "Email is already in use." }),
     );
@@ -150,24 +149,11 @@ describe("staff directory", () => {
     ).toBeTruthy();
   });
 
-  it("opens full staff details in a modal for a read-only operator", async () => {
-    const user = userEvent.setup();
+  it("omits the action menu for a read-only operator", () => {
     renderDirectory();
-
-    await user.click(
-      screen.getByRole("button", { name: "Actions for Alex Staff" }),
-    );
-    await user.click(
-      await screen.findByRole("menuitem", { name: "View details" }),
-    );
-
-    const modal = screen.getByRole("dialog", { name: "Alex Staff" });
-    expect(modal.getAttribute("data-slot")).toBe("dialog-content");
-    expect(within(modal).getByText("09170000000")).toBeTruthy();
-    expect(within(modal).getByText("Manila North")).toBeTruthy();
     expect(
-      within(modal).getByText(/do not have access to change/i),
-    ).toBeTruthy();
+      screen.queryByRole("button", { name: "Actions for Alex Staff" }),
+    ).toBeNull();
   });
 
   it("opens staff creation in a centered modal", async () => {
@@ -199,13 +185,13 @@ describe("staff directory", () => {
       screen.getByRole("button", { name: "Actions for Alex Staff" }),
     );
     await user.click(
-      await screen.findByRole("menuitem", { name: "Manage staff" }),
+      await screen.findByRole("menuitem", { name: "Edit profile" }),
     );
     const name = screen.getByLabelText("Full name for Alex Staff");
     await user.clear(name);
     await user.type(name, "Alex Draft");
     await user.click(
-      screen.getByRole("button", { name: "Close staff details" }),
+      screen.getByRole("button", { name: "Close edit profile" }),
     );
     expect(
       screen.getByRole("alertdialog", {
@@ -216,16 +202,16 @@ describe("staff directory", () => {
     await user.click(screen.getByRole("button", { name: "Keep editing" }));
     expect(name).toHaveProperty("value", "Alex Draft");
     await user.click(
-      screen.getByRole("button", { name: "Close staff details" }),
+      screen.getByRole("button", { name: "Close edit profile" }),
     );
     await user.click(screen.getByRole("button", { name: "Discard changes" }));
-    expect(screen.queryByRole("dialog", { name: "Alex Staff" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Edit profile" })).toBeNull();
 
     await user.click(
       screen.getByRole("button", { name: "Actions for Alex Staff" }),
     );
     await user.click(
-      await screen.findByRole("menuitem", { name: "Manage staff" }),
+      await screen.findByRole("menuitem", { name: "Edit profile" }),
     );
     expect(screen.getByLabelText("Full name for Alex Staff")).toHaveProperty(
       "value",
@@ -370,14 +356,14 @@ describe("staff directory", () => {
 
   it("opens the staff modal from a three-dot row menu", async () => {
     const user = userEvent.setup();
-    renderDirectory();
+    renderDirectory({ managementPermissions: allManagementPermissions });
     await user.click(
       screen.getByRole("button", { name: "Actions for Alex Staff" }),
     );
     expect(
-      await screen.findByRole("menuitem", { name: "View details" }),
+      await screen.findByRole("menuitem", { name: "Edit profile" }),
     ).toBeTruthy();
-    await user.click(screen.getByRole("menuitem", { name: "View details" }));
-    expect(screen.getByRole("dialog", { name: "Alex Staff" })).toBeTruthy();
+    await user.click(screen.getByRole("menuitem", { name: "Edit profile" }));
+    expect(screen.getByRole("dialog", { name: "Edit profile" })).toBeTruthy();
   });
 });

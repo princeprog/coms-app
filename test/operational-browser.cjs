@@ -1399,7 +1399,7 @@ let baseUrl;
   await page
     .getByRole("button", { name: "Actions for Fixture Staff 03" })
     .click();
-  await page.getByRole("menuitem", { name: "Manage staff" }).waitFor();
+  await page.getByRole("menuitem", { name: "Edit profile" }).waitFor();
   await page.keyboard.press("Escape");
   await navigate("/staff");
   await page.getByRole("button", { name: "Add staff" }).click();

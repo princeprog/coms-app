@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,14 +16,28 @@ const staff = {
   full_name: "Ana Cruz",
 } as StaffMember;
 
+function ResetHarness() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Open reset</button>
+      {open && (
+        <StaffPasswordResetControl
+          staff={staff}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
 beforeEach(() => reset.mockReset());
 
 describe("StaffPasswordResetControl", () => {
   it("confirms, shows the temporary password once and forgets it on close", async () => {
     const user = userEvent.setup();
     reset.mockResolvedValue({ ok: true, temporaryPassword: "Abc23defGhk9Mn" });
-    render(<StaffPasswordResetControl staff={staff} branchId={undefined} />);
-    await user.click(screen.getByRole("button", { name: "Reset password" }));
+    render(<ResetHarness />);
+    await user.click(screen.getByRole("button", { name: "Open reset" }));
     expect(screen.getByText(/signed out everywhere/)).toBeTruthy();
     await user.click(
       screen.getAllByRole("button", { name: "Reset password" }).at(-1)!,
@@ -30,7 +45,7 @@ describe("StaffPasswordResetControl", () => {
     expect(await screen.findByText("Abc23defGhk9Mn")).toBeTruthy();
     expect(reset).toHaveBeenCalledWith(staff.id, undefined);
     await user.click(screen.getByRole("button", { name: "Done" }));
-    await user.click(screen.getByRole("button", { name: "Reset password" }));
+    await user.click(screen.getByRole("button", { name: "Open reset" }));
     expect(screen.queryByText("Abc23defGhk9Mn")).toBeNull();
   });
 
@@ -40,8 +55,8 @@ describe("StaffPasswordResetControl", () => {
       ok: false,
       error: "You do not have permission or access to this branch.",
     });
-    render(<StaffPasswordResetControl staff={staff} />);
-    await user.click(screen.getByRole("button", { name: "Reset password" }));
+    render(<ResetHarness />);
+    await user.click(screen.getByRole("button", { name: "Open reset" }));
     await user.click(
       screen.getAllByRole("button", { name: "Reset password" }).at(-1)!,
     );

@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
-import { Button } from "@/components/ui/button";
+import { StaffEditFormFooter } from "./staff-edit-form-footer";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { updateStaffAction } from "@/features/staff/services/staff-actions";
@@ -17,11 +17,15 @@ export function StaffProfileForm({
   branchId,
   onDirtyChange,
   onPendingChange,
+  onComplete,
+  onCancel,
 }: {
   staff: StaffMember;
   branchId?: string;
   onDirtyChange?: (dirty: boolean) => void;
   onPendingChange?: (pending: boolean) => void;
+  onComplete?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState(staff.email);
@@ -73,12 +77,12 @@ export function StaffProfileForm({
     onDirtyChange?.(false);
     toast.add({ type: "success", title: "Staff profile updated." });
     router.refresh();
+    onComplete?.();
   }
 
   return (
-    <section aria-label="Edit profile">
-      <h3 className="font-medium">Edit profile</h3>
-      <form onSubmit={submit} className="mt-4 flex flex-col gap-4">
+    <form onSubmit={submit} className="flex min-h-0 flex-col">
+      <div className="min-h-0 space-y-5 overflow-y-auto px-5 pb-6 sm:px-8 [&_input]:h-10 [&_[data-slot=select-trigger]]:h-10">
         <FieldGroup className="gap-4 sm:grid sm:grid-cols-2">
           <Field>
             <FieldLabel htmlFor={`staff-${staff.id}-full-name`}>
@@ -145,12 +149,13 @@ export function StaffProfileForm({
             {error}
           </p>
         )}
-        <div>
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving profile…" : "Save profile"}
-          </Button>
-        </div>
-      </form>
-    </section>
+      </div>
+      <StaffEditFormFooter
+        pending={pending}
+        onCancel={onCancel}
+        label="Save profile"
+        pendingLabel="Saving profile…"
+      />
+    </form>
   );
 }

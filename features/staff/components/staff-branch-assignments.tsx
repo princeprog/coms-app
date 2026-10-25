@@ -10,11 +10,13 @@ import {
 
 export function StaffBranchAssignments({
   branches,
+  disabled = false,
   selectedBranchIds,
   onChange,
   onLimitReached,
 }: {
   branches: StaffBranchOption[];
+  disabled?: boolean;
   selectedBranchIds: string[];
   onChange: (branchIds: string[]) => void;
   onLimitReached: () => void;
@@ -44,6 +46,7 @@ export function StaffBranchAssignments({
               className="min-h-12 items-center gap-3 rounded-lg border px-3 py-2 has-[[data-state=checked]]:border-primary/40 has-[[data-state=checked]]:bg-primary/5"
             >
               <Checkbox
+                disabled={disabled}
                 id={`staff-branch-${branch.id}`}
                 checked={selectedBranchIds.includes(branch.id)}
                 onCheckedChange={(checked) =>

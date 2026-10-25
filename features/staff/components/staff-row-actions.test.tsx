@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { toast } from "@/components/ui/toast";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { StaffMemberActions } from "@/features/staff/components/staff-member-actions";
+import { StaffRowActions } from "@/features/staff/components/staff-row-actions";
 import {
   assignStaffBranchesAction,
   assignStaffRoleAction,
@@ -19,6 +19,7 @@ vi.mock("@/features/staff/services/staff-actions", () => ({
   assignStaffRoleAction: vi.fn(),
   deactivateStaffAction: vi.fn(),
   updateStaffAction: vi.fn(),
+  resetStaffPasswordAction: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: refreshMock }),
@@ -67,15 +68,16 @@ const allPermissions = {
   canAssignRole: true,
   canAssignBranches: true,
   canDeactivate: true,
+  canResetPassword: true,
   canReadRoles: true,
   canReadBranches: true,
 };
 
 function renderActions(
-  overrides: Partial<Parameters<typeof StaffMemberActions>[0]> = {},
+  overrides: Partial<Parameters<typeof StaffRowActions>[0]> = {},
 ) {
   return render(
-    <StaffMemberActions
+    <StaffRowActions
       staff={staff}
       branches={branchOptions}
       roles={roles}
@@ -89,7 +91,71 @@ function renderActions(
   );
 }
 
-describe("staff member actions", () => {
+async function openAction(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+) {
+  await user.click(
+    screen.getByRole("button", { name: "Actions for Alex Staff" }),
+  );
+  await user.click(await screen.findByRole("menuitem", { name }));
+}
+describe("staff row actions", () => {
+  it("hides password reset and deactivation for inactive staff", async () => {
+    renderActions({ staff: { ...staff, is_active: false } });
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Actions for Alex Staff" }));
+    expect(
+      (await screen.findAllByRole("menuitem")).map((item) => item.textContent),
+    ).toEqual(["Edit profile", "Assign role", "Manage branch assignments"]);
+  });
+
+  it("allows a password-reset-only operator to open the confirmation", async () => {
+    renderActions({
+      permissions: {
+        ...allPermissions,
+        canUpdate: false,
+        canAssignRole: false,
+        canAssignBranches: false,
+        canDeactivate: false,
+      },
+    });
+    await openAction(userEvent.setup(), "Reset password");
+    expect(
+      screen.getByRole("alertdialog", { name: /reset alex staff/i }),
+    ).toBeTruthy();
+  });
+
+  it("blocks closing during deactivation and preserves a server error for retry", async () => {
+    let finish!: (value: { ok: false; error: string }) => void;
+    vi.mocked(deactivateStaffAction).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+    renderActions();
+    await openAction(user, "Deactivate staff");
+    await user.click(
+      screen.getByRole("button", { name: "Confirm deactivation" }),
+    );
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    await act(async () =>
+      finish({ ok: false, error: "This account cannot be deactivated." }),
+    );
+    expect(screen.getByRole("alert").textContent).toBe(
+      "This account cannot be deactivated.",
+    );
+    expect(toast.add).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.mocked(assignStaffBranchesAction).mockReset();
     vi.mocked(assignStaffRoleAction).mockReset();
@@ -99,12 +165,28 @@ describe("staff member actions", () => {
     vi.mocked(toast.add).mockClear();
   });
 
+  it("offers exactly five focused actions without Manage staff", async () => {
+    renderActions();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Actions for Alex Staff" }));
+    expect(
+      (await screen.findAllByRole("menuitem")).map((item) => item.textContent),
+    ).toEqual([
+      "Edit profile",
+      "Assign role",
+      "Manage branch assignments",
+      "Reset password",
+      "Deactivate staff",
+    ]);
+  });
+
   it("updates profile fields with the selected branch context", async () => {
     const user = userEvent.setup();
     vi.mocked(updateStaffAction).mockResolvedValue({ ok: true });
     renderActions();
 
-    await user.click(screen.getByText("Edit profile"));
+    await openAction(user, "Edit profile");
     await user.clear(screen.getByLabelText("Full name for Alex Staff"));
     await user.type(
       screen.getByLabelText("Full name for Alex Staff"),
@@ -128,7 +210,7 @@ describe("staff member actions", () => {
     vi.mocked(assignStaffRoleAction).mockResolvedValue({ ok: true });
     renderActions();
 
-    await user.click(screen.getByText("Assign role", { selector: "summary" }));
+    await openAction(user, "Assign role");
     const roleSelect = screen.getByRole("combobox", {
       name: "Staff role for Alex Staff",
     });
@@ -168,7 +250,7 @@ describe("staff member actions", () => {
       isSuperAdmin: true,
     });
 
-    await user.click(screen.getByText("Assign role", { selector: "summary" }));
+    await openAction(user, "Assign role");
     const roleSelect = screen.getByRole("combobox", {
       name: "Staff role for Alex Staff",
     });
@@ -187,7 +269,7 @@ describe("staff member actions", () => {
     vi.mocked(assignStaffBranchesAction).mockResolvedValue({ ok: true });
     renderActions();
 
-    await user.click(screen.getByText("Manage branch assignments"));
+    await openAction(user, "Manage branch assignments");
     await user.click(screen.getByRole("checkbox", { name: "Manila South" }));
     await user.click(
       screen.getByRole("button", { name: "Save branch assignments" }),
@@ -211,8 +293,13 @@ describe("staff member actions", () => {
     vi.mocked(deactivateStaffAction).mockResolvedValue({ ok: true });
     renderActions();
 
-    const trigger = screen.getByRole("button", { name: "Deactivate staff" });
-    trigger.focus();
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Alex Staff" }),
+    );
+    const trigger = await screen.findByRole("menuitem", {
+      name: "Deactivate staff",
+    });
+    act(() => trigger.focus());
     await user.keyboard("{Enter}");
     expect(
       screen.getByRole("alertdialog", { name: /deactivate alex staff/i }),
@@ -222,28 +309,37 @@ describe("staff member actions", () => {
     );
 
     expect(deactivateStaffAction).toHaveBeenCalledWith(staffId, northBranch);
-    expect(await screen.findByRole("status")).toBeTruthy();
+    expect(toast.add).toHaveBeenCalledWith({
+      type: "success",
+      title: "Staff account deactivated.",
+    });
   });
 
-  it("hides role, branch, and deactivation controls on one's own account", () => {
+  it("hides role, branch, and deactivation controls on one's own account", async () => {
     renderActions({ currentUserId: staffId });
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Actions for Alex Staff" }));
 
     expect(screen.queryByText("Assign role")).toBeNull();
     expect(screen.queryByText("Manage branch assignments")).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Deactivate staff" }),
+      screen.queryByRole("menuitem", { name: "Deactivate staff" }),
     ).toBeNull();
   });
 
-  it("protects Super Admin targets from ordinary role, branch, and status changes", () => {
+  it("protects Super Admin targets from ordinary role, branch, and status changes", async () => {
     renderActions({
       staff: { ...staff, role_code: "SUPER_ADMIN", role_name: "Super Admin" },
     });
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Actions for Alex Staff" }));
 
     expect(screen.queryByText("Assign role")).toBeNull();
     expect(screen.queryByText("Manage branch assignments")).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Deactivate staff" }),
+      screen.queryByRole("menuitem", { name: "Deactivate staff" }),
     ).toBeNull();
   });
 });

@@ -43,7 +43,6 @@ describe("staff role assignment", () => {
     vi.mocked(assignStaffRoleAction).mockResolvedValue({ ok: true });
     render(<StaffRoleForm staff={staff} roles={roles} rolesFailed={false} />);
 
-    await user.click(screen.getByText("Assign role", { selector: "summary" }));
     await user.click(
       screen.getByRole("combobox", { name: "Staff role for Alex Staff" }),
     );

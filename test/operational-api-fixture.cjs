@@ -2026,7 +2026,7 @@ function createOperationalApiFixture({
         return send(response, 201, { id });
       }
       const staffRoute = url.pathname.match(
-        /^\/staff\/([0-9a-f-]{36})(?:\/(role|branches|deactivate))?$/i,
+        /^\/staff\/([0-9a-f-]{36})(?:\/(role|branches|deactivate|password-reset))?$/i,
       );
       if (staffRoute) {
         const member = state.staff.find((item) => item.id === staffRoute[1]);
@@ -2065,6 +2065,15 @@ function createOperationalApiFixture({
         if (request.method === "PUT" && staffRoute[2] === "branches") {
           member.branch_ids = body.branch_ids;
           return send(response, 204);
+        }
+        if (request.method === "POST" && staffRoute[2] === "password-reset") {
+          if (!member.is_active || member.role_code === "SUPER_ADMIN")
+            return send(response, 403, {
+              message: "This account cannot be reset.",
+            });
+          return send(response, 200, {
+            temporary_password: "Synthetic-Reset-42!",
+          });
         }
         if (request.method === "POST" && staffRoute[2] === "deactivate") {
           if (member.role_code === "SUPER_ADMIN") {
