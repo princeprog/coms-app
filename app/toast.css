@@ -1,14 +1,21 @@
 /* Scoped overrides: Sileo injects unlayered CSS, so these selectors intentionally
    outrank its defaults without changing other COMS overlays. */
 html [data-sileo-viewport][data-position="bottom-right"] {
+  color-scheme: dark;
+  --coms-toast-surface: #242628;
+  --coms-toast-foreground: #f5f5f5;
+  --coms-toast-description: #d4d4d4;
+  --coms-toast-muted: #a3a3a3;
+  --sileo-duration: 300ms;
+  --sileo-spring-easing: cubic-bezier(0.22, 1, 0.36, 1);
   --sileo-width: min(
     350px,
     calc(100vw - 2rem - env(safe-area-inset-left) - env(safe-area-inset-right))
   );
-  --sileo-state-success: oklch(0.5 0.15 145);
-  --sileo-state-error: oklch(0.55 0.2 25);
-  --sileo-state-warning: oklch(0.5 0.12 80);
-  --sileo-state-info: oklch(0.5 0.14 245);
+  --sileo-state-success: #86efac;
+  --sileo-state-error: #fca5a5;
+  --sileo-state-warning: #fcd34d;
+  --sileo-state-info: #93c5fd;
   right: calc(1rem + env(safe-area-inset-right));
   bottom: calc(1rem + env(safe-area-inset-bottom));
   padding: 0;
@@ -20,28 +27,21 @@ html [data-sileo-viewport][data-position="bottom-right"] {
   font-family: var(--font-sans), sans-serif;
 }
 
-html.dark [data-sileo-viewport] {
-  --sileo-state-success: oklch(0.78 0.17 145);
-  --sileo-state-error: oklch(0.75 0.16 25);
-  --sileo-state-warning: oklch(0.82 0.16 80);
-  --sileo-state-info: oklch(0.77 0.13 245);
-}
-
 html [data-sileo-viewport] [data-sileo-toast] {
   flex-shrink: 0;
-  color: var(--popover-foreground);
+  color: var(--coms-toast-foreground);
   cursor: default;
   border-radius: 1rem;
 }
 
 html [data-sileo-viewport] [data-sileo-canvas] {
-  filter: drop-shadow(
-    0 2px 6px color-mix(in oklch, var(--foreground) 15%, transparent)
-  );
+  filter: drop-shadow(0 0 1px rgb(255 255 255 / 20%))
+    drop-shadow(0 6px 16px rgb(0 0 0 / 20%));
 }
 
 html [data-sileo-viewport] [data-sileo-title] {
-  color: var(--sileo-tone, var(--popover-foreground));
+  color: var(--sileo-tone, var(--coms-toast-foreground));
+  font-weight: 600;
   text-transform: none;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -59,7 +59,8 @@ html [data-sileo-viewport] [data-sileo-header-inner] {
 }
 
 html [data-sileo-viewport][data-theme] [data-sileo-description] {
-  color: var(--muted-foreground);
+  color: var(--coms-toast-description);
+  padding: 1rem 1.125rem;
   overflow-wrap: anywhere;
   max-height: min(
     16rem,
@@ -86,10 +87,13 @@ html [data-sileo-viewport] [data-sileo-close] {
   place-items: center;
   border-radius: 50%;
   background: transparent;
-  color: var(--muted-foreground);
+  color: var(--coms-toast-muted);
   font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
 }
 
 html [data-sileo-viewport] [data-edge="top"] > [data-sileo-close] {
@@ -99,12 +103,21 @@ html [data-sileo-viewport] [data-edge="bottom"] > [data-sileo-close] {
   top: 0.25rem;
 }
 html [data-sileo-viewport] [data-sileo-close]:hover {
-  background: var(--accent);
-  color: var(--accent-foreground);
+  background: rgb(255 255 255 / 8%);
+  color: var(--coms-toast-foreground);
 }
 html [data-sileo-viewport] :focus-visible {
-  outline: 2px solid var(--ring);
+  outline: 2px solid var(--coms-toast-description);
   outline-offset: 2px;
+}
+
+html
+  [data-sileo-viewport][data-position^="bottom"]
+  [data-sileo-toast]:not([data-ready="true"]),
+html
+  [data-sileo-viewport][data-position^="bottom"]
+  [data-sileo-toast][data-exiting="true"] {
+  transform: translateY(4px) scale(0.98);
 }
 
 @media (prefers-reduced-motion: reduce) {

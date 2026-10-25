@@ -115,6 +115,7 @@ async function theme(name) {
         .querySelector("[data-sileo-toast]")
         ?.getAttribute("data-expanded") === "true",
   );
+  const appearances = [];
   for (const mode of ["Light", "Dark"]) {
     await theme(mode);
     await toast.focus();
@@ -152,10 +153,17 @@ async function theme(name) {
           description: box(description),
           titleText: title.textContent,
           descriptionText: description.textContent,
+          fill: getComputedStyle(el.querySelector("[data-sileo-pill]")).fill,
           titleColor: getComputedStyle(title).color,
           descriptionColor: getComputedStyle(description).color,
         };
       });
+      appearances.push({
+        fill: bounds.fill,
+        title: bounds.titleColor,
+        description: bounds.descriptionColor,
+      });
+      assert.equal(bounds.fill, "rgb(36, 38, 40)");
       assert.equal(bounds.titleText, "Success");
       assert.equal(bounds.descriptionText, "Staff account created.");
       assert.notEqual(bounds.titleColor, bounds.descriptionColor);
@@ -174,6 +182,7 @@ async function theme(name) {
       });
     }
   }
+  assert.deepEqual(appearances.slice(0, 3), appearances.slice(3));
   await toast.getByRole("button", { name: "Dismiss notification" }).click();
   await toast.waitFor({ state: "detached" });
   assert.deepEqual(errors, []);

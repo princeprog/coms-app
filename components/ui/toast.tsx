@@ -1,6 +1,5 @@
 "use client";
 import type { ReactNode } from "react";
-import { useTheme } from "next-themes";
 import { sileo, Toaster as SileoToaster } from "sileo";
 type ToastType = "success" | "error" | "warning" | "info";
 type ToastOptions = {
@@ -29,21 +28,16 @@ export const toast = {
         description
       ),
       position: "bottom-right",
-      fill: "var(--popover)",
+      fill: "var(--coms-toast-surface)",
       duration: type === "error" || type === "warning" ? 8000 : 6000,
-      autopilot: { expand: 150, collapse: 0 },
+      autopilot: { expand: 120, collapse: 0 },
     });
   },
   dismiss: sileo.dismiss,
   clear: () => sileo.clear(),
 };
 export function Toaster() {
-  const { resolvedTheme } = useTheme();
   return (
-    <SileoToaster
-      position="bottom-right"
-      visibleToasts={3}
-      theme={resolvedTheme === "dark" ? "dark" : "light"}
-    />
+    <SileoToaster position="bottom-right" visibleToasts={3} theme="dark" />
   );
 }

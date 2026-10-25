@@ -23,9 +23,27 @@ index 0c52a3a33f124bfaf35b18dc37777f4c9a314ecb..402bc5b1db06a49d79608979b71415da
      position?: SileoPosition;
      offset?: SileoOffsetValue | SileoOffsetConfig;
 diff --git a/dist/index.js b/dist/index.js
-index 79aa792998ed2f8917d4b46725af2b0bbab692e0..5ac4f1f567dad05e00e603689421f7ed03b43c37 100644
+index 79aa792998ed2f8917d4b46725af2b0bbab692e0..27d6b44eed29e2976b1765fceb275616a3f2eae0 100644
 --- a/dist/index.js
 +++ b/dist/index.js
+@@ -20,7 +20,7 @@ __insertCSS(":root{--sileo-spring-easing:linear(\n    0,\n    0.002 0.6%,\n    0
+ /* --------------------------------- Layout --------------------------------- */ const HEIGHT = 40;
+ const WIDTH = 350;
+ const DEFAULT_ROUNDNESS = 16;
+-/* --------------------------------- Timing --------------------------------- */ const DURATION_MS = 600;
++/* --------------------------------- Timing --------------------------------- */ const DURATION_MS = 300;
+ const DURATION_S = DURATION_MS / 1000;
+ const DEFAULT_TOAST_DURATION = 6000;
+ const EXIT_DURATION = DEFAULT_TOAST_DURATION * 0.1;
+@@ -28,7 +28,7 @@ const AUTO_EXPAND_DELAY = DEFAULT_TOAST_DURATION * 0.025;
+ const AUTO_COLLAPSE_DELAY = DEFAULT_TOAST_DURATION - 2000;
+ const SPRING = {
+     type: "spring",
+-    bounce: 0.25,
++    bounce: 0,
+     duration: DURATION_S
+ };
+ /* --------------------------------- Render --------------------------------- */ const BLUR_RATIO = 0.5;
 @@ -214,6 +214,14 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
      const [isExpanded, setIsExpanded] = react.useState(false);
      const [ready, setReady] = react.useState(false);
@@ -424,9 +442,27 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..5ac4f1f567dad05e00e603689421f7ed
                              onMouseLeave: h.leave,
                              onDismiss: h.dismiss
 diff --git a/dist/index.mjs b/dist/index.mjs
-index f687f84725d587b4c539fccb2f86568a9c18294d..c5f3d9961f88fb7774c59377bfa6154f946f1348 100644
+index f687f84725d587b4c539fccb2f86568a9c18294d..4f0063d9dd224833a68a883fc5552f0e302a5766 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
+@@ -18,7 +18,7 @@ __insertCSS(":root{--sileo-spring-easing:linear(\n    0,\n    0.002 0.6%,\n    0
+ /* --------------------------------- Layout --------------------------------- */ const HEIGHT = 40;
+ const WIDTH = 350;
+ const DEFAULT_ROUNDNESS = 16;
+-/* --------------------------------- Timing --------------------------------- */ const DURATION_MS = 600;
++/* --------------------------------- Timing --------------------------------- */ const DURATION_MS = 300;
+ const DURATION_S = DURATION_MS / 1000;
+ const DEFAULT_TOAST_DURATION = 6000;
+ const EXIT_DURATION = DEFAULT_TOAST_DURATION * 0.1;
+@@ -26,7 +26,7 @@ const AUTO_EXPAND_DELAY = DEFAULT_TOAST_DURATION * 0.025;
+ const AUTO_COLLAPSE_DELAY = DEFAULT_TOAST_DURATION - 2000;
+ const SPRING = {
+     type: "spring",
+-    bounce: 0.25,
++    bounce: 0,
+     duration: DURATION_S
+ };
+ /* --------------------------------- Render --------------------------------- */ const BLUR_RATIO = 0.5;
 @@ -212,6 +212,14 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
      const [isExpanded, setIsExpanded] = useState(false);
      const [ready, setReady] = useState(false);

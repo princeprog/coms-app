@@ -56,8 +56,8 @@ async function checkToastBounds(width) {
         height: innerHeight,
         overflow: document.documentElement.scrollWidth,
         fill: getComputedStyle(el.querySelector("[data-sileo-pill]")).fill,
-        expectedFill: getComputedStyle(document.documentElement)
-          .getPropertyValue("--popover")
+        expectedFill: getComputedStyle(el)
+          .getPropertyValue("--coms-toast-surface")
           .trim(),
         titleColor: getComputedStyle(title).color,
         descriptionColor: getComputedStyle(
@@ -206,8 +206,10 @@ async function checkToastBounds(width) {
       });
     }
   }
-  assert.notEqual(fills[0].fill, fills[4].fill);
-  assert.notEqual(fills[0].titleColor, fills[4].titleColor);
+  assert.equal(fills[0].fill, "rgb(36, 38, 40)");
+  assert.equal(fills[0].fill, fills[4].fill);
+  assert.equal(fills[0].titleColor, fills[4].titleColor);
+  assert.equal(fills[0].descriptionColor, fills[4].descriptionColor);
   assert.equal(
     await success.evaluate((el) => getComputedStyle(el).transitionDuration),
     "0s",
