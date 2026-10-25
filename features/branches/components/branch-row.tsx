@@ -1,4 +1,4 @@
-import { MapPin, ShoppingBag, Utensils } from "lucide-react";
+import { ShoppingBag, Utensils } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -19,7 +19,7 @@ export function BranchRow({
 }) {
   const opened = branch.date_opened
     ? format(parseISO(branch.date_opened.slice(0, 10)), "MMM d, yyyy")
-    : "Not recorded";
+    : null;
   const services = (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
       {branch.has_dine_in && (
@@ -47,32 +47,37 @@ export function BranchRow({
   );
   return (
     <TableRow>
-      <TableCell className="min-w-40 px-3 py-2.5 align-top whitespace-normal sm:w-2/5 sm:px-4 sm:align-middle">
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-base font-semibold break-words">
-              {branch.branch_name}
-            </span>
-            <span className="text-sm break-all text-muted-foreground">
-              {branch.code}
-            </span>
-          </div>
-          <div className="flex items-start gap-2 text-sm text-muted-foreground">
-            <MapPin aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-            <span className="break-words">
-              {branch.address || "Address not recorded"}
-            </span>
-          </div>
-          <div className="pt-1 md:hidden">{services}</div>
-          <span className="text-xs text-muted-foreground lg:hidden">
-            Opened: {opened}
+      <TableCell className="min-w-40 px-3 py-3 align-top whitespace-normal sm:w-2/5 sm:px-4 sm:align-middle">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="font-medium break-words">{branch.branch_name}</span>
+          <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="shrink-0">{branch.code}</span>
+            {branch.address && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span
+                  className="max-w-56 truncate sm:max-w-80"
+                  title={branch.address}
+                >
+                  {branch.address}
+                </span>
+              </>
+            )}
           </span>
+          <div className="pt-1.5 md:hidden">{services}</div>
+          {opened && (
+            <span className="text-xs text-muted-foreground lg:hidden">
+              Opened {opened}
+            </span>
+          )}
         </div>
       </TableCell>
       <TableCell className="hidden w-1/4 px-4 whitespace-normal md:table-cell">
         {services}
       </TableCell>
-      <TableCell className="hidden px-4 lg:table-cell">{opened}</TableCell>
+      <TableCell className="hidden px-4 lg:table-cell">
+        {opened ?? <span className="text-muted-foreground">—</span>}
+      </TableCell>
       <TableCell className="px-2 py-4 align-top sm:px-4 sm:align-middle">
         <Badge
           className={cn(
