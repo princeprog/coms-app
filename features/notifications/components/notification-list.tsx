@@ -6,6 +6,7 @@ import {
   FileCheck2,
   FileClock,
   FilePenLine,
+  PackageCheck,
   TriangleAlert,
   Truck,
   Wallet,
@@ -41,6 +42,11 @@ const appearance = {
   DISPATCH_SENT: {
     icon: Truck,
     color: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  },
+  DISPATCH_RECEIVED: {
+    icon: PackageCheck,
+    color:
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
   },
   DISPATCH_DISCREPANCY: {
     icon: TriangleAlert,

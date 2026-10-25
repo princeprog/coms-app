@@ -8,6 +8,7 @@ export const notificationTitle: Record<NotificationKind, string> = {
   DISPATCH_OVERDUE: "Overdue deliveries",
   DISPATCH_LATE_COUNT: "Late delivery count needs review",
   DISPATCH_SENT: "Delivery on the way",
+  DISPATCH_RECEIVED: "Delivery received",
   DISPATCH_DISCREPANCY: "Dispatch needs review",
   DISPATCH_RESOLVED: "Dispatch discrepancy resolved",
   REPORT_SUBMITTED: "Daily report ready for review",
@@ -78,10 +79,12 @@ export const notificationTimestamp = (value: string) =>
 export const notificationContext = (item: Notification) =>
   item.kind === "DISPATCH_COUNT_REMINDER"
     ? "Please count this delivery and submit the quantities received."
-    : item.kind === "DISPATCH_OVERDUE"
-      ? `${item.overdue_count ?? "Pending"} overdue deliveries`
-      : item.kind === "SHIFT_NEEDS_REVIEW"
-        ? `Shift ${item.shift_number ?? ""} · ${item.business_date ? businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`)) : ""}`
-        : item.business_date
-          ? `Daily report · ${businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`))}`
-          : "Dispatch";
+    : item.kind === "DISPATCH_RECEIVED"
+      ? "Counted with no differences"
+      : item.kind === "DISPATCH_OVERDUE"
+        ? `${item.overdue_count ?? "Pending"} overdue deliveries`
+        : item.kind === "SHIFT_NEEDS_REVIEW"
+          ? `Shift ${item.shift_number ?? ""} · ${item.business_date ? businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`)) : ""}`
+          : item.business_date
+            ? `Daily report · ${businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`))}`
+            : "Dispatch";
