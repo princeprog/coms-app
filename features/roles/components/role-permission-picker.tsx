@@ -118,7 +118,7 @@ export function RolePermissionPicker({
         ) : (
           <FieldGroup className="gap-3 pb-1">
             {Object.entries(grouped).map(([module, items]) => {
-              const moduleLabel = module.replaceAll("_", " ");
+              const moduleLabel = module === "pos_offline" ? "Offline POS" : module.replaceAll("_", " ");
               const selectedCount = permissions.filter(
                 (permission) =>
                   permission.module_key === module &&
@@ -180,7 +180,7 @@ export function RolePermissionPicker({
                                   <span className="sr-only">
                                     {labelPrefix} {permission.key}{" "}
                                   </span>
-                                  {permission.action_key.replaceAll("_", " ")}
+                                  {permission.key === "pos_offline.devices_manage" ? "Manage register devices" : permission.key === "pos_offline.review" ? "Review and recover offline sales" : permission.action_key.replaceAll("_", " ")}
                                 </FieldLabel>
                                 <FieldDescription className="min-w-0 text-xs sm:text-sm">
                                   {permission.description}

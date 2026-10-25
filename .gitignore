@@ -6,6 +6,8 @@
 # next.js
 /.next/
 /out/
+/public/sw.js
+/public/pwa/offline-pos.html
 
 # production
 /build

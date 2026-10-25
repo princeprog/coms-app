@@ -21,5 +21,5 @@ export type BranchDirectoryFilters = {
 };
 export type BranchAccess = Record<
   string,
-  { canUpdate: boolean; canDeactivate: boolean }
+  { canUpdate: boolean; canDeactivate: boolean; canManageDevices?: boolean; canReviewOffline?: boolean }
 >;

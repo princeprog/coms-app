@@ -54,6 +54,8 @@ export function BranchTable({
             branch={branch}
             canUpdate={branchAccess[branch.id]?.canUpdate ?? false}
             canDeactivate={branchAccess[branch.id]?.canDeactivate ?? false}
+            canManageDevices={branchAccess[branch.id]?.canManageDevices ?? false}
+            canReviewOffline={branchAccess[branch.id]?.canReviewOffline ?? false}
             onComplete={onComplete}
           />
         ))}

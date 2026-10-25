@@ -10,11 +10,15 @@ export function BranchRow({
   branch,
   canUpdate,
   canDeactivate,
+  canManageDevices,
+  canReviewOffline,
   onComplete,
 }: {
   branch: Branch;
   canUpdate: boolean;
   canDeactivate: boolean;
+  canManageDevices?: boolean;
+  canReviewOffline?: boolean;
   onComplete: (message: string) => void;
 }) {
   const opened = branch.date_opened
@@ -93,6 +97,8 @@ export function BranchRow({
           branch={branch}
           canUpdate={canUpdate}
           canDeactivate={canDeactivate}
+          canManageDevices={canManageDevices}
+          canReviewOffline={canReviewOffline}
           onComplete={onComplete}
         />
       </TableCell>

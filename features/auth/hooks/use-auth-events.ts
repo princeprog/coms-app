@@ -8,6 +8,7 @@ import {
   subscribeToSessionRecovery,
 } from "@/features/auth/services/auth-coordination";
 import { authKeys } from "@/features/auth/query-keys";
+import { lockOfflineRegister } from "@/features/pos-offline/hooks/offline-lock";
 
 export function useAuthEvents() {
   const client = useQueryClient();
@@ -19,15 +20,16 @@ export function useAuthEvents() {
         void client.invalidateQueries({
           predicate: (query) => query.queryKey[0] !== authKeys.me[0],
         });
-        startTransition(() => router.refresh());
+        if (window.location.pathname !== "/offline-pos") startTransition(() => router.refresh());
       }),
     [client, router],
   );
   useEffect(
     () =>
       subscribeToLogout(() => {
-        void client.cancelQueries().then(() => {
+        void Promise.all([client.cancelQueries(), lockOfflineRegister()]).then(() => {
           client.clear();
+          if (window.location.pathname === "/offline-pos") return;
           router.replace("/");
           router.refresh();
         });

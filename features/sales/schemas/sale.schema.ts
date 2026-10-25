@@ -70,6 +70,7 @@ export const saleDetailSchema = saleHeaderSchema.extend({
 
 export const createSaleSchema = z
   .object({
+    register_device_id: z.uuid().optional(),
     service_type: serviceTypeSchema,
     payment_method_id: z.uuid().optional(),
     tender_method: z.string().trim().min(1).max(40),

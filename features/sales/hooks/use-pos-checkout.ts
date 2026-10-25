@@ -18,6 +18,7 @@ import type {
 } from "../types/sale.types";
 export function usePosCheckout({
   branchId,
+  registerDeviceId,
   branchActive,
   serviceTypes,
   appliedService,
@@ -28,6 +29,7 @@ export function usePosCheckout({
   refreshPaymentMethods,
 }: {
   branchId: string;
+  registerDeviceId?: string;
   branchActive: boolean;
   serviceTypes: ServiceType[];
   appliedService?: ServiceType;
@@ -153,6 +155,7 @@ export function usePosCheckout({
   }
 
   const payload = createSaleSchema.safeParse({
+    ...(registerDeviceId ? { register_device_id: registerDeviceId } : {}),
     service_type: service,
     tender_method: paymentMethod?.name ?? "",
     payment_method_id: paymentMethod?.id,
@@ -225,6 +228,7 @@ export function usePosCheckout({
       branchId,
       service_type: payload.data.service_type,
       payment_method_id: payload.data.payment_method_id,
+      register_device_id: payload.data.register_device_id,
       items,
     });
     const key =

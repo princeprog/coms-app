@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAvailablePaymentMethodsAction } from "../services/payment-method-actions";
 import type { PaymentMethodChoice } from "../schemas/payment-method.schema";
-export function usePosPaymentMethods() {
+export function usePosPaymentMethods(noncashOnly = false) {
   const query = useQuery({
     queryKey: availablePaymentMethodsKey,
     queryFn: getAvailablePaymentMethodsAction,
@@ -15,17 +15,18 @@ export function usePosPaymentMethods() {
   const [selected, setSelected] = useState<
     PaymentMethodChoice | null | undefined
   >(undefined);
+  const methods = (query.data ?? []).filter((item) => !noncashOnly || item.kind !== "CASH");
   if (selected === undefined && query.data)
-    setSelected(query.data.find((item) => item.kind === "CASH") ?? null);
-  const current = query.data?.find((item) => item.id === selected?.id);
+    setSelected(noncashOnly ? methods[0] ?? null : methods.find((item) => item.kind === "CASH") ?? null);
+  const current = methods.find((item) => item.id === selected?.id);
   return {
-    methods: query.data ?? [],
+    methods,
     selected: current ?? selected ?? null,
     unavailable: !current || query.isError || query.isPending,
     loading: query.isPending,
     failed: query.isError,
     refresh: query.refetch,
     select: (id: string) =>
-      setSelected(query.data?.find((item) => item.id === id) ?? null),
+      setSelected(methods.find((item) => item.id === id) ?? null),
   };
 }

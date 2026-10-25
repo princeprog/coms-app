@@ -12,6 +12,7 @@ import type { SalesViewResult } from "../services/sales-page-loader";
 import type { SaleCreateAction } from "../types/sale.types";
 import { PosCheckout } from "./pos-checkout";
 import { SalesPageLink } from "./sales-page-link";
+import { OfflinePosBoundary } from "@/features/pos-offline/components/offline-pos-boundary";
 
 export function PosCheckoutSection({
   view,
@@ -41,8 +42,8 @@ export function PosCheckoutSection({
   const { selectedBranch, filters } = view;
   const pages = Math.max(1, Math.ceil(menuPage.total / menuPage.page_size));
   // The register is shown only to the cashier on shift within the business day.
-  if (sellBlockedReason(shiftState))
-    return (
+  return <OfflinePosBoundary branchId={selectedBranch.id} cashierId={view.currentUserId} canPrepare={!sellBlockedReason(shiftState)}>
+    {(registerDeviceId, noncashOnly) => sellBlockedReason(shiftState) ? (
       <PosShiftGate
         branchId={selectedBranch.id}
         state={shiftState}
@@ -50,11 +51,12 @@ export function PosCheckoutSection({
         canReview={view.canReviewShift}
         onChanged={() => void shiftQuery.refresh()}
       />
-    );
-  return (
+    ) : (
     <PosCheckout
       key={selectedBranch.id}
       branchId={selectedBranch.id}
+      registerDeviceId={registerDeviceId}
+      noncashOnly={noncashOnly}
       sellBlocked={sellBlockedReason(shiftState)}
       serviceTypes={selectedBranch.serviceTypes}
       appliedService={filters.serviceType}
@@ -100,5 +102,5 @@ export function PosCheckoutSection({
         )
       }
     />
-  );
+  )}</OfflinePosBoundary>;
 }

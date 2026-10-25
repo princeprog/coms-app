@@ -21,6 +21,8 @@ import { PosMenuPanel } from "./pos-menu-panel";
 
 export function PosCheckout({
   branchId,
+  registerDeviceId,
+  noncashOnly = false,
   branchActive,
   sellBlocked = null,
   serviceTypes = ["DINE_IN", "TAKEAWAY"],
@@ -35,6 +37,8 @@ export function PosCheckout({
   menuUnavailable = false,
 }: {
   branchId: string;
+  registerDeviceId?: string;
+  noncashOnly?: boolean;
   branchActive: boolean;
   /** Register-shift reason that prevents completing a sale, if any. */
   sellBlocked?: string | null;
@@ -49,7 +53,7 @@ export function PosCheckout({
   menuFiltered?: boolean;
   menuUnavailable?: boolean;
 }) {
-  const payment = usePosPaymentMethods();
+  const payment = usePosPaymentMethods(noncashOnly);
   const [amountReceived, setAmountReceived] = useState("");
   const {
     service,
@@ -75,6 +79,7 @@ export function PosCheckout({
     acceptPrices,
   } = usePosCheckout({
     branchId,
+    registerDeviceId,
     branchActive,
     serviceTypes,
     appliedService,

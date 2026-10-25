@@ -10,6 +10,7 @@ import type {
 } from "@/features/auth/types/auth.types";
 import type { AuthActionResult } from "@/features/auth/types/auth-action.types";
 import { ApiRequestError } from "@/services/api-services";
+import { lockOfflineRegister } from "@/features/pos-offline/hooks/offline-lock";
 import {
   announceLogout,
   announceSessionRecovery,
@@ -32,7 +33,10 @@ function unwrap<T>(result: AuthActionResult<T>): T {
 }
 
 export async function login(input: LoginInput): Promise<AuthResponse> {
-  return withAuthLock(async () => unwrap(await loginAction(input)));
+  return withAuthLock(async () => {
+    await lockOfflineRegister();
+    return unwrap(await loginAction(input));
+  });
 }
 
 let sessionCheck: Promise<User | null> | undefined;
@@ -58,6 +62,7 @@ export async function refreshSession(): Promise<AuthResponse> {
 
 export async function logout(): Promise<void> {
   await withAuthLock(async () => {
+    await lockOfflineRegister();
     unwrap(await logoutAction());
     announceLogout();
   });

@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import { OfflineDeviceDialog } from "@/features/pos-offline/components/offline-device-dialog";
 import { MoreVertical, Power, SquarePen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,17 +20,22 @@ export function BranchRowActions({
   branch,
   canUpdate,
   canDeactivate,
+  canManageDevices = false,
+  canReviewOffline = false,
   onComplete,
 }: {
   branch: Branch;
   canUpdate: boolean;
   canDeactivate: boolean;
+  canManageDevices?: boolean;
+  canReviewOffline?: boolean;
   onComplete: (message: string) => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
   const [deactivateOpen, setDeactivateOpen] = useState(false);
   const canDisable = canDeactivate && branch.status === "active";
-  if (!canUpdate && !canDisable) return null;
+  if (!canUpdate && !canDisable && !canManageDevices && !canReviewOffline) return null;
   return (
     <>
       <DropdownMenu>
@@ -46,6 +53,8 @@ export function BranchRowActions({
           <MoreVertical aria-hidden="true" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
+          {canManageDevices && <DropdownMenuItem onClick={() => setDevicesOpen(true)}>Register devices</DropdownMenuItem>}
+          {canReviewOffline && <DropdownMenuItem render={<Link href={`/branches/${branch.id}/offline-pos`} />}>Offline sales &amp; recovery</DropdownMenuItem>}
           {canUpdate && (
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
@@ -71,6 +80,7 @@ export function BranchRowActions({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      {devicesOpen && <OfflineDeviceDialog branchId={branch.id} open={devicesOpen} onOpenChange={setDevicesOpen} />}
       {editOpen && (
         <BranchEditorForm
           branch={branch}

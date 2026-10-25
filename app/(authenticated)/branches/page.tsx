@@ -55,6 +55,12 @@ export default async function BranchesPage({
     branches.items.map((branch) => [
       branch.id,
       {
+        canManageDevices:
+          hasPermission(session.user, "pos_offline.devices_manage") &&
+          hasBranchScope(session.user, branch.id),
+        canReviewOffline:
+          hasPermission(session.user, "pos_offline.review") &&
+          hasBranchScope(session.user, branch.id),
         canUpdate:
           hasPermission(session.user, "branches.update") &&
           hasBranchScope(session.user, branch.id),
