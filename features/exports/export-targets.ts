@@ -8,7 +8,6 @@ type ExportTarget = {
 };
 
 const inventoryFilters = ["search", "is_active", "category", "stock"] as const;
-const rangeFilters = ["from", "to"] as const;
 
 export const exportTargets = {
   expenses: {
@@ -29,22 +28,6 @@ export const exportTargets = {
     path: (branch) => `/branches/${branch}/sales/export`,
     needsBranch: true,
     params: ["status", "tender_method", "search", "date_from", "date_to"],
-  },
-  "profit-branches": {
-    path: () => "/costs/branches/export",
-    params: rangeFilters,
-  },
-  "profit-products": {
-    path: () => "/costs/branch-products/export",
-    params: [...rangeFilters, "branch_id"],
-  },
-  "product-costs": {
-    path: () => "/costs/products/export",
-    params: ["search", "status"],
-  },
-  "stock-costs": {
-    path: () => "/costs/stock-items/export",
-    params: ["search", "missing_only"],
   },
   "commissary-inventory": {
     path: () => "/inventory/commissary/export",

@@ -16,7 +16,6 @@ export const attentionKeys = [
   "shifts_to_review",
   "dispatches_draft",
   "deliveries_in_transit",
-  "products_incomplete_costs",
 ] as const;
 
 const money = z.string();

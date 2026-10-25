@@ -144,16 +144,6 @@ export const attentionConfig: Record<AttentionKey, AttentionConfig> = {
     path: "/dispatches?receiving_status=AWAITING_COUNT",
     branchParam: "branch_id",
   },
-  products_incomplete_costs: {
-    label: (n) =>
-      plural(
-        n,
-        "Product missing a recipe or cost",
-        "Products missing a recipe or cost",
-      ),
-    tone: "warning",
-    path: "/costs?view=products&status=incomplete",
-  },
 };
 
 const toneOrder: Record<AttentionTone, number> = {

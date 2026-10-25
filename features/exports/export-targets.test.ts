@@ -20,12 +20,18 @@ describe("export targets", () => {
       `/branches/${branch}/sales/export?status=VOIDED&date_from=2026-10-01`,
     );
     expect(
-      resolveExportTarget("stock-costs", new URLSearchParams({ search: "" })),
-    ).toBe("/costs/stock-items/export");
+      resolveExportTarget(
+        "commissary-inventory",
+        new URLSearchParams({ search: "" }),
+      ),
+    ).toBe("/inventory/commissary/export");
   });
 
   it("rejects unknown kinds and invalid branches", () => {
     expect(resolveExportTarget("staff", new URLSearchParams())).toBeNull();
+    expect(
+      resolveExportTarget("stock-costs", new URLSearchParams()),
+    ).toBeNull();
     expect(resolveExportTarget("toString", new URLSearchParams())).toBeNull();
     expect(
       resolveExportTarget(

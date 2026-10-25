@@ -1,6 +1,6 @@
 # Expenses
 
-Expenses replaces Costs & profit in navigation. `/expenses` opens the current Manila calendar month and all locations the signed-in user may access. Product & stock costs remains a secondary link for users with `costs.read`; `/costs` and existing costing calculations remain available.
+Expenses replaces the retired Costs & profit page. `/expenses` opens the current Manila calendar month and all locations the signed-in user may access. Costing calculations remain: receipts set weighted-average stock costs, sales snapshot cost, and the Sales report and Dashboard show profit to users with `costs.read`.
 
 ## Recording and reviewing spending
 

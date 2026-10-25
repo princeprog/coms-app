@@ -64,14 +64,6 @@ export function ExpensesWorkspace({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {can("costs.read") && (
-            <Link
-              className={buttonVariants({ variant: "ghost" })}
-              href="/costs"
-            >
-              Product &amp; stock costs
-            </Link>
-          )}
           {can("expenses.categories_manage") && (
             <Link
               className={buttonVariants({ variant: "outline" })}

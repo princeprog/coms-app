@@ -821,7 +821,6 @@ function dashboardTodayFixture() {
       { key: "shifts_to_review", count: 1 },
       { key: "dispatches_draft", count: 2 },
       { key: "deliveries_in_transit", count: 2 },
-      { key: "products_incomplete_costs", count: 1 },
     ],
     branches: [
       {

@@ -25,7 +25,6 @@ import {
 const routeTitles: Record<string, string> = {
   "/expenses/categories": "Expense categories",
   "/expenses": "Expenses",
-  "/costs": "Product & stock costs",
   "/notifications": "Notifications",
   "/branch-products": "Branch Menu",
   "/branch-prices": "Branch Menu",

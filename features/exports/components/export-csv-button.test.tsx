@@ -59,7 +59,7 @@ describe("ExportCsvButton", () => {
           ),
         ),
     );
-    render(<ExportCsvButton kind="stock-costs" />);
+    render(<ExportCsvButton kind="commissary-inventory" />);
     await userEvent.click(screen.getByRole("button", { name: "Export CSV" }));
     await waitFor(() =>
       expect(toastAdd).toHaveBeenCalledWith({

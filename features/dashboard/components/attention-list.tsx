@@ -14,7 +14,6 @@ import {
   Truck,
   Undo2,
   UserCheck,
-  UtensilsCrossed,
   Warehouse,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -46,7 +45,6 @@ const icons: Record<AttentionKey, ReactNode> = {
   shifts_to_review: <UserCheck />,
   dispatches_draft: <FilePen />,
   deliveries_in_transit: <Truck />,
-  products_incomplete_costs: <UtensilsCrossed />,
 };
 
 const toneStyles: Record<AttentionTone, string> = {

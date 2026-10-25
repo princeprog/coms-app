@@ -195,7 +195,6 @@ describe("Expenses workspace", () => {
       "expenses.create",
       "expenses.update",
       "expenses.void",
-      "costs.read",
     ]);
     (
       await screen.findByRole("button", {
@@ -206,11 +205,6 @@ describe("Expenses workspace", () => {
     await screen.findByRole("menuitem", { name: "View details & history" });
     expect(screen.queryByRole("menuitem", { name: "Edit expense" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Void expense" })).toBeNull();
-    expect(
-      screen
-        .getByRole("link", { name: "Product & stock costs" })
-        .getAttribute("href"),
-    ).toBe("/costs");
   });
   it("offers retry without pretending an error is an empty list", async () => {
     mocks.actions.listExpensesAction.mockResolvedValueOnce({

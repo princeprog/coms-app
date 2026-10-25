@@ -28,8 +28,5 @@ describe("dashboard attention", () => {
     expect(attentionHref("reports_missing", "b1")).toBe(
       "/reports?branch_id=b1",
     );
-    expect(attentionHref("products_incomplete_costs", "b1")).toBe(
-      "/costs?view=products&status=incomplete",
-    );
   });
 });
