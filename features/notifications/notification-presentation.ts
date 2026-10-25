@@ -15,12 +15,27 @@ export const notificationTitle: Record<NotificationKind, string> = {
   REPORT_RETURNED: "Daily report returned",
   REPORT_APPROVED: "Daily report approved",
   SHIFT_NEEDS_REVIEW: "Shift needs review",
+  REGISTER_DEVICE_REQUESTED: "Register approval requested",
+  REGISTER_DEVICE_APPROVED: "Register approved",
+  REGISTER_DEVICE_REVOKED: "Register approval revoked",
 };
 export function notificationHref(
   item: Pick<Notification, "id" | "dispatch_id" | "report_id" | "branch_id"> &
-    Partial<Pick<Notification, "shift_id">>,
+    Partial<Pick<Notification, "shift_id" | "kind">>,
 ) {
   const params = new URLSearchParams();
+  if (item.kind === "REGISTER_DEVICE_REQUESTED") {
+    params.set("notification_id", item.id);
+    return `/branches/${item.branch_id}/offline-pos?${params}`;
+  }
+  if (
+    item.kind === "REGISTER_DEVICE_APPROVED" ||
+    item.kind === "REGISTER_DEVICE_REVOKED"
+  ) {
+    params.set("branch", item.branch_id);
+    params.set("notification_id", item.id);
+    return `/pos?${params}`;
+  }
   if (item.shift_id) {
     params.set("branch", item.branch_id);
     params.set("notification_id", item.id);
@@ -48,7 +63,10 @@ export function parseNotificationFilters(
   return {
     status: params.get("status") === "unread" ? "unread" : "all",
     type:
-      type === "dispatches" || type === "reports" || type === "shifts"
+      type === "dispatches" ||
+      type === "reports" ||
+      type === "shifts" ||
+      type === "registers"
         ? type
         : "all",
     page: Number.isInteger(page) && page > 0 && page <= 1000000 ? page : 1,
@@ -77,14 +95,16 @@ const businessDate = new Intl.DateTimeFormat("en-PH", {
 export const notificationTimestamp = (value: string) =>
   `${exactDate.format(new Date(value))} PHT`;
 export const notificationContext = (item: Notification) =>
-  item.kind === "DISPATCH_COUNT_REMINDER"
-    ? "Please count this delivery and submit the quantities received."
-    : item.kind === "DISPATCH_RECEIVED"
-      ? "Counted with no differences"
-      : item.kind === "DISPATCH_OVERDUE"
-        ? `${item.overdue_count ?? "Pending"} overdue deliveries`
-        : item.kind === "SHIFT_NEEDS_REVIEW"
-          ? `Shift ${item.shift_number ?? ""} · ${item.business_date ? businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`)) : ""}`
-          : item.business_date
-            ? `Daily report · ${businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`))}`
-            : "Dispatch";
+  item.kind.startsWith("REGISTER_DEVICE_")
+    ? (item.register_device_name ?? "Register browser")
+    : item.kind === "DISPATCH_COUNT_REMINDER"
+      ? "Please count this delivery and submit the quantities received."
+      : item.kind === "DISPATCH_RECEIVED"
+        ? "Counted with no differences"
+        : item.kind === "DISPATCH_OVERDUE"
+          ? `${item.overdue_count ?? "Pending"} overdue deliveries`
+          : item.kind === "SHIFT_NEEDS_REVIEW"
+            ? `Shift ${item.shift_number ?? ""} · ${item.business_date ? businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`)) : ""}`
+            : item.business_date
+              ? `Daily report · ${businessDate.format(new Date(`${item.business_date}T00:00:00+08:00`))}`
+              : "Dispatch";

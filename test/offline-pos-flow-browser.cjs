@@ -126,6 +126,24 @@ async function until(work, message, timeout = 30000) {
         ).rows[0].n === 1,
       "Device request was not stored",
     );
+    await page.getByText("Waiting for approval").waitFor();
+    assert.equal(
+      await page.getByRole("button", { name: "Prepare offline POS" }).count(),
+      0,
+    );
+    const requested = (
+      await db.query(
+        "SELECT u.email FROM notification_recipients nr JOIN notification_events ne ON ne.id = nr.event_id JOIN coms_auth.users u ON u.id = nr.user_id WHERE ne.kind = 'REGISTER_DEVICE_REQUESTED'",
+      )
+    ).rows.map((row) => row.email);
+    assert(
+      requested.includes(fixture.managerEmail),
+      "Branch manager was not notified",
+    );
+    assert(
+      !requested.includes(fixture.email),
+      "Requesting cashier should not be notified",
+    );
   });
 
   await check(
@@ -141,6 +159,15 @@ async function until(work, message, timeout = 30000) {
       await managerPage.goto(
         `${fixture.origin}/branches/${fixture.branchId}/offline-pos`,
       );
+      await managerPage
+        .getByRole("button", { name: /Notifications/ })
+        .first()
+        .click();
+      await managerPage
+        .getByText("Register approval requested")
+        .first()
+        .waitFor();
+      await managerPage.keyboard.press("Escape");
       await managerPage
         .getByRole("button", { name: "Register devices" })
         .click();
@@ -170,7 +197,16 @@ async function until(work, message, timeout = 30000) {
   await check(
     "cashier prepares the register after the app files are saved",
     async () => {
-      await page.reload();
+      // The panel picks up the manager's decision on its own (polling and focus).
+      await page
+        .getByText("Approved", { exact: true })
+        .waitFor({ timeout: 30000 });
+      const approved = (
+        await db.query(
+          "SELECT u.email FROM notification_recipients nr JOIN notification_events ne ON ne.id = nr.event_id JOIN coms_auth.users u ON u.id = nr.user_id WHERE ne.kind = 'REGISTER_DEVICE_APPROVED'",
+        )
+      ).rows.map((row) => row.email);
+      assert.deepEqual(approved, [fixture.email]);
       const prepare = page.getByRole("button", { name: "Prepare offline POS" });
       await until(
         () => prepare.isEnabled(),

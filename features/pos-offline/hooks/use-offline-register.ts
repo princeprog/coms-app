@@ -239,6 +239,7 @@ export function useOfflineRegister(cashierId?: string) {
     lock,
     ...lease,
     clearError: () => setError(""),
+    deviceId: async () => store.current?.getDeviceId(),
     register: (branch: string, name: string) =>
       operate(async (local) =>
         offlineRequest(`${offlineBranchPath(branch)}/devices`, "POST", {

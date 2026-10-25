@@ -73,6 +73,14 @@ export function offlineTarget(
         })
         .strict()
         .refine((value) => Boolean(value.name || value.status));
+    // The cashier reads this browser's own approval status.
+    if (
+      path.length === 4 &&
+      path[2] === "devices" &&
+      id(path[3]) &&
+      method === "GET"
+    )
+      valid = true;
   }
   if (path[0] === "sessions") {
     if (originalPath === path) return null;

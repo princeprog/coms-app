@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,13 @@ import {
 import { getPwaOfflineStatus } from "@/features/pwa/services/registration";
 import { toast } from "@/components/ui/toast";
 import type { OfflineRegister } from "../hooks/use-offline-register";
+import { useRegisterDeviceStatus } from "../hooks/use-register-device-status";
+import { offlineErrorMessage } from "../hooks/offline-errors";
+import { RegisterDeviceStatus } from "./register-device-status";
+
+// Development servers never install the service worker, so only production
+// builds wait for the offline app files.
+const needsAppFiles = process.env.NODE_ENV === "production";
 
 export function OfflinePrepare({
   branchId,
@@ -24,51 +32,75 @@ export function OfflinePrepare({
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [ready, setReady] = useState(false);
+  const [filesReady, setFilesReady] = useState(!needsAppFiles);
+  const device = useRegisterDeviceStatus(
+    branchId,
+    register.deviceId,
+    register.online,
+  );
   useEffect(() => {
+    if (!needsAppFiles) return;
     const refresh = () =>
       void getPwaOfflineStatus()
-        .then((status) => setReady(status.ready))
-        .catch(() => setReady(false));
+        .then((status) => setFilesReady(status.ready))
+        .catch(() => setFilesReady(false));
     refresh();
     window.addEventListener("coms:pwa-status", refresh);
     return () => window.removeEventListener("coms:pwa-status", refresh);
   }, []);
+  const status = device.data?.status;
   return (
     <section
-      className="space-y-2 rounded-lg border p-4"
+      className="space-y-3 rounded-lg border p-4"
       aria-label="Offline preparation"
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="mr-auto">
-          <h2 className="font-medium">
-            Prepare this register for offline cash sales
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Your own open shift and manager-approved browser are required.
-          </p>
+      {device.isPending ? (
+        <Skeleton
+          className="h-12 w-72"
+          role="status"
+          aria-label="Checking this browser"
+        />
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="mr-auto">
+            <RegisterDeviceStatus device={device.data ?? null} />
+          </div>
+          {device.isError && (
+            <Button variant="outline" onClick={() => void device.refetch()}>
+              Try again
+            </Button>
+          )}
+          {!device.isError && !device.data && (
+            <Button
+              variant="outline"
+              disabled={!register.online || register.pending}
+              onClick={() => setOpen(true)}
+            >
+              Register this browser
+            </Button>
+          )}
+          {status === "APPROVED" && (
+            <Button
+              disabled={!filesReady || !register.online || register.pending}
+              onClick={() => void register.prepare(branchId)}
+            >
+              {register.pending ? "Preparing…" : "Prepare offline POS"}
+            </Button>
+          )}
         </div>
-        <Button
-          variant="outline"
-          disabled={!register.online || register.pending}
-          onClick={() => setOpen(true)}
-        >
-          Register this browser
-        </Button>
-        <Button
-          disabled={!ready || !register.online || register.pending}
-          onClick={() => void register.prepare(branchId)}
-        >
-          {register.pending ? "Preparing…" : "Prepare offline POS"}
-        </Button>
-      </div>
-      {!ready && (
-        <p role="status" className="text-sm text-muted-foreground">
-          The offline app is not ready on this browser yet. Keep COMS open
-          online until its app files finish saving.
+      )}
+      {device.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          {offlineErrorMessage(device.error)}
         </p>
       )}
-      {register.error && (
+      {status === "APPROVED" && !filesReady && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Saving the offline app on this browser. Keep COMS open online until it
+          finishes.
+        </p>
+      )}
+      {register.error && !open && (
         <p role="alert" className="text-sm text-destructive">
           {register.error}
         </p>
@@ -87,11 +119,12 @@ export function OfflinePrepare({
               event.preventDefault();
               if (await register.register(branchId, name.trim())) {
                 setOpen(false);
+                await device.refetch();
                 toast.add({
                   type: "success",
-                  title: "Browser registration submitted",
+                  title: "Approval requested",
                   description:
-                    "Ask a manager to approve this device before preparing.",
+                    "Branch managers were notified. This page updates when they approve it.",
                 });
               }
             }}
@@ -101,6 +134,7 @@ export function OfflinePrepare({
               <Label htmlFor="register-browser-name">Register name</Label>
               <Input
                 id="register-browser-name"
+                className="h-11"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 maxLength={80}
@@ -117,6 +151,7 @@ export function OfflinePrepare({
               <Button
                 type="button"
                 variant="outline"
+                disabled={register.pending}
                 onClick={() => setOpen(false)}
               >
                 Cancel

@@ -6,6 +6,7 @@ import {
   CheckCheck,
   FileText,
   LoaderCircle,
+  MonitorSmartphone,
   Truck,
   Wallet,
 } from "lucide-react";
@@ -135,6 +136,11 @@ export function NotificationInbox({ userId }: { userId: string }) {
               value: "shifts",
               label: "Shifts",
               icon: <Wallet className="text-amber-600" />,
+            },
+            {
+              value: "registers",
+              label: "Registers",
+              icon: <MonitorSmartphone className="text-sky-600" />,
             },
           ]}
           onChange={(type) =>

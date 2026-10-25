@@ -11,6 +11,9 @@ export const notificationKindSchema = z.enum([
   "DISPATCH_LATE_COUNT",
   "SHIFT_NEEDS_REVIEW",
   "DISPATCH_RECEIVED",
+  "REGISTER_DEVICE_REQUESTED",
+  "REGISTER_DEVICE_APPROVED",
+  "REGISTER_DEVICE_REVOKED",
 ]);
 export const notificationSchema = z.object({
   id: z.uuid(),
@@ -23,6 +26,8 @@ export const notificationSchema = z.object({
   shift_number: z.number().int().positive().nullable().optional(),
   business_date: z.string().nullable(),
   overdue_count: z.number().int().nonnegative().nullable().optional(),
+  register_device_id: z.uuid().nullable().optional(),
+  register_device_name: z.string().nullable().optional(),
   created_at: z.string(),
   read_at: z.string().nullable(),
 });
@@ -34,7 +39,7 @@ export const notificationPageSchema = z.object({
 });
 export const notificationFiltersSchema = z.object({
   status: z.enum(["all", "unread"]),
-  type: z.enum(["all", "dispatches", "reports", "shifts"]),
+  type: z.enum(["all", "dispatches", "reports", "shifts", "registers"]),
   page: z.number().int().min(1).max(1000000),
   page_size: z.union([z.literal(10), z.literal(30), z.literal(50)]),
 });

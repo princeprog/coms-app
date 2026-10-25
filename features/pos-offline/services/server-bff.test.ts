@@ -137,6 +137,20 @@ describe("offline POS BFF", () => {
     expect(offlineTarget("POST", target, new URLSearchParams())).toBeNull();
   });
   it("requires complete nonempty recovery evidence and reason", () => {
+    expect(
+      offlineTarget(
+        "GET",
+        ["branches", branch, "devices", device],
+        new URLSearchParams(),
+      )?.endpoint,
+    ).toBe(`/pos-offline/branches/${branch}/devices/${device}`);
+    expect(
+      offlineTarget(
+        "GET",
+        ["branches", branch, "devices", "not-a-uuid"],
+        new URLSearchParams(),
+      ),
+    ).toBeNull();
     const target = offlineTarget(
       "POST",
       ["branches", branch, "sessions", session, "recover-finalize"],

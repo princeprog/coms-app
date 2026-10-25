@@ -6,6 +6,9 @@ import {
   FileCheck2,
   FileClock,
   FilePenLine,
+  MonitorCheck,
+  MonitorSmartphone,
+  MonitorX,
   PackageCheck,
   TriangleAlert,
   Truck,
@@ -73,6 +76,19 @@ const appearance = {
   SHIFT_NEEDS_REVIEW: {
     icon: Wallet,
     color: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  },
+  REGISTER_DEVICE_REQUESTED: {
+    icon: MonitorSmartphone,
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+  },
+  REGISTER_DEVICE_APPROVED: {
+    icon: MonitorCheck,
+    color:
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  },
+  REGISTER_DEVICE_REVOKED: {
+    icon: MonitorX,
+    color: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
   },
 } satisfies Record<NotificationKind, { icon: typeof Truck; color: string }>;
 
