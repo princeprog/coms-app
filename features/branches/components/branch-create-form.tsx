@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { BranchDialogFrame } from "@/features/branches/components/branch-dialog-frame";
 import { BranchDiscardConfirmation } from "@/features/branches/components/branch-discard-confirmation";
 import { BranchLocationFields } from "@/features/branches/components/branch-location-fields";
 import { createBranchAction } from "@/features/branches/services/branch-actions";
@@ -36,6 +28,15 @@ export function BranchCreateForm({
     branchName || address || dateOpened || hasDineIn || !hasTakeout,
   );
 
+  function reset() {
+    setBranchName("");
+    setAddress("");
+    setDateOpened("");
+    setHasDineIn(false);
+    setHasTakeout(true);
+    setError("");
+  }
+
   function requestClose() {
     if (pending) return;
     if (dirty) {
@@ -49,7 +50,7 @@ export function BranchCreateForm({
     event.preventDefault();
     if (pending) return;
     if (!hasDineIn && !hasTakeout) {
-      setError("An active branch must support dine-in or takeout.");
+      setError("Choose dine-in, takeout or both.");
       return;
     }
     setError("");
@@ -73,83 +74,49 @@ export function BranchCreateForm({
       setError(result.error);
       return;
     }
-    setBranchName("");
-    setAddress("");
-    setDateOpened("");
-    setHasDineIn(false);
-    setHasTakeout(true);
+    reset();
     onOpenChange(false);
     onComplete(result.code);
   }
 
   return (
-    <Dialog
+    <BranchDialogFrame
       open={open}
-      onOpenChange={(nextOpen) => {
-        if (nextOpen) return;
-        requestClose();
-      }}
-    >
-      <DialogContent
-        data-coms-ui="operational"
-        className="max-h-[85vh] overflow-y-auto sm:max-w-lg"
-      >
-        <DialogHeader>
-          <DialogTitle>Create branch</DialogTitle>
-          <DialogDescription>
-            Add a location and its basic operating details. COMS assigns the
-            branch code automatically.
-          </DialogDescription>
-        </DialogHeader>
-        <form className="flex flex-col gap-5" onSubmit={submit}>
-          <BranchLocationFields
-            idPrefix="branch-create"
-            branchName={branchName}
-            address={address}
-            dateOpened={dateOpened}
-            hasDineIn={hasDineIn}
-            hasTakeout={hasTakeout}
-            onHasTakeoutChange={setHasTakeout}
-            disabled={pending}
-            useDatePicker
-            onBranchNameChange={setBranchName}
-            onAddressChange={setAddress}
-            onDateOpenedChange={setDateOpened}
-            onHasDineInChange={setHasDineIn}
-          />
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={pending}
-              onClick={requestClose}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Creating branch…" : "Create branch"}
-            </Button>
-          </DialogFooter>
-        </form>
+      title="Create branch"
+      description="COMS assigns the branch code automatically."
+      pending={pending}
+      error={error}
+      errorTitle="Could not create branch"
+      submitLabel="Create branch"
+      pendingLabel="Creating branch…"
+      onRequestClose={requestClose}
+      onSubmit={submit}
+      after={
         <BranchDiscardConfirmation
           open={discardOpen}
           onOpenChange={setDiscardOpen}
           onDiscard={() => {
             setDiscardOpen(false);
-            setBranchName("");
-            setAddress("");
-            setDateOpened("");
-            setHasDineIn(false);
-            setHasTakeout(true);
+            reset();
             onOpenChange(false);
           }}
         />
-      </DialogContent>
-    </Dialog>
+      }
+    >
+      <BranchLocationFields
+        idPrefix="branch-create"
+        branchName={branchName}
+        address={address}
+        dateOpened={dateOpened}
+        hasDineIn={hasDineIn}
+        hasTakeout={hasTakeout}
+        disabled={pending}
+        onBranchNameChange={setBranchName}
+        onAddressChange={setAddress}
+        onDateOpenedChange={setDateOpened}
+        onHasDineInChange={setHasDineIn}
+        onHasTakeoutChange={setHasTakeout}
+      />
+    </BranchDialogFrame>
   );
 }

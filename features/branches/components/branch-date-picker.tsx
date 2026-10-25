@@ -36,7 +36,7 @@ export function BranchDatePicker({
             variant="outline"
             disabled={disabled}
             aria-label={`Date opened: ${selectedLabel}`}
-            className="w-full justify-start gap-2 text-left font-normal"
+            className="h-11 w-full justify-start gap-2 text-left font-normal"
           />
         }
       >

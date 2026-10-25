@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { BranchDialogFrame } from "@/features/branches/components/branch-dialog-frame";
 import { BranchDiscardConfirmation } from "@/features/branches/components/branch-discard-confirmation";
 import { BranchLocationFields } from "@/features/branches/components/branch-location-fields";
 import { updateBranchAction } from "@/features/branches/services/branch-actions";
@@ -63,7 +55,7 @@ export function BranchEditorForm({
     event.preventDefault();
     if (pending) return;
     if (branch.status === "active" && !hasDineIn && !hasTakeout) {
-      setError("An active branch must support dine-in or takeout.");
+      setError("Choose dine-in, takeout or both.");
       return;
     }
     setError("");
@@ -92,58 +84,18 @@ export function BranchEditorForm({
   }
 
   return (
-    <Dialog
+    <BranchDialogFrame
       open={open}
-      onOpenChange={(nextOpen) => {
-        if (nextOpen) return;
-        requestClose();
-      }}
-    >
-      <DialogContent
-        data-coms-ui="operational"
-        className="max-h-[85vh] overflow-y-auto sm:max-w-lg"
-      >
-        <DialogHeader>
-          <DialogTitle>Edit branch</DialogTitle>
-          <DialogDescription>
-            Update {branch.branch_name}. The branch code is permanent.
-          </DialogDescription>
-        </DialogHeader>
-        <form className="flex flex-col gap-5" onSubmit={submit}>
-          <BranchLocationFields
-            idPrefix={`branch-${branch.id}`}
-            branchName={branchName}
-            address={address}
-            dateOpened={dateOpened}
-            hasDineIn={hasDineIn}
-            hasTakeout={hasTakeout}
-            onHasTakeoutChange={setHasTakeout}
-            disabled={pending}
-            useDatePicker
-            onBranchNameChange={setBranchName}
-            onAddressChange={setAddress}
-            onDateOpenedChange={setDateOpened}
-            onHasDineInChange={setHasDineIn}
-          />
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={pending}
-              onClick={requestClose}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving branch…" : "Save branch details"}
-            </Button>
-          </DialogFooter>
-        </form>
+      title="Edit branch"
+      description={`Branch code ${branch.code}.`}
+      pending={pending}
+      error={error}
+      errorTitle="Could not update branch"
+      submitLabel="Save branch"
+      pendingLabel="Saving branch…"
+      onRequestClose={requestClose}
+      onSubmit={submit}
+      after={
         <BranchDiscardConfirmation
           open={discardOpen}
           onOpenChange={setDiscardOpen}
@@ -152,7 +104,22 @@ export function BranchEditorForm({
             onOpenChange(false);
           }}
         />
-      </DialogContent>
-    </Dialog>
+      }
+    >
+      <BranchLocationFields
+        idPrefix={`branch-${branch.id}`}
+        branchName={branchName}
+        address={address}
+        dateOpened={dateOpened}
+        hasDineIn={hasDineIn}
+        hasTakeout={hasTakeout}
+        disabled={pending}
+        onBranchNameChange={setBranchName}
+        onAddressChange={setAddress}
+        onDateOpenedChange={setDateOpened}
+        onHasDineInChange={setHasDineIn}
+        onHasTakeoutChange={setHasTakeout}
+      />
+    </BranchDialogFrame>
   );
 }

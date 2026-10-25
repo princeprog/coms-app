@@ -125,7 +125,7 @@ describe("branch management", () => {
       screen.getByText(/COMS assigns the branch code automatically/),
     ).toBeTruthy();
     await user.type(screen.getByLabelText("Branch name"), "Manila South");
-    await user.click(screen.getByRole("switch", { name: "Dine-in available" }));
+    await user.click(screen.getByRole("switch", { name: "Dine-in" }));
     await user.click(screen.getByRole("button", { name: "Create branch" }));
 
     expect(createBranchAction).toHaveBeenCalledWith({
@@ -285,7 +285,7 @@ describe("branch management", () => {
       "Manila Central",
     );
     await user.click(
-      within(dialog).getByRole("button", { name: "Save branch details" }),
+      within(dialog).getByRole("button", { name: "Save branch" }),
     );
 
     expect(updateBranchAction).toHaveBeenCalledWith(branches.items[0].id, {
@@ -342,11 +342,9 @@ describe("branch management", () => {
       within(dialog).getByLabelText("Branch name"),
       "Edited branch",
     );
+    await user.click(within(dialog).getByRole("switch", { name: "Takeout" }));
     await user.click(
-      within(dialog).getByRole("switch", { name: "Takeout available" }),
-    );
-    await user.click(
-      within(dialog).getByRole("button", { name: "Save branch details" }),
+      within(dialog).getByRole("button", { name: "Save branch" }),
     );
     expect(within(dialog).getByRole("alert").textContent).toContain(
       "Unable to save",
@@ -356,7 +354,7 @@ describe("branch management", () => {
       "Edited branch",
     );
     await user.click(
-      within(dialog).getByRole("button", { name: "Save branch details" }),
+      within(dialog).getByRole("button", { name: "Save branch" }),
     );
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Edit branch" })).toBeNull(),
