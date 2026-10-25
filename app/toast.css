@@ -41,7 +41,7 @@ html [data-sileo-viewport] [data-sileo-canvas] {
 }
 
 html [data-sileo-viewport] [data-sileo-title] {
-  color: var(--popover-foreground);
+  color: var(--sileo-tone, var(--popover-foreground));
   text-transform: none;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -59,7 +59,7 @@ html [data-sileo-viewport] [data-sileo-header-inner] {
 }
 
 html [data-sileo-viewport][data-theme] [data-sileo-description] {
-  color: var(--popover-foreground);
+  color: var(--muted-foreground);
   overflow-wrap: anywhere;
   max-height: min(
     16rem,

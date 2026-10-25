@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  sileo@0.1.6: 4ad14e248b1e639424b6ab09aadbbe3d933ce7c68e218013864120c292a7f3d4
+  sileo@0.1.6: 3575f52778ee61634fde80e0f33903f590395de62c1d08f618d664d9e02cf442
 
 importers:
 
@@ -88,7 +88,7 @@ importers:
         version: 4.21.0(typescript@5.9.3)
       sileo:
         specifier: 0.1.6
-        version: 0.1.6(patch_hash=4ad14e248b1e639424b6ab09aadbbe3d933ce7c68e218013864120c292a7f3d4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 0.1.6(patch_hash=3575f52778ee61634fde80e0f33903f590395de62c1d08f618d664d9e02cf442)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
@@ -8103,7 +8103,7 @@ snapshots:
 
   signal-exit@4.1.0: {}
 
-  sileo@0.1.6(patch_hash=4ad14e248b1e639424b6ab09aadbbe3d933ce7c68e218013864120c292a7f3d4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  sileo@0.1.6(patch_hash=3575f52778ee61634fde80e0f33903f590395de62c1d08f618d664d9e02cf442)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       motion: 12.43.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react: 19.3.0

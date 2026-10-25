@@ -71,10 +71,10 @@ async function checkToastBounds(width) {
   assert(result.bottom <= result.height - 15, JSON.stringify(result));
   assert(result.overflow <= width + 1, JSON.stringify(result));
   assert.equal(result.transform, "none");
-  assert.equal(
+  assert.notEqual(
     result.descriptionColor,
     result.titleColor,
-    "Description must use the readable foreground",
+    "Description uses neutral text while the heading uses its status color",
   );
   return result;
 }

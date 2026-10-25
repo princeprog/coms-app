@@ -12,6 +12,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => toast.clear());
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 const advance = async (ms: number) =>
   act(async () => {
@@ -19,6 +20,42 @@ const advance = async (ms: number) =>
   });
 
 describe("COMS Sileo integration", () => {
+  it("uses a colored heading and expanded description for a simple message", async () => {
+    render(<Toaster />);
+    act(() => toast.add({ title: "Staff account created.", type: "success" }));
+    await advance(200);
+    const notification = screen.getByRole("status");
+    expect(notification.querySelector("[data-sileo-title]")?.textContent).toBe(
+      "Success",
+    );
+    expect(
+      notification.querySelector("[data-sileo-description]")?.textContent,
+    ).toBe("Staff account created.");
+    expect(notification.getAttribute("data-expanded")).toBe("true");
+  });
+
+  it("sizes the SVG from layout width without the entrance scale", () => {
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(350);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      () => ({
+        width: 332.5,
+        height: 40,
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 332.5,
+        bottom: 40,
+        toJSON: () => ({}),
+      }),
+    );
+    render(<Toaster />);
+    act(() => toast.add({ title: "Staff account created.", type: "success" }));
+    expect(
+      document.querySelector("[data-sileo-svg]")?.getAttribute("width"),
+    ).toBe("350");
+  });
+
   it("keeps independent messages and queues the fourth until a slot is available", async () => {
     render(<Toaster />);
     const ids: string[] = [];

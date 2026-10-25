@@ -9,18 +9,18 @@ type ToastOptions = {
   type?: ToastType;
 };
 const headings: Record<ToastType, string> = {
-  success: "Completed",
+  success: "Success",
   error: "Unable to complete",
   warning: "Please check",
   info: "Update",
 };
 export const toast = {
   add({ title, description, type = "info" }: ToastOptions) {
-    // Dynamic names and server messages must remain readable on narrow screens.
-    const longTitle = title.length > 30;
+    // Every toast has a short heading and a readable message in its expanded body.
+    const messageAsDescription = !description || title.length > 30;
     return sileo[type]({
-      title: longTitle ? headings[type] : title,
-      description: longTitle ? (
+      title: messageAsDescription ? headings[type] : title,
+      description: messageAsDescription ? (
         <>
           {title}
           {description && <div className="mt-2">{description}</div>}

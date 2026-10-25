@@ -23,7 +23,7 @@ index 0c52a3a33f124bfaf35b18dc37777f4c9a314ecb..402bc5b1db06a49d79608979b71415da
      position?: SileoPosition;
      offset?: SileoOffsetValue | SileoOffsetConfig;
 diff --git a/dist/index.js b/dist/index.js
-index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f16420e856 100644
+index 79aa792998ed2f8917d4b46725af2b0bbab692e0..5ac4f1f567dad05e00e603689421f7ed03b43c37 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -214,6 +214,14 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
@@ -101,14 +101,15 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
      ]);
      const handleTransitionEnd = react.useCallback((e)=>{
          if (e.propertyName !== "height" && e.propertyName !== "transform") return;
-@@ -525,6 +533,15 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+@@ -525,6 +533,16 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
      /* -------------------------------- Swipe ----------------------------------- */ const SWIPE_DISMISS = 30;
      const SWIPE_MAX = 20;
      const buttonRef = react.useRef(null);
 +    react.useLayoutEffect(() => {
 +        const element = buttonRef.current;
 +        if (!element) return;
-+        const measure = () => setCanvasWidth(element.getBoundingClientRect().width || WIDTH);
++        // Layout width excludes the entrance scale; transformed bounds clip the SVG surface.
++        const measure = () => setCanvasWidth(element.clientWidth || WIDTH);
 +        measure();
 +        const observer = new ResizeObserver(measure);
 +        observer.observe(element);
@@ -117,7 +118,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
      const pointerStartRef = react.useRef(null);
      const onDismissRef = react.useRef(onDismiss);
      onDismissRef.current = onDismiss;
-@@ -565,7 +582,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+@@ -565,7 +583,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
      const handlePointerDown = react.useCallback((e)=>{
          if (exiting || !onDismiss) return;
          const target = e.target;
@@ -126,7 +127,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
          pointerStartRef.current = e.clientY;
          e.currentTarget.setPointerCapture(e.pointerId);
          const el = buttonRef.current;
-@@ -582,9 +599,16 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+@@ -582,9 +600,16 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
          exiting,
          onDismiss
      ]);
@@ -145,7 +146,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
          "data-sileo-toast": true,
          "data-ready": ready,
          "data-expanded": open,
-@@ -601,10 +625,11 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+@@ -601,10 +626,11 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
          children: [
              /*#__PURE__*/ jsxRuntime.jsx("div", {
                  "data-sileo-canvas": true,
@@ -158,7 +159,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
                      height: svgHeight,
                      viewBox: viewBox,
                      children: [
-@@ -614,7 +639,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+@@ -614,7 +640,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
                          /*#__PURE__*/ jsxRuntime.jsx(GooeyDefs, {
                              filterId: filterId,
                              blur: blur,
@@ -167,7 +168,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
                              height: svgHeight
                          }),
                          /*#__PURE__*/ jsxRuntime.jsxs("g", {
-@@ -627,18 +652,18 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+@@ -627,18 +653,18 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
                                      fill: view.fill,
                                      initial: false,
                                      animate: pillAnimate,
@@ -189,7 +190,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
                                  })
                              ]
                          })
-@@ -674,6 +699,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+@@ -674,6 +700,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
                          headerLayer.prev && /*#__PURE__*/ jsxRuntime.jsxs("div", {
                              "data-sileo-header-inner": true,
                              "data-layer": "prev",
@@ -197,7 +198,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
                              "data-exiting": "true",
                              children: [
                                  /*#__PURE__*/ jsxRuntime.jsx("div", {
-@@ -693,8 +719,13 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+@@ -693,8 +720,13 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
                      ]
                  })
              }),
@@ -211,7 +212,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
                  "data-edge": expand,
                  "data-visible": open,
                  children: /*#__PURE__*/ jsxRuntime.jsxs("div", {
-@@ -703,9 +734,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+@@ -703,9 +735,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
                      className: (_view_styles = view.styles) == null ? void 0 : _view_styles.description,
                      children: [
                          view.description,
@@ -222,7 +223,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
                              type: "button",
                              "data-sileo-button": true,
                              "data-state": view.state,
-@@ -778,7 +807,7 @@ const createToast = (options)=>{
+@@ -778,7 +808,7 @@ const createToast = (options)=>{
      var _merged_id, _merged_duration;
      const live = store.toasts.filter((t)=>!t.exiting);
      const merged = mergeOptions(options);
@@ -231,7 +232,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
      const prev = live.find((t)=>t.id === id);
      const item = buildSileoItem(merged, id, prev == null ? void 0 : prev.position);
      if (prev) {
-@@ -877,126 +906,53 @@ function useResolvedTheme(theme) {
+@@ -877,126 +907,53 @@ function useResolvedTheme(theme) {
      ]);
      return resolved;
  }
@@ -399,7 +400,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
      const getViewportStyle = react.useCallback((pos)=>{
          if (offset === undefined) return undefined;
          const o = typeof offset === "object" ? offset : {
-@@ -1044,7 +1000,12 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
+@@ -1044,7 +1001,12 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
                      "data-sileo-viewport": true,
                      "data-position": pos,
                      "data-theme": theme ? resolvedTheme : undefined,
@@ -413,7 +414,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
                      style: getViewportStyle(pos),
                      children: items.map((item)=>{
                          var _item_fill;
-@@ -1065,7 +1026,7 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
+@@ -1065,7 +1027,7 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
                              autoExpandDelayMs: item.autoExpandDelayMs,
                              autoCollapseDelayMs: item.autoCollapseDelayMs,
                              refreshKey: item.instanceId,
@@ -423,7 +424,7 @@ index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f1
                              onMouseLeave: h.leave,
                              onDismiss: h.dismiss
 diff --git a/dist/index.mjs b/dist/index.mjs
-index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d7352fe2789c 100644
+index f687f84725d587b4c539fccb2f86568a9c18294d..c5f3d9961f88fb7774c59377bfa6154f946f1348 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
 @@ -212,6 +212,14 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
@@ -501,14 +502,15 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
      ]);
      const handleTransitionEnd = useCallback((e)=>{
          if (e.propertyName !== "height" && e.propertyName !== "transform") return;
-@@ -523,6 +531,15 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+@@ -523,6 +531,16 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
      /* -------------------------------- Swipe ----------------------------------- */ const SWIPE_DISMISS = 30;
      const SWIPE_MAX = 20;
      const buttonRef = useRef(null);
 +    useLayoutEffect(() => {
 +        const element = buttonRef.current;
 +        if (!element) return;
-+        const measure = () => setCanvasWidth(element.getBoundingClientRect().width || WIDTH);
++        // Layout width excludes the entrance scale; transformed bounds clip the SVG surface.
++        const measure = () => setCanvasWidth(element.clientWidth || WIDTH);
 +        measure();
 +        const observer = new ResizeObserver(measure);
 +        observer.observe(element);
@@ -517,7 +519,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
      const pointerStartRef = useRef(null);
      const onDismissRef = useRef(onDismiss);
      onDismissRef.current = onDismiss;
-@@ -563,7 +580,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+@@ -563,7 +581,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
      const handlePointerDown = useCallback((e)=>{
          if (exiting || !onDismiss) return;
          const target = e.target;
@@ -526,7 +528,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
          pointerStartRef.current = e.clientY;
          e.currentTarget.setPointerCapture(e.pointerId);
          const el = buttonRef.current;
-@@ -580,9 +597,16 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+@@ -580,9 +598,16 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
          exiting,
          onDismiss
      ]);
@@ -545,7 +547,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
          "data-sileo-toast": true,
          "data-ready": ready,
          "data-expanded": open,
-@@ -599,10 +623,11 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+@@ -599,10 +624,11 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
          children: [
              /*#__PURE__*/ jsx("div", {
                  "data-sileo-canvas": true,
@@ -558,7 +560,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
                      height: svgHeight,
                      viewBox: viewBox,
                      children: [
-@@ -612,7 +637,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+@@ -612,7 +638,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
                          /*#__PURE__*/ jsx(GooeyDefs, {
                              filterId: filterId,
                              blur: blur,
@@ -567,7 +569,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
                              height: svgHeight
                          }),
                          /*#__PURE__*/ jsxs("g", {
-@@ -625,18 +650,18 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+@@ -625,18 +651,18 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
                                      fill: view.fill,
                                      initial: false,
                                      animate: pillAnimate,
@@ -589,7 +591,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
                                  })
                              ]
                          })
-@@ -672,6 +697,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+@@ -672,6 +698,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
                          headerLayer.prev && /*#__PURE__*/ jsxs("div", {
                              "data-sileo-header-inner": true,
                              "data-layer": "prev",
@@ -597,7 +599,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
                              "data-exiting": "true",
                              children: [
                                  /*#__PURE__*/ jsx("div", {
-@@ -691,8 +717,13 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+@@ -691,8 +718,13 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
                      ]
                  })
              }),
@@ -611,7 +613,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
                  "data-edge": expand,
                  "data-visible": open,
                  children: /*#__PURE__*/ jsxs("div", {
-@@ -701,9 +732,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+@@ -701,9 +733,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
                      className: (_view_styles = view.styles) == null ? void 0 : _view_styles.description,
                      children: [
                          view.description,
@@ -622,7 +624,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
                              type: "button",
                              "data-sileo-button": true,
                              "data-state": view.state,
-@@ -776,7 +805,7 @@ const createToast = (options)=>{
+@@ -776,7 +806,7 @@ const createToast = (options)=>{
      var _merged_id, _merged_duration;
      const live = store.toasts.filter((t)=>!t.exiting);
      const merged = mergeOptions(options);
@@ -631,7 +633,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
      const prev = live.find((t)=>t.id === id);
      const item = buildSileoItem(merged, id, prev == null ? void 0 : prev.position);
      if (prev) {
-@@ -875,126 +904,53 @@ function useResolvedTheme(theme) {
+@@ -875,126 +905,53 @@ function useResolvedTheme(theme) {
      ]);
      return resolved;
  }
@@ -799,7 +801,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
      const getViewportStyle = useCallback((pos)=>{
          if (offset === undefined) return undefined;
          const o = typeof offset === "object" ? offset : {
-@@ -1042,7 +998,12 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
+@@ -1042,7 +999,12 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
                      "data-sileo-viewport": true,
                      "data-position": pos,
                      "data-theme": theme ? resolvedTheme : undefined,
@@ -813,7 +815,7 @@ index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d735
                      style: getViewportStyle(pos),
                      children: items.map((item)=>{
                          var _item_fill;
-@@ -1063,7 +1024,7 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
+@@ -1063,7 +1025,7 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
                              autoExpandDelayMs: item.autoExpandDelayMs,
                              autoCollapseDelayMs: item.autoCollapseDelayMs,
                              refreshKey: item.instanceId,
