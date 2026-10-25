@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
+import { toast } from "@/components/ui/toast";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffMemberActions } from "@/features/staff/components/staff-member-actions";
@@ -9,6 +10,8 @@ import {
   deactivateStaffAction,
   updateStaffAction,
 } from "@/features/staff/services/staff-actions";
+
+vi.mock("@/components/ui/toast", () => ({ toast: { add: vi.fn() } }));
 
 const { refreshMock } = vi.hoisted(() => ({ refreshMock: vi.fn() }));
 vi.mock("@/features/staff/services/staff-actions", () => ({
@@ -93,6 +96,7 @@ describe("staff member actions", () => {
     vi.mocked(deactivateStaffAction).mockReset();
     vi.mocked(updateStaffAction).mockReset();
     refreshMock.mockReset();
+    vi.mocked(toast.add).mockClear();
   });
 
   it("updates profile fields with the selected branch context", async () => {
@@ -113,7 +117,10 @@ describe("staff member actions", () => {
       email: "alex@example.com",
       contact_number: "09170000000",
     });
-    expect(await screen.findByRole("status")).toBeTruthy();
+    expect(toast.add).toHaveBeenCalledExactlyOnceWith({
+      type: "success",
+      title: "Staff profile updated.",
+    });
   });
 
   it("assigns an active role without offering the bootstrap-only role", async () => {
@@ -132,6 +139,10 @@ describe("staff member actions", () => {
 
     expect(assignStaffRoleAction).toHaveBeenCalledWith(staffId, northBranch, {
       role_id: "6",
+    });
+    expect(toast.add).toHaveBeenCalledWith({
+      type: "success",
+      title: "Staff role updated.",
     });
   });
 
@@ -189,6 +200,10 @@ describe("staff member actions", () => {
         branch_ids: [northBranch, southBranch],
       },
     );
+    expect(toast.add).toHaveBeenCalledExactlyOnceWith({
+      type: "success",
+      title: "Branch access updated.",
+    });
   });
 
   it("requires keyboard-accessible confirmation before deactivation", async () => {

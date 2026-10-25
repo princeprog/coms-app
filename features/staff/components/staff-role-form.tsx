@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import {
@@ -47,13 +48,12 @@ export function StaffRoleForm({
         : "";
   const [roleId, setRoleId] = useState(initialRoleId);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     setError("");
-    setStatus("");
     setPending(true);
     onPendingChange?.(true);
     let result: StaffMutationResult;
@@ -74,7 +74,7 @@ export function StaffRoleForm({
       return;
     }
     onDirtyChange?.(false);
-    setStatus("Staff role updated.");
+    toast.add({ type: "success", title: "Staff role updated." });
     router.refresh();
   }
 
@@ -134,11 +134,6 @@ export function StaffRoleForm({
             {error && (
               <p role="alert" className="text-sm text-destructive">
                 {error}
-              </p>
-            )}
-            {status && (
-              <p role="status" className="text-sm text-muted-foreground">
-                {status}
               </p>
             )}
             <Button

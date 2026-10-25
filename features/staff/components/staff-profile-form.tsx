@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,6 @@ export function StaffProfileForm({
   const [fullName, setFullName] = useState(staff.full_name);
   const [contactNumber, setContactNumber] = useState(staff.contact_number);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
 
   function reportDirty(next: {
@@ -44,8 +44,8 @@ export function StaffProfileForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     setError("");
-    setStatus("");
     setPending(true);
     onPendingChange?.(true);
     let result: StaffMutationResult;
@@ -71,15 +71,13 @@ export function StaffProfileForm({
     setFullName(fullName.trim());
     setContactNumber(contactNumber.trim());
     onDirtyChange?.(false);
-    setStatus("Staff profile updated.");
+    toast.add({ type: "success", title: "Staff profile updated." });
     router.refresh();
   }
 
   return (
-    <details className="rounded-lg border p-4">
-      <summary className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-        Edit profile
-      </summary>
+    <section aria-label="Edit profile">
+      <h3 className="font-medium">Edit profile</h3>
       <form onSubmit={submit} className="mt-4 flex flex-col gap-4">
         <FieldGroup className="gap-4 sm:grid sm:grid-cols-2">
           <Field>
@@ -88,6 +86,7 @@ export function StaffProfileForm({
             </FieldLabel>
             <Input
               id={`staff-${staff.id}-full-name`}
+              disabled={pending}
               required
               minLength={2}
               maxLength={160}
@@ -106,6 +105,7 @@ export function StaffProfileForm({
             </FieldLabel>
             <Input
               id={`staff-${staff.id}-email`}
+              disabled={pending}
               required
               type="email"
               maxLength={320}
@@ -125,6 +125,7 @@ export function StaffProfileForm({
             </FieldLabel>
             <Input
               id={`staff-${staff.id}-contact`}
+              disabled={pending}
               required
               type="tel"
               minLength={7}
@@ -144,17 +145,12 @@ export function StaffProfileForm({
             {error}
           </p>
         )}
-        {status && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {status}
-          </p>
-        )}
         <div>
           <Button type="submit" disabled={pending}>
             {pending ? "Saving profile…" : "Save profile"}
           </Button>
         </div>
       </form>
-    </details>
+    </section>
   );
 }

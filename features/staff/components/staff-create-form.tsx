@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/toast";
 import type { Role } from "@/features/roles/types/role.types";
 import { StaffCreateAccess } from "@/features/staff/components/staff-create-access";
 import { StaffCreateFormFooter } from "@/features/staff/components/staff-create-form-footer";
@@ -61,7 +62,6 @@ export function StaffCreateForm({
   const [branchIds, setBranchIds] = useState<string[]>(initialBranchIds);
   const [fieldErrors, setFieldErrors] = useState<StaffCreateFieldErrors>({});
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
 
   function reportDirty(
@@ -101,7 +101,6 @@ export function StaffCreateForm({
     event.preventDefault();
     if (pending) return;
     setError("");
-    setStatus("");
 
     const nextErrors: StaffCreateFieldErrors = {};
     for (const field of staffCreateFieldOrder) {
@@ -148,7 +147,7 @@ export function StaffCreateForm({
     setBranchIds(initialBranchIds);
     setFieldErrors({});
     onDirtyChange?.(false);
-    setStatus("Staff account created.");
+    toast.add({ type: "success", title: "Staff account created." });
     router.refresh();
     onComplete?.();
   }
@@ -191,15 +190,6 @@ export function StaffCreateForm({
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
-          </p>
-        )}
-        {status && (
-          <p
-            role="status"
-            aria-live="polite"
-            className="text-sm text-muted-foreground"
-          >
-            {status}
           </p>
         )}
       </div>

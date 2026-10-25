@@ -70,7 +70,7 @@ export function StaffMemberActions({
   return (
     <section
       aria-label={`Actions for ${staff.full_name}`}
-      className="flex flex-col gap-3 border-t pt-4"
+      className="flex flex-col gap-6 border-t pt-6"
     >
       {permissions.canUpdate && (
         <StaffProfileForm

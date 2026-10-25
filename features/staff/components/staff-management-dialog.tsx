@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, type RefObject } from "react";
+import { XIcon } from "lucide-react";
 import { StaffStatusBadge } from "./staff-status-badge";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { StaffDiscardConfirmation } from "@/features/staff/components/staff-discard-confirmation";
 import { StaffMemberActions } from "@/features/staff/components/staff-member-actions";
 import type { Role } from "@/features/roles/types/role.types";
@@ -23,7 +24,7 @@ import type {
 type EditSection = "profile" | "role" | "branches";
 type SectionChanges = Record<EditSection, boolean>;
 
-export function StaffManagementSheet({
+export function StaffManagementDialog({
   staff,
   branches,
   roles,
@@ -97,25 +98,41 @@ export function StaffManagementSheet({
   );
 
   return (
-    <Sheet open={open} onOpenChange={(nextOpen) => !nextOpen && requestClose()}>
-      <SheetContent
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && requestClose()}
+    >
+      <DialogContent
         data-coms-ui="operational"
-        side="right"
-        className="h-full w-full gap-0 overflow-hidden sm:max-w-2xl"
+        showCloseButton={false}
+        finalFocus={triggerRef}
+        overlayClassName="bg-black/45 supports-backdrop-filter:backdrop-blur-none"
+        className="flex max-h-[min(90dvh,48rem)] w-full min-h-0 flex-col gap-0 overflow-hidden rounded-xl p-0 sm:max-w-2xl"
       >
-        <SheetHeader className="gap-3 border-b px-6 py-6">
+        <DialogHeader className="relative shrink-0 gap-3 px-5 pt-6 pb-5 sm:px-8 sm:pt-7">
           <div className="flex flex-wrap items-center gap-2 pr-8">
-            <SheetTitle className="text-xl wrap-anywhere">
+            <DialogTitle className="text-2xl font-semibold wrap-anywhere">
               {staff.full_name}
-            </SheetTitle>
+            </DialogTitle>
             <StaffStatusBadge active={staff.is_active} />
           </div>
-          <SheetDescription className="wrap-anywhere">
+          <DialogDescription className="wrap-anywhere">
             {staff.email} · {staff.role_name ?? "Unassigned"}
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-5 right-5 rounded-md sm:right-7"
+            aria-label="Close staff details"
+            disabled={isPending}
+            onClick={requestClose}
+          >
+            <XIcon />
+          </Button>
+        </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6 [&_input]:h-10 [&_[data-slot=select-trigger]]:h-10 [&_summary]:py-1 [&_summary]:text-sm">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 pb-7 sm:px-8 [&_input]:h-10 [&_[data-slot=select-trigger]]:h-10 [&_summary]:py-1 [&_summary]:text-sm">
           <section aria-label={`Staff details for ${staff.full_name}`}>
             <h3 className="mb-3 text-sm font-medium">Account details</h3>
             <dl className="grid gap-5 rounded-lg bg-muted/50 p-4 text-sm sm:grid-cols-2">
@@ -161,22 +178,22 @@ export function StaffManagementSheet({
             )}
         </div>
 
-        <SheetFooter className="mt-0 border-t">
+        <DialogFooter className="m-0 shrink-0 px-5 py-4 sm:px-8">
           <Button
             type="button"
             variant="outline"
             disabled={isPending}
             onClick={requestClose}
           >
-            Close staff details
+            Done
           </Button>
-        </SheetFooter>
-      </SheetContent>
+        </DialogFooter>
+      </DialogContent>
       <StaffDiscardConfirmation
         open={discardOpen}
         onOpenChange={setDiscardOpen}
         onDiscard={resetAndClose}
       />
-    </Sheet>
+    </Dialog>
   );
 }

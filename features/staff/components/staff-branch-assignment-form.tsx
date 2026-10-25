@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { StaffBranchAssignments } from "@/features/staff/components/staff-branch-assignments";
 import { assignStaffBranchesAction } from "@/features/staff/services/staff-actions";
@@ -27,13 +28,12 @@ export function StaffBranchAssignmentForm({
   const router = useRouter();
   const [branchIds, setBranchIds] = useState(staff.branch_ids);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     setError("");
-    setStatus("");
     setPending(true);
     onPendingChange?.(true);
     let result: StaffMutationResult;
@@ -54,7 +54,7 @@ export function StaffBranchAssignmentForm({
       return;
     }
     onDirtyChange?.(false);
-    setStatus("Staff branch assignments updated.");
+    toast.add({ type: "success", title: "Branch access updated." });
     router.refresh();
   }
 
@@ -82,11 +82,6 @@ export function StaffBranchAssignmentForm({
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
-          </p>
-        )}
-        {status && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {status}
           </p>
         )}
         <Button type="submit" disabled={pending}>

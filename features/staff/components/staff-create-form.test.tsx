@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
+import { toast } from "@/components/ui/toast";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffCreateForm } from "@/features/staff/components/staff-create-form";
 import { createStaffAction } from "@/features/staff/services/staff-actions";
+
+vi.mock("@/components/ui/toast", () => ({ toast: { add: vi.fn() } }));
 
 const { refreshMock } = vi.hoisted(() => ({ refreshMock: vi.fn() }));
 vi.mock("@/features/staff/services/staff-actions", () => ({
@@ -62,6 +65,7 @@ describe("staff creation", () => {
   beforeEach(() => {
     vi.mocked(createStaffAction).mockReset();
     refreshMock.mockReset();
+    vi.mocked(toast.add).mockClear();
   });
 
   it("creates an account using only an assignable role and selected branches", async () => {
@@ -108,9 +112,10 @@ describe("staff creation", () => {
       role_id: "4",
       branch_ids: [northBranch, southBranch],
     });
-    expect((await screen.findByRole("status")).textContent).toBe(
-      "Staff account created.",
-    );
+    expect(toast.add).toHaveBeenCalledExactlyOnceWith({
+      type: "success",
+      title: "Staff account created.",
+    });
     expect(refreshMock).toHaveBeenCalledOnce();
   });
 
@@ -212,6 +217,7 @@ describe("staff creation", () => {
       "safe staff passphrase 1",
     );
     expect(refreshMock).not.toHaveBeenCalled();
+    expect(toast.add).not.toHaveBeenCalled();
   });
 
   it("shows inline email, contact number, and password errors before sending a request", async () => {

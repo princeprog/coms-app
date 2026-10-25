@@ -36,7 +36,6 @@ export function StaffCreateSection({
   const [pending, setPending] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
-  const [status, setStatus] = useState("");
 
   if (roles.length === 0) {
     const message = !canReadRoles
@@ -91,7 +90,6 @@ export function StaffCreateSection({
         ref={triggerRef}
         type="button"
         onClick={() => {
-          setStatus("");
           setOpen(true);
         }}
         className="h-10"
@@ -136,7 +134,6 @@ export function StaffCreateSection({
             onPendingChange={setPending}
             onCancel={requestClose}
             onComplete={() => {
-              setStatus("Staff account created.");
               closeCreate();
             }}
           />
@@ -147,11 +144,6 @@ export function StaffCreateSection({
           onDiscard={closeCreate}
         />
       </Dialog>
-      {status && (
-        <p role="status" aria-live="polite" className="sr-only">
-          {status}
-        </p>
-      )}
     </>
   );
 }

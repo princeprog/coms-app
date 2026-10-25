@@ -3,11 +3,15 @@ import { render, screen, within, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { updateStaffAction } from "@/features/staff/services/staff-actions";
+import { toast } from "@/components/ui/toast";
 import { StaffDirectory } from "@/features/staff/components/staff-directory";
 
 vi.mock("@/features/staff/services/staff-actions", () => ({
   createStaffAction: vi.fn(),
+  updateStaffAction: vi.fn(),
 }));
+vi.mock("@/components/ui/toast", () => ({ toast: { add: vi.fn() } }));
 const replace = vi.hoisted(() => vi.fn());
 beforeEach(() => replace.mockClear());
 afterEach(() => vi.useRealTimers());
@@ -78,6 +82,55 @@ function renderDirectory(
 }
 
 describe("staff directory", () => {
+  it("blocks dismissal during a save and keeps a failed draft without success feedback", async () => {
+    const user = userEvent.setup();
+    let finish!: (result: { ok: false; error: string }) => void;
+    vi.mocked(toast.add).mockClear();
+    vi.mocked(updateStaffAction).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    renderDirectory({ managementPermissions: allManagementPermissions });
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Alex Staff" }),
+    );
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Manage staff" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Alex Staff" });
+    const name = within(dialog).getByLabelText("Full name for Alex Staff");
+    await user.clear(name);
+    await user.type(name, "Alex Draft");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Save profile" }),
+    );
+    expect(
+      within(dialog).getByRole("button", { name: "Close staff details" }),
+    ).toHaveProperty("disabled", true);
+    expect(within(dialog).getByRole("button", { name: "Done" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog", { name: "Alex Staff" })).toBeTruthy();
+    await act(async () =>
+      finish({ ok: false, error: "Email is already in use." }),
+    );
+    expect(within(dialog).getByRole("alert").textContent).toBe(
+      "Email is already in use.",
+    );
+    expect(name).toHaveProperty("value", "Alex Draft");
+    expect(toast.add).not.toHaveBeenCalled();
+    await user.keyboard("{Escape}");
+    expect(
+      screen.getByRole("alertdialog", {
+        name: /discard unsaved staff changes/i,
+      }),
+    ).toBeTruthy();
+  });
+
   it("presents staff records in a compact table with the planned columns", () => {
     renderDirectory();
 
@@ -97,7 +150,7 @@ describe("staff directory", () => {
     ).toBeTruthy();
   });
 
-  it("opens full staff details in a sheet for a read-only operator", async () => {
+  it("opens full staff details in a modal for a read-only operator", async () => {
     const user = userEvent.setup();
     renderDirectory();
 
@@ -108,11 +161,12 @@ describe("staff directory", () => {
       await screen.findByRole("menuitem", { name: "View details" }),
     );
 
-    const sheet = screen.getByRole("dialog", { name: "Alex Staff" });
-    expect(within(sheet).getByText("09170000000")).toBeTruthy();
-    expect(within(sheet).getByText("Manila North")).toBeTruthy();
+    const modal = screen.getByRole("dialog", { name: "Alex Staff" });
+    expect(modal.getAttribute("data-slot")).toBe("dialog-content");
+    expect(within(modal).getByText("09170000000")).toBeTruthy();
+    expect(within(modal).getByText("Manila North")).toBeTruthy();
     expect(
-      within(sheet).getByText(/do not have access to change/i),
+      within(modal).getByText(/do not have access to change/i),
     ).toBeTruthy();
   });
 
@@ -137,7 +191,7 @@ describe("staff directory", () => {
     ).toBe("dialog-content");
   });
 
-  it("keeps a dirty management sheet open until edits are discarded", async () => {
+  it("keeps a dirty management modal open until edits are discarded", async () => {
     const user = userEvent.setup();
     renderDirectory({ managementPermissions: allManagementPermissions });
 
@@ -147,7 +201,6 @@ describe("staff directory", () => {
     await user.click(
       await screen.findByRole("menuitem", { name: "Manage staff" }),
     );
-    await user.click(screen.getByText("Edit profile", { selector: "summary" }));
     const name = screen.getByLabelText("Full name for Alex Staff");
     await user.clear(name);
     await user.type(name, "Alex Draft");
@@ -174,14 +227,13 @@ describe("staff directory", () => {
     await user.click(
       await screen.findByRole("menuitem", { name: "Manage staff" }),
     );
-    await user.click(screen.getByText("Edit profile", { selector: "summary" }));
     expect(screen.getByLabelText("Full name for Alex Staff")).toHaveProperty(
       "value",
       "Alex Staff",
     );
   });
 
-  it("asks before closing a populated create sheet and resets only after discard", async () => {
+  it("asks before closing a populated create modal and resets only after discard", async () => {
     const user = userEvent.setup();
     renderDirectory({
       canCreateStaff: true,
@@ -316,7 +368,7 @@ describe("staff directory", () => {
     );
   });
 
-  it("opens the staff sheet from a three-dot row menu", async () => {
+  it("opens the staff modal from a three-dot row menu", async () => {
     const user = userEvent.setup();
     renderDirectory();
     await user.click(

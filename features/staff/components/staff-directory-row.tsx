@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { StaffManagementSheet } from "@/features/staff/components/staff-management-sheet";
+import { StaffManagementDialog } from "@/features/staff/components/staff-management-dialog";
 import type { Role } from "@/features/roles/types/role.types";
 import type {
   StaffBranchOption,
@@ -134,7 +134,7 @@ export function StaffDirectoryRow({
           </div>
         </TableCell>
       </TableRow>
-      <StaffManagementSheet
+      <StaffManagementDialog
         key={staff.id}
         staff={staff}
         branches={branchOptions}
