@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toast";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthQueryProvider } from "@/features/auth/components/auth-query-provider";
 import { cn } from "@/lib/utils";
@@ -32,7 +33,10 @@ export default function RootLayout({
     >
       <body className="antialiased">
         <AuthQueryProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            {children}
+            <Toaster />
+          </ThemeProvider>
         </AuthQueryProvider>
       </body>
     </html>

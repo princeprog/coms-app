@@ -334,9 +334,7 @@ describe("daily report review controls", () => {
       screen.getByText(/approval reconciles the physical count/i),
     ).toBeTruthy();
     expect(approveAction).not.toHaveBeenCalled();
-    await user.click(
-      screen.getByRole("button", { name: "Approve", exact: true }),
-    );
+    await user.click(screen.getByRole("button", { name: "Approve" }));
 
     await waitFor(() =>
       expect(approveAction).toHaveBeenCalledWith(branchId, reportId),

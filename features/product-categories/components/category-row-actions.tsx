@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { Archive, Ellipsis, RotateCcw, SquarePen } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -34,9 +34,12 @@ export function CategoryRowActions({
   const trigger = useRef<HTMLButtonElement>(null);
   const action = category.is_active ? "Archive" : "Reactivate";
   const mutation = useCategoryStatus(() => {
-    toast.success(
-      category.is_active ? "Category archived." : "Category reactivated.",
-    );
+    toast.add({
+      type: "success",
+      title: category.is_active
+        ? "Category archived."
+        : "Category reactivated.",
+    });
     setConfirming(false);
     trigger.current?.focus();
   });

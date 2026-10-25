@@ -17,7 +17,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useNotificationCount, useReadNotification } from "./use-notifications";
 import { NotificationBell } from "../components/notification-bell";
 import { notificationKeys } from "../query-keys";
-import { Toaster } from "@/components/ui/toast";
+import { installToastBrowserMocks } from "@/test/toast-browser-mocks";
+import { Toaster, toast } from "@/components/ui/toast";
 
 const mocks = vi.hoisted(() => ({
   count: vi.fn(),
@@ -46,6 +47,8 @@ function setup() {
   };
 }
 beforeEach(() => {
+  installToastBrowserMocks();
+  toast.clear();
   vi.resetAllMocks();
   focusManager.setFocused(true);
   mocks.count.mockResolvedValue({ ok: true, data: { unread_count: 2 } });
@@ -56,6 +59,7 @@ beforeEach(() => {
   mocks.read.mockResolvedValue({ ok: true, data: { updated: true } });
 });
 afterEach(() => {
+  act(() => toast.clear());
   clients.splice(0).forEach((client) => client.clear());
   focusManager.setFocused(undefined);
   vi.useRealTimers();

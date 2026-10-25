@@ -1,0 +1,824 @@
+diff --git a/dist/index.d.mts b/dist/index.d.mts
+index 4cf7fa59c0d7d7ac08783b5145058def705008ee..74ab0943bb6ced3a810a6f251e476dccc7abbce1 100644
+--- a/dist/index.d.mts
++++ b/dist/index.d.mts
+@@ -34,6 +34,7 @@ interface SileoOptions {
+ type SileoOffsetValue = number | string;
+ type SileoOffsetConfig = Partial<Record<"top" | "right" | "bottom" | "left", SileoOffsetValue>>;
+ interface SileoToasterProps {
++    visibleToasts?: number;
+     children?: ReactNode;
+     position?: SileoPosition;
+     offset?: SileoOffsetValue | SileoOffsetConfig;
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 0c52a3a33f124bfaf35b18dc37777f4c9a314ecb..402bc5b1db06a49d79608979b71415dad43b02ba 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -34,6 +34,7 @@ interface SileoOptions {
+ type SileoOffsetValue = number | string;
+ type SileoOffsetConfig = Partial<Record<"top" | "right" | "bottom" | "left", SileoOffsetValue>>;
+ interface SileoToasterProps {
++    visibleToasts?: number;
+     children?: ReactNode;
+     position?: SileoPosition;
+     offset?: SileoOffsetValue | SileoOffsetConfig;
+diff --git a/dist/index.js b/dist/index.js
+index 79aa792998ed2f8917d4b46725af2b0bbab692e0..394ca724814d01bf088d43e5520a14f16420e856 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -214,6 +214,14 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+     const [isExpanded, setIsExpanded] = react.useState(false);
+     const [ready, setReady] = react.useState(false);
+     const [pillWidth, setPillWidth] = react.useState(0);
++    const [canvasWidth, setCanvasWidth] = react.useState(WIDTH);
++    const [reduceMotion, setReduceMotion] = react.useState(false);
++    react.useEffect(() => {
++        const media = window.matchMedia('(prefers-reduced-motion: reduce)');
++        const update = () => setReduceMotion(media.matches);
++        update(); media.addEventListener('change', update);
++        return () => media.removeEventListener('change', update);
++    }, []);
+     const [contentHeight, setContentHeight] = react.useState(0);
+     const hasDesc = Boolean(view.description) || Boolean(view.button);
+     const isLoading = view.state === "loading";
+@@ -254,7 +262,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+         }
+         const px = headerPadRef.current;
+         const measure = ()=>{
+-            const w = el.scrollWidth + px + PILL_PADDING;
++            const w = (el.querySelector("[data-sileo-title]")?.scrollWidth || el.scrollWidth) + 32 + px + PILL_PADDING;
+             if (w > PILL_PADDING) {
+                 setPillWidth((prev)=>prev === w ? prev : w);
+             }
+@@ -268,7 +276,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+                     const inner = innerRef.current;
+                     const pad = (_headerPadRef_current = headerPadRef.current) != null ? _headerPadRef_current : 0;
+                     if (!inner) return;
+-                    const w = inner.scrollWidth + pad + PILL_PADDING;
++                    const w = (inner.querySelector("[data-sileo-title]")?.scrollWidth || inner.scrollWidth) + 32 + pad + PILL_PADDING;
+                     if (w > PILL_PADDING) {
+                         setPillWidth((prev)=>prev === w ? prev : w);
+                     }
+@@ -300,7 +308,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+         const el = contentRef.current;
+         if (!el) return;
+         const measure = ()=>{
+-            const h = el.scrollHeight;
++            const h = el.getBoundingClientRect().height || el.scrollHeight;
+             setContentHeight((prev)=>prev === h ? prev : h);
+         };
+         measure();
+@@ -450,9 +458,9 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+     const expanded = open ? rawExpanded : frozenExpandedRef.current;
+     const svgHeight = hasDesc ? Math.max(expanded, minExpanded) : HEIGHT;
+     const expandedContent = Math.max(0, expanded - HEIGHT);
+-    const resolvedPillWidth = Math.max(pillWidth || HEIGHT, HEIGHT);
++    const resolvedPillWidth = Math.min(canvasWidth, Math.max(pillWidth || HEIGHT, HEIGHT));
+     const pillHeight = HEIGHT + blur * 3;
+-    const pillX = position === "right" ? WIDTH - resolvedPillWidth : position === "center" ? (WIDTH - resolvedPillWidth) / 2 : 0;
++    const pillX = position === "right" ? canvasWidth - resolvedPillWidth : position === "center" ? (canvasWidth - resolvedPillWidth) / 2 : 0;
+     /* ------------------------------- Memoised animate targets ----------------- */ const pillAnimate = react.useMemo(()=>({
+             x: pillX,
+             width: resolvedPillWidth,
+@@ -480,7 +488,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+         }, [
+         ready
+     ]);
+-    const viewBox = `0 0 ${WIDTH} ${svgHeight}`;
++    const viewBox = `0 0 ${canvasWidth} ${svgHeight}`;
+     /* ------------------------------- Inline styles ---------------------------- */ const rootStyle = react.useMemo(()=>({
+             "--_h": `${open ? expanded : HEIGHT}px`,
+             "--_pw": `${resolvedPillWidth}px`,
+@@ -503,9 +511,9 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+     ]);
+     const handleLeave = react.useCallback((e)=>{
+         onMouseLeave == null ? void 0 : onMouseLeave(e);
+-        setIsExpanded(false);
++        if (autoExpandDelayMs == null && !buttonRef.current?.contains(document.activeElement)) setIsExpanded(false);
+     }, [
+-        onMouseLeave
++        autoExpandDelayMs, onMouseLeave
+     ]);
+     const handleTransitionEnd = react.useCallback((e)=>{
+         if (e.propertyName !== "height" && e.propertyName !== "transform") return;
+@@ -525,6 +533,15 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+     /* -------------------------------- Swipe ----------------------------------- */ const SWIPE_DISMISS = 30;
+     const SWIPE_MAX = 20;
+     const buttonRef = react.useRef(null);
++    react.useLayoutEffect(() => {
++        const element = buttonRef.current;
++        if (!element) return;
++        const measure = () => setCanvasWidth(element.getBoundingClientRect().width || WIDTH);
++        measure();
++        const observer = new ResizeObserver(measure);
++        observer.observe(element);
++        return () => observer.disconnect();
++    }, []);
+     const pointerStartRef = react.useRef(null);
+     const onDismissRef = react.useRef(onDismiss);
+     onDismissRef.current = onDismiss;
+@@ -565,7 +582,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+     const handlePointerDown = react.useCallback((e)=>{
+         if (exiting || !onDismiss) return;
+         const target = e.target;
+-        if (target.closest("[data-sileo-button]")) return;
++        if (target.closest("button, a, [data-sileo-description]")) return;
+         pointerStartRef.current = e.clientY;
+         e.currentTarget.setPointerCapture(e.pointerId);
+         const el = buttonRef.current;
+@@ -582,9 +599,16 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+         exiting,
+         onDismiss
+     ]);
+-    /* --------------------------------- Render --------------------------------- */ return /*#__PURE__*/ jsxRuntime.jsxs("button", {
++    /* --------------------------------- Render --------------------------------- */ return /*#__PURE__*/ jsxRuntime.jsxs("div", {
+         ref: buttonRef,
+-        type: "button",
++        role: view.state === 'error' ? 'alert' : 'status',
++        'aria-atomic': true,
++        'aria-label': view.state + ' notification',
++        tabIndex: 0,
++        onFocus: () => { if (hasDesc) setIsExpanded(true); },
++        onKeyDown: (event) => {
++            if (event.key === 'Escape') { event.stopPropagation(); onDismiss?.(); }
++        },
+         "data-sileo-toast": true,
+         "data-ready": ready,
+         "data-expanded": open,
+@@ -601,10 +625,11 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+         children: [
+             /*#__PURE__*/ jsxRuntime.jsx("div", {
+                 "data-sileo-canvas": true,
++                "aria-hidden": true,
+                 "data-edge": expand,
+                 children: /*#__PURE__*/ jsxRuntime.jsxs("svg", {
+                     "data-sileo-svg": true,
+-                    width: WIDTH,
++                    width: canvasWidth,
+                     height: svgHeight,
+                     viewBox: viewBox,
+                     children: [
+@@ -614,7 +639,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+                         /*#__PURE__*/ jsxRuntime.jsx(GooeyDefs, {
+                             filterId: filterId,
+                             blur: blur,
+-                            width: WIDTH,
++                            width: canvasWidth,
+                             height: svgHeight
+                         }),
+                         /*#__PURE__*/ jsxRuntime.jsxs("g", {
+@@ -627,18 +652,18 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+                                     fill: view.fill,
+                                     initial: false,
+                                     animate: pillAnimate,
+-                                    transition: pillTransition
++                                    transition: reduceMotion ? { duration: 0 } : pillTransition
+                                 }),
+                                 /*#__PURE__*/ jsxRuntime.jsx(react$1.motion.rect, {
+                                     "data-sileo-body": true,
+                                     y: HEIGHT,
+-                                    width: WIDTH,
++                                    width: canvasWidth,
+                                     rx: resolvedRoundness,
+                                     ry: resolvedRoundness,
+                                     fill: view.fill,
+                                     initial: false,
+                                     animate: bodyAnimate,
+-                                    transition: bodyTransition
++                                    transition: reduceMotion ? { duration: 0 } : bodyTransition
+                                 })
+                             ]
+                         })
+@@ -674,6 +699,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+                         headerLayer.prev && /*#__PURE__*/ jsxRuntime.jsxs("div", {
+                             "data-sileo-header-inner": true,
+                             "data-layer": "prev",
++                            "aria-hidden": true,
+                             "data-exiting": "true",
+                             children: [
+                                 /*#__PURE__*/ jsxRuntime.jsx("div", {
+@@ -693,8 +719,13 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+                     ]
+                 })
+             }),
++            jsxRuntime.jsx("button", {
++                type: 'button', 'data-sileo-close': true, 'aria-label': 'Dismiss notification',
++                onClick: () => onDismiss?.(), children: '×'
++            }),
+             hasDesc && /*#__PURE__*/ jsxRuntime.jsx("div", {
+                 "data-sileo-content": true,
++                inert: !open,
+                 "data-edge": expand,
+                 "data-visible": open,
+                 children: /*#__PURE__*/ jsxRuntime.jsxs("div", {
+@@ -703,9 +734,7 @@ const GooeyDefs = /*#__PURE__*/ react.memo(function GooeyDefs({ filterId, blur,
+                     className: (_view_styles = view.styles) == null ? void 0 : _view_styles.description,
+                     children: [
+                         view.description,
+-                        view.button && // biome-ignore lint/a11y/useValidAnchor: cannot use button inside a button
+-                        /*#__PURE__*/ jsxRuntime.jsx("a", {
+-                            href: "#",
++                        view.button && /*#__PURE__*/ jsxRuntime.jsx("button", {
+                             type: "button",
+                             "data-sileo-button": true,
+                             "data-state": view.state,
+@@ -778,7 +807,7 @@ const createToast = (options)=>{
+     var _merged_id, _merged_duration;
+     const live = store.toasts.filter((t)=>!t.exiting);
+     const merged = mergeOptions(options);
+-    const id = (_merged_id = merged.id) != null ? _merged_id : "sileo-default";
++    const id = (_merged_id = merged.id) != null ? _merged_id : generateId();
+     const prev = live.find((t)=>t.id === id);
+     const item = buildSileoItem(merged, id, prev == null ? void 0 : prev.position);
+     if (prev) {
+@@ -877,126 +906,53 @@ function useResolvedTheme(theme) {
+     ]);
+     return resolved;
+ }
+-function Toaster({ children, position = "top-right", offset, options, theme }) {
++function Toaster({ children, position = "top-right", offset, options, theme, visibleToasts = 3 }) {
+     const resolvedTheme = useResolvedTheme(theme);
+-    const [toasts, setToasts] = react.useState(store.toasts);
+-    const [activeId, setActiveId] = react.useState();
+-    const hoverRef = react.useRef(false);
+-    const timersRef = react.useRef(new Map());
+-    const listRef = react.useRef(toasts);
+-    const latestRef = react.useRef(undefined);
+-    const handlersCache = react.useRef(new Map());
+-    react.useEffect(()=>{
+-        store.position = position;
+-        store.options = options;
+-    }, [
+-        position,
+-        options
+-    ]);
+-    const clearAllTimers = react.useCallback(()=>{
+-        for (const t of timersRef.current.values())clearTimeout(t);
+-        timersRef.current.clear();
++    const [allToasts, setToasts] = react.useState(store.toasts);
++    const toasts = react.useMemo(() => allToasts.slice(0, Math.max(1, visibleToasts)), [allToasts, visibleToasts]);
++    const [paused, setPaused] = react.useState(false);
++    const interactions = react.useRef(new Set());
++    const timers = react.useRef(new Map());
++    react.useEffect(() => {
++        if (allToasts.length === 0) interactions.current.clear();
++        else if (!document.activeElement?.closest('[data-sileo-toast]:not([data-exiting="true"])')) interactions.current.delete('focus');
++        setPaused(interactions.current.size > 0);
++    }, [allToasts]);
++    const setInteraction = (reason, active) => {
++        if (active) interactions.current.add(reason);
++        else interactions.current.delete(reason);
++        setPaused(interactions.current.size > 0);
++    };
++    react.useEffect(() => { store.position = position; store.options = options; }, [position, options]);
++    react.useEffect(() => {
++        const listener = next => setToasts(next);
++        store.listeners.add(listener); setToasts(store.toasts);
++        return () => { store.listeners.delete(listener); };
+     }, []);
+-    const schedule = react.useCallback((items)=>{
+-        if (hoverRef.current) return;
+-        for (const item of items){
+-            var _item_duration;
+-            if (item.exiting) continue;
+-            const key = timeoutKey(item);
+-            if (timersRef.current.has(key)) continue;
+-            if (item.duration === null) continue;
+-            const dur = (_item_duration = item.duration) != null ? _item_duration : DEFAULT_TOAST_DURATION;
+-            if (dur <= 0) continue;
+-            timersRef.current.set(key, window.setTimeout(()=>dismissToast(item.id), dur));
++    react.useEffect(() => {
++        const visible = new Set(toasts.filter(item => !item.exiting).map(timeoutKey));
++        for (const [key, timer] of timers.current) {
++            if (!visible.has(key)) { clearTimeout(timer.handle); timers.current.delete(key); }
+         }
+-    }, []);
+-    react.useEffect(()=>{
+-        const listener = (next)=>setToasts(next);
+-        store.listeners.add(listener);
+-        /*
+-     * Re-read on subscribing, because the state above was seeded during render
+-     * and nothing was listening in between.
+-     *
+-     * A store write in that gap is delivered to whoever is subscribed at the
+-     * time, which is not yet this Toaster, so it is missed outright and the
+-     * stale snapshot is kept until the next unrelated write. A route change is
+-     * exactly that gap: the outgoing page clears the store from its cleanup
+-     * while the incoming Toaster has rendered but not yet subscribed, and the
+-     * toast it never should have had stays on screen. Re-reading costs a
+-     * reference comparison — React bails out when nothing moved.
+-     */ setToasts(store.toasts);
+-        return ()=>{
+-            store.listeners.delete(listener);
+-            clearAllTimers();
+-        };
+-    }, [
+-        clearAllTimers
+-    ]);
+-    react.useEffect(()=>{
+-        listRef.current = toasts;
+-        const toastKeys = new Set(toasts.map(timeoutKey));
+-        const toastIds = new Set(toasts.map((t)=>t.id));
+-        for (const [key, timer] of timersRef.current){
+-            if (!toastKeys.has(key)) {
+-                clearTimeout(timer);
+-                timersRef.current.delete(key);
++        for (const item of toasts) {
++            if (item.exiting || item.duration === null || item.duration <= 0) continue;
++            const key = timeoutKey(item);
++            let timer = timers.current.get(key);
++            if (!timer) { timer = { remaining: item.duration ?? DEFAULT_TOAST_DURATION }; timers.current.set(key, timer); }
++            if (!paused) {
++                timer.started = Date.now();
++                timer.handle = setTimeout(() => dismissToast(item.id), timer.remaining);
+             }
+         }
+-        for (const id of handlersCache.current.keys()){
+-            if (!toastIds.has(id)) handlersCache.current.delete(id);
+-        }
+-        schedule(toasts);
+-    }, [
+-        toasts,
+-        schedule
+-    ]);
+-    const handleMouseEnterRef = react.useRef(null);
+-    const handleMouseLeaveRef = react.useRef(null);
+-    handleMouseEnterRef.current = react.useCallback(()=>{
+-        if (hoverRef.current) return;
+-        hoverRef.current = true;
+-        clearAllTimers();
+-    }, [
+-        clearAllTimers
+-    ]);
+-    handleMouseLeaveRef.current = react.useCallback(()=>{
+-        if (!hoverRef.current) return;
+-        hoverRef.current = false;
+-        schedule(listRef.current);
+-    }, [
+-        schedule
+-    ]);
+-    const latest = react.useMemo(()=>{
+-        for(let i = toasts.length - 1; i >= 0; i--){
+-            if (!toasts[i].exiting) return toasts[i].id;
+-        }
+-        return undefined;
+-    }, [
+-        toasts
+-    ]);
+-    react.useEffect(()=>{
+-        latestRef.current = latest;
+-        setActiveId(latest);
+-    }, [
+-        latest
+-    ]);
+-    const getHandlers = react.useCallback((toastId)=>{
+-        let cached = handlersCache.current.get(toastId);
+-        if (cached) return cached;
+-        cached = {
+-            enter: (e)=>{
+-                setActiveId((prev)=>prev === toastId ? prev : toastId);
+-                handleMouseEnterRef.current == null ? void 0 : handleMouseEnterRef.current.call(handleMouseEnterRef, e);
+-            },
+-            leave: (e)=>{
+-                setActiveId((prev)=>prev === latestRef.current ? prev : latestRef.current);
+-                handleMouseLeaveRef.current == null ? void 0 : handleMouseLeaveRef.current.call(handleMouseLeaveRef, e);
+-            },
+-            dismiss: ()=>dismissToast(toastId)
++        return () => {
++            for (const timer of timers.current.values()) {
++                clearTimeout(timer.handle);
++                if (timer.started !== undefined) timer.remaining = Math.max(0, timer.remaining - (Date.now() - timer.started));
++                timer.started = undefined;
++            }
+         };
+-        handlersCache.current.set(toastId, cached);
+-        return cached;
+-    }, []);
++    }, [toasts, paused]);
++    const getHandlers = toastId => ({ dismiss: () => dismissToast(toastId) });
+     const getViewportStyle = react.useCallback((pos)=>{
+         if (offset === undefined) return undefined;
+         const o = typeof offset === "object" ? offset : {
+@@ -1044,7 +1000,12 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
+                     "data-sileo-viewport": true,
+                     "data-position": pos,
+                     "data-theme": theme ? resolvedTheme : undefined,
+-                    "aria-live": "polite",
++                    'aria-label': 'Notifications',
++                    'aria-live': 'off',
++                    onMouseEnter: () => setInteraction('hover', true),
++                    onMouseLeave: () => setInteraction('hover', false),
++                    onFocusCapture: () => setInteraction('focus', true),
++                    onBlurCapture: event => { if (!event.currentTarget.contains(event.relatedTarget)) setInteraction('focus', false); },
+                     style: getViewportStyle(pos),
+                     children: items.map((item)=>{
+                         var _item_fill;
+@@ -1065,7 +1026,7 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
+                             autoExpandDelayMs: item.autoExpandDelayMs,
+                             autoCollapseDelayMs: item.autoCollapseDelayMs,
+                             refreshKey: item.instanceId,
+-                            canExpand: activeId === undefined || activeId === item.id,
++                            canExpand: true,
+                             onMouseEnter: h.enter,
+                             onMouseLeave: h.leave,
+                             onDismiss: h.dismiss
+diff --git a/dist/index.mjs b/dist/index.mjs
+index f687f84725d587b4c539fccb2f86568a9c18294d..7b184134b46e05d035cf45903e55d7352fe2789c 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -212,6 +212,14 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+     const [isExpanded, setIsExpanded] = useState(false);
+     const [ready, setReady] = useState(false);
+     const [pillWidth, setPillWidth] = useState(0);
++    const [canvasWidth, setCanvasWidth] = useState(WIDTH);
++    const [reduceMotion, setReduceMotion] = useState(false);
++    useEffect(() => {
++        const media = window.matchMedia('(prefers-reduced-motion: reduce)');
++        const update = () => setReduceMotion(media.matches);
++        update(); media.addEventListener('change', update);
++        return () => media.removeEventListener('change', update);
++    }, []);
+     const [contentHeight, setContentHeight] = useState(0);
+     const hasDesc = Boolean(view.description) || Boolean(view.button);
+     const isLoading = view.state === "loading";
+@@ -252,7 +260,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+         }
+         const px = headerPadRef.current;
+         const measure = ()=>{
+-            const w = el.scrollWidth + px + PILL_PADDING;
++            const w = (el.querySelector("[data-sileo-title]")?.scrollWidth || el.scrollWidth) + 32 + px + PILL_PADDING;
+             if (w > PILL_PADDING) {
+                 setPillWidth((prev)=>prev === w ? prev : w);
+             }
+@@ -266,7 +274,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+                     const inner = innerRef.current;
+                     const pad = (_headerPadRef_current = headerPadRef.current) != null ? _headerPadRef_current : 0;
+                     if (!inner) return;
+-                    const w = inner.scrollWidth + pad + PILL_PADDING;
++                    const w = (inner.querySelector("[data-sileo-title]")?.scrollWidth || inner.scrollWidth) + 32 + pad + PILL_PADDING;
+                     if (w > PILL_PADDING) {
+                         setPillWidth((prev)=>prev === w ? prev : w);
+                     }
+@@ -298,7 +306,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+         const el = contentRef.current;
+         if (!el) return;
+         const measure = ()=>{
+-            const h = el.scrollHeight;
++            const h = el.getBoundingClientRect().height || el.scrollHeight;
+             setContentHeight((prev)=>prev === h ? prev : h);
+         };
+         measure();
+@@ -448,9 +456,9 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+     const expanded = open ? rawExpanded : frozenExpandedRef.current;
+     const svgHeight = hasDesc ? Math.max(expanded, minExpanded) : HEIGHT;
+     const expandedContent = Math.max(0, expanded - HEIGHT);
+-    const resolvedPillWidth = Math.max(pillWidth || HEIGHT, HEIGHT);
++    const resolvedPillWidth = Math.min(canvasWidth, Math.max(pillWidth || HEIGHT, HEIGHT));
+     const pillHeight = HEIGHT + blur * 3;
+-    const pillX = position === "right" ? WIDTH - resolvedPillWidth : position === "center" ? (WIDTH - resolvedPillWidth) / 2 : 0;
++    const pillX = position === "right" ? canvasWidth - resolvedPillWidth : position === "center" ? (canvasWidth - resolvedPillWidth) / 2 : 0;
+     /* ------------------------------- Memoised animate targets ----------------- */ const pillAnimate = useMemo(()=>({
+             x: pillX,
+             width: resolvedPillWidth,
+@@ -478,7 +486,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+         }, [
+         ready
+     ]);
+-    const viewBox = `0 0 ${WIDTH} ${svgHeight}`;
++    const viewBox = `0 0 ${canvasWidth} ${svgHeight}`;
+     /* ------------------------------- Inline styles ---------------------------- */ const rootStyle = useMemo(()=>({
+             "--_h": `${open ? expanded : HEIGHT}px`,
+             "--_pw": `${resolvedPillWidth}px`,
+@@ -501,9 +509,9 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+     ]);
+     const handleLeave = useCallback((e)=>{
+         onMouseLeave == null ? void 0 : onMouseLeave(e);
+-        setIsExpanded(false);
++        if (autoExpandDelayMs == null && !buttonRef.current?.contains(document.activeElement)) setIsExpanded(false);
+     }, [
+-        onMouseLeave
++        autoExpandDelayMs, onMouseLeave
+     ]);
+     const handleTransitionEnd = useCallback((e)=>{
+         if (e.propertyName !== "height" && e.propertyName !== "transform") return;
+@@ -523,6 +531,15 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+     /* -------------------------------- Swipe ----------------------------------- */ const SWIPE_DISMISS = 30;
+     const SWIPE_MAX = 20;
+     const buttonRef = useRef(null);
++    useLayoutEffect(() => {
++        const element = buttonRef.current;
++        if (!element) return;
++        const measure = () => setCanvasWidth(element.getBoundingClientRect().width || WIDTH);
++        measure();
++        const observer = new ResizeObserver(measure);
++        observer.observe(element);
++        return () => observer.disconnect();
++    }, []);
+     const pointerStartRef = useRef(null);
+     const onDismissRef = useRef(onDismiss);
+     onDismissRef.current = onDismiss;
+@@ -563,7 +580,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+     const handlePointerDown = useCallback((e)=>{
+         if (exiting || !onDismiss) return;
+         const target = e.target;
+-        if (target.closest("[data-sileo-button]")) return;
++        if (target.closest("button, a, [data-sileo-description]")) return;
+         pointerStartRef.current = e.clientY;
+         e.currentTarget.setPointerCapture(e.pointerId);
+         const el = buttonRef.current;
+@@ -580,9 +597,16 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+         exiting,
+         onDismiss
+     ]);
+-    /* --------------------------------- Render --------------------------------- */ return /*#__PURE__*/ jsxs("button", {
++    /* --------------------------------- Render --------------------------------- */ return /*#__PURE__*/ jsxs("div", {
+         ref: buttonRef,
+-        type: "button",
++        role: view.state === 'error' ? 'alert' : 'status',
++        'aria-atomic': true,
++        'aria-label': view.state + ' notification',
++        tabIndex: 0,
++        onFocus: () => { if (hasDesc) setIsExpanded(true); },
++        onKeyDown: (event) => {
++            if (event.key === 'Escape') { event.stopPropagation(); onDismiss?.(); }
++        },
+         "data-sileo-toast": true,
+         "data-ready": ready,
+         "data-expanded": open,
+@@ -599,10 +623,11 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+         children: [
+             /*#__PURE__*/ jsx("div", {
+                 "data-sileo-canvas": true,
++                "aria-hidden": true,
+                 "data-edge": expand,
+                 children: /*#__PURE__*/ jsxs("svg", {
+                     "data-sileo-svg": true,
+-                    width: WIDTH,
++                    width: canvasWidth,
+                     height: svgHeight,
+                     viewBox: viewBox,
+                     children: [
+@@ -612,7 +637,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+                         /*#__PURE__*/ jsx(GooeyDefs, {
+                             filterId: filterId,
+                             blur: blur,
+-                            width: WIDTH,
++                            width: canvasWidth,
+                             height: svgHeight
+                         }),
+                         /*#__PURE__*/ jsxs("g", {
+@@ -625,18 +650,18 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+                                     fill: view.fill,
+                                     initial: false,
+                                     animate: pillAnimate,
+-                                    transition: pillTransition
++                                    transition: reduceMotion ? { duration: 0 } : pillTransition
+                                 }),
+                                 /*#__PURE__*/ jsx(motion.rect, {
+                                     "data-sileo-body": true,
+                                     y: HEIGHT,
+-                                    width: WIDTH,
++                                    width: canvasWidth,
+                                     rx: resolvedRoundness,
+                                     ry: resolvedRoundness,
+                                     fill: view.fill,
+                                     initial: false,
+                                     animate: bodyAnimate,
+-                                    transition: bodyTransition
++                                    transition: reduceMotion ? { duration: 0 } : bodyTransition
+                                 })
+                             ]
+                         })
+@@ -672,6 +697,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+                         headerLayer.prev && /*#__PURE__*/ jsxs("div", {
+                             "data-sileo-header-inner": true,
+                             "data-layer": "prev",
++                            "aria-hidden": true,
+                             "data-exiting": "true",
+                             children: [
+                                 /*#__PURE__*/ jsx("div", {
+@@ -691,8 +717,13 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+                     ]
+                 })
+             }),
++            jsx("button", {
++                type: 'button', 'data-sileo-close': true, 'aria-label': 'Dismiss notification',
++                onClick: () => onDismiss?.(), children: '×'
++            }),
+             hasDesc && /*#__PURE__*/ jsx("div", {
+                 "data-sileo-content": true,
++                inert: !open,
+                 "data-edge": expand,
+                 "data-visible": open,
+                 children: /*#__PURE__*/ jsxs("div", {
+@@ -701,9 +732,7 @@ const GooeyDefs = /*#__PURE__*/ memo(function GooeyDefs({ filterId, blur, width,
+                     className: (_view_styles = view.styles) == null ? void 0 : _view_styles.description,
+                     children: [
+                         view.description,
+-                        view.button && // biome-ignore lint/a11y/useValidAnchor: cannot use button inside a button
+-                        /*#__PURE__*/ jsx("a", {
+-                            href: "#",
++                        view.button && /*#__PURE__*/ jsx("button", {
+                             type: "button",
+                             "data-sileo-button": true,
+                             "data-state": view.state,
+@@ -776,7 +805,7 @@ const createToast = (options)=>{
+     var _merged_id, _merged_duration;
+     const live = store.toasts.filter((t)=>!t.exiting);
+     const merged = mergeOptions(options);
+-    const id = (_merged_id = merged.id) != null ? _merged_id : "sileo-default";
++    const id = (_merged_id = merged.id) != null ? _merged_id : generateId();
+     const prev = live.find((t)=>t.id === id);
+     const item = buildSileoItem(merged, id, prev == null ? void 0 : prev.position);
+     if (prev) {
+@@ -875,126 +904,53 @@ function useResolvedTheme(theme) {
+     ]);
+     return resolved;
+ }
+-function Toaster({ children, position = "top-right", offset, options, theme }) {
++function Toaster({ children, position = "top-right", offset, options, theme, visibleToasts = 3 }) {
+     const resolvedTheme = useResolvedTheme(theme);
+-    const [toasts, setToasts] = useState(store.toasts);
+-    const [activeId, setActiveId] = useState();
+-    const hoverRef = useRef(false);
+-    const timersRef = useRef(new Map());
+-    const listRef = useRef(toasts);
+-    const latestRef = useRef(undefined);
+-    const handlersCache = useRef(new Map());
+-    useEffect(()=>{
+-        store.position = position;
+-        store.options = options;
+-    }, [
+-        position,
+-        options
+-    ]);
+-    const clearAllTimers = useCallback(()=>{
+-        for (const t of timersRef.current.values())clearTimeout(t);
+-        timersRef.current.clear();
++    const [allToasts, setToasts] = useState(store.toasts);
++    const toasts = useMemo(() => allToasts.slice(0, Math.max(1, visibleToasts)), [allToasts, visibleToasts]);
++    const [paused, setPaused] = useState(false);
++    const interactions = useRef(new Set());
++    const timers = useRef(new Map());
++    useEffect(() => {
++        if (allToasts.length === 0) interactions.current.clear();
++        else if (!document.activeElement?.closest('[data-sileo-toast]:not([data-exiting="true"])')) interactions.current.delete('focus');
++        setPaused(interactions.current.size > 0);
++    }, [allToasts]);
++    const setInteraction = (reason, active) => {
++        if (active) interactions.current.add(reason);
++        else interactions.current.delete(reason);
++        setPaused(interactions.current.size > 0);
++    };
++    useEffect(() => { store.position = position; store.options = options; }, [position, options]);
++    useEffect(() => {
++        const listener = next => setToasts(next);
++        store.listeners.add(listener); setToasts(store.toasts);
++        return () => { store.listeners.delete(listener); };
+     }, []);
+-    const schedule = useCallback((items)=>{
+-        if (hoverRef.current) return;
+-        for (const item of items){
+-            var _item_duration;
+-            if (item.exiting) continue;
+-            const key = timeoutKey(item);
+-            if (timersRef.current.has(key)) continue;
+-            if (item.duration === null) continue;
+-            const dur = (_item_duration = item.duration) != null ? _item_duration : DEFAULT_TOAST_DURATION;
+-            if (dur <= 0) continue;
+-            timersRef.current.set(key, window.setTimeout(()=>dismissToast(item.id), dur));
++    useEffect(() => {
++        const visible = new Set(toasts.filter(item => !item.exiting).map(timeoutKey));
++        for (const [key, timer] of timers.current) {
++            if (!visible.has(key)) { clearTimeout(timer.handle); timers.current.delete(key); }
+         }
+-    }, []);
+-    useEffect(()=>{
+-        const listener = (next)=>setToasts(next);
+-        store.listeners.add(listener);
+-        /*
+-     * Re-read on subscribing, because the state above was seeded during render
+-     * and nothing was listening in between.
+-     *
+-     * A store write in that gap is delivered to whoever is subscribed at the
+-     * time, which is not yet this Toaster, so it is missed outright and the
+-     * stale snapshot is kept until the next unrelated write. A route change is
+-     * exactly that gap: the outgoing page clears the store from its cleanup
+-     * while the incoming Toaster has rendered but not yet subscribed, and the
+-     * toast it never should have had stays on screen. Re-reading costs a
+-     * reference comparison — React bails out when nothing moved.
+-     */ setToasts(store.toasts);
+-        return ()=>{
+-            store.listeners.delete(listener);
+-            clearAllTimers();
+-        };
+-    }, [
+-        clearAllTimers
+-    ]);
+-    useEffect(()=>{
+-        listRef.current = toasts;
+-        const toastKeys = new Set(toasts.map(timeoutKey));
+-        const toastIds = new Set(toasts.map((t)=>t.id));
+-        for (const [key, timer] of timersRef.current){
+-            if (!toastKeys.has(key)) {
+-                clearTimeout(timer);
+-                timersRef.current.delete(key);
++        for (const item of toasts) {
++            if (item.exiting || item.duration === null || item.duration <= 0) continue;
++            const key = timeoutKey(item);
++            let timer = timers.current.get(key);
++            if (!timer) { timer = { remaining: item.duration ?? DEFAULT_TOAST_DURATION }; timers.current.set(key, timer); }
++            if (!paused) {
++                timer.started = Date.now();
++                timer.handle = setTimeout(() => dismissToast(item.id), timer.remaining);
+             }
+         }
+-        for (const id of handlersCache.current.keys()){
+-            if (!toastIds.has(id)) handlersCache.current.delete(id);
+-        }
+-        schedule(toasts);
+-    }, [
+-        toasts,
+-        schedule
+-    ]);
+-    const handleMouseEnterRef = useRef(null);
+-    const handleMouseLeaveRef = useRef(null);
+-    handleMouseEnterRef.current = useCallback(()=>{
+-        if (hoverRef.current) return;
+-        hoverRef.current = true;
+-        clearAllTimers();
+-    }, [
+-        clearAllTimers
+-    ]);
+-    handleMouseLeaveRef.current = useCallback(()=>{
+-        if (!hoverRef.current) return;
+-        hoverRef.current = false;
+-        schedule(listRef.current);
+-    }, [
+-        schedule
+-    ]);
+-    const latest = useMemo(()=>{
+-        for(let i = toasts.length - 1; i >= 0; i--){
+-            if (!toasts[i].exiting) return toasts[i].id;
+-        }
+-        return undefined;
+-    }, [
+-        toasts
+-    ]);
+-    useEffect(()=>{
+-        latestRef.current = latest;
+-        setActiveId(latest);
+-    }, [
+-        latest
+-    ]);
+-    const getHandlers = useCallback((toastId)=>{
+-        let cached = handlersCache.current.get(toastId);
+-        if (cached) return cached;
+-        cached = {
+-            enter: (e)=>{
+-                setActiveId((prev)=>prev === toastId ? prev : toastId);
+-                handleMouseEnterRef.current == null ? void 0 : handleMouseEnterRef.current.call(handleMouseEnterRef, e);
+-            },
+-            leave: (e)=>{
+-                setActiveId((prev)=>prev === latestRef.current ? prev : latestRef.current);
+-                handleMouseLeaveRef.current == null ? void 0 : handleMouseLeaveRef.current.call(handleMouseLeaveRef, e);
+-            },
+-            dismiss: ()=>dismissToast(toastId)
++        return () => {
++            for (const timer of timers.current.values()) {
++                clearTimeout(timer.handle);
++                if (timer.started !== undefined) timer.remaining = Math.max(0, timer.remaining - (Date.now() - timer.started));
++                timer.started = undefined;
++            }
+         };
+-        handlersCache.current.set(toastId, cached);
+-        return cached;
+-    }, []);
++    }, [toasts, paused]);
++    const getHandlers = toastId => ({ dismiss: () => dismissToast(toastId) });
+     const getViewportStyle = useCallback((pos)=>{
+         if (offset === undefined) return undefined;
+         const o = typeof offset === "object" ? offset : {
+@@ -1042,7 +998,12 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
+                     "data-sileo-viewport": true,
+                     "data-position": pos,
+                     "data-theme": theme ? resolvedTheme : undefined,
+-                    "aria-live": "polite",
++                    'aria-label': 'Notifications',
++                    'aria-live': 'off',
++                    onMouseEnter: () => setInteraction('hover', true),
++                    onMouseLeave: () => setInteraction('hover', false),
++                    onFocusCapture: () => setInteraction('focus', true),
++                    onBlurCapture: event => { if (!event.currentTarget.contains(event.relatedTarget)) setInteraction('focus', false); },
+                     style: getViewportStyle(pos),
+                     children: items.map((item)=>{
+                         var _item_fill;
+@@ -1063,7 +1024,7 @@ function Toaster({ children, position = "top-right", offset, options, theme }) {
+                             autoExpandDelayMs: item.autoExpandDelayMs,
+                             autoCollapseDelayMs: item.autoCollapseDelayMs,
+                             refreshKey: item.instanceId,
+-                            canExpand: activeId === undefined || activeId === item.id,
++                            canExpand: true,
+                             onMouseEnter: h.enter,
+                             onMouseLeave: h.leave,
+                             onDismiss: h.dismiss

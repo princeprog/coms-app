@@ -16,6 +16,7 @@ export function useLateCountReview(dispatchId: string, caseId: string) {
     },
     onSuccess: (action) => {
       toast.add({
+        type: "success",
         title:
           action === "POST"
             ? "Delivery count posted"

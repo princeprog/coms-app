@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { z } from "zod";
 import type { ServiceType } from "@/features/menus/schemas/menu.schema";
 import {
@@ -119,7 +119,10 @@ export function useProductSetup(initial: ProductSetup | null) {
     onError: (e) => setError(e.message),
     onSuccess: () => {
       setBaseline(state);
-      toast.success(initial ? "Product saved." : "Product created.");
+      toast.add({
+        type: "success",
+        title: initial ? "Product saved." : "Product created.",
+      });
       if (initial) router.refresh();
       else router.replace("/products");
     },

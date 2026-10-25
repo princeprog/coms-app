@@ -1,11 +1,10 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/sonner";
 import { OperationalEmptyState } from "@/components/shared/operational-page-ui";
 import { BranchCreateForm } from "./branch-create-form";
 import { BranchTable } from "./branch-table";
@@ -38,12 +37,11 @@ export function BranchesManagement({
     filters.search || filters.status || filters.service_type,
   );
   function complete(message: string) {
-    toast.success(message);
+    toast.add({ type: "success", title: message });
     router.refresh();
   }
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <Toaster />
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex flex-wrap items-baseline gap-3">
@@ -118,7 +116,11 @@ export function BranchesManagement({
         open={createOpen}
         onOpenChange={setCreateOpen}
         onComplete={(code) => {
-          toast.success("Branch created.", { description: `Code: ${code}` });
+          toast.add({
+            type: "success",
+            title: "Branch created.",
+            description: `Code: ${code}`,
+          });
           router.refresh();
         }}
       />

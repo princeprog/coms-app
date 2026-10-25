@@ -31,7 +31,9 @@ describe("table page sizes", () => {
       );
       await user.click(screen.getByRole("combobox", { name: "Rows per page" }));
       expect(
-        screen.getAllByRole("option").map((option) => option.textContent),
+        (await screen.findAllByRole("option")).map(
+          (option) => option.textContent,
+        ),
       ).toEqual(["10", "30", "50"]);
       await user.click(screen.getByRole("option", { name: "30" }));
       const [href, options] = replace.mock.calls[0];

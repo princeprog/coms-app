@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +32,10 @@ export function CategoryEditor({
   const [discard, setDiscard] = useState(false);
   const dirty = name !== (record?.name ?? "");
   const mutation = useCategorySave(() => {
-    toast.success(record ? "Category saved." : "Category created.");
+    toast.add({
+      type: "success",
+      title: record ? "Category saved." : "Category created.",
+    });
     onClose();
   });
   useEffect(() => {

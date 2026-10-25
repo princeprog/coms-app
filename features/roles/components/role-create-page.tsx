@@ -7,7 +7,7 @@ import { RoleDiscardConfirmation } from "@/features/roles/components/role-discar
 import { RoleWorkspace } from "@/features/roles/components/role-workspace";
 import { useRoleDraftGuard } from "@/features/roles/hooks/use-role-draft-guard";
 import type { Permission } from "@/features/roles/types/role.types";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 export function RoleCreatePage({ permissions }: { permissions: Permission[] }) {
   const router = useRouter();
@@ -29,7 +29,7 @@ export function RoleCreatePage({ permissions }: { permissions: Permission[] }) {
         onPendingChange={setPending}
         onComplete={() => {
           setDirty(false);
-          toast.success("Role created.");
+          toast.add({ type: "success", title: "Role created." });
           router.push("/roles");
         }}
       />

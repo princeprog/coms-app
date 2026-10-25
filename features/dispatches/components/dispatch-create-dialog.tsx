@@ -130,9 +130,7 @@ export function DispatchCreateDialog({
             onDirtyChange={setDirty}
             onCancel={requestClose}
             onCreated={(id) => {
-              toast.add({
-                title: "Dispatch sent",
-              });
+              toast.add({ type: "success", title: "Dispatch sent" });
               setDirty(false);
               closeDialog();
               router.push(`/dispatches/${id}`);

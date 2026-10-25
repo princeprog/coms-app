@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ThemeSelector } from "@/components/shared/theme-selector";
 import { cn } from "cn";
 
 import { LoginForm } from "@/features/auth/components/login-form/login-form";
@@ -27,7 +28,10 @@ const backgrounds = [
 
 export function LoginPage() {
   return (
-    <main className="relative isolate flex min-h-svh items-center justify-center overflow-hidden bg-background px-4 py-8 text-foreground sm:px-6">
+    <main className="relative isolate flex min-h-svh items-center justify-center overflow-hidden bg-background px-4 py-20 text-foreground sm:px-6">
+      <div className="absolute top-4 right-4 z-20 rounded-lg bg-background/90">
+        <ThemeSelector />
+      </div>
       {backgrounds.map((background) => (
         <Image
           key={background.src}

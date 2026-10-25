@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeSelector } from "@/components/shared/theme-selector";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -12,7 +13,6 @@ import { ChangePasswordForm } from "@/features/auth/components/change-password-f
 import { SessionRecovery } from "@/features/auth/components/session-recovery";
 import { getCurrentUserFromServer } from "@/features/auth/services/auth-server";
 import { AuthQueryProvider } from "@/features/auth/components/auth-query-provider";
-import { Toaster } from "@/components/ui/toast";
 
 export default async function ChangePasswordPage() {
   const session = await getCurrentUserFromServer();
@@ -22,7 +22,10 @@ export default async function ChangePasswordPage() {
     return <AuthServiceError context="dashboard" />;
   const required = session.user.must_change_password === true;
   return (
-    <main className="flex min-h-svh items-center justify-center bg-muted/40 px-4 py-8">
+    <main className="relative flex min-h-svh items-center justify-center bg-muted/40 px-4 py-20">
+      <div className="absolute top-4 right-4 z-20 rounded-lg bg-background/90">
+        <ThemeSelector />
+      </div>
       <Card className="w-full max-w-md shadow-xl shadow-foreground/5">
         <CardHeader className="gap-2 px-6 pt-8 sm:px-10">
           {!required && (
@@ -49,7 +52,6 @@ export default async function ChangePasswordPage() {
           </AuthQueryProvider>
         </CardContent>
       </Card>
-      <Toaster />
     </main>
   );
 }

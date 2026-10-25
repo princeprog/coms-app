@@ -8,6 +8,10 @@ vi.mock("next/navigation", () => ({
   usePathname: () => navigationState.pathname,
 }));
 
+vi.mock("@/features/shifts/components/shift-header-control", () => ({
+  ShiftHeaderControl: () => null,
+}));
+
 vi.mock("@/components/ui/sidebar", async () => {
   const React = await import("react");
   return {
@@ -40,6 +44,7 @@ describe("SiteHeader route titles", () => {
     render(<SiteHeader />);
 
     expect(screen.getByRole("heading", { name: title })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Change theme" })).toBeTruthy();
   });
 });
 

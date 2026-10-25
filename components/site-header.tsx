@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeSelector } from "@/components/shared/theme-selector";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
@@ -80,7 +81,7 @@ export function SiteHeader({ user }: { user?: User }) {
           className="mx-2 h-4 data-vertical:self-auto"
         />
         {productFormTitle ? (
-          <Breadcrumb>
+          <Breadcrumb className="min-w-0 flex-1 overflow-hidden">
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink render={<Link href="/products" />}>
@@ -94,17 +95,22 @@ export function SiteHeader({ user }: { user?: User }) {
             </BreadcrumbList>
           </Breadcrumb>
         ) : (
-          <h1 className="text-base font-medium">{getPageTitle(pathname)}</h1>
+          <h1 className="min-w-0 truncate text-base font-medium">
+            {getPageTitle(pathname)}
+          </h1>
         )}
-        {user?.role?.isActive && (
-          <div className="ml-auto flex items-center gap-2">
-            {hasPermission(user, "shifts.operate") &&
-              !isProtectedSuperAdmin(user) && <ShiftHeaderControl />}
-            <NotificationBell key={pathname} userId={user.id} />
-            <NotificationArrival userId={user.id} />
-            <NotificationSound key={user.id} userId={user.id} />
-          </div>
-        )}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {user?.role?.isActive && (
+            <>
+              {hasPermission(user, "shifts.operate") &&
+                !isProtectedSuperAdmin(user) && <ShiftHeaderControl />}
+              <NotificationBell key={pathname} userId={user.id} />
+              <NotificationArrival userId={user.id} />
+              <NotificationSound key={user.id} userId={user.id} />
+            </>
+          )}
+          <ThemeSelector />
+        </div>
       </div>
     </header>
   );

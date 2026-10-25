@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { format } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { BranchesManagement } from "./branches-management";
 import {
   createBranchAction,
@@ -30,12 +30,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
 }));
 
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn() },
-}));
-
-vi.mock("@/components/ui/sonner", () => ({
-  Toaster: () => null,
+vi.mock("@/components/ui/toast", () => ({
+  toast: { add: vi.fn() },
 }));
 
 const branches = {
@@ -75,7 +71,7 @@ describe("branch management", () => {
     vi.mocked(createBranchAction).mockReset();
     vi.mocked(deactivateBranchAction).mockReset();
     vi.mocked(updateBranchAction).mockReset();
-    vi.mocked(toast.success).mockReset();
+    vi.mocked(toast.add).mockReset();
   });
 
   it("shows a compact table and opens editing only from the row action", async () => {
@@ -135,7 +131,9 @@ describe("branch management", () => {
       has_dine_in: true,
       has_takeaway: true,
     });
-    expect(toast.success).toHaveBeenCalledWith("Branch created.", {
+    expect(toast.add).toHaveBeenCalledWith({
+      type: "success",
+      title: "Branch created.",
       description: "Code: BR-0123456789ABCDEF",
     });
   });
@@ -198,7 +196,7 @@ describe("branch management", () => {
       "value",
       "Manila South",
     );
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.add).not.toHaveBeenCalled();
   });
 
   it("confirms before discarding a dirty branch creation draft", async () => {

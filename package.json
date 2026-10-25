@@ -42,7 +42,7 @@
     "react-resizable-panels": "^4.13.2",
     "recharts": "3.8.0",
     "shadcn": "latest",
-    "sonner": "^1.7.4",
+    "sileo": "0.1.6",
     "tailwind-merge": "^3.7.0",
     "tw-animate-css": "latest",
     "vaul": "^1.1.2",

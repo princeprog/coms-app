@@ -8,3 +8,6 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+patchedDependencies:
+  sileo@0.1.6: patches/sileo@0.1.6.patch

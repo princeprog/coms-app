@@ -95,12 +95,9 @@ describe("dispatch management", () => {
       />,
     );
     await user.click(screen.getByRole("combobox", { name: "Rows per page" }));
-    expect(screen.getAllByRole("option").map((el) => el.textContent)).toEqual([
-      "10",
-      "20",
-      "30",
-      "50",
-    ]);
+    expect(
+      (await screen.findAllByRole("option")).map((el) => el.textContent),
+    ).toEqual(["10", "20", "30", "50"]);
     await user.click(screen.getByRole("option", { name: "30" }));
     expect(replace).toHaveBeenLastCalledWith(
       "/dispatches?page_size=30&status=IN_TRANSIT&search=Main",

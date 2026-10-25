@@ -1,5 +1,7 @@
 # COMS frontend
 
+Shared notifications and appearance: [Sileo toasts and theme controls](docs/toasts-and-theme.md).
+
 Current product workflow: [Products and Branch Menu](docs/simple-products.md). Super Admin sets one price and branch availability in one product form. Earlier recipe, usage, pricing, template and request workflows are retired.
 
 ## Local authentication setup

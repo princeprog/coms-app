@@ -1,0 +1,117 @@
+/* Scoped overrides: Sileo injects unlayered CSS, so these selectors intentionally
+   outrank its defaults without changing other COMS overlays. */
+html [data-sileo-viewport][data-position="bottom-right"] {
+  --sileo-width: min(
+    350px,
+    calc(100vw - 2rem - env(safe-area-inset-left) - env(safe-area-inset-right))
+  );
+  --sileo-state-success: oklch(0.5 0.15 145);
+  --sileo-state-error: oklch(0.55 0.2 25);
+  --sileo-state-warning: oklch(0.5 0.12 80);
+  --sileo-state-info: oklch(0.5 0.14 245);
+  right: calc(1rem + env(safe-area-inset-right));
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  padding: 0;
+  max-width: var(--sileo-width);
+  max-height: calc(
+    100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+  z-index: 100;
+  font-family: var(--font-sans), sans-serif;
+}
+
+html.dark [data-sileo-viewport] {
+  --sileo-state-success: oklch(0.78 0.17 145);
+  --sileo-state-error: oklch(0.75 0.16 25);
+  --sileo-state-warning: oklch(0.82 0.16 80);
+  --sileo-state-info: oklch(0.77 0.13 245);
+}
+
+html [data-sileo-viewport] [data-sileo-toast] {
+  flex-shrink: 0;
+  color: var(--popover-foreground);
+  cursor: default;
+  border-radius: 1rem;
+}
+
+html [data-sileo-viewport] [data-sileo-canvas] {
+  filter: drop-shadow(
+    0 2px 6px color-mix(in oklch, var(--foreground) 15%, transparent)
+  );
+}
+
+html [data-sileo-viewport] [data-sileo-title] {
+  color: var(--popover-foreground);
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+html [data-sileo-viewport] [data-sileo-header] {
+  padding-right: 2.5rem;
+}
+
+html [data-sileo-viewport] [data-sileo-header-stack],
+html [data-sileo-viewport] [data-sileo-header-inner] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+html [data-sileo-viewport][data-theme] [data-sileo-description] {
+  color: var(--popover-foreground);
+  overflow-wrap: anywhere;
+  max-height: min(
+    16rem,
+    calc(
+      (
+          100dvh - 12rem - env(safe-area-inset-top) -
+            env(safe-area-inset-bottom)
+        ) /
+        3
+    )
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+html [data-sileo-viewport] [data-sileo-close] {
+  position: absolute;
+  z-index: 30;
+  right: 0.25rem;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+html [data-sileo-viewport] [data-edge="top"] > [data-sileo-close] {
+  bottom: 0.25rem;
+}
+html [data-sileo-viewport] [data-edge="bottom"] > [data-sileo-close] {
+  top: 0.25rem;
+}
+html [data-sileo-viewport] [data-sileo-close]:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+html [data-sileo-viewport] :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html [data-sileo-viewport] *,
+  html [data-sileo-viewport] *::before,
+  html [data-sileo-viewport] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
