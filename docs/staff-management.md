@@ -10,7 +10,7 @@ Password reset opens its confirmation directly, then shows the temporary passwor
 
 ## New staff and default password
 
-Super Admin sets the shared onboarding password using **Staff → Default password**. The modal asks for a new default and confirmation (12–128 characters), keeps failed drafts, prevents duplicate saves, and clears entered passwords when closed. No saved password is displayed; share it with new staff privately. Only Super Admin may change this global setting.
+Super Admin sets the shared onboarding password using **Staff → Default password**. The modal asks for a new default and confirmation (1–128 characters), keeps failed drafts, prevents duplicate saves, and clears entered passwords when closed. No saved password is displayed; share it with new staff privately. Only Super Admin may change this global setting.
 
 Add staff asks for identity, role and branch assignments, with no password input. Set the default once before creating accounts; if settings cannot be loaded, retry before creating. The API always enforces this prerequisite. Changes affect accounts created afterward, including unassigned staff, without resetting existing accounts or changing the separate Reset password action.
 

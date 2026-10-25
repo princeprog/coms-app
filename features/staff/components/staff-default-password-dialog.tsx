@@ -111,8 +111,8 @@ function DefaultPasswordForm({
             if (mutation.isPending) return;
             const found = {
               password:
-                password.length < 12 || password.length > 128
-                  ? "Use 12 to 128 characters."
+                password.length < 1 || password.length > 128
+                  ? "Use 1 to 128 characters."
                   : undefined,
               confirm:
                 confirm !== password ? "The passwords don't match." : undefined,

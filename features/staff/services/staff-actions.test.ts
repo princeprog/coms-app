@@ -21,6 +21,7 @@ import {
   assignStaffBranchesAction,
   assignStaffRoleAction,
   createStaffAction,
+  setStaffDefaultPasswordAction,
   deactivateStaffAction,
   updateStaffAction,
 } from "@/features/staff/services/staff-actions";
@@ -29,6 +30,22 @@ const staffId = "4b450453-7640-4719-990c-29e97b77e3e9";
 const branchId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 
 describe("staff actions", () => {
+  it("accepts a one-character default and rejects empty or oversized defaults", async () => {
+    await expect(
+      setStaffDefaultPasswordAction({ password: "" }),
+    ).resolves.toMatchObject({ ok: false });
+    await expect(
+      setStaffDefaultPasswordAction({ password: "x".repeat(129) }),
+    ).resolves.toMatchObject({ ok: false });
+    expect(requestComsApiMock).not.toHaveBeenCalled();
+    await expect(
+      setStaffDefaultPasswordAction({ password: "x" }),
+    ).resolves.toEqual({ ok: true });
+    expect(requestComsApiMock).toHaveBeenCalledWith(
+      "/staff/default-password",
+      expect.objectContaining({ method: "PUT", body: { password: "x" } }),
+    );
+  });
   beforeEach(() => {
     requestComsApiMock.mockReset();
     requestComsApiMock.mockResolvedValue(undefined);

@@ -73,7 +73,7 @@ export const assignStaffBranchesSchema = z
   .strict();
 
 export const defaultPasswordSchema = z
-  .object({ password: z.string().min(12).max(128) })
+  .object({ password: z.string().min(1).max(128) })
   .strict();
 export const defaultPasswordStatusSchema = z
   .object({

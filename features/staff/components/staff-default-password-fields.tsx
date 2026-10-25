@@ -60,7 +60,7 @@ export function StaffDefaultPasswordFields({
           }
         >
           {errors.password ??
-            "12–128 characters. The saved password cannot be viewed."}
+            "1–128 characters. The saved password cannot be viewed."}
         </p>
       </Field>
       <Field className="gap-2">

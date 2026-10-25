@@ -1989,10 +1989,10 @@ function createOperationalApiFixture({
         if (
           request.method === "PUT" &&
           (typeof body?.password !== "string" ||
-            body.password.length < 12 ||
+            body.password.length < 1 ||
             body.password.length > 128)
         ) {
-          return send(response, 400, { message: "Use 12 to 128 characters." });
+          return send(response, 400, { message: "Use 1 to 128 characters." });
         }
         if (request.method === "PUT") defaultPasswordConfigured = true;
         return send(response, 200, {

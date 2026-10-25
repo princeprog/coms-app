@@ -157,7 +157,7 @@ export async function setStaffDefaultPasswordAction(
   if (!parsed.success)
     return {
       ok: false,
-      error: "Use 12 to 128 characters for the default password.",
+      error: "Use 1 to 128 characters for the default password.",
     };
   return mutateStaff("PUT", staffEndpoints.defaultPassword, parsed.data);
 }

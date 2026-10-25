@@ -28,7 +28,7 @@ async function open() {
 describe("default staff password", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("validates length and matching confirmation before saving", async () => {
+  it("requires matching confirmation before saving", async () => {
     const user = await open();
     await user.type(screen.getByLabelText("New default password"), "short");
     await user.type(
@@ -38,11 +38,10 @@ describe("default staff password", () => {
     await user.click(
       screen.getByRole("button", { name: "Save default password" }),
     );
-    expect(screen.getByText("Use 12 to 128 characters.")).toBeTruthy();
     expect(screen.getByText("The passwords don't match.")).toBeTruthy();
     expect(setStaffDefaultPasswordAction).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(
-      screen.getByLabelText("New default password"),
+      screen.getByLabelText("Confirm default password"),
     );
   });
 
@@ -55,7 +54,7 @@ describe("default staff password", () => {
           finish = resolve;
         }),
     );
-    const password = "Synthetic default password 1!";
+    const password = "x";
     await user.type(screen.getByLabelText("New default password"), password);
     await user.type(
       screen.getByLabelText("Confirm default password"),
