@@ -1,7 +1,18 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { LoaderCircle, Search, X } from "lucide-react";
+import {
+  ArrowDownAZ,
+  ArrowUpZA,
+  CalendarArrowDown,
+  CalendarArrowUp,
+  LayoutGrid,
+  LoaderCircle,
+  Search,
+  ShoppingBag,
+  Utensils,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
@@ -14,6 +25,47 @@ import { DirectorySelect } from "@/components/shared/directory-select";
 import { useDirectoryQuery } from "@/hooks/use-directory-query";
 import { branchDirectoryHref } from "../services/branch-directory-params";
 import type { BranchDirectoryFilters } from "../types/branch.types";
+
+const serviceOptions = [
+  {
+    value: "all",
+    label: "All services",
+    icon: <LayoutGrid className="text-violet-600" />,
+  },
+  {
+    value: "DINE_IN",
+    label: "Dine-in",
+    icon: <Utensils className="text-orange-600" />,
+  },
+  {
+    value: "TAKEAWAY",
+    label: "Takeout",
+    icon: <ShoppingBag className="text-sky-600" />,
+  },
+];
+
+const sortOptions = [
+  {
+    value: "name_asc",
+    label: "Name A–Z",
+    icon: <ArrowDownAZ className="text-blue-600" />,
+  },
+  {
+    value: "name_desc",
+    label: "Name Z–A",
+    icon: <ArrowUpZA className="text-indigo-600" />,
+  },
+  {
+    value: "opened_desc",
+    label: "Recently opened",
+    icon: <CalendarArrowDown className="text-emerald-600" />,
+  },
+  {
+    value: "opened_asc",
+    label: "Earliest opened",
+    icon: <CalendarArrowUp className="text-amber-600" />,
+  },
+];
 
 export function BranchDirectoryControls({
   filters,
@@ -101,12 +153,9 @@ export function BranchDirectoryControls({
           <DirectorySelect
             id="branch-service"
             label="Service"
+            alignItemWithTrigger={false}
             value={filters.service_type || "all"}
-            options={[
-              { value: "all", label: "All services" },
-              { value: "DINE_IN", label: "Dine-in" },
-              { value: "TAKEAWAY", label: "Takeout" },
-            ]}
+            options={serviceOptions}
             onChange={(next) =>
               query.apply({
                 service_type:
@@ -119,13 +168,9 @@ export function BranchDirectoryControls({
           <DirectorySelect
             id="branch-sort"
             label="Sort by"
+            alignItemWithTrigger={false}
             value={filters.sort}
-            options={[
-              { value: "name_asc", label: "Name A–Z" },
-              { value: "name_desc", label: "Name Z–A" },
-              { value: "opened_desc", label: "Recently opened" },
-              { value: "opened_asc", label: "Earliest opened" },
-            ]}
+            options={sortOptions}
             onChange={(next) =>
               query.apply({ sort: next as BranchDirectoryFilters["sort"] })
             }
