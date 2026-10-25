@@ -18,6 +18,18 @@ export function ShiftFacts({ shift }: { shift: ShiftReport }) {
     { label: "Branch", value: shift.branch_name || "—" },
     { label: "Business day", value: businessDayLabel(shift.business_date) },
     { label: "Cashier", value: shift.opened_by_name },
+    ...(shift.schedule_status === "SCHEDULED" ||
+    shift.schedule_status === "UNSCHEDULED"
+      ? [
+          {
+            label: "Schedule",
+            value:
+              shift.schedule_status === "SCHEDULED"
+                ? `Scheduled for ${shift.scheduled_shift_name ?? "a shift"}`
+                : "Opened outside their schedule",
+          },
+        ]
+      : []),
     { label: "Opened", value: <When value={shift.opened_at} /> },
     {
       label: "Closed",

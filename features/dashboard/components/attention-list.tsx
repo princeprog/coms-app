@@ -2,6 +2,8 @@ import Link from "next/link";
 import {
   AlertTriangle,
   Banknote,
+  CalendarClock,
+  CalendarX2,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
@@ -45,6 +47,8 @@ const icons: Record<AttentionKey, ReactNode> = {
   shifts_to_review: <UserCheck />,
   dispatches_draft: <FilePen />,
   deliveries_in_transit: <Truck />,
+  register_not_opened: <CalendarClock />,
+  register_opened_unscheduled: <CalendarX2 />,
 };
 
 const toneStyles: Record<AttentionTone, string> = {

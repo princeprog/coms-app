@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DirectorySelect } from "@/components/shared/directory-select";
 import { toast } from "@/components/ui/toast";
+import { ScheduledShiftNote } from "@/features/schedules/components/scheduled-shift-note";
 import { shiftHref } from "../constants";
 import { useCurrentShift } from "../hooks/use-current-shift";
 import { useMyShift } from "../hooks/use-my-shift";
@@ -171,18 +172,21 @@ export function StartShiftView({
             </Link>
           </div>
         ) : (
-          <CashCountField
-            id="start-shift-cash"
-            label="Opening cash"
-            value={amount}
-            onChange={(value) => {
-              setAmount(value);
-              setError("");
-            }}
-            error={error}
-            disabled={pending}
-            autoFocus
-          />
+          <>
+            <ScheduledShiftNote branchId={branchId} />
+            <CashCountField
+              id="start-shift-cash"
+              label="Opening cash"
+              value={amount}
+              onChange={(value) => {
+                setAmount(value);
+                setError("");
+              }}
+              error={error}
+              disabled={pending}
+              autoFocus
+            />
+          </>
         )}
         <Button
           type="submit"

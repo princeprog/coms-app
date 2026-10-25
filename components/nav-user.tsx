@@ -17,7 +17,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { EllipsisVerticalIcon, BellIcon, KeyRoundIcon } from "lucide-react";
+import {
+  EllipsisVerticalIcon,
+  BellIcon,
+  CalendarDaysIcon,
+  KeyRoundIcon,
+} from "lucide-react";
 import { LogoutMenuItem } from "@/features/auth/components/logout-menu-item";
 
 export function NavUser({
@@ -79,6 +84,10 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem render={<Link href="/my-schedule" />}>
+                <CalendarDaysIcon />
+                My schedule
+              </DropdownMenuItem>
               <DropdownMenuItem render={<Link href="/notifications" />}>
                 <BellIcon />
                 Notifications

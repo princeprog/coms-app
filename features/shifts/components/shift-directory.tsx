@@ -26,7 +26,7 @@ export function ShiftDirectory({
     <div data-coms-ui="operational" className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Shifts</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Cash shifts</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Register shifts, cash counts and manager reviews.
           </p>

@@ -52,9 +52,12 @@ export function attentionExampleHref(item: DashboardAttention) {
   )
     return `/dispatches/${sample.record_id}`;
   if (
-    ["shifts_open_past_day", "cash_shortages", "shifts_to_review"].includes(
-      item.key,
-    ) &&
+    [
+      "shifts_open_past_day",
+      "cash_shortages",
+      "shifts_to_review",
+      "register_opened_unscheduled",
+    ].includes(item.key) &&
     branch
   )
     return shiftHref(branch, sample.record_id);

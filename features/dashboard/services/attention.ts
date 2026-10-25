@@ -144,6 +144,28 @@ export const attentionConfig: Record<AttentionKey, AttentionConfig> = {
     path: "/dispatches?receiving_status=AWAITING_COUNT",
     branchParam: "branch_id",
   },
+  register_not_opened: {
+    label: (n) =>
+      plural(
+        n,
+        "Scheduled shift started, register still closed",
+        "Scheduled shifts started, registers still closed",
+      ),
+    tone: "warning",
+    path: "/schedules",
+    branchParam: "branch",
+  },
+  register_opened_unscheduled: {
+    label: (n) =>
+      plural(
+        n,
+        "Register opened by someone not on the schedule",
+        "Registers opened by people not on the schedule",
+      ),
+    tone: "info",
+    path: "/shifts",
+    branchParam: "branch",
+  },
 };
 
 const toneOrder: Record<AttentionTone, number> = {

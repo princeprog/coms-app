@@ -35,6 +35,11 @@ export const shiftSchema = z.object({
   business_day_ends_at: z.string(),
   business_day_ended: z.boolean(),
   sales_count: z.number().int().nonnegative(),
+  schedule_status: z
+    .enum(["SCHEDULED", "UNSCHEDULED", "NO_SCHEDULE"])
+    .nullable()
+    .default(null),
+  scheduled_shift_name: z.string().nullable().default(null),
 });
 
 export const shiftDetailSchema = shiftSchema.extend({

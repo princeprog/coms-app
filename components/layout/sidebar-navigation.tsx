@@ -6,6 +6,7 @@ import type { User } from "@/features/auth/types/auth.types";
 
 import {
   BoxesIcon,
+  CalendarDaysIcon,
   CalendarClockIcon,
   ClockIcon,
   CoinsIcon,
@@ -107,7 +108,13 @@ export const navItems = [
     icon: <StoreIcon className="text-cyan-600 dark:text-cyan-400" />,
   },
   {
-    title: "Shifts",
+    title: "Schedules",
+    url: "/schedules",
+    permission: "schedules.read",
+    icon: <CalendarDaysIcon className="text-teal-600 dark:text-teal-400" />,
+  },
+  {
+    title: "Cash shifts",
     url: "/shifts",
     permission: "shifts.read",
     icon: <ClockIcon className="text-orange-600 dark:text-orange-400" />,
@@ -185,7 +192,14 @@ export const sidebarNavigationGroups = [
   },
   {
     title: "Products & Sales",
-    urls: ["/products", "/branch-products", "/pos", "/shifts", "/reports"],
+    urls: [
+      "/products",
+      "/branch-products",
+      "/pos",
+      "/schedules",
+      "/shifts",
+      "/reports",
+    ],
   },
   {
     title: "Administration",

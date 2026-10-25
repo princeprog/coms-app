@@ -97,7 +97,14 @@ export function ShiftTable({
                     {businessDayLabel(shift.business_date)}
                   </span>
                 </TableCell>
-                <TableCell>{shift.opened_by_name}</TableCell>
+                <TableCell>
+                  {shift.opened_by_name}
+                  {shift.schedule_status === "UNSCHEDULED" && (
+                    <span className="mt-0.5 block w-fit rounded-md border border-amber-300 bg-amber-50 px-1.5 py-px text-xs font-medium text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
+                      Not on schedule
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell className="tabular-nums">
                   {shiftDateTime(shift.opened_at)}
                 </TableCell>

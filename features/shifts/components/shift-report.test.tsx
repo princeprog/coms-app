@@ -20,6 +20,8 @@ function shift(overrides: Partial<ShiftReport>): ShiftReport {
     opened_by_user_id: id,
     opened_by_name: "Ana Reyes",
     opened_at: "2026-10-22T01:00:00.000Z",
+    schedule_status: null,
+    scheduled_shift_name: null,
     opening_float: "1500",
     expected_opening_float: "1500",
     opening_difference: "0",
