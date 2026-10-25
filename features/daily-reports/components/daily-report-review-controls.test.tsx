@@ -335,7 +335,7 @@ describe("daily report review controls", () => {
     ).toBeTruthy();
     expect(approveAction).not.toHaveBeenCalled();
     await user.click(
-      screen.getByRole("button", { name: "Approve and reconcile" }),
+      screen.getByRole("button", { name: "Approve", exact: true }),
     );
 
     await waitFor(() =>

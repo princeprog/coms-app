@@ -42,7 +42,7 @@ export function DailyReportApprovalControl({
             disabled={pending || disabled}
             onClick={onConfirm}
           >
-            {pending ? "Approving…" : "Approve and reconcile"}
+            {pending ? "Approving…" : "Approve"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
