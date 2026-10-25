@@ -4,6 +4,13 @@ Deploy this repository as the existing `coms-app` project with the Next.js
 framework preset and Node.js 24.x. Functions run in Sydney beside coms-api
 and its Supabase database.
 
+`vercel.json` installs and builds with pnpm 11.8.0, the version that wrote the
+lockfile. Vercel otherwise picks pnpm 9 or 10 from the lockfile format; those
+reject the patched `sileo` dependency declared in `pnpm-workspace.yaml`
+(`ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`) and the deployment fails during install.
+Keep `packageManager`, `vercel.json` and the local pnpm version in step. The
+build also generates `public/sw.js` and the offline shell after `next build`.
+
 Configure these server-only variables for **Production** in Vercel:
 
 | Variable                   | Value                                            |
