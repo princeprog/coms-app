@@ -16,6 +16,10 @@ Toasts appear at the bottom right with safe-area gutters, show three at a time a
 
 The shared theme selector appears beside the header bell and at the top right of sign-in and password-change screens. Light, Dark and System choices use next-themes' existing `theme` localStorage preference. System is the default and follows the OS; explicit choices override it. Selection closes the menu and returns focus. The former D shortcut has been removed. This is a browser-local preference, not an account setting.
 
+## Development preview
+
+The authenticated header includes a Test toast button only when `process.env.NODE_ENV === "development"`. It triggers a sample success message through the shared adapter without any API or data mutation. The control uses a compact flask icon on small screens and is absent in production and test environments. Run `pnpm dev` to use it; no public environment variable or preference can enable it in production.
+
 ## Pinned Sileo compatibility patch
 
 Sileo is pinned to 0.1.6 in package.json. pnpm-workspace.yaml applies `patches/sileo@0.1.6.patch` on every install. Both ESM/CommonJS entrypoints and declarations are patched. The patch supplies independent IDs, a `visibleToasts` queue limit, remaining-time accounting, responsive SVG measurement from untransformed layout width (so entrance scaling cannot clip the surface or leave the close button outside it), keyboard/focus support, a close button, semantic markup, 300 ms SVG motion without bounce, and reduced SVG motion. COMS overrides in `app/toast.css` outrank the package's injected styles and provide the fixed palette, coordinated easing, sizing, safe-area placement and focus states.

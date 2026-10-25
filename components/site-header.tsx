@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeSelector } from "@/components/shared/theme-selector";
+import { ToastPreviewButton } from "@/components/shared/toast-preview-button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
@@ -100,6 +101,7 @@ export function SiteHeader({ user }: { user?: User }) {
           </h1>
         )}
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          <ToastPreviewButton />
           {user?.role?.isActive && (
             <>
               {hasPermission(user, "shifts.operate") &&

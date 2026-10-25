@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { toast } from "@/components/ui/toast";
+
+vi.mock("@/components/ui/toast", () => ({ toast: { add: vi.fn() } }));
+afterEach(() => vi.unstubAllEnvs());
 
 const navigationState = vi.hoisted(() => ({ pathname: "/dashboard" }));
 
@@ -31,7 +36,30 @@ import { SiteHeader } from "./site-header";
 describe("SiteHeader route titles", () => {
   beforeEach(() => {
     navigationState.pathname = "/dashboard";
+    vi.mocked(toast.add).mockClear();
   });
+
+  it("shows a working toast preview only in development", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const user = userEvent.setup();
+    render(<SiteHeader />);
+    await user.click(screen.getByRole("button", { name: "Test toast" }));
+    expect(toast.add).toHaveBeenCalledExactlyOnceWith({
+      type: "success",
+      title: "Test notification",
+      description: "This is how notifications appear in COMS.",
+    });
+  });
+
+  it.each(["production", "test"])(
+    "hides toast testing in %s",
+    (environment) => {
+      vi.stubEnv("NODE_ENV", environment);
+      render(<SiteHeader />);
+      expect(screen.queryByRole("button", { name: "Test toast" })).toBeNull();
+      expect(toast.add).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     ["/dashboard", "Dashboard"],

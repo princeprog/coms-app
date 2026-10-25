@@ -86,6 +86,11 @@ async function theme(name) {
   await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await page.waitForURL(/dashboard/);
   await page.goto(base + "/staff");
+  assert.equal(
+    await page.getByRole("button", { name: "Test toast", exact: true }).count(),
+    0,
+    "Toast preview must not ship in production",
+  );
   await page.getByRole("button", { name: "Add staff", exact: true }).click();
   const create = page.getByRole("dialog", { name: "Add staff", exact: true });
   await create
