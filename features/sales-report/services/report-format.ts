@@ -10,6 +10,65 @@ export {
 
 const DAY_MS = 86_400_000;
 
+/** Whole pesos for chart labels, e.g. ₱3,718. */
+export function roundedPeso(value: number) {
+  const amount = `₱${Math.round(Math.abs(value)).toLocaleString("en-PH")}`;
+  return value < 0 ? `−${amount}` : amount;
+}
+
+/** Most categories a chart shows before folding the rest into "Other". */
+export const CATEGORY_SLICE_LIMIT = 8;
+
+export type CategorySlice = {
+  key: string;
+  name: string;
+  value: number;
+  netSales: string;
+  share: string | null;
+  other: boolean;
+};
+
+/** Category rows as chart slices, folding the smallest into "Other". */
+export function categorySlices(
+  rows: SalesReport["by_category"],
+): CategorySlice[] {
+  const slice = (
+    row: SalesReport["by_category"][number],
+    index: number,
+  ): CategorySlice => ({
+    key: `category-${index}`,
+    name: row.name,
+    value: Number(row.net_sales),
+    netSales: row.net_sales,
+    share: row.share_percent,
+    other: false,
+  });
+  if (rows.length <= CATEGORY_SLICE_LIMIT) return rows.map(slice);
+  const kept = rows.slice(0, CATEGORY_SLICE_LIMIT - 1);
+  const rest = rows.slice(CATEGORY_SLICE_LIMIT - 1);
+  const cents = rest.reduce(
+    (sum, row) => sum + Math.round(Number(row.net_sales) * 100),
+    0,
+  );
+  const share = rest.reduce(
+    (sum, row) => sum + Number(row.share_percent ?? 0),
+    0,
+  );
+  return [
+    ...kept.map(slice),
+    {
+      key: "category-other",
+      name: `Other (${rest.length})`,
+      value: cents / 100,
+      netSales: (cents / 100).toFixed(2),
+      share: rest.every((row) => row.share_percent === null)
+        ? null
+        : String(Math.round(share * 10) / 10),
+      other: true,
+    },
+  ];
+}
+
 export function serviceLabel(value: string) {
   return value === "DINE_IN"
     ? "Dine-in"

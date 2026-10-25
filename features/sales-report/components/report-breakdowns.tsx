@@ -1,41 +1,16 @@
 import type { SalesReport } from "../schemas/sales-report.schema";
 import { count, percent, peso, serviceLabel } from "../services/report-format";
+import { ReportCategoryChart } from "./report-category-chart";
 import { ReportShareList } from "./report-share-list";
+import { ReportTopProductsChart } from "./report-top-products-chart";
 
 const sales = (n: number) => `${count(n)} ${n === 1 ? "sale" : "sales"}`;
 
 export function ReportBreakdowns({ report }: { report: SalesReport }) {
-  const topSales = Math.max(
-    ...report.top_products.map((row) => Number(row.net_sales)),
-    0,
-  );
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <ReportShareList
-        id="report-products"
-        color="orange"
-        title="Top products"
-        rows={report.top_products.map((row, index) => ({
-          key: row.product_id,
-          name: `${index + 1}. ${row.name}`,
-          detail: `${count(row.quantity)} sold${report.show_costs ? ` · ${peso(row.gross_profit)} profit` : ""}`,
-          value: peso(row.net_sales),
-          share: topSales ? (Number(row.net_sales) / topSales) * 100 : 0,
-        }))}
-      />
-      <ReportShareList
-        id="report-categories"
-        color="violet"
-        title="Categories"
-        rows={report.by_category.map((row) => ({
-          key: row.name,
-          name: row.name,
-          detail: `${count(row.quantity)} sold`,
-          value: peso(row.net_sales),
-          share: Number(row.share_percent ?? 0),
-          shareLabel: percent(row.share_percent),
-        }))}
-      />
+      <ReportTopProductsChart report={report} />
+      <ReportCategoryChart report={report} />
       <ReportShareList
         id="report-payments"
         color="sky"

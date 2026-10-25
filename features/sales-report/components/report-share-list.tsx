@@ -1,9 +1,8 @@
 import { cn } from "@/lib/utils";
+import { ReportPanel, ReportPanelEmpty } from "./report-panel";
 
 // Each breakdown gets its own hue so sections read apart at a glance.
 const barColors = {
-  orange: "bg-orange-500 dark:bg-orange-400",
-  violet: "bg-violet-500 dark:bg-violet-400",
   sky: "bg-sky-500 dark:bg-sky-400",
   emerald: "bg-emerald-500 dark:bg-emerald-400",
 } as const;
@@ -23,7 +22,7 @@ export function ReportShareList({
   id,
   title,
   rows,
-  color = "orange",
+  color = "sky",
   className,
 }: {
   id: string;
@@ -33,20 +32,9 @@ export function ReportShareList({
   className?: string;
 }) {
   return (
-    <section
-      aria-labelledby={id}
-      className={cn(
-        "flex min-w-0 flex-col rounded-xl border bg-card",
-        className,
-      )}
-    >
-      <h2 id={id} className="border-b px-4 py-3 font-semibold">
-        {title}
-      </h2>
+    <ReportPanel id={id} title={title} className={className}>
       {rows.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-muted-foreground">
-          No sales in this period.
-        </p>
+        <ReportPanelEmpty />
       ) : (
         <ul aria-label={title} className="flex flex-col gap-3 p-4">
           {rows.map((row) => (
@@ -87,6 +75,6 @@ export function ReportShareList({
           ))}
         </ul>
       )}
-    </section>
+    </ReportPanel>
   );
 }
