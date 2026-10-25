@@ -77,10 +77,11 @@ export function NotificationBell({ userId }: { userId: string }) {
         side="bottom"
         align="end"
         sideOffset={10}
-        className="w-96 max-w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0 motion-reduce:animate-none"
+        positionMethod="fixed"
+        className="max-h-(--available-height) w-96 max-w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0 motion-reduce:animate-none"
         data-coms-ui="operational"
       >
-        <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3">
           <PopoverTitle className="text-base">Notifications</PopoverTitle>
           <Button
             variant="ghost"
@@ -97,7 +98,7 @@ export function NotificationBell({ userId }: { userId: string }) {
           </Button>
         </div>
         <div
-          className="max-h-[min(32rem,65dvh)] overflow-y-auto overscroll-contain"
+          className="min-h-0 max-h-[min(32rem,65dvh)] overflow-y-auto overscroll-contain"
           aria-busy={list.isFetching}
         >
           {list.isError ? (
@@ -118,7 +119,7 @@ export function NotificationBell({ userId }: { userId: string }) {
             <NotificationEmpty />
           )}
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
           <NotificationSoundToggle userId={userId} />
           <Link
             href="/notifications"
